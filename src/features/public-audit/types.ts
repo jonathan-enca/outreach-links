@@ -11,6 +11,8 @@ export interface PublicAuditResult {
     rankedKeywords: number | null;
     pagesRanked: number;
     pagesTop10: number;
+    /** Aucune page classée (MA.4) : pas de score, requêtes issues du thème. Absent des anciens résultats. */
+    newSite?: boolean;
   };
   competitors: {
     domain: string;

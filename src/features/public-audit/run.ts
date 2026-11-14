@@ -104,6 +104,8 @@ export async function beginPublicAudit(service: Client, id: string): Promise<Pub
 export interface OwnKeywordsOut {
   ok: true;
   queries: string[];
+  /** Vrai si le site n'a aucun mot-clé classé : requêtes issues du thème saisi (MA.4). */
+  newSite: boolean;
   keywordsTotal: number | null;
   pagesRanked: number;
   pagesTop10: number;
@@ -160,14 +162,20 @@ export async function collectOwnKeywords(
 
   let queries = run.queries;
   if (run.queriesSource === "auto" || queries.length === 0) {
-    queries = deriveQueries(items, run.domain);
-    if (queries.length === 0) return { ok: false, code: "aucun_mot_cle" };
-    const upd = await service.from("public_audits").update({ queries }).eq("id", run.id);
-    if (upd.error) throw new Error(`collectOwnKeywords : ${upd.error.message}`);
+    const derived = deriveQueries(items, run.domain);
+    if (derived.length > 0) {
+      queries = derived;
+      const upd = await service.from("public_audits").update({ queries }).eq("id", run.id);
+      if (upd.error) throw new Error(`collectOwnKeywords : ${upd.error.message}`);
+    } else if (queries.length === 0) {
+      return { ok: false, code: "aucun_mot_cle" };
+    }
+    // Sinon : site neuf, on garde les requêtes de secours tirées du thème (déjà stockées).
   }
   return {
     ok: true,
     queries,
+    newSite: pages.length === 0,
     keywordsTotal: out.result?.total_count ?? null,
     pagesRanked: pages.length,
     pagesTop10: pages.filter((p) => p.bestPosition <= 10).length,
@@ -299,12 +307,16 @@ export function buildResult(
   const benchmarkMedian = median(
     input.links.map((l) => l.referringDomains).filter((n): n is number => n !== null),
   );
-  const score = computeScore({
-    ownReferringDomains: input.ownLinks.total,
-    benchmarkMedian,
-    pagesRanked: input.own.pagesRanked,
-    pagesTop10: input.own.pagesTop10,
-  });
+  // MA.4 : un site sans page classée n'a pas un « score 0 » mais n'est simplement pas classé.
+  const score =
+    input.own.pagesRanked === 0
+      ? null
+      : computeScore({
+          ownReferringDomains: input.ownLinks.total,
+          benchmarkMedian,
+          pagesRanked: input.own.pagesRanked,
+          pagesTop10: input.own.pagesTop10,
+        });
   return {
     version: 1,
     generatedAt: now.toISOString(),
@@ -316,6 +328,7 @@ export function buildResult(
       rankedKeywords: input.own.keywordsTotal,
       pagesRanked: input.own.pagesRanked,
       pagesTop10: input.own.pagesTop10,
+      newSite: input.own.pagesRanked === 0,
     },
     competitors: input.competitors.map((c) => ({
       ...c,

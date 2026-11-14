@@ -18,6 +18,7 @@ import {
   type PublicRun,
 } from "./run";
 import { computeScore } from "./score";
+import { nicheQueries, parseNiche } from "./niche";
 import { captureEmail, loadPublicAudit, parseQueries, startPublicAudit } from "./service";
 
 const ID = "11111111-1111-4111-8111-111111111111";
@@ -386,6 +387,7 @@ const link = (competitor: string, source: string, rank = 40): StoredBacklink => 
 const OWN: OwnKeywordsOut = {
   ok: true,
   queries: ["coloriage licorne"],
+  newSite: false,
   keywordsTotal: 120,
   pagesRanked: 4,
   pagesTop10: 1,
@@ -437,6 +439,98 @@ describe("buildResult", () => {
     expect(res.benchmarkMedian).toBe(300);
     expect(res.score?.value).toBe(Math.round(100 * (0.6 * (2 / 300) + 0.4 * 0.25)));
     expect(res.pages[0]?.neededEstimated).not.toBeNull();
+  });
+});
+
+describe("MA.4 : site neuf sans mot-clé classé", () => {
+  const NEW_OWN: OwnKeywordsOut = {
+    ok: true,
+    queries: ["coloriage enfant", "coloriage enfant en ligne", "coloriage enfant guide"],
+    newSite: true,
+    keywordsTotal: 0,
+    pagesRanked: 0,
+    pagesTop10: 0,
+    priorityPages: [],
+  };
+  const build = () =>
+    buildResult("monsite.fr", {
+      own: NEW_OWN,
+      ownLinks: { total: 1, domains: [], partial: false },
+      competitors: [{ domain: "rival.fr", queriesCount: 3, bestRank: 2 }],
+      links: [{ domain: "rival.fr", referringDomains: 400, rows: manyTargets(30) }],
+    });
+
+  it("thème : requêtes de secours sans LLM, normalisées ; saisie invalide refusée", () => {
+    expect(nicheQueries("  Coloriage   Enfant ")).toEqual([
+      "coloriage enfant",
+      "coloriage enfant en ligne",
+      "coloriage enfant guide",
+    ]);
+    expect(nicheQueries("  ")).toEqual([]);
+    expect(parseNiche(undefined)).toBe("");
+    expect(parseNiche("x")).toBeNull();
+    expect(parseNiche("a".repeat(61))).toBeNull();
+  });
+
+  it("démarrage : sans requête mais avec un thème, requêtes de secours en source « auto »", async () => {
+    const s = startSetup();
+    const r = await startPublicAudit(s.base, { domain: "monsite.fr", niche: "Coloriage enfant" });
+    expect(r).toMatchObject({ status: "ok", cached: false });
+    expect(s.db.tables.public_audits![0]).toMatchObject({
+      queries: ["coloriage enfant", "coloriage enfant en ligne", "coloriage enfant guide"],
+      queries_source: "auto",
+    });
+  });
+
+  it("démarrage : des requêtes saisies l'emportent sur le thème", async () => {
+    const s = startSetup();
+    await startPublicAudit(s.base, {
+      domain: "monsite.fr",
+      queries: ["coloriage licorne"],
+      niche: "coloriage enfant",
+    });
+    expect(s.db.tables.public_audits![0]).toMatchObject({
+      queries: ["coloriage licorne"],
+      queries_source: "visiteur",
+    });
+  });
+
+  it("démarrage : thème invalide refusé avant tout coût", async () => {
+    const s = startSetup();
+    expect(await startPublicAudit(s.base, { domain: "monsite.fr", niche: "x" })).toMatchObject({
+      status: "error",
+    });
+    expect(s.sent).toHaveLength(0);
+  });
+
+  it("résultat : aucun score (pas 0), site marqué neuf, plan de cibles conservé", () => {
+    const res = build();
+    expect(res.score).toBeNull();
+    expect(res.site.newSite).toBe(true);
+    expect(res.targets.length).toBeGreaterThan(0);
+    const view = projectReport(res, false);
+    expect(view.newSite).toBe(true);
+    expect(view.score).toBeNull();
+  });
+
+  it("rapport : affiche « non classé » et non le message de données insuffisantes", () => {
+    const html = renderToStaticMarkup(
+      createElement(ReportView, { view: projectReport(build(), false) }),
+    );
+    expect(html).toContain("Non classé");
+    expect(html).not.toContain("Pas assez de données");
+    expect(html).not.toContain("sur 100");
+  });
+
+  it("un site classé garde son score et n'est pas marqué neuf", () => {
+    const res = buildResult("monsite.fr", {
+      own: OWN,
+      ownLinks: { total: 2, domains: [], partial: false },
+      competitors: [{ domain: "rival.fr", queriesCount: 1, bestRank: 2 }],
+      links: [{ domain: "rival.fr", referringDomains: 400, rows: [] }],
+    });
+    expect(res.score).not.toBeNull();
+    expect(projectReport(res, false).newSite).toBe(false);
   });
 });
 
@@ -532,6 +626,23 @@ describe("exécution de l'audit", () => {
     const dfs = labs([]);
     const out = await collectOwnKeywords(db.client, dfs as never, run);
     expect(out).toEqual({ ok: false, code: "aucun_mot_cle" });
+  });
+
+  it("MA.4 : aucun mot-clé classé mais requêtes de secours (thème) : audit poursuivi, site neuf", async () => {
+    const db = runSetup();
+    const dfs = labs([]);
+    const fallback: PublicRun = {
+      ...run,
+      queries: ["coloriage enfant", "coloriage enfant en ligne"],
+      queriesSource: "auto",
+    };
+    const out = await collectOwnKeywords(db.client, dfs as never, fallback);
+    expect(out).toMatchObject({
+      ok: true,
+      newSite: true,
+      pagesRanked: 0,
+      queries: ["coloriage enfant", "coloriage enfant en ligne"],
+    });
   });
 
   it("enregistre les requêtes déduites et identifie les pages à pousser", async () => {

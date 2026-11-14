@@ -24,6 +24,11 @@ export function ReportView({ view }: { view: PublicReportView }) {
             </p>
             <p className="text-sm text-muted-foreground">{r.scoreNote}</p>
           </>
+        ) : view.newSite ? (
+          <p className="flex flex-col gap-1">
+            <Badge tone="neutral">{r.notRanked}</Badge>
+            <span className="text-muted-foreground">{r.notRankedBody}</span>
+          </p>
         ) : (
           <p className="text-muted-foreground">{r.scoreNone}</p>
         )}

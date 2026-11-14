@@ -86,12 +86,16 @@ export function ProfileSection({
 
   const d = view.data;
   if (!d) return null;
-  const score: ScoreResult | null = computeScore({
-    ownReferringDomains: d.totals.referringDomains,
-    benchmarkMedian: d.benchmarkMedian,
-    pagesRanked: view.pagesRanked?.total ?? 0,
-    pagesTop10: view.pagesRanked?.top10 ?? 0,
-  });
+  // MA.4 : site sans page classée = « non classé », jamais un score proche de 0.
+  const notRanked = view.pagesRanked !== undefined && view.pagesRanked.total === 0;
+  const score: ScoreResult | null = notRanked
+    ? null
+    : computeScore({
+        ownReferringDomains: d.totals.referringDomains,
+        benchmarkMedian: d.benchmarkMedian,
+        pagesRanked: view.pagesRanked?.total ?? 0,
+        pagesTop10: view.pagesRanked?.top10 ?? 0,
+      });
   const sr = t.publicAudit.report;
   return (
     <Card className="flex flex-col gap-5 p-6">
@@ -118,6 +122,11 @@ export function ProfileSection({
             </p>
             <p className="mt-1 text-xs text-muted-foreground">{sr.scoreNote}</p>
           </>
+        ) : notRanked ? (
+          <p className="mt-1 flex flex-col gap-1">
+            <Badge tone="neutral">{sr.notRanked}</Badge>
+            <span className="text-muted-foreground">{sr.notRankedBody}</span>
+          </p>
         ) : (
           <p className="mt-1 text-muted-foreground">{sr.scoreNone}</p>
         )}

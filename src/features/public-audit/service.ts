@@ -46,11 +46,15 @@ const fail = (code: keyof typeof M, retryAfterSeconds?: number): StartState => (
   ...(retryAfterSeconds ? { retryAfterSeconds } : {}),
 });
 
+import { nicheQueries, parseNiche } from "./niche";
+
 const querySchema = z.string().trim().min(2).max(100);
 
 export interface StartInput {
   domain: string;
   queries?: string[];
+  /** Thème du site (facultatif) : requêtes de secours si le site n'a encore aucun mot-clé classé (MA.4). */
+  niche?: string;
   /** Champ piège : un humain ne le remplit jamais. */
   honeypot?: string;
 }
@@ -80,8 +84,14 @@ export async function startPublicAudit(deps: StartDeps, input: StartInput): Prom
   const domain = normalizeDomain(input.domain);
   if (!domain) return fail("domaine_invalide");
   if (isExcludedDomain(domain)) return fail("domaine_non_eligible");
-  const queries = parseQueries(input.queries);
-  if (queries === null) return fail("requete_invalide");
+  const typed = parseQueries(input.queries);
+  if (typed === null) return fail("requete_invalide");
+  const niche = parseNiche(input.niche);
+  if (niche === null) return fail("requete_invalide");
+  // MA.4 : sans requête saisie, un thème fournit des requêtes de secours (source « auto » :
+  // les mots-clés classés du site restent prioritaires, voir collectOwnKeywords).
+  const queries = typed.length ? typed : nicheQueries(niche);
+  const queriesSource = typed.length ? "visiteur" : "auto";
 
   const requester = hashKey(deps.ip, deps.salt);
   const submit = await rateLimit(service, "pa_submit", requester, RATE_LIMITS.submit);
@@ -129,7 +139,7 @@ export async function startPublicAudit(deps: StartDeps, input: StartInput): Prom
         status: "en_attente",
         queries,
         // Sans cela, des requêtes saisies après un échec seraient ignorées (déduction « auto »).
-        queries_source: queries.length ? "visiteur" : "auto",
+        queries_source: queriesSource,
         error_code: null,
         error_message: null,
       })
@@ -148,7 +158,7 @@ export async function startPublicAudit(deps: StartDeps, input: StartInput): Prom
         status: "en_attente",
         attempts: 0,
         queries,
-        queries_source: queries.length ? "visiteur" : "auto",
+        queries_source: queriesSource,
         estimated_cost_usd: estimate.totalUsd,
         requester_hash: requester,
       })

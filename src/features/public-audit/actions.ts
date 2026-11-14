@@ -42,6 +42,7 @@ export async function startPublicAuditAction(
       {
         domain: String(formData.get("domain") ?? ""),
         queries: ["q1", "q2", "q3"].map((k) => String(formData.get(k) ?? "")),
+        niche: String(formData.get("niche") ?? ""),
         honeypot: String(formData.get("site_web") ?? ""),
       },
     );
