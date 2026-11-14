@@ -13,7 +13,8 @@
 | M1.3        | fait (migration appliquée sur le vrai projet ; run réel DataForSEO non fait, voir « À fournir »)      | [#14](https://github.com/jonathan-enca/outreach-links/pull/14) | 2026-11-14 |
 | M1.4        | fait (pipeline testé sur fixtures ; run réel DataForSEO Backlinks non fait, voir « À fournir »)       | [#16](https://github.com/jonathan-enca/outreach-links/pull/16) | 2026-11-14 |
 | M1.5        | fait (pipeline testé sur fixtures ; run réel DataForSEO non fait ; client LLM créé)                   | [#18](https://github.com/jonathan-enca/outreach-links/pull/18) | 2026-11-14 |
-| M1.6 à M7.3 | à faire                                                                                               |                                                                |            |
+| M1.6        | partiel : code prêt, CI verte, PR ouverte, NON fusionnée (migration non appliquée, voir « Bilan V1 ») | [#20](https://github.com/jonathan-enca/outreach-links/pull/20) | 2026-11-14 |
+| M2.1 à M7.3 | à faire                                                                                               |                                                                |            |
 
 ## Décisions prises
 
@@ -142,7 +143,7 @@
 - En session Claude, `gh pr create` échoue (GraphQL bloqué) : ouvrir les PR via `gh api repos/{owner}/{repo}/pulls --input fichier.json`.
 - Après `prettier --write .`, vérifier que les modifications de documents par script ont bien été appliquées.
 
-- **À faire par Jonathan (aucun outil disponible pour le faire)** : (1) dans Vercel, définir pour Preview et Production `NEXT_PUBLIC_APP_URL` (URL du site), `NEXT_PUBLIC_SUPABASE_URL` (`https://ivjkwhhgtibewqzccvrj.supabase.co`) et `NEXT_PUBLIC_SUPABASE_ANON_KEY` (clé publishable du projet) ; (2) dans Supabase, Authentication > URL Configuration : Site URL = URL du site, Redirect URLs = `<URL du site>/auth/callback` et `http://localhost:3000/auth/callback` ; (3) tester une vraie connexion par lien magique (réception du mail, session, déconnexion).
+- Réglages Vercel et Supabase Auth (variables publiques, URL de redirection) et test du lien magique : faits (voir « Décisions prises » et la ligne M0.2). Plus rien à faire à la main ici.
 - `database.types.ts` généré depuis le vrai projet (outil MCP Supabase) ; à régénérer après chaque migration.
 - Next 16 : `middleware` devient `src/proxy.ts`. Avec `cacheComponents`, tout accès à `cookies()` doit être sous `<Suspense>`.
 - `src/env.ts` valide `process.env` à l'import : `vitest.config.mts` fournit des valeurs fictives.
@@ -191,6 +192,42 @@
 4. `ANTHROPIC_API_KEY` sur Vercel (fournisseur LLM visé) et `OPENAI_API_KEY` si OpenAI sert de repli ; sans clé le résumé retombe sur le texte de modèle. Ne jamais définir `LLM_PROXY_AUTH` ni `DATAFORSEO_PROXY_AUTH` sur Vercel.
 5. Le même run réel DataForSEO sert à mesurer le coût du profil (M1.5) et à valider les schémas `ranked_keywords`, `referring_domains` et `onpage`.
 
+## Bilan V1 (14/11/2026)
+
+**Ce qui marche (vérifié)**
+
+- Le site https://outreach-links.vercel.app est en ligne : accueil et page de connexion répondent (200), aucune erreur dans le navigateur ; `/app` renvoie bien vers la connexion. Dernier déploiement de production : prêt (fusion de la PR #19).
+- La base de données (Supabase) est protégée : les 12 tables ont la sécurité par ligne activée.
+- Construit et testé sur des données de test : connexion, création du site et vérification de propriété, découverte des concurrents, nettoyage des backlinks avec export, profil de liens, écart de domaines, pages à pousser, résumé rédigé, suivi des coûts.
+- Aucun email réel n'a été envoyé et aucune dépense réelle (0 USD DataForSEO ; environ 0,002 USD de LLM).
+
+**Ce qui ne marche pas encore**
+
+- Aucun audit réel n'a tourné : il manque les clés DataForSEO et Inngest sur Vercel. En production, lancer un audit affiche une erreur.
+- M1.6 (audit gratuit sur la page d'accueil) : le code est prêt, la PR #20 a une CI verte mais n'est PAS fusionnée. La migration `2026111516000000_public_audit.sql` n'est pas appliquée sur la vraie base (l'outil attendait une confirmation). Tant que ce n'est pas fait, `/audit` répond 404 en production. À faire en premier : appliquer la migration, régénérer `database.types.ts`, fusionner la PR, vérifier le déploiement.
+- Pas encore d'envoi, de relance, de boîte de réception classée, de vérification des liens, de paiement (jalons M2 à M7).
+- Les coûts réels et les formats de réponse de DataForSEO ne sont connus que par estimation (fixtures inventées d'après la documentation).
+
+**Alertes de sécurité Supabase (à traiter)**
+
+- Table `dataforseo_cache` : sécurité activée sans règle, voulu (accessible seulement au serveur). Information seulement.
+- Fonctions `has_workspace_role` et `is_workspace_member` appelables par les utilisateurs connectés : elles servent aux règles de sécurité et ne donnent que oui/non ; à revoir avant l'ouverture au public.
+- Protection contre les mots de passe compromis désactivée : sans effet tant que la connexion se fait par lien magique.
+
+**Ce que Jonathan doit fournir ou décider**
+
+1. Clés Inngest (`INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`) pour Vercel ; choisir un environnement dédié ou partagé avec `scan-vie-privee`.
+2. Identifiants DataForSEO (et abonnement Backlinks actif) pour un premier audit réel sur mega-coloring.com et la mesure du coût.
+3. Clé Anthropic (LLM visé) pour Vercel.
+4. Exemples de messages d'outreach qui ont bien marché, et ses résultats chiffrés (voir CLAUDE.md section 12).
+5. Un nom de produit et un domaine ; un domaine d'envoi secondaire pour les emails.
+6. Resend pour les mails de connexion (limite actuelle de 2 par heure) ; Stripe pour les paiements ; un juriste pour valider les textes légaux (prospection, RGPD, non-mention de l'IA).
+7. Décision sur la politique « c'est payant » (décliner par défaut proposé).
+
+**Prompt de la session suivante**
+
+« Lis CLAUDE.md et PROGRESS.md (section Bilan V1). Applique la migration de la PR #20 (M1.6) sur Supabase, régénère les types, fusionne la PR et vérifie la production. Puis enchaîne sur M2.1 de PLAN.md : un sous-jalon par session, en autonomie, sans aucun envoi d'email réel. »
+
 ## Prochain sous-jalon recommandé
 
-M1.6 (voir PLAN.md). En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`, indispensables pour lancer un audit en production) et le run réel DataForSEO (retester d'abord avec `NODE_USE_ENV_PROXY=1` dans l'environnement agent) dès que Jonathan fournit les identifiants.
+Terminer M1.6 (migration + fusion de la PR #20), puis M2.1 (voir PLAN.md). En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`) et le run réel DataForSEO (retester d'abord avec `NODE_USE_ENV_PROXY=1` dans l'environnement agent) dès que Jonathan fournit les identifiants.
