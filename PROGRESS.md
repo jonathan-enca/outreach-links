@@ -13,7 +13,7 @@
 | M1.3        | fait (migration appliquée sur le vrai projet ; run réel DataForSEO non fait, voir « À fournir »)      | [#14](https://github.com/jonathan-enca/outreach-links/pull/14) | 2026-11-14 |
 | M1.4        | fait (pipeline testé sur fixtures ; run réel DataForSEO Backlinks non fait, voir « À fournir »)       | [#16](https://github.com/jonathan-enca/outreach-links/pull/16) | 2026-11-14 |
 | M1.5        | fait (pipeline testé sur fixtures ; run réel DataForSEO non fait ; client LLM créé)                   | [#18](https://github.com/jonathan-enca/outreach-links/pull/18) | 2026-11-14 |
-| M1.6        | partiel : code prêt, CI verte, PR ouverte, NON fusionnée (migration non appliquée, voir « Bilan V1 ») | [#20](https://github.com/jonathan-enca/outreach-links/pull/20) | 2026-11-14 |
+| M1.6        | fait (migration appliquée sur la vraie base le 14/11 via l'API de gestion Supabase ; formulaire sans effet réel tant que les clés Inngest et DataForSEO manquent) | [#20](https://github.com/jonathan-enca/outreach-links/pull/20) | 2026-11-14 |
 | M2.1 à M7.3 | à faire                                                                                               |                                                                |            |
 
 ## Décisions prises
@@ -204,7 +204,7 @@
 **Ce qui ne marche pas encore**
 
 - Aucun audit réel n'a tourné : il manque les clés DataForSEO et Inngest sur Vercel. En production, lancer un audit affiche une erreur.
-- M1.6 (audit gratuit sur la page d'accueil) : le code est prêt, la PR #20 a une CI verte mais n'est PAS fusionnée. La migration `2026111516000000_public_audit.sql` n'est pas appliquée sur la vraie base (l'outil attendait une confirmation). Tant que ce n'est pas fait, `/audit` répond 404 en production. À faire en premier : appliquer la migration, régénérer `database.types.ts`, fusionner la PR, vérifier le déploiement.
+- M1.6 (audit gratuit sur la page d'accueil) : fait et fusionné (PR #20). Migration `2026111516000000_public_audit.sql` appliquée sur la vraie base via `POST api.supabase.com/v1/projects/{ref}/database/query` (l'outil MCP `apply_migration` attend une confirmation qui expire en session cloud ; elle n'apparaît donc pas dans `list_migrations`). Pages `/` `/connexion` en 200 en production. Reste : régénérer `database.types.ts` (patché à la main dans la PR) et mesurer le coût réel dès que DataForSEO est branché.
 - Pas encore d'envoi, de relance, de boîte de réception classée, de vérification des liens, de paiement (jalons M2 à M7).
 - Les coûts réels et les formats de réponse de DataForSEO ne sont connus que par estimation (fixtures inventées d'après la documentation).
 
