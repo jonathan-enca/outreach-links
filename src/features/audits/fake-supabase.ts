@@ -26,6 +26,7 @@ export function fakeSupabase(
     const filters: ((r: Row) => boolean)[] = [];
     let orderBy: { col: string; asc: boolean } | null = null;
     let max: number | null = null;
+    let offset = 0;
     let wantsRows = false;
 
     const exec = () => {
@@ -62,7 +63,8 @@ export function fakeSupabase(
         const { col, asc } = orderBy;
         out.sort((a, b) => (String(a[col]) < String(b[col]) ? -1 : 1) * (asc ? 1 : -1));
       }
-      if (max !== null) out = out.slice(0, max);
+      if (max !== null) out = out.slice(offset, offset + max);
+      else if (offset) out = out.slice(offset);
       // Jointure `sites(domain)` utilisée par beginDiscovery.
       if (table === "audits") {
         out = out.map((r) => ({
@@ -117,6 +119,11 @@ export function fakeSupabase(
     };
     chain.limit = (n: number) => {
       max = n;
+      return chain;
+    };
+    chain.range = (from: number, to: number) => {
+      offset = from;
+      max = to - from + 1;
       return chain;
     };
     chain.single = async () => one(false);

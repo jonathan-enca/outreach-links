@@ -5,6 +5,11 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { confirmAuditAction } from "@/features/audits/actions";
 import { AuditDetail, type AuditView } from "@/features/audits/audit-detail";
+import { isPlanKey } from "@/features/audits/plans";
+import { startBacklinksAction } from "@/features/backlinks/actions";
+import type { BacklinksView } from "@/features/backlinks/backlinks-section";
+import type { CleanStats } from "@/features/backlinks/clean";
+import { estimateBacklinks } from "@/features/backlinks/limits";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 
@@ -34,6 +39,51 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
     .order("score", { ascending: false })
     .limit(50);
 
+  let backlinks: BacklinksView | undefined;
+  if (audit.status === "termine") {
+    const selected = (competitors ?? []).filter((c) => c.selected).length;
+    const remaining = Number(audit.cost_cap_usd) - Number(audit.actual_cost_usd ?? 0);
+    const est = estimateBacklinks(
+      selected,
+      isPlanKey(audit.plan) ? audit.plan : "gratuit",
+      remaining,
+    );
+    const done = audit.backlinks_status === "termine";
+    const { data: sample } = done
+      ? await supabase
+          .from("competitor_backlinks")
+          .select("source_domain, source_url, anchor, spam_score, dofollow")
+          .eq("audit_id", id)
+          .eq("clean_status", "garde")
+          .order("source_rank", { ascending: false, nullsFirst: false })
+          .limit(15)
+      : { data: [] };
+    const base = `/app/audit/${id}/export`;
+    backlinks = {
+      status: audit.backlinks_status,
+      estimate: est
+        ? {
+            totalUsd: audit.backlinks_estimated_cost_usd ?? est.totalUsd,
+            perCompetitorUsd: est.perCompetitorUsd,
+            competitors: est.competitors,
+            limit: audit.backlinks_limit ?? est.limit,
+          }
+        : null,
+      stats: done ? (audit.backlinks_stats as unknown as CleanStats) : null,
+      costUsd: audit.backlinks_cost_usd === null ? null : Number(audit.backlinks_cost_usd),
+      errorMessage: audit.backlinks_error,
+      sample: (sample ?? []).map((b) => ({
+        sourceDomain: b.source_domain,
+        sourceUrl: b.source_url,
+        anchor: b.anchor,
+        spamScore: b.spam_score,
+        dofollow: b.dofollow,
+      })),
+      exportKeptHref: `${base}?portee=propres`,
+      exportAllHref: `${base}?portee=tout`,
+    };
+  }
+
   const details = (audit.estimate_details ?? {}) as { perQuery?: { query: string; usd: number }[] };
   const site = audit.sites as unknown as { domain: string } | null;
   const view: AuditView = {
@@ -46,6 +96,7 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
     costCapUsd: Number(audit.cost_cap_usd),
     perQuery: details.perQuery ?? [],
     errorMessage: audit.error_message,
+    backlinks,
     competitors: (competitors ?? []).map((c) => ({
       domain: c.domain,
       queriesCount: c.queries_count,
@@ -60,7 +111,11 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
         title={`${t.audits.detailTitle} ${view.domain}`}
         description={t.audits.description}
       />
-      <AuditDetail audit={view} confirmAction={confirmAuditAction.bind(null, audit.id)} />
+      <AuditDetail
+        audit={view}
+        confirmAction={confirmAuditAction.bind(null, audit.id)}
+        startBacklinksAction={startBacklinksAction.bind(null, audit.id)}
+      />
     </>
   );
 }

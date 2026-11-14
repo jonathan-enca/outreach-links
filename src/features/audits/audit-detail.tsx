@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { t } from "@/lib/messages";
+import { BacklinksSection, type BacklinksView } from "@/features/backlinks/backlinks-section";
 import { AuditStatusBadge } from "./audit-status-badge";
 import { ConfirmAuditPanel } from "./confirm-audit-panel";
 import { formatUsd } from "./format";
@@ -16,6 +17,8 @@ export interface AuditView {
   costCapUsd: number;
   perQuery: { query: string; usd: number }[];
   errorMessage: string | null;
+  /** Étape backlinks (M1.4), seulement pour un audit terminé. */
+  backlinks?: BacklinksView;
   competitors: {
     domain: string;
     queriesCount: number;
@@ -29,9 +32,11 @@ export interface AuditView {
 export function AuditDetail({
   audit,
   confirmAction,
+  startBacklinksAction,
 }: {
   audit: AuditView;
   confirmAction: (prev: AuditActionState) => Promise<AuditActionState>;
+  startBacklinksAction?: (prev: AuditActionState) => Promise<AuditActionState>;
 }) {
   const r = t.audits.result;
   const awaitingConfirm = audit.status === "estime" || audit.status === "confirme";
@@ -124,6 +129,9 @@ export function AuditDetail({
               </dd>
             </dl>
           </Card>
+          {audit.backlinks && startBacklinksAction ? (
+            <BacklinksSection view={audit.backlinks} startAction={startBacklinksAction} />
+          ) : null}
         </>
       ) : null}
     </div>
