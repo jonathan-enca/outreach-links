@@ -51,7 +51,22 @@ export type Database = {
           sample_url?: string | null;
           workspace_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "audit_gap_domains_audit_id_fkey";
+            columns: ["audit_id"];
+            isOneToOne: false;
+            referencedRelation: "audits";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "audit_gap_domains_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       audit_pages: {
         Row: {
@@ -123,7 +138,22 @@ export type Database = {
           url?: string;
           workspace_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "audit_pages_audit_id_fkey";
+            columns: ["audit_id"];
+            isOneToOne: false;
+            referencedRelation: "audits";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "audit_pages_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       audit_serp_results: {
         Row: {
@@ -505,6 +535,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "cost_ledger_public_audit_id_fkey";
+            columns: ["public_audit_id"];
+            isOneToOne: false;
+            referencedRelation: "public_audits";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "cost_ledger_workspace_id_fkey";
             columns: ["workspace_id"];
             isOneToOne: false;
@@ -833,7 +870,11 @@ export type Database = {
           p_limit: number;
           p_window_seconds: number;
         };
-        Returns: { allowed: boolean; hits: number; retry_after_seconds: number }[];
+        Returns: {
+          allowed: boolean;
+          hits: number;
+          retry_after_seconds: number;
+        }[];
       };
     };
     Enums: {
@@ -923,3 +964,41 @@ export type TablesUpdate<
       ? U
       : never
     : never;
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never;
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    keyof DefaultSchema["CompositeTypes"] | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never;
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const;
