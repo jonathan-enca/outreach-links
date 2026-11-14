@@ -100,6 +100,8 @@ export interface Candidate {
   type: OpportunityType;
   domain: string;
   url: string | null;
+  /** Faux si `url` est reconstruite (redirection Google) : à résoudre par fetch avant tout envoi. */
+  urlExact?: boolean;
   title: string | null;
   rationale: string;
   originQuery: string | null;
@@ -211,6 +213,7 @@ export function candidatesFromSerp(q: OpportunityQuery, entries: SerpEntry[]): C
     type: q.type,
     domain: e.domain,
     url: e.url,
+    urlExact: e.urlExact,
     title: e.title,
     rationale: t.opportunities.rationale[q.type].replace("{query}", q.query),
     originQuery: q.query,

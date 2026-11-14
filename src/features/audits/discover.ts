@@ -8,6 +8,8 @@ export interface SerpEntry {
   domain: string;
   url: string;
   title: string | null;
+  /** Faux si l’URL a été reconstruite depuis le fil d'Ariane (redirection Google) : partielle. */
+  urlExact?: boolean;
 }
 
 export interface QueryEntries {
@@ -41,10 +43,10 @@ export function resolveRedirect(item: {
   url?: string | null;
   domain?: string | null;
   breadcrumb?: string | null;
-}): { domain: string; url: string } | null {
+}): { domain: string; url: string; exact: boolean } | null {
   const url = item.url?.trim() ?? "";
   const host = hostOf(item.domain || url);
-  if (url && host && !REDIRECT_HOSTS.has(host)) return { domain: host, url };
+  if (url && host && !REDIRECT_HOSTS.has(host)) return { domain: host, url, exact: true };
   if (!url) return null;
   const [origin, ...segments] = (item.breadcrumb ?? "").split("›").map((s) => s.trim());
   if (!origin) return null;
@@ -52,7 +54,8 @@ export function resolveRedirect(item: {
   if (!real || REDIRECT_HOSTS.has(real)) return null;
   const kept = segments.filter((s) => s && !s.endsWith("..."));
   const base = origin.startsWith("http") ? origin : `https://${origin}`;
-  return { domain: real, url: [base.replace(/\/$/, ""), ...kept].join("/") };
+  // Le fil d'Ariane est une version lisible de l'URL (décodée, parfois tronquée) : jamais exacte.
+  return { domain: real, url: [base.replace(/\/$/, ""), ...kept].join("/"), exact: false };
 }
 
 /** Extrait les résultats organiques (hors PAA, vidéos, etc.) du top `depth`. */
@@ -63,13 +66,13 @@ export function serpEntries(result: SerpResult | null, depth = 30): SerpEntry[] 
     if (!ORGANIC_TYPES.has(item.type)) continue;
     const resolved = resolveRedirect(item);
     if (!resolved) continue;
-    const { domain, url } = resolved;
+    const { domain, url, exact } = resolved;
     const rank = item.rank_group ?? item.rank_absolute;
     if (!domain || !rank || rank < 1 || rank > depth) continue;
     // Un extrait mis en avant reprend souvent le résultat organique du même rang.
     if (seenRanks.has(rank)) continue;
     seenRanks.add(rank);
-    out.push({ rank, domain, url, title: item.title ?? null });
+    out.push({ rank, domain, url, title: item.title ?? null, urlExact: exact });
   }
   return out;
 }

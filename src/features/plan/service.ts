@@ -21,6 +21,7 @@ export interface PlanItemView {
   brokenUrl: string | null;
   expectedLinkType: string;
   sourceUrl: string | null;
+  urlExact: boolean;
   anchor: AnchorSuggestion;
 }
 
@@ -99,6 +100,7 @@ export async function loadPlan(supabase: Client, auditId: string): Promise<PlanV
     brokenUrl: o.broken_url,
     expectedLinkType: o.expected_link_type,
     sourceUrl: o.source_url,
+    urlExact: o.url_exact,
     anchor: suggestAnchor({
       type: o.type,
       domain,
@@ -237,6 +239,7 @@ export async function validatePlan(
       type: i.type,
       source_domain: i.domain,
       source_url: i.sourceUrl,
+      url_exact: i.urlExact,
       target_page_url: i.targetPageUrl,
       anchor_kind: i.anchor.kind,
       anchor_text: i.anchor.text,

@@ -368,6 +368,7 @@ export const fr = {
     retain: "Retenir",
     discard: "Écarter",
     discarded: "Écartée",
+    partialUrl: "Page à préciser",
     up: "Monter",
     down: "Descendre",
     target: "Page à promouvoir",

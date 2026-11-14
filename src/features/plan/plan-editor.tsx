@@ -147,6 +147,7 @@ export function PlanEditor({
                     ] ?? i.priority}
                   </Badge>
                   {i.status === "ecarte" ? <Badge tone="neutral">{p.discarded}</Badge> : null}
+                  {i.urlExact ? null : <Badge tone="neutral">{p.partialUrl}</Badge>}
                 </div>
                 <p className="text-sm">{i.rationale}</p>
                 <dl className="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">

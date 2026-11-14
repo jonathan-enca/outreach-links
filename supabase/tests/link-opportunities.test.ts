@@ -168,6 +168,7 @@ describe.skipIf(!adminUrl)("link_opportunities : RLS et contraintes", () => {
         opportunity_id: "",
         type: "annuaire",
         source_domain: "a.fr",
+        url_exact: false,
         target_page_url: "https://alice-site.fr/",
         anchor_kind: "marque",
         anchor_text: "alice",
@@ -199,9 +200,10 @@ describe.skipIf(!adminUrl)("link_opportunities : RLS et contraintes", () => {
       expect((await make(c)).rows[0].version).toBe(1);
       expect((await make(c)).rows[0].version).toBe(2);
       const it = await c.query(
-        "select position, source_domain from public.link_plan_items where plan_id = (select id from public.link_plans where version = 2) order by position",
+        "select position, source_domain, url_exact from public.link_plan_items where plan_id = (select id from public.link_plans where version = 2) order by position",
       );
       expect(it.rows.map((r) => r.source_domain)).toEqual(["a.fr", "b.fr"]);
+      expect(it.rows.map((r) => r.url_exact)).toEqual([false, true]);
     });
     await asRole("service_role", null, async (c) => {
       await expect(c.query("update public.link_plan_items set anchor_text = 'x'")).rejects.toThrow(

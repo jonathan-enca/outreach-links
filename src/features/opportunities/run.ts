@@ -205,6 +205,7 @@ export async function finalizeOpportunitiesStep(
     type: o.type,
     source_domain: o.domain,
     source_url: o.url,
+    url_exact: o.urlExact ?? true,
     source_title: o.title,
     target_page_url: o.targetPageUrl,
     expected_link_type: o.expectedLinkType,
