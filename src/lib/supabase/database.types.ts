@@ -129,7 +129,13 @@ export type Database = {
           language: string;
           niche: string | null;
           offered_asset: string | null;
+          priority_queries: string[];
+          sender_email: string | null;
           signature_first_name: string | null;
+          updated_at: string;
+          verification_method: string | null;
+          verification_token: string;
+          verified_at: string | null;
           workspace_id: string;
         };
         Insert: {
@@ -141,7 +147,13 @@ export type Database = {
           language?: string;
           niche?: string | null;
           offered_asset?: string | null;
+          priority_queries?: string[];
+          sender_email?: string | null;
           signature_first_name?: string | null;
+          updated_at?: string;
+          verification_method?: string | null;
+          verification_token?: string;
+          verified_at?: string | null;
           workspace_id: string;
         };
         Update: {
@@ -153,7 +165,13 @@ export type Database = {
           language?: string;
           niche?: string | null;
           offered_asset?: string | null;
+          priority_queries?: string[];
+          sender_email?: string | null;
           signature_first_name?: string | null;
+          updated_at?: string;
+          verification_method?: string | null;
+          verification_token?: string;
+          verified_at?: string | null;
           workspace_id?: string;
         };
         Relationships: [

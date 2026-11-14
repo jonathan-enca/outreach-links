@@ -1,0 +1,67 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { Suspense } from "react";
+import { PageHeader } from "@/components/page-header";
+import { Card } from "@/components/ui/card";
+import { updateSiteAction, verifySiteAction } from "@/features/sites/actions";
+import { SiteForm } from "@/features/sites/site-form";
+import { VerificationPanel } from "@/features/sites/verification-panel";
+import { t } from "@/lib/messages";
+import { createClient } from "@/lib/supabase/server";
+
+export const metadata: Metadata = { title: t.sites.editTitle };
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function Site({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  if (!UUID.test(id)) notFound();
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) redirect("/connexion");
+  const { data: site } = await supabase.from("sites").select("*").eq("id", id).maybeSingle();
+  if (!site) notFound();
+  return (
+    <div className="flex flex-col gap-6">
+      <VerificationPanel
+        domain={site.domain}
+        token={site.verification_token}
+        verified={Boolean(site.verified_at)}
+        action={verifySiteAction.bind(null, site.id)}
+      />
+      <Card className="p-6">
+        <SiteForm
+          action={updateSiteAction.bind(null, site.id)}
+          submitLabel={t.sites.save}
+          defaults={{
+            domain: site.domain,
+            niche: site.niche ?? "",
+            country: site.country ?? "FR",
+            language: site.language,
+            signatureFirstName: site.signature_first_name ?? "",
+            offeredAsset: site.offered_asset ?? "",
+            senderEmail: site.sender_email ?? "",
+            priorityQueries: site.priority_queries,
+          }}
+        />
+      </Card>
+    </div>
+  );
+}
+
+export default function Page(props: { params: Promise<{ id: string }> }) {
+  return (
+    <>
+      <PageHeader title={t.sites.editTitle} description={t.sites.description} />
+      <Suspense>
+        <Site params={props.params} />
+      </Suspense>
+      <p className="mt-4">
+        <Link href="/app/site" className="text-primary underline">
+          {t.sites.back}
+        </Link>
+      </p>
+    </>
+  );
+}

@@ -25,6 +25,9 @@ async function Workspace() {
       <p className="text-muted-foreground">{t.workspace.intro}</p>
       <div className="flex flex-wrap gap-3">
         <Button asChild>
+          <Link href="/app/site">{t.workspace.setupSite}</Link>
+        </Button>
+        <Button asChild variant="outline">
           <Link href="/app/audit">{t.workspace.startAudit}</Link>
         </Button>
         <form action={signOut}>
