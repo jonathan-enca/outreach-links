@@ -52,6 +52,80 @@ export const DEFAULT_EXCLUDED_DOMAINS: readonly string[] = [
   "scribd.com",
 ];
 
+/**
+ * MA.1 : très grands sites (banques d'images, grande distribution, médias généralistes,
+ * encyclopédies, institutions). Constaté sur le premier audit réel : cultura, shutterstock et
+ * pixabay sortaient comme « concurrents », peu actionnables pour un petit site (nous ne
+ * pouvons pas viser leurs liens ni raisonner sur leur écart). Filtre sans coût d'API, appliqué
+ * avec la liste générique ; configurable (même syntaxe, "x.*" = tous les TLD).
+ */
+export const GIANT_DOMAINS: readonly string[] = [
+  // Banques d'images, de vecteurs et de design
+  "shutterstock.com",
+  "pixabay.com",
+  "freepik.com",
+  "unsplash.com",
+  "pexels.com",
+  "istockphoto.com",
+  "gettyimages.*",
+  "adobe.com",
+  "dreamstime.com",
+  "depositphotos.com",
+  "123rf.com",
+  "vecteezy.com",
+  "flaticon.com",
+  "pngtree.com",
+  "alamy.com",
+  "behance.net",
+  "dribbble.com",
+  "deviantart.com",
+  "flickr.com",
+  // Grande distribution, culture et loisirs
+  "cultura.com",
+  "decathlon.*",
+  "carrefour.*",
+  "auchan.*",
+  "e.leclerc",
+  "leclerc.com",
+  "darty.com",
+  "boulanger.com",
+  "manomano.*",
+  "leroymerlin.*",
+  "ikea.com",
+  "kingjouet.com",
+  "king-jouet.com",
+  "joueclub.fr",
+  "lego.com",
+  "maisonsdumonde.com",
+  "hema.*",
+  // Médias généralistes, portails et référence
+  "lemonde.fr",
+  "lefigaro.fr",
+  "leparisien.fr",
+  "20minutes.fr",
+  "ouest-france.fr",
+  "francetvinfo.fr",
+  "bfmtv.com",
+  "tf1info.fr",
+  "doctissimo.fr",
+  "marmiton.org",
+  "journaldesfemmes.fr",
+  "commentcamarche.net",
+  "futura-sciences.com",
+  "larousse.fr",
+  "lerobert.com",
+  "linternaute.com",
+  "allocine.fr",
+  "bbc.*",
+  "nytimes.com",
+  "theguardian.com",
+  // Institutions
+  "gouv.fr",
+  "service-public.fr",
+  "education.fr",
+  "europa.eu",
+];
+
 /** "https://www.Exemple.fr/x" ou "www.exemple.fr" -> "exemple.fr". */
 export function hostOf(input: string): string {
   const raw = input.trim().toLowerCase();
@@ -75,7 +149,7 @@ function matches(host: string, entry: string): boolean {
 export function isExcludedDomain(
   host: string,
   extra: readonly string[] = [],
-  base: readonly string[] = DEFAULT_EXCLUDED_DOMAINS,
+  base: readonly string[] = [...DEFAULT_EXCLUDED_DOMAINS, ...GIANT_DOMAINS],
 ): boolean {
   const h = hostOf(host);
   return [...base, ...extra].some((e) => matches(h, e.toLowerCase()));

@@ -13,6 +13,7 @@ import {
 import { estimateDiscovery } from "./estimate";
 import {
   DEFAULT_EXCLUDED_DOMAINS,
+  GIANT_DOMAINS,
   hostOf,
   isExcludedDomain,
   isOwnDomain,
@@ -50,9 +51,28 @@ describe("domaines exclus", () => {
       expect(isExcludedDomain(d), d).toBe(false);
     }
   });
+  it("exclut les très grands sites constatés sur le premier audit réel (MA.1)", () => {
+    for (const d of [
+      "www.cultura.com",
+      "shutterstock.com",
+      "fr.pixabay.com",
+      "decathlon.fr",
+      "www.service-public.fr",
+      "education.gouv.fr",
+    ]) {
+      expect(isExcludedDomain(d), d).toBe(true);
+    }
+    expect(GIANT_DOMAINS.length).toBeGreaterThan(30);
+  });
+  it("ne touche pas aux petits sites au nom proche des géants", () => {
+    for (const d of ["coloriages-cultura.fr", "pixabay-gratuit.fr", "mondecathlon.fr", "hugo.fr"]) {
+      expect(isExcludedDomain(d), d).toBe(false);
+    }
+  });
   it("la liste est configurable", () => {
     expect(isExcludedDomain("rival.fr", ["rival.fr"])).toBe(true);
     expect(isExcludedDomain("rival.fr", [], [])).toBe(false);
+    expect(isExcludedDomain("cultura.com", [], [])).toBe(false);
     expect(DEFAULT_EXCLUDED_DOMAINS.length).toBeGreaterThan(20);
   });
   it("reconnaît le domaine du site et ses sous-domaines", () => {
