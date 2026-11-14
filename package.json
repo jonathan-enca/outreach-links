@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "demo:dataforseo": "DATAFORSEO_LIVE_DEMO=1 vitest run src/lib/dataforseo/demo.live.test.ts",
+    "demo:audit": "AUDIT_LIVE_DEMO=1 vitest run src/features/audits/validation.live.test.ts",
     "inngest:dev": "npx --yes --ignore-scripts=false inngest-cli@1.53.0 dev -u http://localhost:3000/api/inngest --no-discovery",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

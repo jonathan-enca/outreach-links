@@ -8,6 +8,195 @@ export type Database = {
   };
   public: {
     Tables: {
+      audit_serp_results: {
+        Row: {
+          audit_id: string;
+          domain: string;
+          id: number;
+          query: string;
+          rank: number;
+          title: string | null;
+          url: string;
+          workspace_id: string;
+        };
+        Insert: {
+          audit_id: string;
+          domain: string;
+          id?: never;
+          query: string;
+          rank: number;
+          title?: string | null;
+          url: string;
+          workspace_id: string;
+        };
+        Update: {
+          audit_id?: string;
+          domain?: string;
+          id?: never;
+          query?: string;
+          rank?: number;
+          title?: string | null;
+          url?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "audit_serp_results_audit_id_fkey";
+            columns: ["audit_id"];
+            isOneToOne: false;
+            referencedRelation: "audits";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "audit_serp_results_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      audits: {
+        Row: {
+          actual_cost_usd: number | null;
+          confirmed_at: string | null;
+          cost_cap_usd: number;
+          created_at: string;
+          created_by: string | null;
+          error_message: string | null;
+          estimate_details: Json;
+          estimated_at: string | null;
+          estimated_cost_usd: number | null;
+          finished_at: string | null;
+          id: string;
+          max_competitors: number;
+          plan: string;
+          queries: string[];
+          site_id: string;
+          started_at: string | null;
+          status: string;
+          updated_at: string;
+          workspace_id: string;
+        };
+        Insert: {
+          actual_cost_usd?: number | null;
+          confirmed_at?: string | null;
+          cost_cap_usd: number;
+          created_at?: string;
+          created_by?: string | null;
+          error_message?: string | null;
+          estimate_details?: Json;
+          estimated_at?: string | null;
+          estimated_cost_usd?: number | null;
+          finished_at?: string | null;
+          id?: string;
+          max_competitors: number;
+          plan?: string;
+          queries: string[];
+          site_id: string;
+          started_at?: string | null;
+          status?: string;
+          updated_at?: string;
+          workspace_id: string;
+        };
+        Update: {
+          actual_cost_usd?: number | null;
+          confirmed_at?: string | null;
+          cost_cap_usd?: number;
+          created_at?: string;
+          created_by?: string | null;
+          error_message?: string | null;
+          estimate_details?: Json;
+          estimated_at?: string | null;
+          estimated_cost_usd?: number | null;
+          finished_at?: string | null;
+          id?: string;
+          max_competitors?: number;
+          plan?: string;
+          queries?: string[];
+          site_id?: string;
+          started_at?: string | null;
+          status?: string;
+          updated_at?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "audits_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "audits_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      competitors: {
+        Row: {
+          appearances: number;
+          audit_id: string;
+          avg_rank: number;
+          best_rank: number;
+          created_at: string;
+          domain: string;
+          id: string;
+          queries_count: number;
+          sample_url: string | null;
+          score: number;
+          selected: boolean;
+          workspace_id: string;
+        };
+        Insert: {
+          appearances: number;
+          audit_id: string;
+          avg_rank: number;
+          best_rank: number;
+          created_at?: string;
+          domain: string;
+          id?: string;
+          queries_count: number;
+          sample_url?: string | null;
+          score: number;
+          selected?: boolean;
+          workspace_id: string;
+        };
+        Update: {
+          appearances?: number;
+          audit_id?: string;
+          avg_rank?: number;
+          best_rank?: number;
+          created_at?: string;
+          domain?: string;
+          id?: string;
+          queries_count?: number;
+          sample_url?: string | null;
+          score?: number;
+          selected?: boolean;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "competitors_audit_id_fkey";
+            columns: ["audit_id"];
+            isOneToOne: false;
+            referencedRelation: "audits";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "competitors_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       cost_ledger: {
         Row: {
           actual_cost_usd: number | null;
@@ -46,6 +235,13 @@ export type Database = {
           workspace_id?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "cost_ledger_audit_id_fkey";
+            columns: ["audit_id"];
+            isOneToOne: false;
+            referencedRelation: "audits";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "cost_ledger_workspace_id_fkey";
             columns: ["workspace_id"];
@@ -220,18 +416,21 @@ export type Database = {
           created_by: string | null;
           id: string;
           name: string;
+          plan: string;
         };
         Insert: {
           created_at?: string;
           created_by?: string | null;
           id?: string;
           name: string;
+          plan?: string;
         };
         Update: {
           created_at?: string;
           created_by?: string | null;
           id?: string;
           name?: string;
+          plan?: string;
         };
         Relationships: [];
       };
