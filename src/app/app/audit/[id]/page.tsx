@@ -10,6 +10,10 @@ import { startBacklinksAction } from "@/features/backlinks/actions";
 import type { BacklinksView } from "@/features/backlinks/backlinks-section";
 import type { CleanStats } from "@/features/backlinks/clean";
 import { estimateBacklinks } from "@/features/backlinks/limits";
+import { startProfileAction } from "@/features/profile/actions";
+import { estimateProfile } from "@/features/profile/limits";
+import type { ProfileView } from "@/features/profile/profile-section";
+import type { ProfileData } from "@/features/profile/run";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 
@@ -84,6 +88,76 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
     };
   }
 
+  let profile: ProfileView | undefined;
+  if (audit.status === "termine" && audit.backlinks_status === "termine") {
+    const selected = (competitors ?? []).filter((c) => c.selected).length;
+    const spent =
+      Number(audit.actual_cost_usd ?? 0) +
+      Number(audit.backlinks_cost_usd ?? 0) +
+      Number(audit.profile_cost_usd ?? 0);
+    const est = estimateProfile(
+      selected,
+      isPlanKey(audit.plan) ? audit.plan : "gratuit",
+      Number(audit.cost_cap_usd) - spent,
+    );
+    const done = audit.profile_status === "termine";
+    const [pagesRes, gapRes] = done
+      ? await Promise.all([
+          supabase
+            .from("audit_pages")
+            .select("*")
+            .eq("audit_id", id)
+            .eq("is_priority", true)
+            .order("priority_rank", { ascending: true })
+            .limit(20),
+          supabase
+            .from("audit_gap_domains")
+            .select("domain, competitors_count, competitors, sample_url")
+            .eq("audit_id", id)
+            .order("competitors_count", { ascending: false })
+            .order("best_rank", { ascending: false, nullsFirst: false })
+            .limit(25),
+        ])
+      : [{ data: [] }, { data: [] }];
+    profile = {
+      status: audit.profile_status,
+      estimate: est
+        ? {
+            totalUsd: audit.profile_estimated_cost_usd ?? est.totalUsd,
+            competitors: est.limits.benchmarkCompetitors,
+            rows: Math.max(
+              est.limits.keywords,
+              est.limits.referringDomains,
+              est.limits.backlinksSample,
+            ),
+            pages: est.limits.onpagePages,
+          }
+        : null,
+      data: done ? (audit.profile_data as unknown as ProfileData) : null,
+      summary: audit.profile_summary,
+      summarySource: audit.profile_summary_source as "llm" | "modele" | null,
+      costUsd: audit.profile_cost_usd === null ? null : Number(audit.profile_cost_usd),
+      errorMessage: audit.profile_error,
+      pages: (pagesRes.data ?? []).map((p) => ({
+        url: p.url,
+        avgPosition: p.avg_position === null ? null : Number(p.avg_position),
+        totalVolume: p.total_volume,
+        pageDomains: p.referring_domains,
+        neededLow: p.required_domains_low,
+        neededHigh: p.required_domains_high,
+        neededEstimated: p.required_domains_estimated,
+        techStatus: p.tech_status,
+        techIssues: p.tech_issues,
+      })),
+      gap: (gapRes.data ?? []).map((g) => ({
+        domain: g.domain,
+        competitorsCount: g.competitors_count,
+        competitors: g.competitors,
+        sampleUrl: g.sample_url,
+      })),
+    };
+  }
+
   const details = (audit.estimate_details ?? {}) as { perQuery?: { query: string; usd: number }[] };
   const site = audit.sites as unknown as { domain: string } | null;
   const view: AuditView = {
@@ -97,6 +171,7 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
     perQuery: details.perQuery ?? [],
     errorMessage: audit.error_message,
     backlinks,
+    profile,
     competitors: (competitors ?? []).map((c) => ({
       domain: c.domain,
       queriesCount: c.queries_count,
@@ -115,6 +190,7 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
         audit={view}
         confirmAction={confirmAuditAction.bind(null, audit.id)}
         startBacklinksAction={startBacklinksAction.bind(null, audit.id)}
+        startProfileAction={startProfileAction.bind(null, audit.id)}
       />
     </>
   );

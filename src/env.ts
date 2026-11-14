@@ -32,6 +32,21 @@ const schema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((v) => v === "true"),
+  /** LLM (optionnels : erreur claire à l'usage). Anthropic est la cible ; OpenAI sert au développement. */
+  ANTHROPIC_API_KEY: z.string().min(1).optional(),
+  OPENAI_API_KEY: z.string().min(1).optional(),
+  /** Force le fournisseur ; sinon Anthropic si sa clé existe, sinon OpenAI. */
+  LLM_PROVIDER: z.enum(["anthropic", "openai"]).optional(),
+  /** Remplace le modèle par défaut du fournisseur choisi. */
+  LLM_MODEL: z.string().min(1).optional(),
+  /**
+   * "true" : n'envoie aucune clé OpenAI, un proxy injecte l'authentification
+   * (environnement de développement agent). Jamais en production.
+   */
+  LLM_PROXY_AUTH: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   /**
    * Second garde d'envoi réel (avec EMAIL_DRY_RUN). Faux par défaut partout :
@@ -81,7 +96,9 @@ type OptionalSecretKey =
   | "INNGEST_EVENT_KEY"
   | "INNGEST_SIGNING_KEY"
   | "DATAFORSEO_LOGIN"
-  | "DATAFORSEO_PASSWORD";
+  | "DATAFORSEO_PASSWORD"
+  | "ANTHROPIC_API_KEY"
+  | "OPENAI_API_KEY";
 
 /** Lit une variable optionnelle au moment de l'usage : erreur claire si elle manque. */
 export function requireEnv(name: OptionalSecretKey, source: Env = env): string {
