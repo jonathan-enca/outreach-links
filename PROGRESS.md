@@ -16,7 +16,8 @@
 | M1.6        | fait (migration appliquée sur la vraie base le 14/11 via l'API de gestion Supabase ; formulaire sans effet réel tant que les clés Inngest et DataForSEO manquent) | [#20](https://github.com/jonathan-enca/outreach-links/pull/20) | 2026-11-14 |
 | M2.1        | fait (génération testée sur fixtures ; aucun run réel DataForSEO ; migration appliquée sur la vraie base)                                                         | PR M2.1                                                        | 2026-11-14 |
 | M2.2        | fait (crawl testé sur faux web ; aucun run réel sur un vrai site ; migration appliquée sur la vraie base)                                                         | PR M2.2                                                        | 2026-11-14 |
-| M2.3 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
+| M2.3        | fait (pas de test Playwright : aucune session connectée possible ; tests de services, de composants purs et de SQL réel)                                          | PR M2.3                                                        | 2026-11-14 |
+| M3.1 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
 
 ## Décisions prises
 
@@ -112,6 +113,13 @@
 - Page de remplacement : recoupement des mots de l'URL cassée / ancre avec les mots-clés des pages prioritaires, sinon rotation puis accueil (même logique que M2.1).
 - Limites connues : les URL source issues de redirections Google (M1.6 bis) sont parfois tronquées et répondent mal, donc ignorées (pas de preuve) ; aucun run sur de vrais sites (aucune requête réelle faite en session, par prudence) ; un site qui bloque les robots est simplement ignoré et compté.
 
+### M2.3 (écran Plan de liens)
+
+- [auto] Page `/app/audit/[id]/plan` (lien depuis l'audit une fois les opportunités terminées). Retenir / écarter par opportunité (`link_opportunities.status` = `retenu` / `ecarte`, `plan_position`), monter / descendre (positions renumérotées 1..n). Formulaires serveur simples (fonctionnent sans état client). Pas de glisser-déposer ni de sélection groupée (backlog).
+- Ancres (`anchors.ts`, seuils [HYPOTHÈSE]) : mention de marque et annuaire = marque ; profil absent, < 5 liens ou sur-optimisé = marque (adresse du site si la marque dépasse déjà 60 %) ; sinon ancre descriptive (premier mot-clé de la page cible) tant que les ancres « autres » restent sous 15 % du profil.
+- « Valider le plan » appelle la fonction SQL `create_link_plan` (security definer, `service_role` seulement) : verrou de l'audit, version = dernière + 1, copie atomique des retenues dans `link_plan_items` (instantané immuable : ni update ni delete pour `service_role` ni `authenticated`). Lecture par les membres du workspace. Les versions précédentes restent. M3 doit lire UNIQUEMENT la dernière version de `link_plans` : rien ne part sans validation.
+- Une régénération des opportunités (M2.1) n'efface pas les plans validés (références souples).
+
 ## Fichiers et modules clés
 
 - `src/env.ts` : validation zod des variables (`parseEnv`, `env`) ; importé par `next.config.ts` (build) et `layout.tsx` (runtime). Toute variable nouvelle s'ajoute ici et dans `.env.example`.
@@ -137,6 +145,8 @@
 - M2.1 : `supabase/migrations/2026111517000000_link_opportunities.sql`, `supabase/tests/link-opportunities.test.ts`, `src/features/opportunities/{generate,limits,run,service,actions}.ts`, `src/features/opportunities/opportunities-section.tsx`, `src/features/opportunities/opportunities.test.ts`, `src/inngest/functions/audit-opportunities.ts`.
 
 - M2.2 : `supabase/migrations/2026111518000000_deadlinks.sql`, `src/features/deadlinks/{robots,html,hunt,to-opportunities,run,service,actions}.ts`, `src/features/deadlinks/deadlinks-section.tsx`, `src/features/deadlinks/deadlinks.test.ts`, `src/inngest/functions/audit-deadlinks.ts`, `createSafeFetcher` dans `src/features/sites/verify.ts`.
+
+- M2.3 : `supabase/migrations/2026111519000000_link_plan.sql` et `2026111519100000_create_link_plan_fn.sql`, `src/features/plan/{anchors,service,actions}.ts`, `src/features/plan/plan-editor.tsx`, `src/features/plan/plan.test.ts`, `src/app/app/audit/[id]/plan/page.tsx`.
 
 ## Commandes (dev, tests, migrations, Inngest)
 
@@ -270,4 +280,4 @@
 
 ## Prochain sous-jalon recommandé
 
-M2.3 (écran Plan de liens), puis MA (découper en MA.1, MA.2... dans PLAN.md d'abord). En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`) et le run réel DataForSEO (retester d'abord avec `NODE_USE_ENV_PROXY=1` dans l'environnement agent) dès que Jonathan fournit les identifiants.
+MA (découper en MA.1, MA.2... dans PLAN.md d'abord). En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`) et le run réel DataForSEO (retester d'abord avec `NODE_USE_ENV_PROXY=1` dans l'environnement agent) dès que Jonathan fournit les identifiants.
