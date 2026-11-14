@@ -269,6 +269,7 @@ Pendant la session :
 
 - Rester strictement dans le périmètre du sous-jalon ; noter les idées hors périmètre dans `PROGRESS.md > Backlog`, ne pas les coder.
 - Tests, lint et typecheck verts avant de conclure ; migrations Supabase versionnées ; aucun secret dans le dépôt.
+- **Outils d'abord** : pour toute tâche technique (création de projet Supabase/Vercel/Inngest, migrations, déploiement, variables d'environnement, GitHub, etc.), utiliser au maximum les MCP et CLI disponibles (Supabase, Vercel, Inngest, Neon, `gh`, `pnpm`, Playwright…) plutôt que de demander à l'utilisateur de le faire à la main. Ne lui demander une action manuelle qu'en cas de blocage réel (outil absent, permission refusée), en le disant explicitement.
 - Toute étape longue passe par Inngest, jamais par une requête directe.
 - Tout appel payant (DataForSEO, LLM, finder d'emails) passe par le client qui enregistre le coût dans `cost_ledger`.
 - Aucun envoi d'email réel en développement : envoi vers une boîte de test ou mode « dry run » par défaut.

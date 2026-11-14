@@ -12,6 +12,7 @@
 - Produit : outreach IA de backlinks gratuits, audit d'abord, français d'abord (voir CLAUDE.md).
 - Pas de mention de l'IA dans les emails d'outreach ; le site vend l'automatisation par IA.
 - Plafonds d'envoi intégrés au pricing ; audit gratuit à coût plafonné.
+- Règle de travail : utiliser au maximum les MCP et CLI disponibles pour toutes les tâches techniques (voir CLAUDE.md section 15).
 - Dépôt GitHub : `jonathan-enca/outreach-links` (nom provisoire du produit, pas de domaine défini).
 
 ## Fichiers et modules clés
