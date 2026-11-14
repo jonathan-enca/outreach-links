@@ -1,9 +1,22 @@
 -- Imite le minimum de Supabase (rôles, schéma auth, auth.uid()) pour exécuter
 -- les migrations et les tests de RLS sur un Postgres vierge. Test uniquement.
-do $$ begin
-  if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
-  if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
-  if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role nologin bypassrls; end if;
+-- Les fichiers de test tournent en parallèle sur le même cluster : la création des
+-- rôles (globaux au cluster) tolère une course (duplicate_object / unique_violation).
+do $$
+declare r text;
+begin
+  foreach r in array array['anon', 'authenticated', 'service_role'] loop
+    begin
+      if not exists (select 1 from pg_roles where rolname = r) then
+        if r = 'service_role' then
+          create role service_role nologin bypassrls;
+        else
+          execute format('create role %I nologin', r);
+        end if;
+      end if;
+    exception when duplicate_object or unique_violation then null;
+    end;
+  end loop;
 end $$;
 
 create schema if not exists auth;
