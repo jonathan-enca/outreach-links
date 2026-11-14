@@ -59,6 +59,14 @@ export type Database = {
       audits: {
         Row: {
           actual_cost_usd: number | null;
+          backlinks_cost_usd: number | null;
+          backlinks_error: string | null;
+          backlinks_estimated_cost_usd: number | null;
+          backlinks_finished_at: string | null;
+          backlinks_limit: number | null;
+          backlinks_started_at: string | null;
+          backlinks_stats: Json;
+          backlinks_status: string;
           confirmed_at: string | null;
           cost_cap_usd: number;
           created_at: string;
@@ -80,6 +88,14 @@ export type Database = {
         };
         Insert: {
           actual_cost_usd?: number | null;
+          backlinks_cost_usd?: number | null;
+          backlinks_error?: string | null;
+          backlinks_estimated_cost_usd?: number | null;
+          backlinks_finished_at?: string | null;
+          backlinks_limit?: number | null;
+          backlinks_started_at?: string | null;
+          backlinks_stats?: Json;
+          backlinks_status?: string;
           confirmed_at?: string | null;
           cost_cap_usd: number;
           created_at?: string;
@@ -101,6 +117,14 @@ export type Database = {
         };
         Update: {
           actual_cost_usd?: number | null;
+          backlinks_cost_usd?: number | null;
+          backlinks_error?: string | null;
+          backlinks_estimated_cost_usd?: number | null;
+          backlinks_finished_at?: string | null;
+          backlinks_limit?: number | null;
+          backlinks_started_at?: string | null;
+          backlinks_stats?: Json;
+          backlinks_status?: string;
           confirmed_at?: string | null;
           cost_cap_usd?: number;
           created_at?: string;
@@ -130,6 +154,91 @@ export type Database = {
           },
           {
             foreignKeyName: "audits_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      competitor_backlinks: {
+        Row: {
+          anchor: string | null;
+          audit_id: string;
+          clean_status: string;
+          competitor_id: string;
+          created_at: string;
+          dofollow: boolean | null;
+          exclusion_reasons: string[];
+          first_seen: string | null;
+          id: number;
+          is_broken: boolean | null;
+          item_type: string | null;
+          last_seen: string | null;
+          source_domain: string;
+          source_rank: number | null;
+          source_url: string;
+          spam_score: number | null;
+          target_url: string | null;
+          workspace_id: string;
+        };
+        Insert: {
+          anchor?: string | null;
+          audit_id: string;
+          clean_status?: string;
+          competitor_id: string;
+          created_at?: string;
+          dofollow?: boolean | null;
+          exclusion_reasons?: string[];
+          first_seen?: string | null;
+          id?: never;
+          is_broken?: boolean | null;
+          item_type?: string | null;
+          last_seen?: string | null;
+          source_domain: string;
+          source_rank?: number | null;
+          source_url: string;
+          spam_score?: number | null;
+          target_url?: string | null;
+          workspace_id: string;
+        };
+        Update: {
+          anchor?: string | null;
+          audit_id?: string;
+          clean_status?: string;
+          competitor_id?: string;
+          created_at?: string;
+          dofollow?: boolean | null;
+          exclusion_reasons?: string[];
+          first_seen?: string | null;
+          id?: never;
+          is_broken?: boolean | null;
+          item_type?: string | null;
+          last_seen?: string | null;
+          source_domain?: string;
+          source_rank?: number | null;
+          source_url?: string;
+          spam_score?: number | null;
+          target_url?: string | null;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "competitor_backlinks_audit_id_fkey";
+            columns: ["audit_id"];
+            isOneToOne: false;
+            referencedRelation: "audits";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "competitor_backlinks_competitor_id_fkey";
+            columns: ["competitor_id"];
+            isOneToOne: false;
+            referencedRelation: "competitors";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "competitor_backlinks_workspace_id_fkey";
             columns: ["workspace_id"];
             isOneToOne: false;
             referencedRelation: "workspaces";
