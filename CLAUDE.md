@@ -262,7 +262,7 @@ Le plan de code complet est dans `PLAN.md` (jalons Mx, sous-jalons Mx.y). L'éta
 Début de session :
 
 1. Lire `CLAUDE.md`, `PROGRESS.md`, puis uniquement le sous-jalon demandé dans `PLAN.md` (pas tout le plan).
-2. Vérifier que les prérequis du sous-jalon sont marqués faits dans `PROGRESS.md` ; sinon s'arrêter et le dire.
+2. Vérifier que les prérequis du sous-jalon sont marqués faits dans `PROGRESS.md` **sur `main`**. Si des PR des sous-jalons précédents sont encore ouvertes (travail sur une branche, `main` en retard), les fusionner soi-même dans l'ordre (voir « Fin de session ») avant de lire `PROGRESS.md`, puis repartir de `main` à jour. S'arrêter et le dire seulement si un prérequis n'est vraiment pas fait.
 3. Annoncer en 3 lignes ce qui va être fait et ce qui ne le sera pas (hors périmètre).
 
 Pendant la session :
@@ -278,6 +278,7 @@ Fin de session (obligatoire) :
 
 1. Mettre à jour `PROGRESS.md` : sous-jalon fait / partiel, décisions prises, fichiers clés, commandes pour lancer, dettes et pièges, prochain sous-jalon recommandé.
 2. Commit propre sur une branche `mX.y-nom`, PR avec description du périmètre et des critères d'acceptation cochés.
-3. Donner à l'utilisateur le **prompt de démarrage de la session suivante** (modèle dans `PLAN.md`, section « Prompt de démarrage »).
+3. **Fusionner la PR dans `main` soi-même** dès que la CI est verte : l'utilisateur n'est pas technique et ne gère pas Git, PR ni fusions, il ne faut jamais lui demander de le faire. Si la PR est empilée sur une autre, fusionner d'abord la plus basse. Ne laisser une PR ouverte que si un point exige sa décision (le dire alors en une phrase simple). Vérifier ensuite que `main` contient bien `PROGRESS.md` à jour.
+4. Donner à l'utilisateur le **prompt de démarrage de la session suivante** (modèle dans `PLAN.md`, section « Prompt de démarrage »), en langage simple.
 
 Si une décision de produit manque : poser la question une fois, proposer une option par défaut, avancer sur le reste. Si le périmètre d'un sous-jalon déborde : le scinder et mettre à jour `PLAN.md` avant de continuer.

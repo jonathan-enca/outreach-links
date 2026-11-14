@@ -9,6 +9,9 @@ import { z } from "zod";
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   NEXT_PUBLIC_APP_URL: z.url({ message: "doit être une URL absolue" }),
+  NEXT_PUBLIC_SUPABASE_URL: z.url({ message: "doit être une URL absolue" }),
+  /** Clé publique (anon / publishable) : protégée par la RLS, jamais la clé service_role. */
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, "ne doit pas être vide"),
   /** Aucun envoi d'email réel hors production, sauf décision explicite. */
   EMAIL_DRY_RUN: z
     .enum(["true", "false"])
