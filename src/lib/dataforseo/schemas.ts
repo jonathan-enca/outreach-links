@@ -115,6 +115,7 @@ export const instantPagesParams = z.object({
   url: z
     .string()
     .url()
+    .refine((u) => /^https?:\/\//i.test(u.trim()), "URL http(s) uniquement")
     .transform((u) => u.trim()),
   enable_javascript: z.boolean().default(false),
 });

@@ -331,6 +331,30 @@ describe("nouvelles tentatives", () => {
   });
 });
 
+describe("sécurité", () => {
+  it("journalise le coût même si le résultat payé est invalide", async () => {
+    const bad = {
+      status_code: 20000,
+      cost: 0.02,
+      tasks: [
+        { id: "t1", status_code: 20000, cost: 0.02, result: [{ backlinks: "pas un nombre" }] },
+      ],
+    };
+    const { client, rows } = setup([bad]);
+    await expect(client.backlinksSummary({ target: "mega-coloring.com" })).rejects.toMatchObject({
+      kind: "invalid",
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ provider: "dataforseo", actual_cost_usd: 0.02 });
+  });
+
+  it("refuse une URL OnPage non http(s)", async () => {
+    const { client, fetchImpl } = setup([]);
+    await expect(client.onpageInstantPages({ url: "file:///etc/passwd" })).rejects.toThrow();
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});
+
 describe("estimateCost", () => {
   it("SERP : 0,002 USD par page de 10 résultats", () => {
     expect(estimateCost("serpOrganicLive", { keyword: "a" })).toBe(0.006);

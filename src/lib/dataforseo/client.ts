@@ -208,8 +208,42 @@ export function createDataForSeoClient(options: DataForSeoClientOptions) {
     const { task, actualCostUsd: paid } = parseEnvelope(spec, envelope);
     const actualCostUsd = cacheHit ? 0 : paid;
     const first = task.result?.[0];
+
+    const journal = async () => {
+      try {
+        await recordCost(options.costClient, {
+          workspaceId: opts.workspaceId,
+          auditId: opts.auditId,
+          provider: PROVIDER,
+          operation: spec.name,
+          units: 1,
+          estimatedCostUsd: cacheHit ? 0 : estimatedCostUsd,
+          actualCostUsd,
+          metadata: { cacheHit, cacheKey: key64, taskId: task.id ?? null },
+        });
+      } catch (e) {
+        // La réponse est déjà payée : on ne la jette pas, mais l'échec est bruyant.
+        logger.error("dataforseo : coût non journalisé", { endpoint: spec.name, error: String(e) });
+      }
+    };
+
     // Un résultat absent est valide (ex. aucun backlink) ; un résultat présent doit respecter le schéma.
-    const parsed = first == null ? null : spec.result.parse(first);
+    // Si la réponse payée est invalide, le coût est quand même journalisé (jamais d'appel payant hors cost_ledger).
+    let parsed: unknown = null;
+    if (first != null) {
+      const check = spec.result.safeParse(first);
+      if (!check.success) {
+        if (!cacheHit) {
+          spentEstimateUsd += Math.max(estimatedCostUsd, paid);
+          await journal();
+        }
+        throw new DataForSeoError(
+          `${spec.name} : résultat inattendu (${check.error.message})`,
+          "invalid",
+        );
+      }
+      parsed = check.data;
+    }
 
     if (!cacheHit) {
       spentEstimateUsd += Math.max(estimatedCostUsd, paid);
@@ -229,25 +263,7 @@ export function createDataForSeoClient(options: DataForSeoClientOptions) {
       }
     }
 
-    try {
-      await recordCost(options.costClient, {
-        workspaceId: opts.workspaceId,
-        auditId: opts.auditId,
-        provider: PROVIDER,
-        operation: spec.name,
-        units: 1,
-        estimatedCostUsd: cacheHit ? 0 : estimatedCostUsd,
-        actualCostUsd,
-        metadata: {
-          cacheHit,
-          cacheKey: key64,
-          taskId: task.id ?? null,
-        },
-      });
-    } catch (e) {
-      // La réponse est déjà payée et en cache : on ne la jette pas, mais l'échec est bruyant.
-      logger.error("dataforseo : coût non journalisé", { endpoint: spec.name, error: String(e) });
-    }
+    await journal();
 
     return {
       result: parsed as EndpointResult<K> | null,
