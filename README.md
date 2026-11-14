@@ -21,6 +21,14 @@ pnpm dev
 | `pnpm test`         | Vitest (une passe)       |
 | `pnpm format:check` | vérification Prettier    |
 
+## Inngest, coûts et logs
+
+- Route `/api/inngest` (fonctions dans `src/inngest/functions`, à lister dans `index.ts`). Fonction de test `health` : événement `app/health.ping`, écrit une ligne dans `cost_ledger`.
+- En local : mettre `INNGEST_DEV=1` et `SUPABASE_SERVICE_ROLE_KEY` dans `.env.local`, lancer `pnpm dev` puis `pnpm inngest:dev` (interface sur http://localhost:8288), enregistrer l'app avec `curl -X PUT localhost:3000/api/inngest`, puis envoyer l'événement depuis l'interface Inngest.
+- Tout appel payant passe par `recordCost()` (`src/lib/costs.ts`) : une ligne par appel dans `cost_ledger` (écriture réservée à `service_role`).
+- Logs : `src/lib/logger.ts` (JSON, une ligne par événement, champs sensibles masqués). Niveau via `LOG_LEVEL`.
+- Production : `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY` (Vercel, sensibles), puis synchroniser l'app dans le tableau de bord Inngest avec l'URL `<site>/api/inngest`.
+
 ## Structure
 
 - `src/app` : routes (App Router)
