@@ -10,7 +10,8 @@
 | M0.4        | fait (Lighthouse mobile 98/100/100/100 sur `/` et `/connexion`)                                       | [#6](https://github.com/jonathan-enca/outreach-links/pull/6)   | 2026-11-14 |
 | M1.1        | fait (client DataForSEO testé sur fixtures synthétiques ; appel réel non fait, voir « À fournir »)    | [#12](https://github.com/jonathan-enca/outreach-links/pull/12) | 2026-11-14 |
 | M1.2        | fait (onboarding du site et vérification de propriété ; pas de test Playwright)                       | [#11](https://github.com/jonathan-enca/outreach-links/pull/11) | 2026-11-14 |
-| M1.3 à M7.3 | à faire                                                                                               |                                                                |            |
+| M1.3        | fait (migration appliquée sur le vrai projet ; run réel DataForSEO non fait, voir « À fournir »)      | [#14](https://github.com/jonathan-enca/outreach-links/pull/14) | 2026-11-14 |
+| M1.4 à M7.3 | à faire                                                                                               |                                                                |            |
 
 ## Décisions prises
 
@@ -60,6 +61,15 @@
 - `sender_email` facultatif (intention) ; connexion réelle de la boîte en M4.1.
 - Logique dans `service.ts` (client Supabase en paramètre, testable) ; `actions.ts` appelle seulement ces fonctions. Événements `site.created`, `site.updated`, `site.verified`. Accès via le bouton « Configurer mon site » de `/app`.
 
+### M1.3 (découverte des concurrents par la SERP)
+
+- Statut `echoue` ajouté aux cinq statuts demandés, avec `error_message`. Le handler `onFailure` du job y passe l'audit.
+- Écritures sur `audits`, résultats SERP et `competitors` réservées à `service_role` ; l'utilisateur lit via la RLS. Les actions vérifient l'accès par la RLS puis écrivent avec le client service.
+- Index unique partiel : un seul audit actif par site ; `createAudit` réutilise l'audit actif. Événement Inngest à id stable `audit-discover-<id>` (dédoublonnage). Si l'envoi échoue, l'audit reste `confirme` et le bouton propose de relancer l'envoi.
+- `workspaces.plan` (`gratuit` par défaut, non modifiable côté client). Plafonds de coût par audit : gratuit 0,25 USD, payant 1,50 USD. Coût estimé affiché et confirmation avant lancement.
+- Scoring : couverture de requêtes, puis somme des poids de position ; domaines hors top 30 ignorés. Liste d'exclusion dans `excluded-domains.ts` (pas en base). Labs `competitors_domain` non utilisé (SERP seulement).
+- FK `cost_ledger.audit_id` vers `audits` ajoutée (le backlog M1 est soldé). `database.types.ts` patché à la main d'après l'outil MCP puis prettier.
+
 ## Fichiers et modules clés
 
 - `src/env.ts` : validation zod des variables (`parseEnv`, `env`) ; importé par `next.config.ts` (build) et `layout.tsx` (runtime). Toute variable nouvelle s'ajoute ici et dans `.env.example`.
@@ -76,10 +86,11 @@
 
 - M1.1 : `src/lib/dataforseo/{client,endpoints,schemas,cache}.ts`, `src/lib/dataforseo/fixtures/`, `src/lib/dataforseo/demo.live.test.ts`, `supabase/migrations/2026111511000000_dataforseo_cache.sql`, `supabase/tests/dataforseo-cache.test.ts`.
 - M1.2 : `supabase/migrations/2026111512000000_sites_onboarding.sql`, `supabase/tests/sites-onboarding.test.ts`, `src/features/sites/{domain,schema,verification-constants,verify,service,actions}.ts`, `src/features/sites/{site-form,verification-panel}.tsx`, `src/app/app/site/` (liste, `nouveau`, `[id]`).
+- M1.3 : `supabase/migrations/2026111513000000_audits_competitors.sql`, `supabase/tests/audits.test.ts`, `src/features/audits/{service,run,discover,excluded-domains,plans,estimate,fake-supabase}.ts`, `src/features/audits/validation.live.test.ts`, `src/inngest/functions/audit-discover.ts`, `src/app/app/audit/page.tsx`, `src/app/app/audit/[id]/page.tsx`.
 
 ## Commandes (dev, tests, migrations, Inngest)
 
-`pnpm dev`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm format:check`, `pnpm build` (voir README). Démo DataForSEO : `pnpm demo:dataforseo` (clés requises). Build local : exige `NEXT_PUBLIC_APP_URL` et les variables Supabase publiques. Tests de RLS : `TEST_DATABASE_URL=postgres://user@host:port/postgres pnpm test` (Postgres 16 avec un superutilisateur ; une base temporaire est créée puis supprimée ; ignorés si la variable manque en local, obligatoires en CI). Migrations : fichiers dans `supabase/migrations`, appliqués par la CLI Supabase (`supabase db push`). Types : `pnpm db:types`. Inngest en local : `pnpm dev`, puis dans un autre terminal `pnpm inngest:dev` (dev server Inngest, doit rester sur le port 8288) ; enregistrer l'app : `curl -X PUT http://localhost:3000/api/inngest` ; événement d'essai : `curl -X POST http://localhost:8288/e/dev -H 'content-type: application/json' -d '{"name":"app/health.ping","data":{}}'`.
+`pnpm dev`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm format:check`, `pnpm build` (voir README). Démo DataForSEO : `pnpm demo:dataforseo` (clés requises). Audit réel : `pnpm demo:audit` (crée un vrai audit en base ; exige `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD`, `SUPABASE_SERVICE_ROLE_KEY`). Build local : exige `NEXT_PUBLIC_APP_URL` et les variables Supabase publiques. Tests de RLS : `TEST_DATABASE_URL=postgres://user@host:port/postgres pnpm test` (Postgres 16 avec un superutilisateur ; une base temporaire est créée puis supprimée ; ignorés si la variable manque en local, obligatoires en CI). Migrations : fichiers dans `supabase/migrations`, appliqués par la CLI Supabase (`supabase db push`). Types : `pnpm db:types`. Inngest en local : `pnpm dev`, puis dans un autre terminal `pnpm inngest:dev` (dev server Inngest, doit rester sur le port 8288) ; enregistrer l'app : `curl -X PUT http://localhost:3000/api/inngest` ; événement d'essai : `curl -X POST http://localhost:8288/e/dev -H 'content-type: application/json' -d '{"name":"app/health.ping","data":{}}'`.
 
 ## Mesures (coût par audit, taux de contact, etc.)
 
@@ -88,6 +99,7 @@
 
 - M1.1 : aucun coût réel mesuré (appel impossible, 40100), dépense 0 USD. Estimations : SERP top 30 = 0,006 USD ; Labs limit 100 = 0,02 USD ; Backlinks limit 1000 = 0,05 USD ; Backlinks summary = 0,02 USD.
 - M1.2 : 0 USD ; 65 tests Vitest verts dont 22 de RLS sur Postgres réel.
+- M1.3 : coût estimé d'un audit gratuit = 0,018 USD (3 requêtes x 0,006 USD, SERP live top 30), plafond gratuit 0,25 USD. Coût réel non mesuré (DataForSEO 40100), dépense 0 USD ; sur fixtures réel = estimé. 156 tests verts dont 8 de RLS pour les audits ; lint, typecheck, format et build verts (build vérifié en CI).
 
 ## Dettes et pièges
 
@@ -119,10 +131,11 @@
 - M1.1 : le cache n'est jamais purgé (prévoir un job Inngest de nettoyage). `database.types.ts` modifié à la main d'après l'outil MCP.
 - M1.2 : pas de Playwright dans le dépôt (parcours derrière le lien magique) : tests de services et de composants. Un composant client ne doit pas importer `verify.ts` (`node:dns`) : constantes dans `verification-constants.ts`.
 - M1.2 : SSRF : rebinding DNS entre vérification et requête théoriquement possible ; redirections pouvant changer d'hôte (durcissement : domaine ou `www.domaine` seulement) ; pas de limite de débit de la vérification (à faire en 1.6). La vérification exige `SUPABASE_SERVICE_ROLE_KEY` (déjà sur Vercel). Le jeton reste lisible par les membres du workspace (voulu).
+- M1.3 : run réel impossible (40100) ; les tests de service et de run utilisent un faux client Supabase en mémoire, seules contraintes et RLS sont testées sur Postgres réel. Les ids d'audit et de workspace doivent être de vrais UUID, sinon `recordCost` échoue (erreur seulement loguée) et le coût n'est pas journalisé. Un audit bloqué en `en_cours` (job tué sans `onFailure`) bloque le site via l'index unique, sans purge automatique. En production, le lancement exige `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY` (manquantes) : sans elles la confirmation affiche un échec d'envoi. Non testé avec un vrai serveur Inngest. Estimation fondée sur la grille publique, à recaler. Pas de Playwright (parcours derrière le lien magique). `pnpm build` local impossible sans les variables `NEXT_PUBLIC_*`.
 
 ## Backlog (idées hors périmètre)
 
-- Contrainte de clé étrangère `cost_ledger.audit_id` vers `audits` (M1).
+- Purge des audits bloqués en `en_cours` (job de nettoyage).
 - Mode sombre ; contenu réel des écrans de la coquille.
 - Sentry et `jobs_audit` (optionnels).
 - Job Inngest de purge de `dataforseo_cache` ; idempotence des `task_post` payants lors des nouvelles tentatives.
@@ -133,9 +146,9 @@
 
 1. Inngest : reconnecter le connecteur avec droit de lecture des clés, ou copier `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY` (environnement production) vers Vercel (Production et Preview, type sensitive). Puis redéployer, synchroniser l'app avec `https://outreach-links.vercel.app/api/inngest`, envoyer `app/health.ping` et vérifier une nouvelle ligne dans `cost_ledger`.
 2. Choisir si `outreach-links` cohabite avec `scan-vie-privee` dans l'environnement Inngest de production ou dans un environnement dédié.
-3. `DATAFORSEO_LOGIN` et `DATAFORSEO_PASSWORD` (https://app.dataforseo.com/api-access) sur Vercel, Production et Preview, type sensitive ; vérifier que l'abonnement Backlinks est actif (séparé du SERP et des Labs). Puis lancer `pnpm demo:dataforseo` (SERP FR sur mega-coloring.com), consigner le coût réel ici et remplacer la fixture SERP synthétique.
+3. `DATAFORSEO_LOGIN` et `DATAFORSEO_PASSWORD` (https://app.dataforseo.com/api-access) sur Vercel, Production et Preview, type sensitive ; vérifier que l'abonnement Backlinks est actif (séparé du SERP et des Labs). Puis lancer `pnpm demo:dataforseo` (SERP FR sur mega-coloring.com), consigner le coût réel ici et remplacer la fixture SERP synthétique, puis `pnpm demo:audit` (run réel de l'audit sur mega-coloring.com, plafond 1,50 USD, coût réel à consigner dans « Mesures »).
 4. Clé LLM (Anthropic) pour Vercel, nécessaire dès les sous-jalons d'audit.
 
 ## Prochain sous-jalon recommandé
 
-M1.3 (audit, voir PLAN.md) : ajouter la clé étrangère `cost_ledger.audit_id` vers `audits`. En parallèle, un petit suivi pour finir la mise en production d'Inngest dès que Jonathan fournit les clés.
+M1.4 (voir PLAN.md). En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`, indispensables pour lancer un audit en production) et le run réel DataForSEO dès que Jonathan fournit les identifiants.
