@@ -1,0 +1,67 @@
+import { z } from "zod";
+import { inngest } from "@/inngest/client";
+import {
+  beginDiscovery,
+  discoverQuery,
+  failDiscovery,
+  finalizeDiscovery,
+} from "@/features/audits/run";
+import { DISCOVER_EVENT } from "@/features/audits/service";
+import { createDataForSeoClientFromEnv } from "@/lib/dataforseo";
+import { logger } from "@/lib/logger";
+import { createServiceClient } from "@/lib/supabase/service";
+
+export const discoverEventSchema = z.object({
+  auditId: z.uuid(),
+  workspaceId: z.uuid().optional(),
+});
+
+/**
+ * Job `audit.discover` (M1.3) : top 30 de la SERP pour chaque requête prioritaire,
+ * agrégation des domaines, exclusion des plateformes génériques, sélection selon le
+ * plan. Déclenché par l'événement "audit/discover.requested", envoyé UNIQUEMENT
+ * après la confirmation du coût par l'utilisateur. Chaque requête est une étape
+ * (reprise sans repayer : cache DataForSEO + étapes mémorisées).
+ */
+export const auditDiscover = inngest.createFunction(
+  {
+    id: "audit-discover",
+    triggers: [{ event: DISCOVER_EVENT }],
+    retries: 2,
+    concurrency: { limit: 2 },
+    onFailure: async ({ event, error }) => {
+      // L'événement d'origine est dans event.data.event.data (enveloppe d'échec Inngest).
+      const original = (event.data as { event?: { data?: unknown } }).event?.data;
+      const parsed = discoverEventSchema.safeParse(original);
+      if (!parsed.success) return;
+      await failDiscovery(createServiceClient(), parsed.data.auditId, error.message);
+    },
+  },
+  async ({ event, step }) => {
+    const { auditId } = discoverEventSchema.parse(event.data);
+    const log = logger.child({ fn: "audit-discover", auditId });
+
+    const audit = await step.run("begin", async () =>
+      beginDiscovery(createServiceClient(), auditId),
+    );
+    if (!audit) {
+      log.warn("audit non exécutable (non confirmé ou déjà terminé)");
+      return { skipped: true };
+    }
+
+    const perQuery = [];
+    for (const [i, query] of audit.queries.entries()) {
+      perQuery.push(
+        await step.run(`serp-${i + 1}`, async () =>
+          discoverQuery(createServiceClient(), createDataForSeoClientFromEnv(), audit, query),
+        ),
+      );
+    }
+
+    const result = await step.run("finalize", async () =>
+      finalizeDiscovery(createServiceClient(), audit),
+    );
+    log.info("découverte terminée", { ...result });
+    return { skipped: false, perQuery, ...result };
+  },
+);
