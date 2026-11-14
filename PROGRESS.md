@@ -2,11 +2,11 @@
 
 ## État
 
-| Sous-jalon  | Statut                                                                                                                                                                 | PR                                                           | Date       |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---------- |
-| M0.1        | fait                                                                                                                                                                   | [#1](https://github.com/jonathan-enca/outreach-links/pull/1) | 2026-11-14 |
-| M0.2        | fait côté base de données (projet créé, migration appliquée, RLS vérifiée sur le vrai projet) ; reste 2 réglages manuels et le test réel du lien magique (voir Dettes) | PR M0.2, PR M0.2b                                            | 2026-11-14 |
-| M0.3 à M7.3 | à faire                                                                                                                                                                |                                                              |            |
+| Sous-jalon  | Statut                                                                                                                                      | PR                                                           | Date       |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---------- |
+| M0.1        | fait                                                                                                                                        | [#1](https://github.com/jonathan-enca/outreach-links/pull/1) | 2026-11-14 |
+| M0.2        | fait et déployé (base, RLS, variables Vercel, réglages Auth, site en ligne) ; reste le test réel du lien magique par Jonathan (voir Dettes) | PR M0.2, M0.2b                                               | 2026-11-14 |
+| M0.3 à M7.3 | à faire                                                                                                                                     |                                                              |            |
 
 ## Décisions prises
 
