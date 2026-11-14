@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Button } from "@/components/ui/button";
 import { t } from "@/lib/messages";
 import { sendMagicLink, type LoginState } from "./actions";
 
@@ -20,17 +21,13 @@ export function LoginForm({ initialError }: { initialError?: string }) {
         type="email"
         required
         autoComplete="email"
-        className="rounded border border-zinc-300 px-3 py-2"
+        className="h-10 rounded-md border border-border bg-card px-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       />
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded bg-zinc-900 px-3 py-2 text-white disabled:opacity-60"
-      >
+      <Button type="submit" disabled={pending}>
         {t.auth.submit}
-      </button>
+      </Button>
       {message ? (
-        <p role="status" className={state.status === "sent" ? "text-green-700" : "text-red-700"}>
+        <p role="status" className={state.status === "sent" ? "text-success" : "text-danger"}>
           {message}
         </p>
       ) : null}
