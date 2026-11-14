@@ -8,6 +8,53 @@ export type Database = {
   };
   public: {
     Tables: {
+      cost_ledger: {
+        Row: {
+          actual_cost_usd: number | null;
+          audit_id: string | null;
+          created_at: string;
+          estimated_cost_usd: number;
+          id: number;
+          metadata: Json;
+          operation: string;
+          provider: string;
+          units: number;
+          workspace_id: string | null;
+        };
+        Insert: {
+          actual_cost_usd?: number | null;
+          audit_id?: string | null;
+          created_at?: string;
+          estimated_cost_usd?: number;
+          id?: never;
+          metadata?: Json;
+          operation: string;
+          provider: string;
+          units?: number;
+          workspace_id?: string | null;
+        };
+        Update: {
+          actual_cost_usd?: number | null;
+          audit_id?: string | null;
+          created_at?: string;
+          estimated_cost_usd?: number;
+          id?: never;
+          metadata?: Json;
+          operation?: string;
+          provider?: string;
+          units?: number;
+          workspace_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "cost_ledger_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       events: {
         Row: {
           actor_id: string | null;
