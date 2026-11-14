@@ -2,11 +2,11 @@
 
 ## État
 
-| Sous-jalon  | Statut                                                                                                                                      | PR                                                           | Date       |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---------- |
-| M0.1        | fait                                                                                                                                        | [#1](https://github.com/jonathan-enca/outreach-links/pull/1) | 2026-11-14 |
-| M0.2        | fait et déployé (base, RLS, variables Vercel, réglages Auth, site en ligne) ; reste le test réel du lien magique par Jonathan (voir Dettes) | PR M0.2, M0.2b                                               | 2026-11-14 |
-| M0.3 à M7.3 | à faire                                                                                                                                     |                                                              |            |
+| Sous-jalon  | Statut                                                                                 | PR                                                           | Date       |
+| ----------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---------- |
+| M0.1        | fait                                                                                   | [#1](https://github.com/jonathan-enca/outreach-links/pull/1) | 2026-11-14 |
+| M0.2        | fait (connexion par lien magique testée avec succès par Jonathan sur le site en ligne) | PR M0.2, M0.2b, M0.2c                                        | 2026-11-14 |
+| M0.3 à M7.3 | à faire                                                                                |                                                              |            |
 
 ## Décisions prises
 
@@ -46,7 +46,7 @@
 ## Dettes et pièges
 
 - Vercel : le projet avait `framework: null` (tout en 404). Corrigé en `nextjs` via l'API le 14/11/2026 ; production redéployée et vérifiée (`/` 200, `/connexion` 200, `/app` redirige vers `/connexion`).
-- Reste : test réel du lien magique par Jonathan (mail reçu, arrivée sur `/app`, déconnexion), et confirmer que `NEXT_PUBLIC_APP_URL` vaut `https://outreach-links.vercel.app`.
+- Reste : confirmer que `NEXT_PUBLIC_APP_URL` vaut `https://outreach-links.vercel.app` (valeur masquée dans Vercel).
 
 - Next 16 : lire `node_modules/next/dist/docs/` avant d'utiliser une API (voir `AGENTS.md`). `LayoutProps` est généré par `next build`/`dev` : ne pas l'utiliser, le typecheck CI tourne avant le build.
 - Tailwind v4 passe par `@tailwindcss/postcss` (`postcss.config.mjs`). Le chargeur `@tailwindcss/turbopack` livré par create-next-app ne traitait pas `@theme`.
