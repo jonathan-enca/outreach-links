@@ -176,15 +176,27 @@ export async function finalizeOpportunitiesStep(
       .filter(Boolean),
   }));
   const all = [...gap, ...serpCandidates];
+  // Les « liens morts » (M2.2) sont prouvés en HTTP : on les conserve à la régénération.
+  const keptRes = await service
+    .from("link_opportunities")
+    .select("source_domain")
+    .eq("audit_id", run.id)
+    .eq("type", "lien_mort");
+  if (keptRes.error) throw new Error(`finalizeOpportunities : ${keptRes.error.message}`);
+  const keptDomains = new Set((keptRes.data ?? []).map((k) => k.source_domain));
   const final = finalizeOpportunities(all, {
     site: run.site,
     competitorDomains: (compRes.data ?? []).map((c) => c.domain),
     pages,
     homepage: `https://${run.site.domain}/`,
-  });
+  }).filter((o) => !keptDomains.has(o.domain));
 
-  // Régénération idempotente : on repart d'une table propre pour cet audit.
-  const del = await service.from("link_opportunities").delete().eq("audit_id", run.id);
+  // Régénération idempotente : on repart d'une table propre pour cet audit (hors liens morts).
+  const del = await service
+    .from("link_opportunities")
+    .delete()
+    .eq("audit_id", run.id)
+    .neq("type", "lien_mort");
   if (del.error) throw new Error(`finalizeOpportunities : ${del.error.message}`);
   const rows = final.map((o) => ({
     audit_id: run.id,

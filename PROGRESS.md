@@ -15,7 +15,8 @@
 | M1.5        | fait (pipeline testé sur fixtures ; run réel DataForSEO non fait ; client LLM créé)                                                                               | [#18](https://github.com/jonathan-enca/outreach-links/pull/18) | 2026-11-14 |
 | M1.6        | fait (migration appliquée sur la vraie base le 14/11 via l'API de gestion Supabase ; formulaire sans effet réel tant que les clés Inngest et DataForSEO manquent) | [#20](https://github.com/jonathan-enca/outreach-links/pull/20) | 2026-11-14 |
 | M2.1        | fait (génération testée sur fixtures ; aucun run réel DataForSEO ; migration appliquée sur la vraie base)                                                         | PR M2.1                                                        | 2026-11-14 |
-| M2.2 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
+| M2.2        | fait (crawl testé sur faux web ; aucun run réel sur un vrai site ; migration appliquée sur la vraie base)                                                         | PR M2.2                                                        | 2026-11-14 |
+| M2.3 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
 
 ## Décisions prises
 
@@ -102,6 +103,15 @@
 - Filtres : domaine du site, concurrents retenus, plateformes exclues (liste M1.3). Dédoublonnage par domaine (meilleur score). Page cible : accueil pour les mentions de marque, sinon recoupement mots-clés des pages prioritaires, sinon rotation. Régénération idempotente (table vidée pour l'audit puis réécrite).
 - Les mentions de marque ne vérifient PAS l'absence de lien (à faire au tri des cibles, M3.1). Aucun email, aucun contact.
 
+### M2.2 (chasseur 404)
+
+- [auto] Étape gratuite (0 USD, aucun appel DataForSEO ni LLM), sans confirmation de coût : bouton « Lancer le chasseur 404 » sur l'audit une fois les opportunités terminées. Colonnes `audits.deadlinks_*` (statuts `aucun`, `en_cours`, `termine`, `echoue`), événement Inngest `audit/deadlinks.requested` (id stable audit + date), job `audit-deadlinks` (un step pour les pages de concurrents, un step par page ressources, budget de requêtes partagé).
+- Deux sources : (1) `target_url` des backlinks gardés des concurrents qui répondent aujourd'hui 404/410 (les sites qui les citent sont les cibles de remplacement) ; (2) liens sortants cassés des pages ressources de M2.1 (profondeur 1, jamais de lien suivi). Un lien n'est « mort » que sur un 404/410 constaté : erreur DNS, délai ou 5xx ne prouvent rien.
+- Plafonds : 200 requêtes au total, 8 pages ressources, 25 liens par page, 30 URL de concurrents, 10 sources par URL morte ; 1 requête par seconde et par hôte ; robots.txt par hôte (jeton `OutreachLinksBot`, 5xx ou injoignable = interdit, 4xx = permis) ; user-agent `OutreachLinksBot/1.0 (...)` ; SSRF via le fetcher existant (`createSafeFetcher`, refactor de `verify.ts`, corps limité à 256 Ko).
+- `link_opportunities` : colonnes `broken_url`, `broken_http_status`, `broken_checked_at` et contrainte SQL : un `lien_mort` exige une preuve 404/410. Type de lien attendu `reprise_lien_mort`. Un constat prouvé REMPLACE une opportunité moins précise du même domaine (unique audit + domaine). La régénération de M2.1 conserve désormais les `lien_mort` (et ne recrée pas leurs domaines).
+- Page de remplacement : recoupement des mots de l'URL cassée / ancre avec les mots-clés des pages prioritaires, sinon rotation puis accueil (même logique que M2.1).
+- Limites connues : les URL source issues de redirections Google (M1.6 bis) sont parfois tronquées et répondent mal, donc ignorées (pas de preuve) ; aucun run sur de vrais sites (aucune requête réelle faite en session, par prudence) ; un site qui bloque les robots est simplement ignoré et compté.
+
 ## Fichiers et modules clés
 
 - `src/env.ts` : validation zod des variables (`parseEnv`, `env`) ; importé par `next.config.ts` (build) et `layout.tsx` (runtime). Toute variable nouvelle s'ajoute ici et dans `.env.example`.
@@ -126,6 +136,8 @@
 
 - M2.1 : `supabase/migrations/2026111517000000_link_opportunities.sql`, `supabase/tests/link-opportunities.test.ts`, `src/features/opportunities/{generate,limits,run,service,actions}.ts`, `src/features/opportunities/opportunities-section.tsx`, `src/features/opportunities/opportunities.test.ts`, `src/inngest/functions/audit-opportunities.ts`.
 
+- M2.2 : `supabase/migrations/2026111518000000_deadlinks.sql`, `src/features/deadlinks/{robots,html,hunt,to-opportunities,run,service,actions}.ts`, `src/features/deadlinks/deadlinks-section.tsx`, `src/features/deadlinks/deadlinks.test.ts`, `src/inngest/functions/audit-deadlinks.ts`, `createSafeFetcher` dans `src/features/sites/verify.ts`.
+
 ## Commandes (dev, tests, migrations, Inngest)
 
 `pnpm dev`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm format:check`, `pnpm build` (voir README). Résumé LLM réel (jeu d'évaluation, plafond 0,10 USD) : `NODE_USE_ENV_PROXY=1 LLM_PROXY_AUTH=true pnpm demo:llm`. Démo DataForSEO : `pnpm demo:dataforseo` (clés requises). Audit réel : `pnpm demo:audit` (crée un vrai audit en base ; exige `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD`, `SUPABASE_SERVICE_ROLE_KEY`). Build local : exige `NEXT_PUBLIC_APP_URL` et les variables Supabase publiques. Tests de RLS : `TEST_DATABASE_URL=postgres://user@host:port/postgres pnpm test` (Postgres 16 avec un superutilisateur ; une base temporaire est créée puis supprimée ; ignorés si la variable manque en local, obligatoires en CI). Migrations : fichiers dans `supabase/migrations`, appliqués par la CLI Supabase (`supabase db push`). Types : `pnpm db:types`. Inngest en local : `pnpm dev`, puis dans un autre terminal `pnpm inngest:dev` (dev server Inngest, doit rester sur le port 8288) ; enregistrer l'app : `curl -X PUT http://localhost:3000/api/inngest` ; événement d'essai : `curl -X POST http://localhost:8288/e/dev -H 'content-type: application/json' -d '{"name":"app/health.ping","data":{}}'`.
@@ -139,6 +151,7 @@
 - M1.2 : 0 USD ; 65 tests Vitest verts dont 22 de RLS sur Postgres réel.
 - M1.3 : coût estimé d'un audit gratuit = 0,018 USD (3 requêtes x 0,006 USD, SERP live top 30), plafond gratuit 0,25 USD. Coût réel non mesuré (DataForSEO 40100), dépense 0 USD ; sur fixtures réel = estimé. 156 tests verts dont 8 de RLS pour les audits ; lint, typecheck, format et build verts (build vérifié en CI).
 - M1.4 : fixture synthétique de 28 liens : 11 conservés, 17 écartés (interne 2, plateforme 2, spam 5, images réutilisées 3, étranger 4, doublon 1). Coût réel non mesuré (40100), dépense 0 USD.
+- M2.2 : 0 USD (étape sans appel payant) ; 385 tests verts avec Postgres 16 local (RLS comprise).
 - M1.5 : évaluation réelle du résumé sur OpenAI `gpt-4o-mini` : 6 cas, 6 appels, 0 promesse de classement, 0,00089 USD le dernier passage. Dépense de la session : ~0,0017 USD OpenAI, 0 USD DataForSEO. Coût réel du profil non mesuré (estimé gratuit ~0,143 USD).
 
 ## Dettes et pièges
@@ -257,4 +270,4 @@
 
 ## Prochain sous-jalon recommandé
 
-M2.2 (chasseur 404, voir PLAN.md) puis M2.3 (écran Plan de liens). En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`) et le run réel DataForSEO (retester d'abord avec `NODE_USE_ENV_PROXY=1` dans l'environnement agent) dès que Jonathan fournit les identifiants.
+M2.3 (écran Plan de liens), puis MA (découper en MA.1, MA.2... dans PLAN.md d'abord). En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`) et le run réel DataForSEO (retester d'abord avec `NODE_USE_ENV_PROXY=1` dans l'environnement agent) dès que Jonathan fournit les identifiants.

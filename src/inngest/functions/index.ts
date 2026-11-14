@@ -1,4 +1,5 @@
 import { auditBacklinks } from "./audit-backlinks";
+import { auditDeadlinks } from "./audit-deadlinks";
 import { auditDiscover } from "./audit-discover";
 import { auditOpportunities } from "./audit-opportunities";
 import { auditProfile } from "./audit-profile";
@@ -12,5 +13,6 @@ export const functions = [
   auditBacklinks,
   auditProfile,
   auditOpportunities,
+  auditDeadlinks,
   publicAudit,
 ];

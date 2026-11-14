@@ -6,6 +6,7 @@ import {
   OpportunitiesSection,
   type OpportunitiesView,
 } from "@/features/opportunities/opportunities-section";
+import { DeadlinksSection, type DeadlinksView } from "@/features/deadlinks/deadlinks-section";
 import { ProfileSection, type ProfileView } from "@/features/profile/profile-section";
 import { AuditStatusBadge } from "./audit-status-badge";
 import { ConfirmAuditPanel } from "./confirm-audit-panel";
@@ -28,6 +29,8 @@ export interface AuditView {
   profile?: ProfileView;
   /** Opportunités de liens (M2.1), après le profil de liens. */
   opportunities?: OpportunitiesView;
+  /** Chasseur 404 (M2.2), après les opportunités. */
+  deadlinks?: DeadlinksView;
   competitors: {
     domain: string;
     queriesCount: number;
@@ -44,12 +47,14 @@ export function AuditDetail({
   startBacklinksAction,
   startProfileAction,
   startOpportunitiesAction,
+  startDeadlinksAction,
 }: {
   audit: AuditView;
   confirmAction: (prev: AuditActionState) => Promise<AuditActionState>;
   startBacklinksAction?: (prev: AuditActionState) => Promise<AuditActionState>;
   startProfileAction?: (prev: AuditActionState) => Promise<AuditActionState>;
   startOpportunitiesAction?: (prev: AuditActionState) => Promise<AuditActionState>;
+  startDeadlinksAction?: (prev: AuditActionState) => Promise<AuditActionState>;
 }) {
   const r = t.audits.result;
   const awaitingConfirm = audit.status === "estime" || audit.status === "confirme";
@@ -159,6 +164,9 @@ export function AuditDetail({
             />
           ) : audit.profile && audit.profile.status !== "termine" ? (
             <Card className="p-6 text-muted-foreground">{t.opportunities.needsProfile}</Card>
+          ) : null}
+          {audit.opportunities?.status === "termine" && audit.deadlinks && startDeadlinksAction ? (
+            <DeadlinksSection view={audit.deadlinks} startAction={startDeadlinksAction} />
           ) : null}
         </>
       ) : null}
