@@ -61,6 +61,13 @@ Pour chaque sous-jalon :
 5. Commit, PR (description avec périmètre et critères cochés), attendre la CI verte, **fusionner soi-même**, vérifier que `main` contient `PROGRESS.md` à jour et que le déploiement Vercel de production est `READY` (`/` en 200). Si la production casse : corriger immédiatement ou revenir en arrière par un commit de retour (revert), sans attendre.
 6. Passer au sous-jalon suivant. Si le contexte devient long, ouvrir une nouvelle session pour le suivant avec `create_session` (même environnement) et le prompt de démarrage de la section 7, **au plus 12 sessions enfants au total**, une seule à la fois, sans jamais en lancer deux en parallèle.
 
+### Rythme de commits et de mise en ligne (demande de Jonathan, 14/11/2026)
+
+- **Commit** à chaque bloc cohérent terminé (une table, un service, un écran, une série de tests), au moins toutes les 30 à 45 minutes de travail, jamais un gros commit unique en fin de sous-jalon. Pousser à chaque commit sur la branche de travail : rien ne doit rester seulement dans le conteneur, qui peut être réclamé.
+- **PR et fusion dans `main` à chaque sous-jalon, ou à chaque étape livrable** d'un gros sous-jalon (scinder en PR plus petites plutôt qu'une PR géante), dès que la CI est verte.
+- **Mise en ligne** : chaque fusion déclenche un déploiement de production Vercel ; vérifier à chaque fois qu'il est `READY` pour le bon commit (`GET /v6/deployments?projectId=...&target=production&limit=1`), que `/`, `/connexion` répondent 200 et que `/app` renvoie bien vers `/connexion`. Si les migrations du sous-jalon ne sont pas encore appliquées sur la vraie base, les appliquer **avant** de fusionner pour que le code déployé ne casse pas.
+- Un point d'étape de `PROGRESS.md` (même court) est commité et fusionné au moins toutes les deux heures, pour que l'état réel soit toujours lisible sur `main`.
+
 ## 5. Blocages : quoi faire sans déranger Jonathan
 
 - Clé ou accès manquant : bâtir l'adaptateur et la version factice, tester sur fixtures, ajouter une ligne claire dans `PROGRESS.md > À fournir` (quoi, où le mettre, quel sous-jalon se débloque), continuer.
