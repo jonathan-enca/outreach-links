@@ -665,6 +665,7 @@ export type Database = {
           id: string;
           offer: string | null;
           origin_query: string | null;
+          plan_position: number | null;
           priority: string;
           priority_score: number;
           rationale: string;
@@ -687,6 +688,7 @@ export type Database = {
           id?: string;
           offer?: string | null;
           origin_query?: string | null;
+          plan_position?: number | null;
           priority: string;
           priority_score: number;
           rationale: string;
@@ -709,6 +711,7 @@ export type Database = {
           id?: string;
           offer?: string | null;
           origin_query?: string | null;
+          plan_position?: number | null;
           priority?: string;
           priority_score?: number;
           rationale?: string;
@@ -744,6 +747,99 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      link_plan_items: {
+        Row: {
+          anchor_kind: string;
+          anchor_text: string;
+          broken_url: string | null;
+          expected_link_type: string;
+          id: string;
+          offer: string | null;
+          opportunity_id: string | null;
+          plan_id: string;
+          position: number;
+          priority: string;
+          priority_score: number;
+          rationale: string;
+          source_domain: string;
+          source_url: string | null;
+          target_page_url: string;
+          type: string;
+          workspace_id: string;
+        };
+        Insert: {
+          anchor_kind: string;
+          anchor_text: string;
+          broken_url?: string | null;
+          expected_link_type: string;
+          id?: string;
+          offer?: string | null;
+          opportunity_id?: string | null;
+          plan_id: string;
+          position: number;
+          priority: string;
+          priority_score: number;
+          rationale: string;
+          source_domain: string;
+          source_url?: string | null;
+          target_page_url: string;
+          type: string;
+          workspace_id: string;
+        };
+        Update: {
+          anchor_kind?: string;
+          anchor_text?: string;
+          broken_url?: string | null;
+          expected_link_type?: string;
+          id?: string;
+          offer?: string | null;
+          opportunity_id?: string | null;
+          plan_id?: string;
+          position?: number;
+          priority?: string;
+          priority_score?: number;
+          rationale?: string;
+          source_domain?: string;
+          source_url?: string | null;
+          target_page_url?: string;
+          type?: string;
+          workspace_id?: string;
+        };
+        Relationships: [];
+      };
+      link_plans: {
+        Row: {
+          audit_id: string;
+          id: string;
+          item_count: number;
+          site_id: string;
+          validated_at: string;
+          validated_by: string | null;
+          version: number;
+          workspace_id: string;
+        };
+        Insert: {
+          audit_id: string;
+          id?: string;
+          item_count: number;
+          site_id: string;
+          validated_at?: string;
+          validated_by?: string | null;
+          version: number;
+          workspace_id: string;
+        };
+        Update: {
+          audit_id?: string;
+          id?: string;
+          item_count?: number;
+          site_id?: string;
+          validated_at?: string;
+          validated_by?: string | null;
+          version?: number;
+          workspace_id?: string;
+        };
+        Relationships: [];
       };
       memberships: {
         Row: {
@@ -987,6 +1083,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      create_link_plan: {
+        Args: { p_audit_id: string; p_items: Json; p_user_id: string };
+        Returns: { plan_id: string; version: number }[];
+      };
       has_workspace_role: {
         Args: { roles: string[]; ws: string };
         Returns: boolean;

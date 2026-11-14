@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { t } from "@/lib/messages";
@@ -164,6 +165,17 @@ export function AuditDetail({
             />
           ) : audit.profile && audit.profile.status !== "termine" ? (
             <Card className="p-6 text-muted-foreground">{t.opportunities.needsProfile}</Card>
+          ) : null}
+          {audit.opportunities?.status === "termine" ? (
+            <Card className="flex flex-wrap items-center justify-between gap-3 p-6">
+              <p className="text-muted-foreground">{t.plan.description}</p>
+              <Link
+                href={`/app/audit/${audit.id}/plan`}
+                className="font-semibold underline underline-offset-4"
+              >
+                {t.plan.open}
+              </Link>
+            </Card>
           ) : null}
           {audit.opportunities?.status === "termine" && audit.deadlinks && startDeadlinksAction ? (
             <DeadlinksSection view={audit.deadlinks} startAction={startDeadlinksAction} />
