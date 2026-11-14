@@ -18,6 +18,7 @@
 | M2.2        | fait (crawl testé sur faux web ; aucun run réel sur un vrai site ; migration appliquée sur la vraie base)                                                         | PR M2.2                                                        | 2026-11-14 |
 | M2.3        | fait (pas de test Playwright : aucune session connectée possible ; tests de services, de composants purs et de SQL réel)                                          | PR M2.3                                                        | 2026-11-14 |
 | MA.1        | fait (exclusion des très grands sites ; zéro appel payant ; MA.2 à MA.7 définis dans PLAN.md)                                                                     | PR MA.1                                                        | 2026-11-14 |
+| MA.2        | fait (mesure de taille groupée avant les backlinks ; testé sur fixtures, aucun appel payant réel ; migration appliquée sur la vraie base)                         | PR MA.2                                                        | 2026-11-14 |
 | M3.1 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
 
 ## Décisions prises
@@ -122,6 +123,7 @@
 - Une régénération des opportunités (M2.1) n'efface pas les plans validés (références souples).
 
 - MA.1 [auto] : découpe de MA en MA.1 à MA.7 (voir PLAN.md). Défaut le plus simple et gratuit : liste de très grands sites exclus (`GIANT_DOMAINS` dans `src/features/audits/excluded-domains.ts`), appliquée par `isExcludedDomain` (donc aussi à l'audit public). Piège : une entrée `x.*` couvre tous les TLD ; vérifier qu'une entrée ne masque pas un vrai petit concurrent (tests de noms proches). Mesure : 0 USD (aucun appel payant).
+- MA.2 [auto] : filtre de taille AVANT `backlinks.backlinks`. Choix : `backlinks.bulk_referring_domains` (UNE requête pour les concurrents retenus + 5 remplaçants, ~0,0202 USD) plutôt que `backlinks.summary` par concurrent (0,02 USD chacun, trop cher pour le gratuit). Seuil de domaines référents : 20 000 gratuit, 100 000 payant [HYPOTHÈSE] (`MAX_REFERRING_DOMAINS`, `limits.ts`). Un concurrent trop gros passe `selected=false, size_excluded=true`, remplacé par le candidat suivant par score ; taille inconnue = gardé ; mesure sautée sans erreur si le plafond de l'audit ne la couvre pas. Migration `2026111520000000_competitor_size.sql` (`competitors.referring_domains`, `size_excluded`), appliquée sur la vraie base. Nouveau step `size-filter` dans `audit-backlinks`. L'estimation affichée inclut la mesure (gratuit 3 concurrents : 0,107 USD au lieu de 0,087). Mesure : 0 USD (fixtures). **Piège** : format de réponse de `bulk_referring_domains` écrit d'après la documentation, non vérifié par un appel réel (schéma tolérant) ; à confirmer au premier audit réel. **Tension pour MA.3** : l'étape Profil gratuite (~0,143) ne tient plus sous le plafond 0,25 après 0,018 + 0,107 ; elle se dégrade déjà d'elle-même (limites adaptatives), MA.3 doit recaler la grille et la marge.
 
 ## Fichiers et modules clés
 

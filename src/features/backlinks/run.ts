@@ -4,6 +4,8 @@ import { BudgetExceededError, type DataForSeoClient } from "@/lib/dataforseo";
 import { estimateCost } from "@/lib/dataforseo/endpoints";
 import { logger } from "@/lib/logger";
 import type { Database, Json } from "@/lib/supabase/database.types";
+import { isPlanKey } from "@/features/audits/plans";
+import { MAX_REFERRING_DOMAINS, SIZE_SPARES } from "./limits";
 import { cleanBacklinks, computeStats, type CleanStats, type ExclusionReason } from "./clean";
 import { normalizeBacklinkItems } from "./normalize";
 
@@ -23,6 +25,7 @@ export interface BacklinksRun {
   language: string;
   limit: number;
   costCapUsd: number;
+  plan: string;
   competitors: { id: string; domain: string }[];
 }
 
@@ -66,8 +69,107 @@ export async function beginBacklinks(
     language: site.language,
     limit: audit.backlinks_limit,
     costCapUsd: Number(audit.cost_cap_usd),
+    plan: audit.plan,
     competitors: comps ?? [],
   };
+}
+
+export interface SizeFilterResult {
+  competitors: { id: string; domain: string }[];
+  excluded: { domain: string; referringDomains: number }[];
+  replacedBy: string[];
+  /** false si la mesure a été sautée (plafond de coût) ou a échoué : on garde la liste. */
+  measured: boolean;
+}
+
+/**
+ * MA.2 : mesure la taille des concurrents retenus (et de quelques remplaçants) en UNE requête
+ * groupée, écarte ceux qui dépassent le seuil du plan et les remplace par les candidats
+ * suivants (par score). Une taille inconnue ne prouve rien : le concurrent est gardé.
+ * Appel payant : client DataForSEO (cost_ledger) après contrôle du plafond de l'audit.
+ */
+export async function filterCompetitorsBySize(
+  service: Client,
+  dfs: Pick<DataForSeoClient, "backlinksBulkReferringDomains">,
+  run: BacklinksRun,
+): Promise<SizeFilterResult> {
+  const kept = run.competitors;
+  const max = MAX_REFERRING_DOMAINS[isPlanKey(run.plan) ? run.plan : "gratuit"];
+  const { data: spares, error } = await service
+    .from("competitors")
+    .select("id, domain")
+    .eq("audit_id", run.id)
+    .eq("selected", false)
+    .eq("size_excluded", false)
+    .order("score", { ascending: false })
+    .limit(SIZE_SPARES);
+  if (error) throw new Error(`filterCompetitorsBySize : ${error.message}`);
+  const candidates = [...kept, ...(spares ?? [])];
+  const targets = candidates.map((c) => c.domain);
+
+  const spent = await totalCostForAudit(service, run.id);
+  const next = estimateCost("backlinksBulkReferringDomains", { targets });
+  if (spent + next > run.costCapUsd + 1e-9) {
+    logger.warn("mesure de taille sautée : plafond de l'audit", { auditId: run.id });
+    return { competitors: kept, excluded: [], replacedBy: [], measured: false };
+  }
+  const out = await dfs.backlinksBulkReferringDomains(
+    { targets },
+    { workspaceId: run.workspaceId, auditId: run.id },
+  );
+  const sizes = new Map<string, number>();
+  for (const item of out.result?.items ?? []) {
+    if (item.target && typeof item.referring_domains === "number") {
+      sizes.set(item.target.toLowerCase().replace(/^www\./, ""), item.referring_domains);
+    }
+  }
+  const sizeOf = (domain: string) => sizes.get(domain);
+  const tooBig = (domain: string) => (sizeOf(domain) ?? 0) > max;
+
+  const excluded: SizeFilterResult["excluded"] = [];
+  const final: { id: string; domain: string }[] = [];
+  for (const c of kept) {
+    if (tooBig(c.domain)) excluded.push({ domain: c.domain, referringDomains: sizeOf(c.domain)! });
+    else final.push(c);
+  }
+  const replacedBy: string[] = [];
+  for (const c of spares ?? []) {
+    if (final.length >= kept.length) break;
+    if (!tooBig(c.domain)) {
+      final.push(c);
+      replacedBy.push(c.domain);
+    }
+  }
+
+  // Écritures : taille connue, écartés (selected=false) et remplaçants (selected=true).
+  for (const c of candidates) {
+    const rd = sizeOf(c.domain);
+    if (rd === undefined) continue;
+    const upd = await service
+      .from("competitors")
+      .update({ referring_domains: rd, size_excluded: tooBig(c.domain) })
+      .eq("id", c.id);
+    if (upd.error) throw new Error(`filterCompetitorsBySize : ${upd.error.message}`);
+  }
+  const out1 = kept.filter((c) => !final.includes(c)).map((c) => c.id);
+  if (out1.length) {
+    const upd = await service.from("competitors").update({ selected: false }).in("id", out1);
+    if (upd.error) throw new Error(`filterCompetitorsBySize : ${upd.error.message}`);
+  }
+  const in1 = final.filter((c) => !kept.includes(c)).map((c) => c.id);
+  if (in1.length) {
+    const upd = await service.from("competitors").update({ selected: true }).in("id", in1);
+    if (upd.error) throw new Error(`filterCompetitorsBySize : ${upd.error.message}`);
+  }
+  if (excluded.length) {
+    await service.from("events").insert({
+      workspace_id: run.workspaceId,
+      actor_id: null,
+      type: "audit.competitors_size_filtered",
+      payload: { audit_id: run.id, excluded, replaced_by: replacedBy, max },
+    });
+  }
+  return { competitors: final, excluded, replacedBy, measured: true };
 }
 
 /**

@@ -114,6 +114,18 @@ export const endpoints = {
     cacheable: true,
     estimate: () => PRICING.backlinksPerRequest,
   }),
+  /** Taille (domaines référents) de plusieurs cibles en UN appel (MA.2). */
+  backlinksBulkReferringDomains: defineSpec({
+    name: "backlinks.bulk_referring_domains",
+    method: "POST",
+    path: () => "/v3/backlinks/bulk_referring_domains/live",
+    params: s.bulkReferringDomainsParams,
+    result: s.bulkReferringDomainsResult,
+    body: (p) => ({ ...p }),
+    okStatus: 20000,
+    cacheable: true,
+    estimate: (p) => r6(PRICING.backlinksPerRequest + p.targets.length * PRICING.backlinksPerRow),
+  }),
   backlinksReferringDomains: defineSpec({
     name: "backlinks.referring_domains",
     method: "POST",

@@ -475,9 +475,11 @@ export type Database = {
           domain: string;
           id: string;
           queries_count: number;
+          referring_domains: number | null;
           sample_url: string | null;
           score: number;
           selected: boolean;
+          size_excluded: boolean;
           workspace_id: string;
         };
         Insert: {
@@ -489,9 +491,11 @@ export type Database = {
           domain: string;
           id?: string;
           queries_count: number;
+          referring_domains?: number | null;
           sample_url?: string | null;
           score: number;
           selected?: boolean;
+          size_excluded?: boolean;
           workspace_id: string;
         };
         Update: {
@@ -503,9 +507,11 @@ export type Database = {
           domain?: string;
           id?: string;
           queries_count?: number;
+          referring_domains?: number | null;
           sample_url?: string | null;
           score?: number;
           selected?: boolean;
+          size_excluded?: boolean;
           workspace_id?: string;
         };
         Relationships: [

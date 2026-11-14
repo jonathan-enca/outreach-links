@@ -79,6 +79,10 @@ export const backlinksSummaryParams = z.object({
   exclude_internal_backlinks: z.boolean().default(true),
 });
 
+export const bulkReferringDomainsParams = z.object({
+  targets: z.array(domain).min(1).max(100),
+});
+
 export const referringDomainsParams = z.object({
   ...backlinksBase,
   limit: z.number().int().min(1).max(1000).default(100),
@@ -205,6 +209,11 @@ export const backlinksSummaryResult = z.looseObject({
   broken_backlinks: num,
   broken_pages: num,
   first_seen: str,
+});
+
+export const bulkReferringDomainsResult = z.looseObject({
+  items_count: num,
+  items: z.array(z.looseObject({ target: str, referring_domains: num.nullish() })).nullish(),
 });
 
 export const referringDomainsResult = z.looseObject({
