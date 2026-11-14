@@ -187,6 +187,12 @@
 - `database.types.ts` régénéré avec l'outil MCP Supabase (types complets) puis les ajouts M2.1 recopiés (pas de CLI en session) ; formatage avec `pnpm exec prettier` (pas `npx`, versions différentes).
 - Tests de base en local : Postgres 16 démarré dans `/var/tmp/pgd` (`initdb`, port 55432, utilisateur `postgres`) puis `TEST_DATABASE_URL=postgres://postgres@127.0.0.1:55432/postgres pnpm test`.
 
+### M1.6 bis (premier audit gratuit réel, 14/11/2026)
+
+- Premier appel réel DataForSEO en production : `labs.ranked_keywords` sur `mega-coloring.com` = 0,012 USD réels (estimé 0,020), 0 mot-clé classé (`items: null`). Audit `echoue` / `aucun_mot_cle`, ce qui est un vrai résultat de données, pas un bug. Les autres endpoints restent non mesurés.
+- Correctif : la relance après échec ne passait pas `queries_source` à `visiteur`, donc des requêtes saisies étaient ignorées et l'audit était déduit en « auto ». Corrigé, test ajouté. La page d'échec `aucun_mot_cle` affiche maintenant un formulaire (3 requêtes, domaine fixé) pour relancer. `database.types.ts` vérifié : déjà aligné sur la base.
+- À faire : relancer l'audit de `mega-coloring.com` avec 1 à 3 requêtes saisies (2 tentatives max par mois et par domaine ; la 1re est consommée) pour mesurer le coût réel complet.
+
 ## Backlog (idées hors périmètre)
 
 - Purge des audits bloqués en `en_cours` (job de nettoyage).

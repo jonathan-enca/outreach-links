@@ -534,6 +534,7 @@ export const fr = {
         "Jusqu'à 3. Sans saisie, on les déduit des mots-clés sur lesquels votre site est déjà classé.",
       queryPlaceholder: "Par exemple : coloriage licorne",
       submit: "Lancer l'audit gratuit",
+      retrySubmit: "Relancer l'audit avec ces requêtes",
       pending: "Envoi en cours",
       fineprint:
         "Audit réduit : 3 concurrents, 3 pages prioritaires, 10 cibles à découvrir. Aucun email n'est envoyé à quiconque.",
@@ -565,7 +566,7 @@ export const fr = {
       title: "L'audit n'a pas abouti",
       reasons: {
         aucun_mot_cle:
-          "Votre site n'a pas assez de mots-clés classés pour déduire des requêtes. Indiquez vos requêtes principales pour recommencer.",
+          "Google ne montre encore aucun mot-clé classé pour votre site : on ne peut pas déduire vos requêtes. Indiquez ci-dessous 1 à 3 requêtes sur lesquelles vous voulez apparaître, puis relancez.",
         aucun_concurrent: "Aucun concurrent exploitable n'a été trouvé pour ces requêtes.",
         plafond_audit: "L'audit a atteint son plafond de coût avant la fin.",
         erreur_fournisseur: "Une source de données a répondu en erreur.",

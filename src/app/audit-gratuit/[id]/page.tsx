@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { reportCookieName } from "@/features/public-audit/cookie";
+import { AuditForm } from "@/features/public-audit/audit-form";
 import { AutoRefresh } from "@/features/public-audit/auto-refresh";
 import { EmailGate } from "@/features/public-audit/email-gate";
 import { projectReport } from "@/features/public-audit/report";
@@ -48,6 +49,7 @@ async function Report({ params }: { params: Promise<{ id: string }> }) {
         <p className="text-muted-foreground">
           {reasons[audit.errorCode ?? ""] ?? p.failed.reasons.defaut}
         </p>
+        {audit.errorCode === "aucun_mot_cle" ? <AuditForm fixedDomain={audit.domain} /> : null}
         <div>
           <Button asChild variant="outline">
             <Link href="/">{p.failed.back}</Link>

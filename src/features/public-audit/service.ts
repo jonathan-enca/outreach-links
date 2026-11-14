@@ -125,7 +125,14 @@ export async function startPublicAudit(deps: StartDeps, input: StartInput): Prom
     // Réessai après un échec : on remet l'audit en file (atomique sur le statut).
     const { data, error } = await service
       .from("public_audits")
-      .update({ status: "en_attente", queries, error_code: null, error_message: null })
+      .update({
+        status: "en_attente",
+        queries,
+        // Sans cela, des requêtes saisies après un échec seraient ignorées (déduction « auto »).
+        queries_source: queries.length ? "visiteur" : "auto",
+        error_code: null,
+        error_message: null,
+      })
       .eq("id", existing.id)
       .eq("status", "echoue")
       .select("id, attempts");
