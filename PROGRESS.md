@@ -12,7 +12,8 @@
 | M1.2        | fait (onboarding du site et vérification de propriété ; pas de test Playwright)                       | [#11](https://github.com/jonathan-enca/outreach-links/pull/11) | 2026-11-14 |
 | M1.3        | fait (migration appliquée sur le vrai projet ; run réel DataForSEO non fait, voir « À fournir »)      | [#14](https://github.com/jonathan-enca/outreach-links/pull/14) | 2026-11-14 |
 | M1.4        | fait (pipeline testé sur fixtures ; run réel DataForSEO Backlinks non fait, voir « À fournir »)       | [#16](https://github.com/jonathan-enca/outreach-links/pull/16) | 2026-11-14 |
-| M1.5 à M7.3 | à faire                                                                                               |                                                                |            |
+| M1.5        | fait (pipeline testé sur fixtures ; run réel DataForSEO non fait ; client LLM créé)                   | [#18](https://github.com/jonathan-enca/outreach-links/pull/18) | 2026-11-14 |
+| M1.6 à M7.3 | à faire                                                                                               |                                                                |            |
 
 ## Décisions prises
 
@@ -79,6 +80,18 @@
 - Spam : score fournisseur >= 50 ou heuristiques (mots, segments courts, TLD à risque, tirets/chiffres, ancre). Images réutilisées : 3 liens image ou plus d'un même domaine. Étranger : ccTLD hors langue cible, écritures non latines, IDN. Plateformes : liste de M1.3. Seuils via `CleanContext`. Nettoyage en un seul step, mises à jour par groupes de motifs.
 - CSV : séparateur point-virgule, BOM UTF-8 (Excel FR), lu avec le client utilisateur (RLS). Route `GET /app/audit/<id>/export?portee=propres|tout`.
 
+### M1.5 (profil de liens, écart, diagnostic par page, client LLM)
+
+- Étape à part, comme M1.3 et M1.4 : exige les backlinks terminés et une confirmation explicite du coût. Événement `audit/profile.requested` (id stable : audit + date de confirmation). Remplit `audit_pages` et `audit_gap_domains`, produit un résumé.
+- Écart de domaines calculé localement : domaines sources conservés par M1.4 moins domaines référents du site (pas de `domain_intersection`, sémantique invérifiable). Approximatif si la liste des référents est tronquée : drapeau et avertissement dans l'UI.
+- Domaines référents par page : échantillon de backlinks du site en mode `as_is` (borne basse). Besoin par page : médiane des référents des repères x 0,2 x (0,7 en positions 4 à 10, sinon 1) moins l'existant, fourchette +/- 40 % en ordre de grandeur. Seuils = hypothèses, exportés dans `compute.ts`.
+- Pages prioritaires : au moins un mot-clé en positions 4 à 20 avec volume >= 50 ; score = somme volume x proximité (1 en position 4, 0 en 21) ; tri par `priority_rank`.
+- Limites adaptatives au plafond : gratuit 100 lignes par appel (jusqu'à 50), moins de repères, refus avant tout appel payant ; estimé gratuit ~0,143 USD (3 repères, 3 pages OnPage) pour 0,145 USD restants sous 0,25. Payant : 500 mots-clés, 1000 domaines, 1000 backlinks, 10 repères, 10 pages OnPage.
+- Client LLM `src/lib/llm` : fetch direct sans SDK ; Anthropic par outil forcé (`tool_use`), OpenAI par `response_format` json_schema (`z.toJSONSchema`) ; modèles par défaut `claude-haiku-4-5` et `gpt-4o-mini` (surcharge `LLM_MODEL`). Coût journalisé même si la sortie est invalide. Plafond 0,05 USD par résumé.
+- Variables optionnelles : `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `LLM_PROVIDER`, `LLM_MODEL`, `LLM_PROXY_AUTH` (mode proxy agent, interdit en production, comme `DATAFORSEO_PROXY_AUTH`).
+- Le résumé n'échoue jamais l'audit : sans clé, erreur ou promesse détectée deux fois, texte de modèle déterministe (`profile_summary_source = modele`).
+- `profile_cost_usd` = total `cost_ledger` moins `actual_cost_usd` moins `backlinks_cost_usd` (solde le piège M1.4). Noms des contrôles OnPage tirés de la documentation ; un contrôle absent n'est jamais un défaut.
+
 ## Fichiers et modules clés
 
 - `src/env.ts` : validation zod des variables (`parseEnv`, `env`) ; importé par `next.config.ts` (build) et `layout.tsx` (runtime). Toute variable nouvelle s'ajoute ici et dans `.env.example`.
@@ -99,9 +112,11 @@
 
 - M1.4 : `supabase/migrations/2026111514000000_competitor_backlinks.sql`, `supabase/tests/backlinks.test.ts`, `src/features/backlinks/{clean,normalize,run,service,limits,csv,export,actions,fixtures}.ts`, `src/features/backlinks/{backlinks-section,confirm-backlinks-panel}.tsx`, `src/inngest/functions/audit-backlinks.ts`, `src/app/app/audit/[id]/export/route.ts`.
 
+- M1.5 : `supabase/migrations/2026111515000000_audit_profile.sql`, `supabase/tests/audit-profile.test.ts`, `src/lib/llm/{client,pricing,client.test}.ts`, `src/features/profile/{compute,limits,run,summary,service,actions}.ts`, `src/features/profile/{profile-section,confirm-profile-panel}.tsx`, `src/features/profile/{run.test,summary.live.test}.ts`, `src/inngest/functions/audit-profile.ts`, `src/features/audits/audit-detail.tsx`.
+
 ## Commandes (dev, tests, migrations, Inngest)
 
-`pnpm dev`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm format:check`, `pnpm build` (voir README). Démo DataForSEO : `pnpm demo:dataforseo` (clés requises). Audit réel : `pnpm demo:audit` (crée un vrai audit en base ; exige `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD`, `SUPABASE_SERVICE_ROLE_KEY`). Build local : exige `NEXT_PUBLIC_APP_URL` et les variables Supabase publiques. Tests de RLS : `TEST_DATABASE_URL=postgres://user@host:port/postgres pnpm test` (Postgres 16 avec un superutilisateur ; une base temporaire est créée puis supprimée ; ignorés si la variable manque en local, obligatoires en CI). Migrations : fichiers dans `supabase/migrations`, appliqués par la CLI Supabase (`supabase db push`). Types : `pnpm db:types`. Inngest en local : `pnpm dev`, puis dans un autre terminal `pnpm inngest:dev` (dev server Inngest, doit rester sur le port 8288) ; enregistrer l'app : `curl -X PUT http://localhost:3000/api/inngest` ; événement d'essai : `curl -X POST http://localhost:8288/e/dev -H 'content-type: application/json' -d '{"name":"app/health.ping","data":{}}'`.
+`pnpm dev`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm format:check`, `pnpm build` (voir README). Résumé LLM réel (jeu d'évaluation, plafond 0,10 USD) : `NODE_USE_ENV_PROXY=1 LLM_PROXY_AUTH=true pnpm demo:llm`. Démo DataForSEO : `pnpm demo:dataforseo` (clés requises). Audit réel : `pnpm demo:audit` (crée un vrai audit en base ; exige `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD`, `SUPABASE_SERVICE_ROLE_KEY`). Build local : exige `NEXT_PUBLIC_APP_URL` et les variables Supabase publiques. Tests de RLS : `TEST_DATABASE_URL=postgres://user@host:port/postgres pnpm test` (Postgres 16 avec un superutilisateur ; une base temporaire est créée puis supprimée ; ignorés si la variable manque en local, obligatoires en CI). Migrations : fichiers dans `supabase/migrations`, appliqués par la CLI Supabase (`supabase db push`). Types : `pnpm db:types`. Inngest en local : `pnpm dev`, puis dans un autre terminal `pnpm inngest:dev` (dev server Inngest, doit rester sur le port 8288) ; enregistrer l'app : `curl -X PUT http://localhost:3000/api/inngest` ; événement d'essai : `curl -X POST http://localhost:8288/e/dev -H 'content-type: application/json' -d '{"name":"app/health.ping","data":{}}'`.
 
 ## Mesures (coût par audit, taux de contact, etc.)
 
@@ -112,6 +127,7 @@
 - M1.2 : 0 USD ; 65 tests Vitest verts dont 22 de RLS sur Postgres réel.
 - M1.3 : coût estimé d'un audit gratuit = 0,018 USD (3 requêtes x 0,006 USD, SERP live top 30), plafond gratuit 0,25 USD. Coût réel non mesuré (DataForSEO 40100), dépense 0 USD ; sur fixtures réel = estimé. 156 tests verts dont 8 de RLS pour les audits ; lint, typecheck, format et build verts (build vérifié en CI).
 - M1.4 : fixture synthétique de 28 liens : 11 conservés, 17 écartés (interne 2, plateforme 2, spam 5, images réutilisées 3, étranger 4, doublon 1). Coût réel non mesuré (40100), dépense 0 USD.
+- M1.5 : évaluation réelle du résumé sur OpenAI `gpt-4o-mini` : 6 cas, 6 appels, 0 promesse de classement, 0,00089 USD le dernier passage. Dépense de la session : ~0,0017 USD OpenAI, 0 USD DataForSEO. Coût réel du profil non mesuré (estimé gratuit ~0,143 USD).
 
 ## Dettes et pièges
 
@@ -148,6 +164,12 @@
 - M1.4 : coût de l'étape = total `cost_ledger` moins `audits.actual_cost_usd` (exact seulement sans autre coût imputé à l'audit ; M1.5 devra suivre ses propres coûts). La page d'audit estime avec `actual_cost_usd` (`cost_ledger` illisible côté client), vérification définitive dans `startBacklinks`.
 - M1.4 : plafond compté avec le coût déjà engagé : une tentative payée puis échouée à l'écriture peut voir sa relance refusée sur le dernier concurrent si l'estimation remplit exactement le plafond (rare). Pas de purge d'un `backlinks_status = 'en_cours'` bloqué ; pas d'unicité empêchant deux jobs (transition `confirme` vers `en_cours` atomique). Sans clés Inngest en production, l'état reste `confirme` avec échec d'envoi affiché.
 - M1.4 : le faux client Supabase a gagné `range()` et ignore la sélection de colonnes. `database.types.ts` patché à la main puis prettier. Parcours connectés non testables par Playwright (lien magique).
+- M1.5 : le `fetch` de Node n'utilise pas `HTTPS_PROXY` sans `NODE_USE_ENV_PROXY=1` : probable cause des 40100 DataForSEO vus en M1.1 à M1.4 (un curl du shell répond aussi 40100, à retester avec ce drapeau, OpenAI marche avec).
+- M1.5 : aucun appel réel DataForSEO (fixtures `ranked_keywords`, `referring_domains`, `onpage` synthétiques ; noms des contrôles OnPage et forme de `ranked_serp_element.serp_item` hypothétiques). Aucun appel réel Anthropic (faux fetch seulement) ; grille de prix `claude-haiku-4-5` à recaler ; évaluation du résumé faite sur OpenAI seulement.
+- M1.5 : détecteur de promesses de classement par regex (« vous serez en tête » non couvert) ; le prompt les interdit aussi et le texte de modèle sert de repli.
+- M1.5 : la page d'audit estime le coût restant avec `actual_cost_usd + backlinks_cost_usd + profile_cost_usd` (`cost_ledger` illisible côté client), vérification définitive à la confirmation. Les sorties d'étapes Inngest transportent jusqu'à 1000 domaines référents. Pas de purge d'un `profile_status` bloqué à `en_cours`. Sans clés Inngest en production, l'état reste `confirme`.
+- M1.5 : `database.types.ts` patché à la main (Relationships des deux nouvelles tables vides), à régénérer avec la CLI. Marge gratuite faible (0,143 sur 0,145 USD) : une dérive du coût réel peut faire refuser l'étape en gratuit. `pnpm build` local exige les `NEXT_PUBLIC_*`.
+- Parcours connectés : tests de composants (`renderToStaticMarkup`), services avec faux client Supabase et RLS sur Postgres réel, pas de Playwright (lien magique).
 
 ## Backlog (idées hors périmètre)
 
@@ -159,14 +181,16 @@
 - Filtres de vue (par concurrent, par motif) sur la page d'audit.
 - Purge des backlinks `en_cours` bloqués.
 - Test Playwright connecté si une session de test est mise en place.
+- Purge des `profile_status` bloqués ; régénérer `database.types.ts` avec la CLI ; détecteur de promesses plus robuste (LLM ou plus de motifs).
 
 ## À fournir par Jonathan
 
 1. Inngest : reconnecter le connecteur avec droit de lecture des clés, ou copier `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY` (environnement production) vers Vercel (Production et Preview, type sensitive) ; sans elles ni l'audit ni l'étape backlinks (`audit.backlinks`) ne tournent en production. Puis redéployer, synchroniser l'app avec `https://outreach-links.vercel.app/api/inngest`, envoyer `app/health.ping` et vérifier une nouvelle ligne dans `cost_ledger`.
 2. Choisir si `outreach-links` cohabite avec `scan-vie-privee` dans l'environnement Inngest de production ou dans un environnement dédié.
 3. `DATAFORSEO_LOGIN` et `DATAFORSEO_PASSWORD` (https://app.dataforseo.com/api-access) sur Vercel, Production et Preview, type sensitive ; vérifier que l'abonnement Backlinks est actif (séparé du SERP et des Labs). Puis lancer `pnpm demo:dataforseo` (SERP FR sur mega-coloring.com), consigner le coût réel ici et remplacer la fixture SERP synthétique, puis `pnpm demo:audit` (run réel de l'audit sur mega-coloring.com, plafond 1,50 USD, coût réel à consigner dans « Mesures »). Le même abonnement Backlinks permet de mesurer le coût réel de l'étape M1.4 et de recaler ses fixtures.
-4. Clé LLM (Anthropic) pour Vercel, nécessaire dès les sous-jalons d'audit.
+4. `ANTHROPIC_API_KEY` sur Vercel (fournisseur LLM visé) et `OPENAI_API_KEY` si OpenAI sert de repli ; sans clé le résumé retombe sur le texte de modèle. Ne jamais définir `LLM_PROXY_AUTH` ni `DATAFORSEO_PROXY_AUTH` sur Vercel.
+5. Le même run réel DataForSEO sert à mesurer le coût du profil (M1.5) et à valider les schémas `ranked_keywords`, `referring_domains` et `onpage`.
 
 ## Prochain sous-jalon recommandé
 
-M1.5 (voir PLAN.md ; suivre ses propres coûts, voir piège M1.4). En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`, indispensables pour lancer un audit en production) et le run réel DataForSEO dès que Jonathan fournit les identifiants.
+M1.6 (voir PLAN.md). En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`, indispensables pour lancer un audit en production) et le run réel DataForSEO (retester d'abord avec `NODE_USE_ENV_PROXY=1` dans l'environnement agent) dès que Jonathan fournit les identifiants.
