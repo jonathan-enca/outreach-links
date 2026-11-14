@@ -109,6 +109,8 @@ describe("isPrivateIp", () => {
       "fd00::1",
       "::ffff:10.0.0.1",
       "0.0.0.0",
+      "::ffff:7f00:1",
+      "::ffff:a9fe:a9fe",
     ]) {
       expect(isPrivateIp(ip), ip).toBe(true);
     }
@@ -314,5 +316,15 @@ describe("vérification de propriété", () => {
       );
       expect(r.status).toBe("error");
     });
+  });
+});
+
+describe("safeFetchPage (SSRF)", () => {
+  it("refuse localhost, IP privée, port non standard et autre schéma", async () => {
+    const { safeFetchPage } = await import("./verify");
+    expect(await safeFetchPage("http://localhost/")).toBeNull();
+    expect(await safeFetchPage("http://127.0.0.1/")).toBeNull();
+    expect(await safeFetchPage("https://example.com:8443/")).toBeNull();
+    expect(await safeFetchPage("ftp://example.com/")).toBeNull();
   });
 });

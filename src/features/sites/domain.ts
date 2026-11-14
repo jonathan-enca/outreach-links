@@ -46,7 +46,16 @@ export function isPrivateIp(ip: string): boolean {
     );
   }
   const v6 = ip.toLowerCase();
-  if (v6.startsWith("::ffff:")) return isPrivateIp(v6.slice(7));
+  if (v6.startsWith("::ffff:")) {
+    const rest = v6.slice(7);
+    if (rest.includes(".")) return isPrivateIp(rest);
+    const m = /^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(rest);
+    if (!m) return true;
+    const hi = parseInt(m[1], 16);
+    const lo = parseInt(m[2], 16);
+    return isPrivateIp(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`);
+  }
+  if (v6.startsWith("64:ff9b:") || v6.startsWith("fec0")) return true;
   return (
     v6 === "::" ||
     v6 === "::1" ||

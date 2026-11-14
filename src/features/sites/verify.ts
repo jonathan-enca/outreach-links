@@ -1,4 +1,7 @@
 import { lookup } from "node:dns/promises";
+import { request as httpRequest } from "node:http";
+import { request as httpsRequest } from "node:https";
+import type { LookupFunction } from "node:net";
 import { isPrivateIp } from "./domain";
 import { FILE_PATH, META_NAME, metaTag } from "./verification-constants";
 
@@ -62,19 +65,73 @@ const MAX_BYTES = 512 * 1024;
 const MAX_REDIRECTS = 3;
 const TIMEOUT_MS = 8000;
 
-async function assertPublicHost(hostname: string): Promise<boolean> {
-  try {
-    const addrs = await lookup(hostname, { all: true });
-    return addrs.length > 0 && addrs.every((a) => !isPrivateIp(a.address));
-  } catch {
-    return false;
-  }
+/**
+ * Résolution DNS filtrée : la connexion se fait sur l'adresse validée ici,
+ * ce qui exclut le DNS rebinding (pas de seconde résolution après le contrôle).
+ */
+const publicOnlyLookup: LookupFunction = (hostname, options, callback) => {
+  lookup(hostname, { all: true })
+    .then((addrs) => {
+      if (addrs.length === 0 || addrs.some((a) => isPrivateIp(a.address))) {
+        callback(new Error("adresse non publique"), "", 0);
+        return;
+      }
+      if (options.all) {
+        (callback as unknown as (e: null, a: typeof addrs) => void)(null, addrs);
+      } else {
+        callback(null, addrs[0].address, addrs[0].family);
+      }
+    })
+    .catch((e: Error) => callback(e, "", 0));
+};
+
+function getOnce(u: URL): Promise<{ status: number; location: string | null; text: string }> {
+  return new Promise((resolve, reject) => {
+    const doRequest = u.protocol === "https:" ? httpsRequest : httpRequest;
+    const req = doRequest(
+      u,
+      {
+        method: "GET",
+        lookup: publicOnlyLookup,
+        timeout: TIMEOUT_MS,
+        headers: { "user-agent": "OutreachLinksVerifier/1.0", accept: "text/html,text/plain" },
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        let received = 0;
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          resolve({
+            status: res.statusCode ?? 0,
+            location: typeof res.headers.location === "string" ? res.headers.location : null,
+            text: Buffer.concat(chunks).toString("utf8"),
+          });
+        };
+        res.on("data", (c: Buffer) => {
+          received += c.byteLength;
+          chunks.push(c);
+          if (received >= MAX_BYTES) {
+            res.destroy();
+            finish();
+          }
+        });
+        res.on("end", finish);
+        res.on("close", finish);
+        res.on("error", reject);
+      },
+    );
+    req.on("timeout", () => req.destroy(new Error("timeout")));
+    req.on("error", reject);
+    req.end();
+  });
 }
 
 /**
- * Fetcher réel, protégé contre le SSRF : seuls http(s) sur ports 80/443,
- * résolution DNS vérifiée à chaque saut, redirections suivies à la main
- * (3 au maximum), corps limité à 512 Ko, délai de 8 s.
+ * Fetcher réel, protégé contre le SSRF : seuls http(s) sur ports 80/443, DNS
+ * filtré au moment de la connexion (anti-rebinding), redirections suivies à la
+ * main (3 au maximum, mêmes contrôles à chaque saut), corps limité à 512 Ko.
  */
 export const safeFetchPage: PageFetcher = async (startUrl) => {
   let url = startUrl;
@@ -83,32 +140,14 @@ export const safeFetchPage: PageFetcher = async (startUrl) => {
       const u = new URL(url);
       if (!["http:", "https:"].includes(u.protocol)) return null;
       if (u.port && u.port !== "80" && u.port !== "443") return null;
-      if (!(await assertPublicHost(u.hostname))) return null;
-      const res = await fetch(u, {
-        redirect: "manual",
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-        headers: { "user-agent": "OutreachLinksVerifier/1.0", accept: "text/html,text/plain" },
-      });
-      if (res.status >= 300 && res.status < 400) {
-        const loc = res.headers.get("location");
-        if (!loc) return { status: res.status, text: "" };
-        url = new URL(loc, u).toString();
+      if (u.username || u.password) return null;
+      const r = await getOnce(u);
+      if (r.status >= 300 && r.status < 400) {
+        if (!r.location) return { status: r.status, text: "" };
+        url = new URL(r.location, u).toString();
         continue;
       }
-      const reader = res.body?.getReader();
-      let text = "";
-      if (reader) {
-        const decoder = new TextDecoder();
-        let received = 0;
-        while (received < MAX_BYTES) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          received += value.byteLength;
-          text += decoder.decode(value, { stream: true });
-        }
-        await reader.cancel().catch(() => undefined);
-      }
-      return { status: res.status, text };
+      return { status: r.status, text: r.text };
     }
     return null;
   } catch {
