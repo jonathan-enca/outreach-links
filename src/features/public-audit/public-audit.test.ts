@@ -282,6 +282,25 @@ describe("startPublicAudit", () => {
     expect(s.sent).toHaveLength(1);
   });
 
+  it("relance après échec avec requêtes saisies : source « visiteur » (pas de déduction auto)", async () => {
+    const s = startSetup();
+    await startPublicAudit(s.base, { domain: "monsite.fr" });
+    Object.assign(s.db.tables.public_audits![0]!, {
+      status: "echoue",
+      error_code: "aucun_mot_cle",
+      attempts: 1,
+    });
+    const retry = await startPublicAudit(s.base, {
+      domain: "monsite.fr",
+      queries: ["coloriage licorne"],
+    });
+    expect(retry).toMatchObject({ status: "ok", cached: false });
+    expect(s.db.tables.public_audits![0]).toMatchObject({
+      queries: ["coloriage licorne"],
+      queries_source: "visiteur",
+    });
+  });
+
   it("après deux exécutions échouées, le domaine est épuisé pour le mois", async () => {
     const s = startSetup();
     await startPublicAudit(s.base, { domain: "monsite.fr" });
@@ -508,7 +527,7 @@ describe("exécution de l'audit", () => {
     })),
   });
 
-  it("sans mot-clé exploitable et sans requête saisie : échec propre (aucune_mot_cle)", async () => {
+  it("sans mot-clé exploitable et sans requête saisie : échec propre (aucun_mot_cle)", async () => {
     const db = runSetup();
     const dfs = labs([]);
     const out = await collectOwnKeywords(db.client, dfs as never, run);
