@@ -1,0 +1,49 @@
+{
+  "version": "0.1.20261103",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "0.5 sec.",
+  "cost": 0.0203,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "11141200-1234-0001-0000-aaaaaaaaaaaa",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "0.4 sec.",
+      "cost": 0.0203,
+      "result_count": 1,
+      "path": ["v3"],
+      "data": {},
+      "result": [
+        {
+          "total_count": 1,
+          "items_count": 1,
+          "items": [
+            {
+              "domain_intersection": {
+                "1": {
+                  "domain_from": "blog-maman.fr",
+                  "anchor": "coloriages"
+                },
+                "2": {
+                  "domain_from": "blog-maman.fr",
+                  "anchor": "coloriage gratuit"
+                }
+              },
+              "summary": {
+                "1": {
+                  "backlinks": 1
+                },
+                "2": {
+                  "backlinks": 2
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

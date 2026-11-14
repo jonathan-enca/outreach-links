@@ -1,0 +1,39 @@
+{
+  "version": "0.1.20261103",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "0.5 sec.",
+  "cost": 0.0203,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "11141200-1234-0001-0000-aaaaaaaaaaaa",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "0.4 sec.",
+      "cost": 0.0203,
+      "result_count": 1,
+      "path": ["v3"],
+      "data": {},
+      "result": [
+        {
+          "target": "mega-coloring.com",
+          "total_count": 58,
+          "items_count": 1,
+          "items": [
+            {
+              "type": "backlink",
+              "domain": "ecole-primaire.fr",
+              "rank": 300,
+              "backlinks": 2,
+              "backlinks_spam_score": 0,
+              "first_seen": "2025-01-10 00:00:00 +00:00",
+              "referring_pages": 2
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

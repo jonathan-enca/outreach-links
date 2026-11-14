@@ -1,0 +1,45 @@
+{
+  "version": "0.1.20261103",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "0.5 sec.",
+  "cost": 0.0203,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "11141200-1234-0001-0000-aaaaaaaaaaaa",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "0.4 sec.",
+      "cost": 0.0203,
+      "result_count": 1,
+      "path": ["v3"],
+      "data": {},
+      "result": [
+        {
+          "target": "mega-coloring.com",
+          "total_count": 340,
+          "items_count": 1,
+          "items": [
+            {
+              "type": "backlink",
+              "domain_from": "blog-maman.fr",
+              "url_from": "https://blog-maman.fr/idees-activites",
+              "domain_to": "mega-coloring.com",
+              "url_to": "https://mega-coloring.com/licorne",
+              "anchor": "coloriages licorne",
+              "dofollow": true,
+              "is_broken": false,
+              "rank": 210,
+              "page_from_rank": 150,
+              "backlink_spam_score": 2,
+              "first_seen": "2025-06-02 00:00:00 +00:00",
+              "last_seen": "2026-11-10 00:00:00 +00:00"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

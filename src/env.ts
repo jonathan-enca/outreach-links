@@ -21,6 +21,17 @@ const schema = z.object({
   INNGEST_SIGNING_KEY: z.string().min(1).optional(),
   /** "1" en local pour parler au dev server Inngest (npx inngest-cli dev). */
   INNGEST_DEV: z.string().optional(),
+  /** DataForSEO (optionnels : erreur claire à l'usage). */
+  DATAFORSEO_LOGIN: z.string().min(1).optional(),
+  DATAFORSEO_PASSWORD: z.string().min(1).optional(),
+  /**
+   * "true" : n'envoie aucun identifiant, un proxy injecte l'authentification
+   * (environnement de développement agent). Jamais en production.
+   */
+  DATAFORSEO_PROXY_AUTH: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   /**
    * Second garde d'envoi réel (avec EMAIL_DRY_RUN). Faux par défaut partout :
@@ -65,7 +76,12 @@ export function parseEnv(source: Record<string, string | undefined>): Env {
 
 export const env: Env = parseEnv(process.env);
 
-type OptionalSecretKey = "SUPABASE_SERVICE_ROLE_KEY" | "INNGEST_EVENT_KEY" | "INNGEST_SIGNING_KEY";
+type OptionalSecretKey =
+  | "SUPABASE_SERVICE_ROLE_KEY"
+  | "INNGEST_EVENT_KEY"
+  | "INNGEST_SIGNING_KEY"
+  | "DATAFORSEO_LOGIN"
+  | "DATAFORSEO_PASSWORD";
 
 /** Lit une variable optionnelle au moment de l'usage : erreur claire si elle manque. */
 export function requireEnv(name: OptionalSecretKey, source: Env = env): string {

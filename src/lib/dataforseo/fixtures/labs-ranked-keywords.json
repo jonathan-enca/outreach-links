@@ -1,0 +1,55 @@
+{
+  "version": "0.1.20261103",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "0.5 sec.",
+  "cost": 0.0106,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "11141200-1234-0001-0000-aaaaaaaaaaaa",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "0.4 sec.",
+      "cost": 0.0106,
+      "result_count": 1,
+      "path": ["v3"],
+      "data": {},
+      "result": [
+        {
+          "target": "mega-coloring.com",
+          "total_count": 2,
+          "items_count": 2,
+          "items": [
+            {
+              "keyword_data": {
+                "keyword": "coloriage licorne",
+                "keyword_info": {
+                  "search_volume": 74000
+                }
+              },
+              "ranked_serp_element": {
+                "serp_item": {
+                  "rank_group": 14,
+                  "rank_absolute": 16,
+                  "url": "https://mega-coloring.com/licorne",
+                  "etv": 120.5
+                }
+              }
+            },
+            {
+              "keyword_data": {
+                "keyword": "coloriage chat",
+                "keyword_info": {
+                  "search_volume": null
+                }
+              },
+              "ranked_serp_element": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
