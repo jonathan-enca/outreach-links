@@ -2,13 +2,16 @@
 
 ## État
 
-| Sous-jalon  | Statut                                                                                                         | PR                                                           | Date       |
-| ----------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---------- |
-| M0.1        | fait                                                                                                           | [#1](https://github.com/jonathan-enca/outreach-links/pull/1) | 2026-11-14 |
-| M0.2        | partiel : code, migrations et tests de RLS faits ; projet Supabase et parcours réel non vérifiés (voir Dettes) | PR M0.2                                                      | 2026-11-14 |
-| M0.3 à M7.3 | à faire                                                                                                        |                                                              |            |
+| Sous-jalon  | Statut                                                                                                                                                                 | PR                                                           | Date       |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---------- |
+| M0.1        | fait                                                                                                                                                                   | [#1](https://github.com/jonathan-enca/outreach-links/pull/1) | 2026-11-14 |
+| M0.2        | fait côté base de données (projet créé, migration appliquée, RLS vérifiée sur le vrai projet) ; reste 2 réglages manuels et le test réel du lien magique (voir Dettes) | PR M0.2, PR M0.2b                                            | 2026-11-14 |
+| M0.3 à M7.3 | à faire                                                                                                                                                                |                                                              |            |
 
 ## Décisions prises
+
+- Projet Supabase `outreach-links` : id `ivjkwhhgtibewqzccvrj`, région eu-west-3 (Paris), organisation de Jonathan. Pour libérer une place gratuite, le projet `coloring-pages` (analytics) a été mis en pause à la demande de Jonathan ; le projet `scan-vie-privee` reste actif.
+- La migration a été appliquée via l'outil MCP sous le nom `core_schema` (le fichier du dépôt reste la source de référence).
 
 - Produit : outreach IA de backlinks gratuits, audit d'abord, français d'abord (voir CLAUDE.md).
 - Pas de mention de l'IA dans les emails d'outreach ; le site vend l'automatisation par IA.
@@ -45,11 +48,11 @@
 - En session Claude, `gh pr create` échoue (GraphQL bloqué) : ouvrir les PR via `gh api repos/{owner}/{repo}/pulls --input fichier.json`.
 - Après `prettier --write .`, vérifier que les modifications de documents par script ont bien été appliquées.
 
-- M0.2 non vérifié de bout en bout : aucun projet Supabase n'existe encore (pas d'accès ici). À faire par Jonathan : créer le projet, y appliquer les migrations, renseigner `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` (local, Preview, Production), ajouter `/auth/callback` aux URL de redirection autorisées, puis tester inscription, connexion et déconnexion.
-- `database.types.ts` écrit à la main au format de `supabase gen types` (CLI et Docker indisponibles ici) : le régénérer avec `pnpm db:types`.
+- **À faire par Jonathan (aucun outil disponible pour le faire)** : (1) dans Vercel, définir pour Preview et Production `NEXT_PUBLIC_APP_URL` (URL du site), `NEXT_PUBLIC_SUPABASE_URL` (`https://ivjkwhhgtibewqzccvrj.supabase.co`) et `NEXT_PUBLIC_SUPABASE_ANON_KEY` (clé publishable du projet) ; (2) dans Supabase, Authentication > URL Configuration : Site URL = URL du site, Redirect URLs = `<URL du site>/auth/callback` et `http://localhost:3000/auth/callback` ; (3) tester une vraie connexion par lien magique (réception du mail, session, déconnexion).
+- `database.types.ts` généré depuis le vrai projet (outil MCP Supabase) ; à régénérer après chaque migration.
 - Next 16 : `middleware` devient `src/proxy.ts`. Avec `cacheComponents`, tout accès à `cookies()` doit être sous `<Suspense>`.
 - `src/env.ts` valide `process.env` à l'import : `vitest.config.mts` fournit des valeurs fictives.
-- Les tests de RLS utilisent un faux schéma `auth` ; les vraies fonctions Supabase (`auth.uid`) sont censées se comporter pareil, à revalider sur le vrai projet.
+- Les tests Vitest de RLS utilisent un faux schéma `auth` ; le trigger d'inscription et la RLS ont aussi été vérifiés sur le vrai projet (transaction annulée : isolation en lecture, écriture croisée refusée, update croisé sans effet, anon refusé).
 
 ## Backlog (idées hors périmètre)
 
@@ -57,4 +60,4 @@
 
 ## Prochain sous-jalon recommandé
 
-M0.3 Inngest, journal des coûts, logs (après vérification du projet Supabase, voir Dettes)
+M0.3 Inngest, journal des coûts, logs (après les 2 réglages manuels et le test réel du lien magique, voir Dettes)
