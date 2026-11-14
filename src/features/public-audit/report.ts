@@ -22,6 +22,8 @@ export interface PublicReportView {
   unlocked: boolean;
   score: { value: number; band: "a_renforcer" | "correct" | "solide" } | null;
   site: { referringDomains: number | null; rankedKeywords: number | null };
+  /** Site sans page classée : afficher « non classé » plutôt qu'un score (MA.4). */
+  newSite: boolean;
   benchmarkMedian: number | null;
   competitors: PublicAuditResult["competitors"];
   pages: {
@@ -52,6 +54,7 @@ export function projectReport(result: PublicAuditResult, unlocked: boolean): Pub
       referringDomains: result.site.referringDomains,
       rankedKeywords: result.site.rankedKeywords,
     },
+    newSite: result.site.newSite === true,
     benchmarkMedian: result.benchmarkMedian,
     competitors: result.competitors,
     pages: result.pages.slice(0, FREE_LIMITS.pages).map((p) => ({

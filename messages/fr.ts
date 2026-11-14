@@ -617,8 +617,12 @@ export const fr = {
       domainPlaceholder: "monsite.fr",
       queriesLabel: "Vos requêtes principales (facultatif)",
       queriesHint:
-        "Jusqu'à 3. Sans saisie, on les déduit des mots-clés sur lesquels votre site est déjà classé.",
+        "Jusqu'à 3. Sans saisie, on les déduit des mots-clés sur lesquels votre site est déjà classé (ou, à défaut, de votre thème).",
       queryPlaceholder: "Par exemple : coloriage licorne",
+      nicheLabel: "Votre thème (facultatif)",
+      nicheHint:
+        "Pour un site récent, sans mot-clé classé : on s'en sert pour trouver vos concurrents dans Google.",
+      nichePlaceholder: "Par exemple : coloriage pour enfants",
       submit: "Lancer l'audit gratuit",
       retrySubmit: "Relancer l'audit avec ces requêtes",
       pending: "Envoi en cours",
@@ -670,6 +674,9 @@ export const fr = {
       scoreNote:
         "Repère de lecture : 60 % pour vos liens comparés à ceux de vos concurrents, 40 % pour la visibilité de vos pages. Ce n'est pas une promesse de résultat.",
       scoreNone: "Pas assez de données pour calculer un score.",
+      notRanked: "Non classé",
+      notRankedBody:
+        "Google ne classe encore aucune page de votre site : un score n'aurait pas de sens. L'analyse repose sur vos concurrents dans Google pour votre thème ; le plan de liens ci-dessous reste valable.",
       numbersTitle: "Votre site en chiffres",
       referringDomains: "Domaines référents",
       rankedKeywords: "Mots-clés classés",

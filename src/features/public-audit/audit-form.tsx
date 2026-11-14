@@ -49,6 +49,23 @@ export function AuditForm({ fixedDomain }: { fixedDomain?: string } = {}) {
           />
         ))}
       </fieldset>
+      <div className="flex flex-col gap-2">
+        <label htmlFor="niche" className="text-sm font-medium">
+          {f.nicheLabel}
+        </label>
+        <p id="niche-hint" className="text-sm text-muted-foreground">
+          {f.nicheHint}
+        </p>
+        <input
+          id="niche"
+          name="niche"
+          type="text"
+          maxLength={60}
+          aria-describedby="niche-hint"
+          placeholder={f.nichePlaceholder}
+          className={input}
+        />
+      </div>
       {/* Champ piège : invisible pour un humain, rempli par les robots. */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
         <label htmlFor="site_web">Site web</label>

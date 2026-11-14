@@ -20,6 +20,7 @@
 | MA.1        | fait (exclusion des très grands sites ; zéro appel payant ; MA.2 à MA.7 définis dans PLAN.md)                                                                     | PR MA.1                                                        | 2026-11-14 |
 | MA.2        | fait (mesure de taille groupée avant les backlinks ; testé sur fixtures, aucun appel payant réel ; migration appliquée sur la vraie base)                         | PR MA.2                                                        | 2026-11-14 |
 | MA.3        | fait (grille recalée sur les coûts réels mesurés ; marge gratuite restaurée ; zéro appel payant ; aucune migration)                                               | PR MA.3                                                        | 2026-11-14 |
+| MA.4        | fait (thème facultatif, requêtes de secours sans LLM, « non classé » au lieu de 0 ; zéro appel payant ; aucune migration)                                         | PR MA.4                                                        | 2026-11-14 |
 | M3.1 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
 
 ## Décisions prises
@@ -126,6 +127,8 @@
 - MA.1 [auto] : découpe de MA en MA.1 à MA.7 (voir PLAN.md). Défaut le plus simple et gratuit : liste de très grands sites exclus (`GIANT_DOMAINS` dans `src/features/audits/excluded-domains.ts`), appliquée par `isExcludedDomain` (donc aussi à l'audit public). Piège : une entrée `x.*` couvre tous les TLD ; vérifier qu'une entrée ne masque pas un vrai petit concurrent (tests de noms proches). Mesure : 0 USD (aucun appel payant).
 - MA.2 [auto] : filtre de taille AVANT `backlinks.backlinks`. Choix : `backlinks.bulk_referring_domains` (UNE requête pour les concurrents retenus + 5 remplaçants, ~0,0202 USD) plutôt que `backlinks.summary` par concurrent (0,02 USD chacun, trop cher pour le gratuit). Seuil de domaines référents : 20 000 gratuit, 100 000 payant [HYPOTHÈSE] (`MAX_REFERRING_DOMAINS`, `limits.ts`). Un concurrent trop gros passe `selected=false, size_excluded=true`, remplacé par le candidat suivant par score ; taille inconnue = gardé ; mesure sautée sans erreur si le plafond de l'audit ne la couvre pas. Migration `2026111520000000_competitor_size.sql` (`competitors.referring_domains`, `size_excluded`), appliquée sur la vraie base. Nouveau step `size-filter` dans `audit-backlinks`. L'estimation affichée inclut la mesure (gratuit 3 concurrents : 0,107 USD au lieu de 0,087). Mesure : 0 USD (fixtures). **Piège** : format de réponse de `bulk_referring_domains` écrit d'après la documentation, non vérifié par un appel réel (schéma tolérant) ; à confirmer au premier audit réel. **Tension pour MA.3** : l'étape Profil gratuite (~0,143) ne tient plus sous le plafond 0,25 après 0,018 + 0,107 ; elle se dégrade déjà d'elle-même (limites adaptatives), MA.3 doit recaler la grille et la marge.
 
+- MA.4 [auto] : site neuf sans mot-clé classé. Le blocage `aucun_mot_cle` n'existait que dans l'audit PUBLIC (l'audit connecté exige déjà 1 à 3 requêtes à l'onboarding). Choix le plus simple, sans migration ni LLM : champ facultatif « thème » sur le formulaire public (`niche`), transformé par `nicheQueries` (`niche.ts`) en 3 requêtes de secours (thème, « thème en ligne », « thème guide ») stockées dans `public_audits.queries` avec `queries_source = 'auto'`. Priorité inchangée : requêtes saisies, puis mots-clés classés du site (`deriveQueries`), puis requêtes du thème ; sans rien de tout cela, l'échec `aucun_mot_cle` reste (le formulaire de relance propose maintenant aussi le thème). Un site sans page classée n'a plus de score : `result.score = null`, `result.site.newSite = true` (champ optionnel, anciens résultats compatibles), le rapport public et la section Profil de l'audit connecté affichent le badge « Non classé » et une explication, jamais 0/100. Le plan de cibles (écart de domaines) repose déjà sur les concurrents seulement. Pièges : requêtes de secours génériques, pertinence moyenne (le thème doit être bien choisi) ; un thème saisi avec des requêtes : les requêtes l'emportent. Mesure : 0 USD (fixtures).
+
 ## Fichiers et modules clés
 
 - `src/env.ts` : validation zod des variables (`parseEnv`, `env`) ; importé par `next.config.ts` (build) et `layout.tsx` (runtime). Toute variable nouvelle s'ajoute ici et dans `.env.example`.
@@ -151,6 +154,8 @@
 - M2.1 : `supabase/migrations/2026111517000000_link_opportunities.sql`, `supabase/tests/link-opportunities.test.ts`, `src/features/opportunities/{generate,limits,run,service,actions}.ts`, `src/features/opportunities/opportunities-section.tsx`, `src/features/opportunities/opportunities.test.ts`, `src/inngest/functions/audit-opportunities.ts`.
 
 - M2.2 : `supabase/migrations/2026111518000000_deadlinks.sql`, `src/features/deadlinks/{robots,html,hunt,to-opportunities,run,service,actions}.ts`, `src/features/deadlinks/deadlinks-section.tsx`, `src/features/deadlinks/deadlinks.test.ts`, `src/inngest/functions/audit-deadlinks.ts`, `createSafeFetcher` dans `src/features/sites/verify.ts`.
+
+- MA.4 : `src/features/public-audit/niche.ts` (+ `service.ts`, `run.ts`, `report.ts`, `report-view.tsx`, `audit-form.tsx`), `src/features/profile/profile-section.tsx`.
 
 - M2.3 : `supabase/migrations/2026111519000000_link_plan.sql` et `2026111519100000_create_link_plan_fn.sql`, `src/features/plan/{anchors,service,actions}.ts`, `src/features/plan/plan-editor.tsx`, `src/features/plan/plan.test.ts`, `src/app/app/audit/[id]/plan/page.tsx`.
 
@@ -290,4 +295,4 @@
 
 ## Prochain sous-jalon recommandé
 
-MA.4 (site neuf sans mot-clé classé, voir PLAN.md), puis MA.5 à MA.7. En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`) et le run réel DataForSEO (retester d'abord avec `NODE_USE_ENV_PROXY=1` dans l'environnement agent) dès que Jonathan fournit les identifiants.
+MA.5 (URL exactes des cibles, voir PLAN.md), puis MA.6 et MA.7. En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`) et le run réel DataForSEO (retester d'abord avec `NODE_USE_ENV_PROXY=1` dans l'environnement agent) dès que Jonathan fournit les identifiants.
