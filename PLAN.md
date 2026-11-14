@@ -15,7 +15,7 @@
 | M5    | Inbox et liens         | 5.1 à 5.4        | Réponses classées, liens vérifiés, tâches formulaires  |
 | M6    | Produit et paiement    | 6.1 à 6.4        | Stripe, garde-fous, digest, landing, anti-abus         |
 | M7    | Bêta et lancement      | 7.1 à 7.3        | Dogfooding, avis juridique, ouverture                  |
-| MA    | Refonte de l'audit     | A.1 (à découper) | Audit repensé sur la base des mesures réelles          |
+| MA    | Refonte de l'audit     | A.1 à A.6        | Audit repensé sur la base des mesures réelles          |
 | MD    | Design du site global  | D.1 (à découper) | Identité visuelle et UX cohérentes, site entier        |
 
 Chemin critique pour un **premier test réel sur mega-coloring.com** : M0 → M1 → M2 → M3 → M4.1 à 4.3. Le reste peut suivre.
@@ -26,6 +26,18 @@ Un sous-jalon fait vaut quand : critères d'acceptation cochés, tests/lint/type
 
 - **MA. Refonte du process d'audit.** À reprendre à plat après le premier audit réel (voir PROGRESS.md, « M1.6 bis ») : concurrents retenus trop gros (cultura, shutterstock, pixabay), site sans mot-clé classé = score 0 et audit vide, URL de page inconnues quand la SERP renvoie des redirections Google, coût réel du Backlinks ~20 % au-dessus de la grille et marge gratuite quasi nulle, étapes M1.3 à M1.5 et M2.1 enchaînées avec confirmations séparées. À décider : audit pensé pour un site neuf, choix des concurrents par taille et pertinence, parcours unique et plus court, valeur de l'aperçu gratuit. Prérequis : M2 terminé (pour juger l'audit avec le plan de liens). À placer avant l'ouverture publique (M6/M7).
 - **MD. Design du site global.** Identité visuelle et expérience du site entier (accueil, audit gratuit, connexion, écrans `/app`) : direction artistique, mode sombre, mobile, accessibilité, contenu réel des écrans de la coquille M0.4. Prérequis : MA (le design suit le nouveau parcours d'audit). Hors périmètre : nouvelles fonctionnalités.
+
+### MA. Découpe en sous-jalons (14/11/2026, options par défaut les plus simples et les moins coûteuses)
+
+Ordre : chaque sous-jalon est livrable seul, sans appel payant en CI, et réduit coût ou bruit.
+
+- **MA.1 Concurrents actionnables (fait).** Liste `GIANT_DOMAINS` (banques d'images, grande distribution, médias, institutions) ajoutée aux exclusions de la découverte ; zéro coût d'API. Hors périmètre : filtre par taille réelle (MA.2).
+- **MA.2 Filtre de taille avant l'étape coûteuse.** Utiliser `backlinks.summary` (déjà appelé) pour écarter les concurrents au-delà d'un seuil de domaines référents (défaut : 20 000 en gratuit, 100 000 en payant) **avant** `backlinks.backlinks`, et les remplacer par les candidats suivants ; économise le coût Backlinks. Tests sur fixtures.
+- **MA.3 Grille de coûts recalée.** Ajuster `estimate` sur les coûts réels mesurés (Backlinks ~ +20 %, `ranked_keywords` 0,012) ; marge gratuite restaurée (réduire `limit` des backlinks du gratuit plutôt que relever le plafond de 0,25 USD).
+- **MA.4 Site neuf sans mot-clé classé.** Au lieu d'échouer (`aucun_mot_cle`), mode « site neuf » : requêtes issues de la niche saisie (3 requêtes par défaut, sans LLM), score affiché « non classé » (pas 0), plan fondé sur les concurrents seulement.
+- **MA.5 URL exactes des cibles.** Marquer les URL issues de redirections Google comme partielles (`url_exact = false`) ; résolution tardive par fetch (M3.1) ; pas de second appel SERP payant.
+- **MA.6 Parcours unique.** Une seule confirmation du coût total, puis enchaînement automatique concurrents → backlinks → profil → opportunités ; progression unique sur la page d'audit.
+- **MA.7 Valeur de l'aperçu gratuit.** Revoir ce que montre l'aperçu (en tenant compte de MA.2 à MA.5) ; hors design visuel (MD).
 
 ---
 

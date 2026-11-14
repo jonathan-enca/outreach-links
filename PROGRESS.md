@@ -17,6 +17,7 @@
 | M2.1        | fait (génération testée sur fixtures ; aucun run réel DataForSEO ; migration appliquée sur la vraie base)                                                         | PR M2.1                                                        | 2026-11-14 |
 | M2.2        | fait (crawl testé sur faux web ; aucun run réel sur un vrai site ; migration appliquée sur la vraie base)                                                         | PR M2.2                                                        | 2026-11-14 |
 | M2.3        | fait (pas de test Playwright : aucune session connectée possible ; tests de services, de composants purs et de SQL réel)                                          | PR M2.3                                                        | 2026-11-14 |
+| MA.1        | fait (exclusion des très grands sites ; zéro appel payant ; MA.2 à MA.7 définis dans PLAN.md)                                                                     | PR MA.1                                                        | 2026-11-14 |
 | M3.1 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
 
 ## Décisions prises
@@ -119,6 +120,8 @@
 - Ancres (`anchors.ts`, seuils [HYPOTHÈSE]) : mention de marque et annuaire = marque ; profil absent, < 5 liens ou sur-optimisé = marque (adresse du site si la marque dépasse déjà 60 %) ; sinon ancre descriptive (premier mot-clé de la page cible) tant que les ancres « autres » restent sous 15 % du profil.
 - « Valider le plan » appelle la fonction SQL `create_link_plan` (security definer, `service_role` seulement) : verrou de l'audit, version = dernière + 1, copie atomique des retenues dans `link_plan_items` (instantané immuable : ni update ni delete pour `service_role` ni `authenticated`). Lecture par les membres du workspace. Les versions précédentes restent. M3 doit lire UNIQUEMENT la dernière version de `link_plans` : rien ne part sans validation.
 - Une régénération des opportunités (M2.1) n'efface pas les plans validés (références souples).
+
+- MA.1 [auto] : découpe de MA en MA.1 à MA.7 (voir PLAN.md). Défaut le plus simple et gratuit : liste de très grands sites exclus (`GIANT_DOMAINS` dans `src/features/audits/excluded-domains.ts`), appliquée par `isExcludedDomain` (donc aussi à l'audit public). Piège : une entrée `x.*` couvre tous les TLD ; vérifier qu'une entrée ne masque pas un vrai petit concurrent (tests de noms proches). Mesure : 0 USD (aucun appel payant).
 
 ## Fichiers et modules clés
 
@@ -280,4 +283,4 @@
 
 ## Prochain sous-jalon recommandé
 
-MA (découper en MA.1, MA.2... dans PLAN.md d'abord). En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`) et le run réel DataForSEO (retester d'abord avec `NODE_USE_ENV_PROXY=1` dans l'environnement agent) dès que Jonathan fournit les identifiants.
+MA.2 (filtre de taille par `backlinks.summary` avant `backlinks.backlinks`, voir PLAN.md). En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`) et le run réel DataForSEO (retester d'abord avec `NODE_USE_ENV_PROXY=1` dans l'environnement agent) dès que Jonathan fournit les identifiants.
