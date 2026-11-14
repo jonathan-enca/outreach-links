@@ -1,0 +1,9 @@
+import type { Metadata } from "next";
+import { ShellPage } from "@/components/shell-page";
+import { t } from "@/lib/messages";
+
+export const metadata: Metadata = { title: t.pages.liens.title };
+
+export default function Page() {
+  return <ShellPage section="liens" />;
+}

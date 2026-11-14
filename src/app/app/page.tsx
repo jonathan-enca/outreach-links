@@ -1,5 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "./actions";
@@ -11,29 +15,35 @@ async function Workspace() {
   // La RLS limite le résultat aux workspaces dont l'utilisateur est membre.
   const { data: workspaces } = await supabase.from("workspaces").select("id, name");
   return (
-    <>
+    <Card className="flex flex-col gap-4 p-6">
       <p>
         {t.workspace.signedInAs} <strong>{auth.user.email}</strong>
       </p>
       <p>
         {t.workspace.workspace} : <strong>{workspaces?.[0]?.name ?? "—"}</strong>
       </p>
-      <form action={signOut}>
-        <button type="submit" className="rounded border border-zinc-300 px-3 py-2">
-          {t.auth.signOut}
-        </button>
-      </form>
-    </>
+      <p className="text-muted-foreground">{t.workspace.intro}</p>
+      <div className="flex flex-wrap gap-3">
+        <Button asChild>
+          <Link href="/app/audit">{t.workspace.startAudit}</Link>
+        </Button>
+        <form action={signOut}>
+          <Button type="submit" variant="outline">
+            {t.auth.signOut}
+          </Button>
+        </form>
+      </div>
+    </Card>
   );
 }
 
 export default function AppPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-4 px-4">
-      <h1 className="text-2xl font-semibold">{t.workspace.title}</h1>
+    <>
+      <PageHeader title={t.workspace.title} description={t.app.description} />
       <Suspense>
         <Workspace />
       </Suspense>
-    </main>
+    </>
   );
 }
