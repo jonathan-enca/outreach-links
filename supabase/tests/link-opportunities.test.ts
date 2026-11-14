@@ -131,4 +131,33 @@ describe.skipIf(!adminUrl)("link_opportunities : RLS et contraintes", () => {
       await expect(c.query(sql)).rejects.toThrow(/violates check constraint/);
     });
   });
+
+  it("lien_mort : la preuve HTTP (404/410, URL, date) est obligatoire", async () => {
+    const dead = (cols: string, vals: string) =>
+      `insert into public.link_opportunities
+         (audit_id, workspace_id, site_id, type, source_domain, target_page_url, expected_link_type, rationale, priority_score, priority ${cols})
+       select a.id, a.workspace_id, a.site_id, 'lien_mort', 'mort.fr', 'https://alice-site.fr/', 'reprise_lien_mort', 'test', 80, 'haute' ${vals}
+       from public.audits a limit 1`;
+    await asRole("service_role", null, async (c) => {
+      await expect(c.query(dead("", ""))).rejects.toThrow(/violates check constraint/);
+    });
+    await asRole("service_role", null, async (c) => {
+      await expect(
+        c.query(
+          dead(
+            ", broken_url, broken_http_status, broken_checked_at",
+            ", 'https://x.fr/a', 200, now()",
+          ),
+        ),
+      ).rejects.toThrow(/violates check constraint/);
+    });
+    await asRole("service_role", null, async (c) => {
+      await c.query(
+        dead(
+          ", broken_url, broken_http_status, broken_checked_at",
+          ", 'https://x.fr/a', 410, now()",
+        ),
+      );
+    });
+  });
 });
