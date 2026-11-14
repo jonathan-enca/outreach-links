@@ -160,4 +160,67 @@ describe.skipIf(!adminUrl)("link_opportunities : RLS et contraintes", () => {
       );
     });
   });
+
+  it("plan : create_link_plan versionne, est atomique, figé et protégé par RLS", async () => {
+    const audit = (await db.query("select id from public.audits limit 1")).rows[0].id as string;
+    const items = JSON.stringify([
+      {
+        opportunity_id: "",
+        type: "annuaire",
+        source_domain: "a.fr",
+        target_page_url: "https://alice-site.fr/",
+        anchor_kind: "marque",
+        anchor_text: "alice",
+        expected_link_type: "annuaire",
+        rationale: "r",
+        priority: "haute",
+        priority_score: 80,
+      },
+      {
+        type: "lien_mort",
+        source_domain: "b.fr",
+        target_page_url: "https://alice-site.fr/x",
+        anchor_kind: "url",
+        anchor_text: "alice-site.fr",
+        expected_link_type: "reprise_lien_mort",
+        rationale: "r",
+        priority: "moyenne",
+        priority_score: 60,
+        broken_url: "https://z.fr/m",
+      },
+    ]);
+    const make = (c: import("pg").Client) =>
+      c.query("select * from public.create_link_plan($1, $2, $3::jsonb)", [
+        audit,
+        alice.userId,
+        items,
+      ]);
+    await asRole("service_role", null, async (c) => {
+      expect((await make(c)).rows[0].version).toBe(1);
+      expect((await make(c)).rows[0].version).toBe(2);
+      const it = await c.query(
+        "select position, source_domain from public.link_plan_items where plan_id = (select id from public.link_plans where version = 2) order by position",
+      );
+      expect(it.rows.map((r) => r.source_domain)).toEqual(["a.fr", "b.fr"]);
+    });
+    await asRole("service_role", null, async (c) => {
+      await expect(c.query("update public.link_plan_items set anchor_text = 'x'")).rejects.toThrow(
+        /permission denied/,
+      );
+    });
+    await asRole("service_role", null, async (c) => {
+      await expect(c.query("delete from public.link_plans")).rejects.toThrow(/permission denied/);
+    });
+    await asRole("service_role", null, async (c) => {
+      await expect(
+        c.query("select * from public.create_link_plan($1, $2, '[]'::jsonb)", [
+          audit,
+          alice.userId,
+        ]),
+      ).rejects.toThrow(/plan vide/);
+    });
+    await asRole("authenticated", alice.userId, async (c) => {
+      await expect(make(c)).rejects.toThrow(/permission denied/);
+    });
+  });
 });

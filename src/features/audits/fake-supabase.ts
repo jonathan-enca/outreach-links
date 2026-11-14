@@ -11,7 +11,14 @@ type Row = Record<string, unknown>;
 
 export function fakeSupabase(
   initial: Record<string, Row[]> = {},
-  opts: { userId?: string | null; uniqueActivePerSite?: boolean } = {},
+  opts: {
+    userId?: string | null;
+    uniqueActivePerSite?: boolean;
+    rpc?: (
+      name: string,
+      args: unknown,
+    ) => { data: unknown; error: { code?: string; message: string } | null };
+  } = {},
 ) {
   const tables: Record<string, Row[]> = {};
   for (const [k, v] of Object.entries(initial)) tables[k] = v.map((r) => ({ ...r }));
@@ -148,6 +155,8 @@ export function fakeSupabase(
       }),
     },
     from,
+    rpc: async (name: string, args: unknown) =>
+      opts.rpc ? opts.rpc(name, args) : { data: null, error: { message: "rpc non simulée" } },
   } as unknown as SupabaseClient<Database>;
   return { client, tables, log };
 }
