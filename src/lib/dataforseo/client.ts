@@ -293,6 +293,10 @@ export function createDataForSeoClient(options: DataForSeoClientOptions) {
       call("labsCompetitorsDomain", p, o),
     backlinksSummary: (p: EndpointInput<"backlinksSummary">, o?: CallOptions) =>
       call("backlinksSummary", p, o),
+    backlinksBulkReferringDomains: (
+      p: EndpointInput<"backlinksBulkReferringDomains">,
+      o?: CallOptions,
+    ) => call("backlinksBulkReferringDomains", p, o),
     backlinksReferringDomains: (p: EndpointInput<"backlinksReferringDomains">, o?: CallOptions) =>
       call("backlinksReferringDomains", p, o),
     backlinksBacklinks: (p: EndpointInput<"backlinksBacklinks">, o?: CallOptions) =>

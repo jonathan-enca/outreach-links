@@ -6,6 +6,7 @@ import {
   cleanAuditBacklinks,
   failBacklinks,
   fetchCompetitorBacklinks,
+  filterCompetitorsBySize,
   finalizeBacklinks,
 } from "@/features/backlinks/run";
 import { createDataForSeoClientFromEnv } from "@/lib/dataforseo";
@@ -45,8 +46,16 @@ export const auditBacklinks = inngest.createFunction(
       return { skipped: true };
     }
 
+    // MA.2 : écarter les concurrents trop gros AVANT de payer leurs backlinks.
+    const sizeFilter = await step.run("size-filter", async () =>
+      filterCompetitorsBySize(createServiceClient(), createDataForSeoClientFromEnv(), run),
+    );
+    if (sizeFilter.competitors.length === 0) {
+      throw new Error("Aucun concurrent de taille exploitable (tous au-delà du seuil du plan)");
+    }
+
     const fetched = [];
-    for (const [i, competitor] of run.competitors.entries()) {
+    for (const [i, competitor] of sizeFilter.competitors.entries()) {
       fetched.push(
         await step.run(`backlinks-${i + 1}`, async () =>
           fetchCompetitorBacklinks(
@@ -61,7 +70,10 @@ export const auditBacklinks = inngest.createFunction(
 
     const result = await step.run("clean", async () => {
       const service = createServiceClient();
-      const stats = await cleanAuditBacklinks(service, run);
+      const stats = await cleanAuditBacklinks(service, {
+        ...run,
+        competitors: sizeFilter.competitors,
+      });
       return finalizeBacklinks(service, run, stats);
     });
     log.info("backlinks terminés", { before: result.stats.before, after: result.stats.after });
