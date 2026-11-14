@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { formatUsd } from "@/features/audits/format";
 import type { AuditActionState } from "@/features/audits/service";
 import { t } from "@/lib/messages";
+import { computeScore, type ScoreResult } from "@/features/public-audit/score";
 import type { AnchorKind } from "./compute";
 import { ConfirmProfilePanel } from "./confirm-profile-panel";
 import type { ProfileData } from "./run";
@@ -15,6 +16,8 @@ export interface ProfileView {
   summarySource: "llm" | "modele" | null;
   costUsd: number | null;
   errorMessage: string | null;
+  /** Pages classées (toutes) : sert au score d'audit. */
+  pagesRanked?: { total: number; top10: number };
   pages: {
     url: string;
     avgPosition: number | null;
@@ -83,9 +86,42 @@ export function ProfileSection({
 
   const d = view.data;
   if (!d) return null;
+  const score: ScoreResult | null = computeScore({
+    ownReferringDomains: d.totals.referringDomains,
+    benchmarkMedian: d.benchmarkMedian,
+    pagesRanked: view.pagesRanked?.total ?? 0,
+    pagesTop10: view.pagesRanked?.top10 ?? 0,
+  });
+  const sr = t.publicAudit.report;
   return (
     <Card className="flex flex-col gap-5 p-6">
       <h2 className="font-display text-xl font-semibold">{r.title}</h2>
+
+      <div>
+        <h3 className="font-medium">{sr.scoreTitle}</h3>
+        {score ? (
+          <>
+            <p className="mt-1 flex items-baseline gap-3">
+              <span className="font-display text-4xl font-semibold">{score.score}</span>
+              <span className="text-muted-foreground">{sr.scoreOutOf}</span>
+              <Badge
+                tone={
+                  score.band === "solide"
+                    ? "success"
+                    : score.band === "correct"
+                      ? "warning"
+                      : "danger"
+                }
+              >
+                {sr.scoreBands[score.band]}
+              </Badge>
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{sr.scoreNote}</p>
+          </>
+        ) : (
+          <p className="mt-1 text-muted-foreground">{sr.scoreNone}</p>
+        )}
+      </div>
 
       {view.summary ? (
         <div>

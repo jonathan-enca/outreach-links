@@ -28,6 +28,7 @@ describe("recordCost", () => {
     expect(insert).toHaveBeenCalledWith({
       workspace_id: null,
       audit_id: null,
+      public_audit_id: null,
       provider: "dataforseo",
       operation: "serp.organic.live",
       units: 3,

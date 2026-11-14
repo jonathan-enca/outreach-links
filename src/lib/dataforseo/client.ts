@@ -65,6 +65,8 @@ export type DataForSeoClientOptions = {
 export type CallOptions = {
   workspaceId?: string | null;
   auditId?: string | null;
+  /** Audit gratuit public (coûts rattachés par public_audit_id). */
+  publicAuditId?: string | null;
   /** Ignore le cache en lecture (la réponse fraîche est tout de même stockée). */
   bypassCache?: boolean;
   ttlSeconds?: number;
@@ -214,6 +216,7 @@ export function createDataForSeoClient(options: DataForSeoClientOptions) {
         await recordCost(options.costClient, {
           workspaceId: opts.workspaceId,
           auditId: opts.auditId,
+          publicAuditId: opts.publicAuditId,
           provider: PROVIDER,
           operation: spec.name,
           units: 1,
