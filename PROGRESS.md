@@ -11,7 +11,8 @@
 | M1.1        | fait (client DataForSEO testé sur fixtures synthétiques ; appel réel non fait, voir « À fournir »)    | [#12](https://github.com/jonathan-enca/outreach-links/pull/12) | 2026-11-14 |
 | M1.2        | fait (onboarding du site et vérification de propriété ; pas de test Playwright)                       | [#11](https://github.com/jonathan-enca/outreach-links/pull/11) | 2026-11-14 |
 | M1.3        | fait (migration appliquée sur le vrai projet ; run réel DataForSEO non fait, voir « À fournir »)      | [#14](https://github.com/jonathan-enca/outreach-links/pull/14) | 2026-11-14 |
-| M1.4 à M7.3 | à faire                                                                                               |                                                                |            |
+| M1.4        | fait (pipeline testé sur fixtures ; run réel DataForSEO Backlinks non fait, voir « À fournir »)       | [#16](https://github.com/jonathan-enca/outreach-links/pull/16) | 2026-11-14 |
+| M1.5 à M7.3 | à faire                                                                                               |                                                                |            |
 
 ## Décisions prises
 
@@ -70,6 +71,14 @@
 - Scoring : couverture de requêtes, puis somme des poids de position ; domaines hors top 30 ignorés. Liste d'exclusion dans `excluded-domains.ts` (pas en base). Labs `competitors_domain` non utilisé (SERP seulement).
 - FK `cost_ledger.audit_id` vers `audits` ajoutée (le backlog M1 est soldé). `database.types.ts` patché à la main d'après l'outil MCP puis prettier.
 
+### M1.4 (backlinks des concurrents, nettoyage, export)
+
+- Étape à part : `audits.backlinks_status` (`aucun`, `confirme`, `en_cours`, `termine`, `echoue`) ; le statut de l'audit reste `termine`, la machine d'états de M1.3 est intacte. Pas de lancement automatique : coût estimé affiché puis confirmation ; événement Inngest `audit/backlinks.requested` (id stable avec la date de confirmation).
+- Limites par concurrent : 300 lignes en gratuit, 1000 en payant, mode `one_per_domain`. Réduites si le budget restant ne suffit pas, étape refusée sous 50 lignes ; contrôle refait avant chaque appel payant (`BudgetExceededError`). Estimations : gratuit 0,087 USD (+0,018 SERP = 0,105 sous le plafond 0,25) ; payant 1,0 USD sous 1,50.
+- Les liens écartés restent en base (`clean_status = 'exclu'`, `exclusion_reasons`) ; chaque exclu compté une fois, dans son premier motif. Doublons : concurrent + URL source + URL cible normalisées, meilleure ligne gardée (dofollow puis spam le plus bas). Nofollow et cassés conservés (reprises de liens morts).
+- Spam : score fournisseur >= 50 ou heuristiques (mots, segments courts, TLD à risque, tirets/chiffres, ancre). Images réutilisées : 3 liens image ou plus d'un même domaine. Étranger : ccTLD hors langue cible, écritures non latines, IDN. Plateformes : liste de M1.3. Seuils via `CleanContext`. Nettoyage en un seul step, mises à jour par groupes de motifs.
+- CSV : séparateur point-virgule, BOM UTF-8 (Excel FR), lu avec le client utilisateur (RLS). Route `GET /app/audit/<id>/export?portee=propres|tout`.
+
 ## Fichiers et modules clés
 
 - `src/env.ts` : validation zod des variables (`parseEnv`, `env`) ; importé par `next.config.ts` (build) et `layout.tsx` (runtime). Toute variable nouvelle s'ajoute ici et dans `.env.example`.
@@ -88,6 +97,8 @@
 - M1.2 : `supabase/migrations/2026111512000000_sites_onboarding.sql`, `supabase/tests/sites-onboarding.test.ts`, `src/features/sites/{domain,schema,verification-constants,verify,service,actions}.ts`, `src/features/sites/{site-form,verification-panel}.tsx`, `src/app/app/site/` (liste, `nouveau`, `[id]`).
 - M1.3 : `supabase/migrations/2026111513000000_audits_competitors.sql`, `supabase/tests/audits.test.ts`, `src/features/audits/{service,run,discover,excluded-domains,plans,estimate,fake-supabase}.ts`, `src/features/audits/validation.live.test.ts`, `src/inngest/functions/audit-discover.ts`, `src/app/app/audit/page.tsx`, `src/app/app/audit/[id]/page.tsx`.
 
+- M1.4 : `supabase/migrations/2026111514000000_competitor_backlinks.sql`, `supabase/tests/backlinks.test.ts`, `src/features/backlinks/{clean,normalize,run,service,limits,csv,export,actions,fixtures}.ts`, `src/features/backlinks/{backlinks-section,confirm-backlinks-panel}.tsx`, `src/inngest/functions/audit-backlinks.ts`, `src/app/app/audit/[id]/export/route.ts`.
+
 ## Commandes (dev, tests, migrations, Inngest)
 
 `pnpm dev`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm format:check`, `pnpm build` (voir README). Démo DataForSEO : `pnpm demo:dataforseo` (clés requises). Audit réel : `pnpm demo:audit` (crée un vrai audit en base ; exige `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD`, `SUPABASE_SERVICE_ROLE_KEY`). Build local : exige `NEXT_PUBLIC_APP_URL` et les variables Supabase publiques. Tests de RLS : `TEST_DATABASE_URL=postgres://user@host:port/postgres pnpm test` (Postgres 16 avec un superutilisateur ; une base temporaire est créée puis supprimée ; ignorés si la variable manque en local, obligatoires en CI). Migrations : fichiers dans `supabase/migrations`, appliqués par la CLI Supabase (`supabase db push`). Types : `pnpm db:types`. Inngest en local : `pnpm dev`, puis dans un autre terminal `pnpm inngest:dev` (dev server Inngest, doit rester sur le port 8288) ; enregistrer l'app : `curl -X PUT http://localhost:3000/api/inngest` ; événement d'essai : `curl -X POST http://localhost:8288/e/dev -H 'content-type: application/json' -d '{"name":"app/health.ping","data":{}}'`.
@@ -100,6 +111,7 @@
 - M1.1 : aucun coût réel mesuré (appel impossible, 40100), dépense 0 USD. Estimations : SERP top 30 = 0,006 USD ; Labs limit 100 = 0,02 USD ; Backlinks limit 1000 = 0,05 USD ; Backlinks summary = 0,02 USD.
 - M1.2 : 0 USD ; 65 tests Vitest verts dont 22 de RLS sur Postgres réel.
 - M1.3 : coût estimé d'un audit gratuit = 0,018 USD (3 requêtes x 0,006 USD, SERP live top 30), plafond gratuit 0,25 USD. Coût réel non mesuré (DataForSEO 40100), dépense 0 USD ; sur fixtures réel = estimé. 156 tests verts dont 8 de RLS pour les audits ; lint, typecheck, format et build verts (build vérifié en CI).
+- M1.4 : fixture synthétique de 28 liens : 11 conservés, 17 écartés (interne 2, plateforme 2, spam 5, images réutilisées 3, étranger 4, doublon 1). Coût réel non mesuré (40100), dépense 0 USD.
 
 ## Dettes et pièges
 
@@ -132,6 +144,10 @@
 - M1.2 : pas de Playwright dans le dépôt (parcours derrière le lien magique) : tests de services et de composants. Un composant client ne doit pas importer `verify.ts` (`node:dns`) : constantes dans `verification-constants.ts`.
 - M1.2 : SSRF : rebinding DNS entre vérification et requête théoriquement possible ; redirections pouvant changer d'hôte (durcissement : domaine ou `www.domaine` seulement) ; pas de limite de débit de la vérification (à faire en 1.6). La vérification exige `SUPABASE_SERVICE_ROLE_KEY` (déjà sur Vercel). Le jeton reste lisible par les membres du workspace (voulu).
 - M1.3 : run réel impossible (40100) ; les tests de service et de run utilisent un faux client Supabase en mémoire, seules contraintes et RLS sont testées sur Postgres réel. Les ids d'audit et de workspace doivent être de vrais UUID, sinon `recordCost` échoue (erreur seulement loguée) et le coût n'est pas journalisé. Un audit bloqué en `en_cours` (job tué sans `onFailure`) bloque le site via l'index unique, sans purge automatique. En production, le lancement exige `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY` (manquantes) : sans elles la confirmation affiche un échec d'envoi. Non testé avec un vrai serveur Inngest. Estimation fondée sur la grille publique, à recaler. Pas de Playwright (parcours derrière le lien magique). `pnpm build` local impossible sans les variables `NEXT_PUBLIC_*`.
+- M1.4 : aucun appel réel Backlinks (40100). Champs hors schéma zod (`item_type`, `domain_from_rank`) hypothétiques : si absents, `item_type` retombe sur `type` et la règle des images ne se déclenche pas. Fixtures à recaler sur de vraies réponses.
+- M1.4 : coût de l'étape = total `cost_ledger` moins `audits.actual_cost_usd` (exact seulement sans autre coût imputé à l'audit ; M1.5 devra suivre ses propres coûts). La page d'audit estime avec `actual_cost_usd` (`cost_ledger` illisible côté client), vérification définitive dans `startBacklinks`.
+- M1.4 : plafond compté avec le coût déjà engagé : une tentative payée puis échouée à l'écriture peut voir sa relance refusée sur le dernier concurrent si l'estimation remplit exactement le plafond (rare). Pas de purge d'un `backlinks_status = 'en_cours'` bloqué ; pas d'unicité empêchant deux jobs (transition `confirme` vers `en_cours` atomique). Sans clés Inngest en production, l'état reste `confirme` avec échec d'envoi affiché.
+- M1.4 : le faux client Supabase a gagné `range()` et ignore la sélection de colonnes. `database.types.ts` patché à la main puis prettier. Parcours connectés non testables par Playwright (lien magique).
 
 ## Backlog (idées hors périmètre)
 
@@ -140,15 +156,17 @@
 - Sentry et `jobs_audit` (optionnels).
 - Job Inngest de purge de `dataforseo_cache` ; idempotence des `task_post` payants lors des nouvelles tentatives.
 - Limite de débit de la vérification de propriété (1.6) ; durcir les redirections de vérification.
+- Filtres de vue (par concurrent, par motif) sur la page d'audit.
+- Purge des backlinks `en_cours` bloqués.
 - Test Playwright connecté si une session de test est mise en place.
 
 ## À fournir par Jonathan
 
-1. Inngest : reconnecter le connecteur avec droit de lecture des clés, ou copier `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY` (environnement production) vers Vercel (Production et Preview, type sensitive). Puis redéployer, synchroniser l'app avec `https://outreach-links.vercel.app/api/inngest`, envoyer `app/health.ping` et vérifier une nouvelle ligne dans `cost_ledger`.
+1. Inngest : reconnecter le connecteur avec droit de lecture des clés, ou copier `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY` (environnement production) vers Vercel (Production et Preview, type sensitive) ; sans elles ni l'audit ni l'étape backlinks (`audit.backlinks`) ne tournent en production. Puis redéployer, synchroniser l'app avec `https://outreach-links.vercel.app/api/inngest`, envoyer `app/health.ping` et vérifier une nouvelle ligne dans `cost_ledger`.
 2. Choisir si `outreach-links` cohabite avec `scan-vie-privee` dans l'environnement Inngest de production ou dans un environnement dédié.
-3. `DATAFORSEO_LOGIN` et `DATAFORSEO_PASSWORD` (https://app.dataforseo.com/api-access) sur Vercel, Production et Preview, type sensitive ; vérifier que l'abonnement Backlinks est actif (séparé du SERP et des Labs). Puis lancer `pnpm demo:dataforseo` (SERP FR sur mega-coloring.com), consigner le coût réel ici et remplacer la fixture SERP synthétique, puis `pnpm demo:audit` (run réel de l'audit sur mega-coloring.com, plafond 1,50 USD, coût réel à consigner dans « Mesures »).
+3. `DATAFORSEO_LOGIN` et `DATAFORSEO_PASSWORD` (https://app.dataforseo.com/api-access) sur Vercel, Production et Preview, type sensitive ; vérifier que l'abonnement Backlinks est actif (séparé du SERP et des Labs). Puis lancer `pnpm demo:dataforseo` (SERP FR sur mega-coloring.com), consigner le coût réel ici et remplacer la fixture SERP synthétique, puis `pnpm demo:audit` (run réel de l'audit sur mega-coloring.com, plafond 1,50 USD, coût réel à consigner dans « Mesures »). Le même abonnement Backlinks permet de mesurer le coût réel de l'étape M1.4 et de recaler ses fixtures.
 4. Clé LLM (Anthropic) pour Vercel, nécessaire dès les sous-jalons d'audit.
 
 ## Prochain sous-jalon recommandé
 
-M1.4 (voir PLAN.md). En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`, indispensables pour lancer un audit en production) et le run réel DataForSEO dès que Jonathan fournit les identifiants.
+M1.5 (voir PLAN.md ; suivre ses propres coûts, voir piège M1.4). En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`, indispensables pour lancer un audit en production) et le run réel DataForSEO dès que Jonathan fournit les identifiants.
