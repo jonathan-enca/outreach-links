@@ -41,6 +41,18 @@ describe("parseEnv", () => {
   });
 });
 
+describe("variables DataForSEO (M1.1)", () => {
+  const base = { NEXT_PUBLIC_APP_URL: "http://localhost:3000", ...supabase };
+
+  it("sont optionnelles, avec erreur claire à l'usage", () => {
+    const e = parseEnv(base);
+    expect(e.DATAFORSEO_LOGIN).toBeUndefined();
+    expect(e.DATAFORSEO_PROXY_AUTH).toBe(false);
+    expect(() => requireEnv("DATAFORSEO_LOGIN", e)).toThrow(/DATAFORSEO_LOGIN/);
+    expect(parseEnv({ ...base, DATAFORSEO_PROXY_AUTH: "true" }).DATAFORSEO_PROXY_AUTH).toBe(true);
+  });
+});
+
 describe("variables optionnelles M0.3", () => {
   const base = { NEXT_PUBLIC_APP_URL: "http://localhost:3000", ...supabase };
 

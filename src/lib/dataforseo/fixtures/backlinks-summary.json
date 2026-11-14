@@ -1,0 +1,35 @@
+{
+  "version": "0.1.20261103",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "0.5 sec.",
+  "cost": 0.02,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "11141200-1234-0001-0000-aaaaaaaaaaaa",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "0.4 sec.",
+      "cost": 0.02,
+      "result_count": 1,
+      "path": ["v3"],
+      "data": {},
+      "result": [
+        {
+          "target": "mega-coloring.com",
+          "rank": 120,
+          "backlinks": 340,
+          "backlinks_spam_score": 4,
+          "referring_domains": 58,
+          "referring_main_domains": 55,
+          "referring_pages": 210,
+          "broken_backlinks": 3,
+          "broken_pages": 1,
+          "first_seen": "2024-03-01 00:00:00 +00:00"
+        }
+      ]
+    }
+  ]
+}

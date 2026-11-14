@@ -55,6 +55,36 @@ export type Database = {
           },
         ];
       };
+      dataforseo_cache: {
+        Row: {
+          cache_key: string;
+          cost_usd: number;
+          created_at: string;
+          endpoint: string;
+          expires_at: string;
+          params: Json;
+          response: Json;
+        };
+        Insert: {
+          cache_key: string;
+          cost_usd?: number;
+          created_at?: string;
+          endpoint: string;
+          expires_at: string;
+          params: Json;
+          response: Json;
+        };
+        Update: {
+          cache_key?: string;
+          cost_usd?: number;
+          created_at?: string;
+          endpoint?: string;
+          expires_at?: string;
+          params?: Json;
+          response?: Json;
+        };
+        Relationships: [];
+      };
       events: {
         Row: {
           actor_id: string | null;

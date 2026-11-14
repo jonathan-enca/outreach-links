@@ -1,0 +1,61 @@
+{
+  "version": "0.1.20261103",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "0.5 sec.",
+  "cost": 0.006,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "11141200-1234-0001-0000-aaaaaaaaaaaa",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "0.4 sec.",
+      "cost": 0.006,
+      "result_count": 1,
+      "path": ["v3"],
+      "data": {},
+      "result": [
+        {
+          "keyword": "coloriage licorne",
+          "type": "organic",
+          "se_domain": "google.fr",
+          "location_code": 2250,
+          "language_code": "fr",
+          "check_url": "https://www.google.fr/search?q=coloriage+licorne",
+          "datetime": "2026-11-14 12:00:00 +00:00",
+          "se_results_count": 4120000,
+          "items_count": 3,
+          "items": [
+            {
+              "type": "organic",
+              "rank_group": 1,
+              "rank_absolute": 1,
+              "domain": "www.hugolescargot.com",
+              "title": "Coloriage Licorne",
+              "description": "Coloriages de licornes a imprimer.",
+              "url": "https://www.hugolescargot.com/coloriages/licorne/",
+              "breadcrumb": "hugolescargot.com"
+            },
+            {
+              "type": "people_also_ask",
+              "rank_group": 1,
+              "rank_absolute": 2,
+              "title": "Comment dessiner une licorne ?"
+            },
+            {
+              "type": "organic",
+              "rank_group": 2,
+              "rank_absolute": 3,
+              "domain": "www.coloriez.com",
+              "title": "Coloriage Licorne gratuit",
+              "description": null,
+              "url": "https://www.coloriez.com/licorne"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
