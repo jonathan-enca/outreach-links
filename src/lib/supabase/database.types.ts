@@ -225,6 +225,14 @@ export type Database = {
           finished_at: string | null;
           id: string;
           max_competitors: number;
+          opportunities_cost_usd: number | null;
+          opportunities_error: string | null;
+          opportunities_estimated_cost_usd: number | null;
+          opportunities_finished_at: string | null;
+          opportunities_limits: Json;
+          opportunities_started_at: string | null;
+          opportunities_stats: Json;
+          opportunities_status: string;
           plan: string;
           profile_cost_usd: number | null;
           profile_data: Json;
@@ -265,6 +273,14 @@ export type Database = {
           finished_at?: string | null;
           id?: string;
           max_competitors: number;
+          opportunities_cost_usd?: number | null;
+          opportunities_error?: string | null;
+          opportunities_estimated_cost_usd?: number | null;
+          opportunities_finished_at?: string | null;
+          opportunities_limits?: Json;
+          opportunities_started_at?: string | null;
+          opportunities_stats?: Json;
+          opportunities_status?: string;
           plan?: string;
           profile_cost_usd?: number | null;
           profile_data?: Json;
@@ -305,6 +321,14 @@ export type Database = {
           finished_at?: string | null;
           id?: string;
           max_competitors?: number;
+          opportunities_cost_usd?: number | null;
+          opportunities_error?: string | null;
+          opportunities_estimated_cost_usd?: number | null;
+          opportunities_finished_at?: string | null;
+          opportunities_limits?: Json;
+          opportunities_started_at?: string | null;
+          opportunities_stats?: Json;
+          opportunities_status?: string;
           plan?: string;
           profile_cost_usd?: number | null;
           profile_data?: Json;
@@ -608,6 +632,88 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "events_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      link_opportunities: {
+        Row: {
+          audit_id: string;
+          created_at: string;
+          expected_link_type: string;
+          id: string;
+          offer: string | null;
+          origin_query: string | null;
+          priority: string;
+          priority_score: number;
+          rationale: string;
+          site_id: string;
+          source_domain: string;
+          source_title: string | null;
+          source_url: string | null;
+          status: string;
+          target_page_url: string;
+          type: string;
+          workspace_id: string;
+        };
+        Insert: {
+          audit_id: string;
+          created_at?: string;
+          expected_link_type: string;
+          id?: string;
+          offer?: string | null;
+          origin_query?: string | null;
+          priority: string;
+          priority_score: number;
+          rationale: string;
+          site_id: string;
+          source_domain: string;
+          source_title?: string | null;
+          source_url?: string | null;
+          status?: string;
+          target_page_url: string;
+          type: string;
+          workspace_id: string;
+        };
+        Update: {
+          audit_id?: string;
+          created_at?: string;
+          expected_link_type?: string;
+          id?: string;
+          offer?: string | null;
+          origin_query?: string | null;
+          priority?: string;
+          priority_score?: number;
+          rationale?: string;
+          site_id?: string;
+          source_domain?: string;
+          source_title?: string | null;
+          source_url?: string | null;
+          status?: string;
+          target_page_url?: string;
+          type?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "link_opportunities_audit_id_fkey";
+            columns: ["audit_id"];
+            isOneToOne: false;
+            referencedRelation: "audits";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "link_opportunities_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "link_opportunities_workspace_id_fkey";
             columns: ["workspace_id"];
             isOneToOne: false;
             referencedRelation: "workspaces";

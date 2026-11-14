@@ -14,7 +14,8 @@
 | M1.4        | fait (pipeline testé sur fixtures ; run réel DataForSEO Backlinks non fait, voir « À fournir »)                                                                   | [#16](https://github.com/jonathan-enca/outreach-links/pull/16) | 2026-11-14 |
 | M1.5        | fait (pipeline testé sur fixtures ; run réel DataForSEO non fait ; client LLM créé)                                                                               | [#18](https://github.com/jonathan-enca/outreach-links/pull/18) | 2026-11-14 |
 | M1.6        | fait (migration appliquée sur la vraie base le 14/11 via l'API de gestion Supabase ; formulaire sans effet réel tant que les clés Inngest et DataForSEO manquent) | [#20](https://github.com/jonathan-enca/outreach-links/pull/20) | 2026-11-14 |
-| M2.1 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
+| M2.1        | fait (génération testée sur fixtures ; aucun run réel DataForSEO ; migration appliquée sur la vraie base)                                                         | PR M2.1                                                        | 2026-11-14 |
+| M2.2 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
 
 ## Décisions prises
 
@@ -93,6 +94,14 @@
 - Le résumé n'échoue jamais l'audit : sans clé, erreur ou promesse détectée deux fois, texte de modèle déterministe (`profile_summary_source = modele`).
 - `profile_cost_usd` = total `cost_ledger` moins `actual_cost_usd` moins `backlinks_cost_usd` (solde le piège M1.4). Noms des contrôles OnPage tirés de la documentation ; un contrôle absent n'est jamais un défaut.
 
+### M2.1 (opportunités de liens)
+
+- Étape à part sur l'audit, comme M1.3 à M1.5 : `audits.opportunities_status` (`aucun`, `confirme`, `en_cours`, `termine`, `echoue`), exige le profil terminé et une confirmation du coût. Événement `audit/opportunities.requested` (id stable audit + date de confirmation), job `audit-opportunities` (un step par requête SERP, cache DataForSEO).
+- Table `link_opportunities` (écriture `service_role`, lecture par la RLS), unique (audit, domaine source). 5 types : `ecart_domaines` (gratuit, lit `audit_gap_domains`), `mention_marque`, `page_ressources`, `annuaire`, `jamais_sollicite` (requêtes SERP top 10). `lien_mort` autorisé par la contrainte, réservé à M2.2. Chaque ligne a page cible, type de lien attendu, offre, pourquoi, priorité (score 0-100 : base du type + bonus de rang ou de citations ; haute >= 75, moyenne >= 50).
+- Plafond PROPRE à l'étape (gratuit 0,02 USD, payant 0,05 USD), indépendant du plafond d'audit : celui du gratuit (0,25) est déjà presque consommé par M1.3 à M1.5 (~0,248). Estimé : 5 requêtes gratuit = 0,010 USD, 8 requêtes payant = 0,016 USD. Contrôle avant chaque appel payant ; requêtes figées à la confirmation.
+- Filtres : domaine du site, concurrents retenus, plateformes exclues (liste M1.3). Dédoublonnage par domaine (meilleur score). Page cible : accueil pour les mentions de marque, sinon recoupement mots-clés des pages prioritaires, sinon rotation. Régénération idempotente (table vidée pour l'audit puis réécrite).
+- Les mentions de marque ne vérifient PAS l'absence de lien (à faire au tri des cibles, M3.1). Aucun email, aucun contact.
+
 ## Fichiers et modules clés
 
 - `src/env.ts` : validation zod des variables (`parseEnv`, `env`) ; importé par `next.config.ts` (build) et `layout.tsx` (runtime). Toute variable nouvelle s'ajoute ici et dans `.env.example`.
@@ -114,6 +123,8 @@
 - M1.4 : `supabase/migrations/2026111514000000_competitor_backlinks.sql`, `supabase/tests/backlinks.test.ts`, `src/features/backlinks/{clean,normalize,run,service,limits,csv,export,actions,fixtures}.ts`, `src/features/backlinks/{backlinks-section,confirm-backlinks-panel}.tsx`, `src/inngest/functions/audit-backlinks.ts`, `src/app/app/audit/[id]/export/route.ts`.
 
 - M1.5 : `supabase/migrations/2026111515000000_audit_profile.sql`, `supabase/tests/audit-profile.test.ts`, `src/lib/llm/{client,pricing,client.test}.ts`, `src/features/profile/{compute,limits,run,summary,service,actions}.ts`, `src/features/profile/{profile-section,confirm-profile-panel}.tsx`, `src/features/profile/{run.test,summary.live.test}.ts`, `src/inngest/functions/audit-profile.ts`, `src/features/audits/audit-detail.tsx`.
+
+- M2.1 : `supabase/migrations/2026111517000000_link_opportunities.sql`, `supabase/tests/link-opportunities.test.ts`, `src/features/opportunities/{generate,limits,run,service,actions}.ts`, `src/features/opportunities/opportunities-section.tsx`, `src/features/opportunities/opportunities.test.ts`, `src/inngest/functions/audit-opportunities.ts`.
 
 ## Commandes (dev, tests, migrations, Inngest)
 
@@ -171,6 +182,10 @@
 - M1.5 : la page d'audit estime le coût restant avec `actual_cost_usd + backlinks_cost_usd + profile_cost_usd` (`cost_ledger` illisible côté client), vérification définitive à la confirmation. Les sorties d'étapes Inngest transportent jusqu'à 1000 domaines référents. Pas de purge d'un `profile_status` bloqué à `en_cours`. Sans clés Inngest en production, l'état reste `confirme`.
 - M1.5 : `database.types.ts` patché à la main (Relationships des deux nouvelles tables vides), à régénérer avec la CLI. Marge gratuite faible (0,143 sur 0,145 USD) : une dérive du coût réel peut faire refuser l'étape en gratuit. `pnpm build` local exige les `NEXT_PUBLIC_*`.
 - Parcours connectés : tests de composants (`renderToStaticMarkup`), services avec faux client Supabase et RLS sur Postgres réel, pas de Playwright (lien magique).
+
+- M2.1 : requêtes thématiques simples (niche + mot-clé) ; qualité réelle des cibles non mesurée (aucun run réel). Rationale stockée en français dans la table (texte généré, pas une clé). Pas d'ancre suggérée (M2.3). Mentions de marque non vérifiées (lien déjà présent ou non). Pas de purge d'un `opportunities_status` bloqué à `en_cours`. Sans clés Inngest en production, l'état reste `confirme`.
+- `database.types.ts` régénéré avec l'outil MCP Supabase (types complets) puis les ajouts M2.1 recopiés (pas de CLI en session) ; formatage avec `pnpm exec prettier` (pas `npx`, versions différentes).
+- Tests de base en local : Postgres 16 démarré dans `/var/tmp/pgd` (`initdb`, port 55432, utilisateur `postgres`) puis `TEST_DATABASE_URL=postgres://postgres@127.0.0.1:55432/postgres pnpm test`.
 
 ## Backlog (idées hors périmètre)
 
@@ -230,4 +245,4 @@
 
 ## Prochain sous-jalon recommandé
 
-Terminer M1.6 (migration + fusion de la PR #20), puis M2.1 (voir PLAN.md). En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`) et le run réel DataForSEO (retester d'abord avec `NODE_USE_ENV_PROXY=1` dans l'environnement agent) dès que Jonathan fournit les identifiants.
+M2.2 (chasseur 404, voir PLAN.md) puis M2.3 (écran Plan de liens). En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`) et le run réel DataForSEO (retester d'abord avec `NODE_USE_ENV_PROXY=1` dans l'environnement agent) dès que Jonathan fournit les identifiants.

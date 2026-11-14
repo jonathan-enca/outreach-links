@@ -10,6 +10,9 @@ import { startBacklinksAction } from "@/features/backlinks/actions";
 import type { BacklinksView } from "@/features/backlinks/backlinks-section";
 import type { CleanStats } from "@/features/backlinks/clean";
 import { estimateBacklinks } from "@/features/backlinks/limits";
+import { startOpportunitiesAction } from "@/features/opportunities/actions";
+import type { OpportunitiesView } from "@/features/opportunities/opportunities-section";
+import { estimateForSite } from "@/features/opportunities/service";
 import { startProfileAction } from "@/features/profile/actions";
 import { estimateProfile } from "@/features/profile/limits";
 import type { ProfileView } from "@/features/profile/profile-section";
@@ -30,7 +33,7 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
 
   const { data: audit } = await supabase
     .from("audits")
-    .select("*, sites(domain)")
+    .select("*, sites(domain, niche, priority_queries, offered_asset)")
     .eq("id", id)
     .maybeSingle();
   if (!audit) notFound();
@@ -163,6 +166,51 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
     };
   }
 
+  let opportunities: OpportunitiesView | undefined;
+  if (audit.profile_status === "termine") {
+    const siteRow = audit.sites as unknown as {
+      domain: string;
+      niche: string | null;
+      priority_queries: string[];
+      offered_asset: string | null;
+    } | null;
+    const est = siteRow ? estimateForSite(siteRow, audit.plan) : null;
+    const done = audit.opportunities_status === "termine";
+    const { data: opps } = done
+      ? await supabase
+          .from("link_opportunities")
+          .select("source_domain, type, priority, target_page_url, rationale")
+          .eq("audit_id", id)
+          .order("priority_score", { ascending: false })
+          .limit(50)
+      : { data: [] };
+    const stats = (audit.opportunities_stats ?? {}) as {
+      total?: number;
+      byType?: Record<string, number>;
+    };
+    opportunities = {
+      status: audit.opportunities_status,
+      estimate: est
+        ? {
+            totalUsd: audit.opportunities_estimated_cost_usd ?? est.totalUsd,
+            queries: est.queries.length,
+            capUsd: est.capUsd,
+          }
+        : null,
+      errorMessage: audit.opportunities_error,
+      costUsd: audit.opportunities_cost_usd === null ? null : Number(audit.opportunities_cost_usd),
+      total: stats.total ?? 0,
+      byType: stats.byType ?? {},
+      items: (opps ?? []).map((o) => ({
+        domain: o.source_domain,
+        type: o.type,
+        priority: o.priority,
+        targetPageUrl: o.target_page_url,
+        rationale: o.rationale,
+      })),
+    };
+  }
+
   const details = (audit.estimate_details ?? {}) as { perQuery?: { query: string; usd: number }[] };
   const site = audit.sites as unknown as { domain: string } | null;
   const view: AuditView = {
@@ -177,6 +225,7 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
     errorMessage: audit.error_message,
     backlinks,
     profile,
+    opportunities,
     competitors: (competitors ?? []).map((c) => ({
       domain: c.domain,
       queriesCount: c.queries_count,
@@ -196,6 +245,7 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
         confirmAction={confirmAuditAction.bind(null, audit.id)}
         startBacklinksAction={startBacklinksAction.bind(null, audit.id)}
         startProfileAction={startProfileAction.bind(null, audit.id)}
+        startOpportunitiesAction={startOpportunitiesAction.bind(null, audit.id)}
       />
     </>
   );
