@@ -171,7 +171,13 @@ export function createDataForSeoClient(options: DataForSeoClientOptions) {
     let cacheHit = false;
 
     if (useCache && !opts.bypassCache) {
-      const hit = await options.cache!.get(key64);
+      let hit: Awaited<ReturnType<CacheStore["get"]>> = null;
+      try {
+        hit = await options.cache!.get(key64);
+      } catch (e) {
+        // Un cache en panne ne doit pas bloquer l'audit : on appelle l'API.
+        logger.warn("dataforseo : cache non lu", { endpoint: spec.name, error: String(e) });
+      }
       if (hit) {
         envelope = hit.response;
         cacheHit = true;

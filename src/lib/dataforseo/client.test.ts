@@ -114,6 +114,19 @@ describe("SERP organic live", () => {
     expect((rows[1]!.metadata as { cacheHit: boolean }).cacheHit).toBe(true);
   });
 
+  it("un cache en panne en lecture n'empêche pas l'appel", async () => {
+    const broken = {
+      get: async () => {
+        throw new Error("panne");
+      },
+      set: async () => {},
+    };
+    const { client, fetchImpl } = setup([fixture("serp-organic-live")], { cache: broken });
+    const out = await client.serpOrganicLive({ keyword: "coloriage licorne" });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(out.cacheHit).toBe(false);
+  });
+
   it("bypassCache force un appel frais", async () => {
     const { client, fetchImpl } = setup([
       fixture("serp-organic-live"),
