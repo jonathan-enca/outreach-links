@@ -2,19 +2,19 @@
 
 ## État
 
-| Sous-jalon  | Statut                                                                                                | PR                                                             | Date       |
-| ----------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ---------- |
-| M0.1        | fait                                                                                                  | [#1](https://github.com/jonathan-enca/outreach-links/pull/1)   | 2026-11-14 |
-| M0.2        | fait (connexion par lien magique testée avec succès par Jonathan sur le site en ligne)                | PR M0.2, M0.2b, M0.2c                                          | 2026-11-14 |
-| M0.3        | code fait et fusionné ; production Inngest bloquée (clés manquantes, voir « À fournir par Jonathan ») | [#7](https://github.com/jonathan-enca/outreach-links/pull/7)   | 2026-11-14 |
-| M0.4        | fait (Lighthouse mobile 98/100/100/100 sur `/` et `/connexion`)                                       | [#6](https://github.com/jonathan-enca/outreach-links/pull/6)   | 2026-11-14 |
-| M1.1        | fait (client DataForSEO testé sur fixtures synthétiques ; appel réel non fait, voir « À fournir »)    | [#12](https://github.com/jonathan-enca/outreach-links/pull/12) | 2026-11-14 |
-| M1.2        | fait (onboarding du site et vérification de propriété ; pas de test Playwright)                       | [#11](https://github.com/jonathan-enca/outreach-links/pull/11) | 2026-11-14 |
-| M1.3        | fait (migration appliquée sur le vrai projet ; run réel DataForSEO non fait, voir « À fournir »)      | [#14](https://github.com/jonathan-enca/outreach-links/pull/14) | 2026-11-14 |
-| M1.4        | fait (pipeline testé sur fixtures ; run réel DataForSEO Backlinks non fait, voir « À fournir »)       | [#16](https://github.com/jonathan-enca/outreach-links/pull/16) | 2026-11-14 |
-| M1.5        | fait (pipeline testé sur fixtures ; run réel DataForSEO non fait ; client LLM créé)                   | [#18](https://github.com/jonathan-enca/outreach-links/pull/18) | 2026-11-14 |
+| Sous-jalon  | Statut                                                                                                                                                            | PR                                                             | Date       |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ---------- |
+| M0.1        | fait                                                                                                                                                              | [#1](https://github.com/jonathan-enca/outreach-links/pull/1)   | 2026-11-14 |
+| M0.2        | fait (connexion par lien magique testée avec succès par Jonathan sur le site en ligne)                                                                            | PR M0.2, M0.2b, M0.2c                                          | 2026-11-14 |
+| M0.3        | code fait et fusionné ; production Inngest bloquée (clés manquantes, voir « À fournir par Jonathan »)                                                             | [#7](https://github.com/jonathan-enca/outreach-links/pull/7)   | 2026-11-14 |
+| M0.4        | fait (Lighthouse mobile 98/100/100/100 sur `/` et `/connexion`)                                                                                                   | [#6](https://github.com/jonathan-enca/outreach-links/pull/6)   | 2026-11-14 |
+| M1.1        | fait (client DataForSEO testé sur fixtures synthétiques ; appel réel non fait, voir « À fournir »)                                                                | [#12](https://github.com/jonathan-enca/outreach-links/pull/12) | 2026-11-14 |
+| M1.2        | fait (onboarding du site et vérification de propriété ; pas de test Playwright)                                                                                   | [#11](https://github.com/jonathan-enca/outreach-links/pull/11) | 2026-11-14 |
+| M1.3        | fait (migration appliquée sur le vrai projet ; run réel DataForSEO non fait, voir « À fournir »)                                                                  | [#14](https://github.com/jonathan-enca/outreach-links/pull/14) | 2026-11-14 |
+| M1.4        | fait (pipeline testé sur fixtures ; run réel DataForSEO Backlinks non fait, voir « À fournir »)                                                                   | [#16](https://github.com/jonathan-enca/outreach-links/pull/16) | 2026-11-14 |
+| M1.5        | fait (pipeline testé sur fixtures ; run réel DataForSEO non fait ; client LLM créé)                                                                               | [#18](https://github.com/jonathan-enca/outreach-links/pull/18) | 2026-11-14 |
 | M1.6        | fait (migration appliquée sur la vraie base le 14/11 via l'API de gestion Supabase ; formulaire sans effet réel tant que les clés Inngest et DataForSEO manquent) | [#20](https://github.com/jonathan-enca/outreach-links/pull/20) | 2026-11-14 |
-| M2.1 à M7.3 | à faire                                                                                               |                                                                |            |
+| M2.1 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
 
 ## Décisions prises
 
