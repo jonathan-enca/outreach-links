@@ -29,15 +29,41 @@ export interface CompetitorCandidate {
 
 const ORGANIC_TYPES = new Set(["organic", "featured_snippet"]);
 
+const REDIRECT_HOSTS = new Set(["google.com", "google.fr"]);
+
+/**
+ * Constaté en production (14/11/2026) : la SERP live renvoie parfois des liens de redirection
+ * Google (`google.com/goto?url=...`, `domain` = google.com). Le vrai site n'est alors lisible que
+ * dans `breadcrumb` (« https://www.site.fr › dossier › page... »). On le reconstruit ;
+ * l'URL obtenue est partielle (segments tronqués ignorés) mais le domaine est fiable.
+ */
+export function resolveRedirect(item: {
+  url?: string | null;
+  domain?: string | null;
+  breadcrumb?: string | null;
+}): { domain: string; url: string } | null {
+  const url = item.url?.trim() ?? "";
+  const host = hostOf(item.domain || url);
+  if (url && host && !REDIRECT_HOSTS.has(host)) return { domain: host, url };
+  if (!url) return null;
+  const [origin, ...segments] = (item.breadcrumb ?? "").split("›").map((s) => s.trim());
+  if (!origin) return null;
+  const real = hostOf(origin);
+  if (!real || REDIRECT_HOSTS.has(real)) return null;
+  const kept = segments.filter((s) => s && !s.endsWith("..."));
+  const base = origin.startsWith("http") ? origin : `https://${origin}`;
+  return { domain: real, url: [base.replace(/\/$/, ""), ...kept].join("/") };
+}
+
 /** Extrait les résultats organiques (hors PAA, vidéos, etc.) du top `depth`. */
 export function serpEntries(result: SerpResult | null, depth = 30): SerpEntry[] {
   const out: SerpEntry[] = [];
   const seenRanks = new Set<number>();
   for (const item of result?.items ?? []) {
     if (!ORGANIC_TYPES.has(item.type)) continue;
-    const url = item.url?.trim();
-    if (!url) continue;
-    const domain = hostOf(item.domain || url);
+    const resolved = resolveRedirect(item);
+    if (!resolved) continue;
+    const { domain, url } = resolved;
     const rank = item.rank_group ?? item.rank_absolute;
     if (!domain || !rank || rank < 1 || rank > depth) continue;
     // Un extrait mis en avant reprend souvent le résultat organique du même rang.
