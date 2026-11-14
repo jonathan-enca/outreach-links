@@ -2,6 +2,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { t } from "@/lib/messages";
 import { BacklinksSection, type BacklinksView } from "@/features/backlinks/backlinks-section";
+import {
+  OpportunitiesSection,
+  type OpportunitiesView,
+} from "@/features/opportunities/opportunities-section";
 import { ProfileSection, type ProfileView } from "@/features/profile/profile-section";
 import { AuditStatusBadge } from "./audit-status-badge";
 import { ConfirmAuditPanel } from "./confirm-audit-panel";
@@ -22,6 +26,8 @@ export interface AuditView {
   backlinks?: BacklinksView;
   /** Profil de liens, écart et pages (M1.5), après les backlinks. */
   profile?: ProfileView;
+  /** Opportunités de liens (M2.1), après le profil de liens. */
+  opportunities?: OpportunitiesView;
   competitors: {
     domain: string;
     queriesCount: number;
@@ -37,11 +43,13 @@ export function AuditDetail({
   confirmAction,
   startBacklinksAction,
   startProfileAction,
+  startOpportunitiesAction,
 }: {
   audit: AuditView;
   confirmAction: (prev: AuditActionState) => Promise<AuditActionState>;
   startBacklinksAction?: (prev: AuditActionState) => Promise<AuditActionState>;
   startProfileAction?: (prev: AuditActionState) => Promise<AuditActionState>;
+  startOpportunitiesAction?: (prev: AuditActionState) => Promise<AuditActionState>;
 }) {
   const r = t.audits.result;
   const awaitingConfirm = audit.status === "estime" || audit.status === "confirme";
@@ -141,6 +149,16 @@ export function AuditDetail({
             <ProfileSection view={audit.profile} startAction={startProfileAction} />
           ) : audit.backlinks && audit.backlinks.status !== "termine" ? (
             <Card className="p-6 text-muted-foreground">{t.profile.needsBacklinks}</Card>
+          ) : null}
+          {audit.profile?.status === "termine" &&
+          audit.opportunities &&
+          startOpportunitiesAction ? (
+            <OpportunitiesSection
+              view={audit.opportunities}
+              startAction={startOpportunitiesAction}
+            />
+          ) : audit.profile && audit.profile.status !== "termine" ? (
+            <Card className="p-6 text-muted-foreground">{t.opportunities.needsProfile}</Card>
           ) : null}
         </>
       ) : null}
