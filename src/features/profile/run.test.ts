@@ -317,19 +317,25 @@ describe("failProfile", () => {
 
 describe("estimateProfile", () => {
   it("gratuit après découverte et backlinks : tient dans le plafond restant, lignes réduites", () => {
-    const e = estimateProfile(3, "gratuit", 0.25 - 0.105)!;
+    // Restant après SERP (0,018) et backlinks + mesure de taille (0,1044), grille recalée MA.3.
+    const remaining = 0.25 - 0.018 - 0.104388;
+    const e = estimateProfile(3, "gratuit", remaining, 3)!;
     expect(e).not.toBeNull();
-    expect(e.totalUsd).toBeLessThanOrEqual(0.145);
+    expect(e.totalUsd).toBeLessThanOrEqual(remaining);
+    expect(e.breakdown.benchmark).toBe(0);
     expect(e.limits.benchmarkCompetitors).toBe(3);
     expect(e.limits.keywords).toBeLessThanOrEqual(100);
+    // Sans taille connue, les 3 repères coûtent 3 appels : le plafond les réduit.
+    expect(estimateProfile(3, "gratuit", remaining)!.limits.benchmarkCompetitors).toBeLessThan(3);
   });
   it("payant : limites pleines", () => {
-    const e = estimateProfile(10, "payant", 0.4)!;
+    const e = estimateProfile(10, "payant", 0.4, 10)!;
     expect(e.limits).toEqual(PROFILE_LIMITS.payant);
     expect(e.totalUsd).toBeLessThan(0.4);
+    expect(estimateProfile(10, "payant", 0.4)!.limits).not.toEqual(PROFILE_LIMITS.payant);
   });
   it("retire des concurrents de repère puis refuse si rien ne passe", () => {
-    const small = estimateProfile(3, "gratuit", 0.11)!;
+    const small = estimateProfile(3, "gratuit", 0.13)!;
     expect(small.limits.benchmarkCompetitors).toBeLessThan(3);
     expect(estimateProfile(3, "gratuit", 0.02)).toBeNull();
     expect(estimateProfile(0, "gratuit", 5)).toBeNull();

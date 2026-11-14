@@ -19,6 +19,7 @@
 | M2.3        | fait (pas de test Playwright : aucune session connectée possible ; tests de services, de composants purs et de SQL réel)                                          | PR M2.3                                                        | 2026-11-14 |
 | MA.1        | fait (exclusion des très grands sites ; zéro appel payant ; MA.2 à MA.7 définis dans PLAN.md)                                                                     | PR MA.1                                                        | 2026-11-14 |
 | MA.2        | fait (mesure de taille groupée avant les backlinks ; testé sur fixtures, aucun appel payant réel ; migration appliquée sur la vraie base)                         | PR MA.2                                                        | 2026-11-14 |
+| MA.3        | fait (grille recalée sur les coûts réels mesurés ; marge gratuite restaurée ; zéro appel payant ; aucune migration)                                               | PR MA.3                                                        | 2026-11-14 |
 | M3.1 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
 
 ## Décisions prises
@@ -157,8 +158,11 @@
 
 `pnpm dev`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm format:check`, `pnpm build` (voir README). Résumé LLM réel (jeu d'évaluation, plafond 0,10 USD) : `NODE_USE_ENV_PROXY=1 LLM_PROXY_AUTH=true pnpm demo:llm`. Démo DataForSEO : `pnpm demo:dataforseo` (clés requises). Audit réel : `pnpm demo:audit` (crée un vrai audit en base ; exige `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD`, `SUPABASE_SERVICE_ROLE_KEY`). Build local : exige `NEXT_PUBLIC_APP_URL` et les variables Supabase publiques. Tests de RLS : `TEST_DATABASE_URL=postgres://user@host:port/postgres pnpm test` (Postgres 16 avec un superutilisateur ; une base temporaire est créée puis supprimée ; ignorés si la variable manque en local, obligatoires en CI). Migrations : fichiers dans `supabase/migrations`, appliqués par la CLI Supabase (`supabase db push`). Types : `pnpm db:types`. Inngest en local : `pnpm dev`, puis dans un autre terminal `pnpm inngest:dev` (dev server Inngest, doit rester sur le port 8288) ; enregistrer l'app : `curl -X PUT http://localhost:3000/api/inngest` ; événement d'essai : `curl -X POST http://localhost:8288/e/dev -H 'content-type: application/json' -d '{"name":"app/health.ping","data":{}}'`.
 
+- MA.3 [auto] : grille recalée sur les mesures réelles du 14/11 (voir Mesures). `PRICING` : Backlinks +20 % (forfait 0,024 ; 0,000036 par ligne), forfait Labs 0,012. Marge gratuite rendue par les LIMITES, pas par le plafond (qui reste 0,25 USD) : backlinks par concurrent 300 → 75 (`BACKLINKS_LIMIT.gratuit`, minimum 50 conservé : la réduction adaptative passe désormais par un palier à 50 au lieu de refuser) ; profil gratuit 100 → 50 lignes par appel ; audit public gratuit : 100 → 50 backlinks par concurrent, 300 → 100 domaines référents propres. Économie sans perte : le repère du profil (`fetchBenchmark`) réutilise `competitors.referring_domains` mesuré par MA.2 (aucun appel `backlinks.summary` en plus, -0,072 USD en gratuit) ; `estimateProfile(..., knownBenchmark)` n'en compte plus le coût. Parcours gratuit estimé : SERP 0,018 + backlinks et mesure de taille 0,1044 + profil 0,098 = 0,22 USD (marge ~12 %, avant : dépassement). Audit public gratuit estimé : 0,217 USD (avant 0,2296 avec la nouvelle grille). Test `cost-grid.test.ts` exige une marge d'au moins 10 %. Piège : l'audit public (`public-audit/run.ts`) n'utilise pas encore la mesure groupée de MA.2 (3 `summary` à 0,024) ; l'y brancher libérerait ~0,048 USD (backlog). Mesure : 0 USD (aucun appel payant).
+
 ## Mesures (coût par audit, taux de contact, etc.)
 
+- MA.3 : recalage sur les coûts réels du 3e essai (14/11) : backlinks.summary 0,024 par appel (grille publique 0,02), backlinks.backlinks 0,0277 pour 100 lignes (0,0230), referring_domains 0,024 (forfait), ranked_keywords 0,012 (0 ligne ; forfait). Cumul de la mission : 0 USD DataForSEO et 0 USD LLM dépensés depuis le départ de Jonathan (MA.1 à MA.3 sur fixtures).
 - M0.3 : essai local de la fonction `health` = 0 USD (fournisseur `internal`, appel factice). Aucune dépense DataForSEO ni LLM à ce jour.
 - M0.4 : Lighthouse mobile (Chrome headless sur `next start`) : `/` et `/connexion` = performance 98, accessibilité 100, bonnes pratiques 100, SEO 100. Pages `/app/*` non mesurées (derrière la connexion).
 
@@ -228,6 +232,7 @@
 
 - **Jalon MA : revoir tout le process d'audit** (demande de Jonathan, 14/11/2026) ; voir PLAN.md et « M1.6 bis ».
 - **Jalon MD : design du site global** (demande de Jonathan, 14/11/2026) ; voir PLAN.md.
+- Brancher la mesure groupée de MA.2 (`bulk_referring_domains`) sur l'audit public gratuit, qui fait encore 3 `backlinks.summary` (~-0,048 USD par audit, marge plus large).
 
 - Purge des audits bloqués en `en_cours` (job de nettoyage).
 - Mode sombre ; contenu réel des écrans de la coquille.
@@ -285,4 +290,4 @@
 
 ## Prochain sous-jalon recommandé
 
-MA.2 (filtre de taille par `backlinks.summary` avant `backlinks.backlinks`, voir PLAN.md). En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`) et le run réel DataForSEO (retester d'abord avec `NODE_USE_ENV_PROXY=1` dans l'environnement agent) dès que Jonathan fournit les identifiants.
+MA.4 (site neuf sans mot-clé classé, voir PLAN.md), puis MA.5 à MA.7. En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`) et le run réel DataForSEO (retester d'abord avec `NODE_USE_ENV_PROXY=1` dans l'environnement agent) dès que Jonathan fournit les identifiants.

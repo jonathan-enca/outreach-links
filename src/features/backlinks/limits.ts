@@ -1,8 +1,12 @@
 import { estimateCost } from "@/lib/dataforseo/endpoints";
 import type { PlanKey } from "@/features/audits/plans";
 
-/** Lignes de backlinks demandées par concurrent (1 lien par domaine référent), selon le plan. */
-export const BACKLINKS_LIMIT: Record<PlanKey, number> = { gratuit: 300, payant: 1000 };
+/**
+ * Lignes de backlinks demandées par concurrent (1 lien par domaine référent), selon le plan.
+ * Gratuit réduit à 75 (MA.3) : c'est la limite qui absorbe la hausse des tarifs mesurés, le
+ * plafond de 0,25 USD ne bouge pas.
+ */
+export const BACKLINKS_LIMIT: Record<PlanKey, number> = { gratuit: 75, payant: 1000 };
 
 /**
  * Seuil de taille (domaines référents) au-delà duquel un concurrent est écarté AVANT de
@@ -10,6 +14,9 @@ export const BACKLINKS_LIMIT: Record<PlanKey, number> = { gratuit: 300, payant: 
  * coût de l'étape est proportionnel au nombre d'appels. [HYPOTHÈSE] à recaler sur les mesures.
  */
 export const MAX_REFERRING_DOMAINS: Record<PlanKey, number> = { gratuit: 20_000, payant: 100_000 };
+
+/** Sous cette limite par concurrent, l'étape est refusée plutôt que dégradée. */
+export const MIN_BACKLINKS_LIMIT = 50;
 
 /** Candidats de remplacement mesurés en plus des concurrents retenus (une seule requête groupée). */
 export const SIZE_SPARES = 5;
@@ -46,13 +53,14 @@ export function estimateBacklinks(
   if (competitors < 1) return null;
   const sizeCheckUsd = sizeCheckCostUsd(competitors);
   let limit = BACKLINKS_LIMIT[plan];
-  while (limit >= 50) {
+  while (limit >= MIN_BACKLINKS_LIMIT) {
     const per = estimateCost("backlinksBacklinks", { target: "exemple.fr", limit });
     const total = r6(per * competitors + sizeCheckUsd);
     if (total <= remainingBudgetUsd + 1e-9) {
       return { limit, competitors, perCompetitorUsd: per, sizeCheckUsd, totalUsd: total };
     }
-    limit = Math.floor(limit / 2);
+    // Divise par deux, sans passer sous le minimum tant qu'un palier au minimum n'a pas été essayé.
+    limit = limit > MIN_BACKLINKS_LIMIT ? Math.max(MIN_BACKLINKS_LIMIT, Math.floor(limit / 2)) : 0;
   }
   return null;
 }

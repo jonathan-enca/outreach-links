@@ -361,9 +361,9 @@ describe("estimateCost", () => {
     expect(estimateCost("serpOrganicLive", { keyword: "a", depth: 100 })).toBe(0.02);
   });
   it("Labs et Backlinks : forfait + lignes", () => {
-    expect(estimateCost("labsRankedKeywords", { target: "a.fr", limit: 100 })).toBe(0.02);
-    expect(estimateCost("backlinksBacklinks", { target: "a.fr", limit: 1000 })).toBe(0.05);
-    expect(estimateCost("backlinksSummary", { target: "a.fr" })).toBe(0.02);
+    expect(estimateCost("labsRankedKeywords", { target: "a.fr", limit: 100 })).toBe(0.022);
+    expect(estimateCost("backlinksBacklinks", { target: "a.fr", limit: 1000 })).toBe(0.06);
+    expect(estimateCost("backlinksSummary", { target: "a.fr" })).toBe(0.024);
   });
   it("estimateBatch additionne un plan d'appels", () => {
     const total = estimateBatch([
@@ -371,7 +371,7 @@ describe("estimateCost", () => {
       { key: "serpOrganicLive", params: { keyword: "b" } },
       { key: "backlinksSummary", params: { target: "a.fr" } },
     ]);
-    expect(total).toBe(0.032);
+    expect(total).toBe(0.036);
   });
 });
 

@@ -33,12 +33,16 @@ export const PRICING = {
   serpLivePerPage: 0.002,
   /** SERP file standard (différé) : par page de 10 résultats. */
   serpQueuePerPage: 0.0006,
-  /** Labs : forfait par requête + par ligne renvoyée. */
-  labsPerRequest: 0.01,
+  /** Labs : forfait par requête + par ligne renvoyée (forfait mesuré 0,012 le 14/11/2026, MA.3). */
+  labsPerRequest: 0.012,
   labsPerItem: 0.0001,
-  /** Backlinks : forfait par requête + par ligne renvoyée. */
-  backlinksPerRequest: 0.02,
-  backlinksPerRow: 0.00003,
+  /**
+   * Backlinks : forfait par requête + par ligne renvoyée. Mesuré le 14/11/2026 (MA.3) :
+   * ~20 % au-dessus de la grille publique (0,02 et 0,00003) ; summary 0,024 par appel,
+   * backlinks 0,0277 pour 100 lignes.
+   */
+  backlinksPerRequest: 0.024,
+  backlinksPerRow: 0.000036,
   /** OnPage instant pages : par page analysée. */
   onpagePerPage: 0.000125,
 } as const;

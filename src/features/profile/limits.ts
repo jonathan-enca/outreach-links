@@ -17,9 +17,9 @@ export interface ProfileLimits {
 
 export const PROFILE_LIMITS: Record<PlanKey, ProfileLimits> = {
   gratuit: {
-    keywords: 100,
-    referringDomains: 100,
-    backlinksSample: 100,
+    keywords: 50,
+    referringDomains: 50,
+    backlinksSample: 50,
     benchmarkCompetitors: 3,
     onpagePages: 3,
   },
@@ -54,10 +54,18 @@ export interface ProfileEstimate {
   };
 }
 
-export function costOf(l: ProfileLimits): ProfileEstimate["breakdown"] & { total: number } {
+/**
+ * `knownBenchmark` : concurrents de repère dont la taille (domaines référents) est déjà
+ * connue par la mesure groupée de MA.2 : leur repère ne coûte plus d'appel (MA.3).
+ */
+export function costOf(
+  l: ProfileLimits,
+  knownBenchmark = 0,
+): ProfileEstimate["breakdown"] & { total: number } {
+  const paidBenchmark = Math.max(0, l.benchmarkCompetitors - knownBenchmark);
   const b = {
     summary: estimateCost("backlinksSummary", { target: SAMPLE }),
-    benchmark: r6(l.benchmarkCompetitors * estimateCost("backlinksSummary", { target: SAMPLE })),
+    benchmark: r6(paidBenchmark * estimateCost("backlinksSummary", { target: SAMPLE })),
     keywords: estimateCost("labsRankedKeywords", { target: SAMPLE, limit: l.keywords }),
     referring: estimateCost("backlinksReferringDomains", {
       target: SAMPLE,
@@ -84,6 +92,7 @@ export function estimateProfile(
   selectedCompetitors: number,
   plan: PlanKey,
   remainingBudgetUsd: number,
+  knownBenchmark = 0,
 ): ProfileEstimate | null {
   const base = PROFILE_LIMITS[plan];
   const maxBench = Math.min(base.benchmarkCompetitors, selectedCompetitors);
@@ -97,7 +106,7 @@ export function estimateProfile(
         benchmarkCompetitors: bench,
         onpagePages: base.onpagePages,
       };
-      const { total, ...breakdown } = costOf(limits);
+      const { total, ...breakdown } = costOf(limits, knownBenchmark);
       if (total <= remainingBudgetUsd + 1e-9) return { limits, totalUsd: total, breakdown };
       if (rows <= MIN_ROWS) break;
       rows = Math.max(MIN_ROWS, Math.floor(rows / 2));
