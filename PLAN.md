@@ -5,20 +5,27 @@
 
 ## Vue d'ensemble
 
-| Jalon | Sujet                  | Sous-jalons | Résultat visible                                       |
-| ----- | ---------------------- | ----------- | ------------------------------------------------------ |
-| M0    | Fondations             | 0.1 à 0.4   | App déployée, auth, base, Inngest, suivi des coûts     |
-| M1    | Audit et concurrents   | 1.1 à 1.6   | Audit gratuit public avec capture d'email              |
-| M2    | Plan de liens          | 2.1 à 2.3   | Plan validable (opportunités, liens morts)             |
-| M3    | Tri des cibles et lots | 3.1 à 3.4   | Lots de messages prêts à valider                       |
-| M4    | Envoi et relance       | 4.1 à 4.4   | Envois plafonnés, relance unique, lecture des réponses |
-| M5    | Inbox et liens         | 5.1 à 5.4   | Réponses classées, liens vérifiés, tâches formulaires  |
-| M6    | Produit et paiement    | 6.1 à 6.4   | Stripe, garde-fous, digest, landing, anti-abus         |
-| M7    | Bêta et lancement      | 7.1 à 7.3   | Dogfooding, avis juridique, ouverture                  |
+| Jalon | Sujet                  | Sous-jalons      | Résultat visible                                       |
+| ----- | ---------------------- | ---------------- | ------------------------------------------------------ |
+| M0    | Fondations             | 0.1 à 0.4        | App déployée, auth, base, Inngest, suivi des coûts     |
+| M1    | Audit et concurrents   | 1.1 à 1.6        | Audit gratuit public avec capture d'email              |
+| M2    | Plan de liens          | 2.1 à 2.3        | Plan validable (opportunités, liens morts)             |
+| M3    | Tri des cibles et lots | 3.1 à 3.4        | Lots de messages prêts à valider                       |
+| M4    | Envoi et relance       | 4.1 à 4.4        | Envois plafonnés, relance unique, lecture des réponses |
+| M5    | Inbox et liens         | 5.1 à 5.4        | Réponses classées, liens vérifiés, tâches formulaires  |
+| M6    | Produit et paiement    | 6.1 à 6.4        | Stripe, garde-fous, digest, landing, anti-abus         |
+| M7    | Bêta et lancement      | 7.1 à 7.3        | Dogfooding, avis juridique, ouverture                  |
+| MA    | Refonte de l'audit     | A.1 (à découper) | Audit repensé sur la base des mesures réelles          |
+| MD    | Design du site global  | D.1 (à découper) | Identité visuelle et UX cohérentes, site entier        |
 
 Chemin critique pour un **premier test réel sur mega-coloring.com** : M0 → M1 → M2 → M3 → M4.1 à 4.3. Le reste peut suivre.
 
 Un sous-jalon fait vaut quand : critères d'acceptation cochés, tests/lint/typecheck verts, `PROGRESS.md` à jour, PR ouverte.
+
+### Jalons ajoutés le 14/11/2026 (décision de Jonathan, à découper avant de commencer)
+
+- **MA. Refonte du process d'audit.** À reprendre à plat après le premier audit réel (voir PROGRESS.md, « M1.6 bis ») : concurrents retenus trop gros (cultura, shutterstock, pixabay), site sans mot-clé classé = score 0 et audit vide, URL de page inconnues quand la SERP renvoie des redirections Google, coût réel du Backlinks ~20 % au-dessus de la grille et marge gratuite quasi nulle, étapes M1.3 à M1.5 et M2.1 enchaînées avec confirmations séparées. À décider : audit pensé pour un site neuf, choix des concurrents par taille et pertinence, parcours unique et plus court, valeur de l'aperçu gratuit. Prérequis : M2 terminé (pour juger l'audit avec le plan de liens). À placer avant l'ouverture publique (M6/M7).
+- **MD. Design du site global.** Identité visuelle et expérience du site entier (accueil, audit gratuit, connexion, écrans `/app`) : direction artistique, mode sombre, mobile, accessibilité, contenu réel des écrans de la coquille M0.4. Prérequis : MA (le design suit le nouveau parcours d'audit). Hors périmètre : nouvelles fonctionnalités.
 
 ---
 

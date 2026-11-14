@@ -198,6 +198,9 @@
 
 ## Backlog (idées hors périmètre)
 
+- **Jalon MA : revoir tout le process d'audit** (demande de Jonathan, 14/11/2026) ; voir PLAN.md et « M1.6 bis ».
+- **Jalon MD : design du site global** (demande de Jonathan, 14/11/2026) ; voir PLAN.md.
+
 - Purge des audits bloqués en `en_cours` (job de nettoyage).
 - Mode sombre ; contenu réel des écrans de la coquille.
 - Sentry et `jobs_audit` (optionnels).
