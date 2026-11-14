@@ -2,13 +2,18 @@
 
 ## État
 
-| Sous-jalon  | Statut                                                                                                                                                                 | PR                                                           | Date       |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---------- |
-| M0.1        | fait                                                                                                                                                                   | [#1](https://github.com/jonathan-enca/outreach-links/pull/1) | 2026-11-14 |
-| M0.2        | fait côté base de données (projet créé, migration appliquée, RLS vérifiée sur le vrai projet) ; reste 2 réglages manuels et le test réel du lien magique (voir Dettes) | PR M0.2, PR M0.2b                                            | 2026-11-14 |
-| M0.3 à M7.3 | à faire                                                                                                                                                                |                                                              |            |
+| Sous-jalon  | Statut                                                                                                                                      | PR                                                           | Date       |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---------- |
+| M0.1        | fait                                                                                                                                        | [#1](https://github.com/jonathan-enca/outreach-links/pull/1) | 2026-11-14 |
+| M0.2        | fait et déployé (base, RLS, variables Vercel, réglages Auth, site en ligne) ; reste le test réel du lien magique par Jonathan (voir Dettes) | PR M0.2, M0.2b                                               | 2026-11-14 |
+| M0.3 à M7.3 | à faire                                                                                                                                     |                                                              |            |
 
 ## Décisions prises
+
+- Autonomie maximale demandée par Jonathan (14/11/2026) : déploiements, variables Vercel, réglages Supabase et fusions de PR faits par Claude sans redemander (voir CLAUDE.md section 15).
+- Identifiants techniques (non secrets) : projet Vercel `outreach-links` = `prj_AACqPJWqGZmJJq94BPsP5Ke3N8Vr`, équipe `team_yk1dtY94b3oF9BYJ93D5hJqh`, site `https://outreach-links.vercel.app` ; projet Supabase `ivjkwhhgtibewqzccvrj`.
+- Variables Vercel (Production et Preview) : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (clé publishable) ajoutées ; `NEXT_PUBLIC_APP_URL` existait déjà (valeur masquée, à confirmer = site ci-dessus). Supabase Auth : Site URL = le site, Redirect URLs = `/auth/callback` du site et de localhost.
+- Mails de connexion : l'envoi par défaut de Supabase est limité (2 mails/heure, membres de l'organisation seulement). Brancher un SMTP dédié (Resend) avant l'ouverture au public.
 
 - Projet Supabase `outreach-links` : id `ivjkwhhgtibewqzccvrj`, région eu-west-3 (Paris), organisation de Jonathan. Pour libérer une place gratuite, le projet `coloring-pages` (analytics) a été mis en pause à la demande de Jonathan ; le projet `scan-vie-privee` reste actif.
 - La migration a été appliquée via l'outil MCP sous le nom `core_schema` (le fichier du dépôt reste la source de référence).
@@ -39,6 +44,9 @@
 (à remplir)
 
 ## Dettes et pièges
+
+- Vercel : le projet avait `framework: null` (tout en 404). Corrigé en `nextjs` via l'API le 14/11/2026 ; production redéployée et vérifiée (`/` 200, `/connexion` 200, `/app` redirige vers `/connexion`).
+- Reste : test réel du lien magique par Jonathan (mail reçu, arrivée sur `/app`, déconnexion), et confirmer que `NEXT_PUBLIC_APP_URL` vaut `https://outreach-links.vercel.app`.
 
 - Next 16 : lire `node_modules/next/dist/docs/` avant d'utiliser une API (voir `AGENTS.md`). `LayoutProps` est généré par `next build`/`dev` : ne pas l'utiliser, le typecheck CI tourne avant le build.
 - Tailwind v4 passe par `@tailwindcss/postcss` (`postcss.config.mjs`). Le chargeur `@tailwindcss/turbopack` livré par create-next-app ne traitait pas `@theme`.
