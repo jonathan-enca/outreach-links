@@ -466,6 +466,7 @@ export type Database = {
           metadata: Json;
           operation: string;
           provider: string;
+          public_audit_id: string | null;
           units: number;
           workspace_id: string | null;
         };
@@ -478,6 +479,7 @@ export type Database = {
           metadata?: Json;
           operation: string;
           provider: string;
+          public_audit_id?: string | null;
           units?: number;
           workspace_id?: string | null;
         };
@@ -490,6 +492,7 @@ export type Database = {
           metadata?: Json;
           operation?: string;
           provider?: string;
+          public_audit_id?: string | null;
           units?: number;
           workspace_id?: string | null;
         };
@@ -604,6 +607,125 @@ export type Database = {
           },
         ];
       };
+      public_audit_leads: {
+        Row: {
+          access_token: string;
+          consent_at: string;
+          created_at: string;
+          email: string;
+          id: string;
+          public_audit_id: string;
+          requester_hash: string | null;
+        };
+        Insert: {
+          access_token: string;
+          consent_at?: string;
+          created_at?: string;
+          email: string;
+          id?: string;
+          public_audit_id: string;
+          requester_hash?: string | null;
+        };
+        Update: {
+          access_token?: string;
+          consent_at?: string;
+          created_at?: string;
+          email?: string;
+          id?: string;
+          public_audit_id?: string;
+          requester_hash?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "public_audit_leads_public_audit_id_fkey";
+            columns: ["public_audit_id"];
+            isOneToOne: false;
+            referencedRelation: "public_audits";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      public_audits: {
+        Row: {
+          attempts: number;
+          cost_usd: number | null;
+          created_at: string;
+          domain: string;
+          error_code: string | null;
+          error_message: string | null;
+          estimated_cost_usd: number | null;
+          finished_at: string | null;
+          id: string;
+          period_key: string;
+          queries: string[];
+          queries_source: string;
+          requester_hash: string | null;
+          result: Json;
+          score: number | null;
+          started_at: string | null;
+          status: string;
+        };
+        Insert: {
+          attempts?: number;
+          cost_usd?: number | null;
+          created_at?: string;
+          domain: string;
+          error_code?: string | null;
+          error_message?: string | null;
+          estimated_cost_usd?: number | null;
+          finished_at?: string | null;
+          id?: string;
+          period_key: string;
+          queries?: string[];
+          queries_source?: string;
+          requester_hash?: string | null;
+          result?: Json;
+          score?: number | null;
+          started_at?: string | null;
+          status?: string;
+        };
+        Update: {
+          attempts?: number;
+          cost_usd?: number | null;
+          created_at?: string;
+          domain?: string;
+          error_code?: string | null;
+          error_message?: string | null;
+          estimated_cost_usd?: number | null;
+          finished_at?: string | null;
+          id?: string;
+          period_key?: string;
+          queries?: string[];
+          queries_source?: string;
+          requester_hash?: string | null;
+          result?: Json;
+          score?: number | null;
+          started_at?: string | null;
+          status?: string;
+        };
+        Relationships: [];
+      };
+      rate_limit_hits: {
+        Row: {
+          bucket: string;
+          created_at: string;
+          id: number;
+          key_hash: string;
+        };
+        Insert: {
+          bucket: string;
+          created_at?: string;
+          id?: never;
+          key_hash: string;
+        };
+        Update: {
+          bucket?: string;
+          created_at?: string;
+          id?: never;
+          key_hash?: string;
+        };
+        Relationships: [];
+      };
       sites: {
         Row: {
           categories: string[];
@@ -703,6 +825,16 @@ export type Database = {
         Returns: boolean;
       };
       is_workspace_member: { Args: { ws: string }; Returns: boolean };
+      public_audit_spend_since: { Args: { p_since: string }; Returns: number };
+      rate_limit_hit: {
+        Args: {
+          p_bucket: string;
+          p_key_hash: string;
+          p_limit: number;
+          p_window_seconds: number;
+        };
+        Returns: { allowed: boolean; hits: number; retry_after_seconds: number }[];
+      };
     };
     Enums: {
       [_ in never]: never;

@@ -11,6 +11,8 @@ export const costEntrySchema = z.object({
   /** Nul pour un appel système (ex. health). */
   workspaceId: z.uuid().nullish(),
   auditId: z.uuid().nullish(),
+  /** Audit gratuit public (sans workspace) : base du coupe-circuit journalier. */
+  publicAuditId: z.uuid().nullish(),
   provider: z.string().min(1).max(60),
   operation: z.string().min(1).max(120),
   units: z.number().nonnegative().default(1),
@@ -38,6 +40,7 @@ export async function recordCost(
     .insert({
       workspace_id: e.workspaceId ?? null,
       audit_id: e.auditId ?? null,
+      public_audit_id: e.publicAuditId ?? null,
       provider: e.provider,
       operation: e.operation,
       units: e.units,
@@ -73,6 +76,22 @@ export async function totalCostForAudit(client: CostClient, auditId: string): Pr
     .select("estimated_cost_usd, actual_cost_usd")
     .eq("audit_id", auditId);
   if (error) throw new Error(`totalCostForAudit : ${error.message}`);
+  return (data ?? []).reduce(
+    (sum, r) => sum + Number(r.actual_cost_usd ?? r.estimated_cost_usd),
+    0,
+  );
+}
+
+/** Coût total (réel s'il existe, sinon estimé) d'un audit gratuit public, en USD. */
+export async function totalCostForPublicAudit(
+  client: CostClient,
+  publicAuditId: string,
+): Promise<number> {
+  const { data, error } = await client
+    .from("cost_ledger")
+    .select("estimated_cost_usd, actual_cost_usd")
+    .eq("public_audit_id", publicAuditId);
+  if (error) throw new Error(`totalCostForPublicAudit : ${error.message}`);
   return (data ?? []).reduce(
     (sum, r) => sum + Number(r.actual_cost_usd ?? r.estimated_cost_usd),
     0,

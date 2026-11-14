@@ -7,7 +7,8 @@ export const fr = {
   },
   home: {
     title: "Des backlinks éditoriaux, à partir d'un vrai audit",
-    subtitle: "Le site arrive bientôt. L'audit gratuit sera la première étape.",
+    subtitle:
+      "Entrez votre site : on regarde qui se classe devant vous, d'où viennent leurs liens et quelles pages méritent d'être poussées. Gratuit, sans carte.",
     signIn: "Se connecter",
   },
   auth: {
@@ -459,6 +460,113 @@ export const fr = {
     en_negociation: "En négociation",
     gagne: "Gagné",
     archive: "Archivé",
+  },
+  publicAudit: {
+    form: {
+      domainLabel: "Votre site",
+      domainPlaceholder: "monsite.fr",
+      queriesLabel: "Vos requêtes principales (facultatif)",
+      queriesHint:
+        "Jusqu'à 3. Sans saisie, on les déduit des mots-clés sur lesquels votre site est déjà classé.",
+      queryPlaceholder: "Par exemple : coloriage licorne",
+      submit: "Lancer l'audit gratuit",
+      pending: "Envoi en cours",
+      fineprint:
+        "Audit réduit : 3 concurrents, 3 pages prioritaires, 10 cibles à découvrir. Aucun email n'est envoyé à quiconque.",
+    },
+    errors: {
+      invalide: "Demande invalide.",
+      domaine_invalide: "Ce domaine n'est pas valide. Exemple : monsite.fr",
+      domaine_non_eligible:
+        "Ce domaine (plateforme généraliste) ne peut pas faire l'objet d'un audit gratuit.",
+      requete_invalide: "Chaque requête doit faire entre 2 et 100 caractères.",
+      trop_de_demandes: "Trop de demandes en peu de temps. Réessayez un peu plus tard.",
+      limite_quotidienne: "Vous avez atteint la limite d'audits gratuits pour aujourd'hui.",
+      capacite_atteinte:
+        "L'audit gratuit a atteint sa capacité pour aujourd'hui. Revenez demain ou créez un compte.",
+      ferme: "L'audit gratuit est momentanément indisponible.",
+      domaine_epuise:
+        "L'audit gratuit de ce domaine n'a pas pu aboutir ce mois-ci. Créez un compte pour un audit complet.",
+      file_indisponible: "Le service d'audit est momentanément indisponible. Réessayez plus tard.",
+      email_invalide: "Adresse email invalide.",
+      consentement: "Merci de cocher la case pour recevoir le rapport.",
+      rapport_indisponible: "Ce rapport n'est pas encore prêt.",
+      erreur: "Une erreur est survenue. Réessayez dans un instant.",
+    },
+    wait: {
+      title: "Audit en cours",
+      body: "On interroge Google et les profils de liens de vos concurrents. Cela prend en général une à deux minutes ; la page se met à jour toute seule.",
+    },
+    failed: {
+      title: "L'audit n'a pas abouti",
+      reasons: {
+        aucun_mot_cle:
+          "Votre site n'a pas assez de mots-clés classés pour déduire des requêtes. Indiquez vos requêtes principales pour recommencer.",
+        aucun_concurrent: "Aucun concurrent exploitable n'a été trouvé pour ces requêtes.",
+        plafond_audit: "L'audit a atteint son plafond de coût avant la fin.",
+        erreur_fournisseur: "Une source de données a répondu en erreur.",
+        file_indisponible: "Le service d'audit est momentanément indisponible.",
+        defaut: "Une erreur est survenue pendant l'audit.",
+      },
+      back: "Retour à l'accueil",
+    },
+    report: {
+      title: "Audit gratuit de",
+      period: "Valable pour le mois en cours : un audit gratuit par domaine et par mois.",
+      scoreTitle: "Score d'audit",
+      scoreOutOf: "sur 100",
+      scoreBands: { a_renforcer: "À renforcer", correct: "Correct", solide: "Solide" },
+      scoreNote:
+        "Repère de lecture : 60 % pour vos liens comparés à ceux de vos concurrents, 40 % pour la visibilité de vos pages. Ce n'est pas une promesse de résultat.",
+      scoreNone: "Pas assez de données pour calculer un score.",
+      numbersTitle: "Votre site en chiffres",
+      referringDomains: "Domaines référents",
+      rankedKeywords: "Mots-clés classés",
+      benchmark: "Médiane des concurrents",
+      competitorsTitle: "Vos concurrents dans Google",
+      competitorsBody: "Les sites qui se classent le plus souvent devant vous sur vos requêtes.",
+      competitor: "Domaine",
+      queries: "Requêtes",
+      bestRank: "Meilleure position",
+      competitorLinks: "Domaines référents",
+      pagesTitle: "Pages à pousser en priorité",
+      pagesBody:
+        "Pages déjà classées entre la 4e et la 20e position sur des mots-clés recherchés : les plus proches d'un gain.",
+      pagesNone:
+        "Aucune page n'est classée entre la 4e et la 20e position sur des mots-clés recherchés.",
+      page: "Page",
+      position: "Position moyenne",
+      volume: "Recherches par mois",
+      keywordsTitle: "Mots-clés",
+      needed: "Domaines référents à viser",
+      neededNote: "Ordre de grandeur, sans tenir compte des liens déjà reçus par la page.",
+      locked: "Réservé au rapport complet",
+      targetsTitle: "Cibles de liens repérées",
+      targetsBody:
+        "Sites qui renvoient vers vos concurrents et pas vers vous, après retrait du spam et des plateformes.",
+      targetMasked: "Domaine masqué",
+      targetCitesOne: "Renvoie vers 1 de vos concurrents",
+      targetCitesMany: "Renvoie vers {n} de vos concurrents",
+      targetExample: "Exemple de page",
+      more: "cibles de plus dans l'audit complet",
+      partial: "Votre liste de domaines référents est tronquée : l'écart est approximatif.",
+    },
+    gate: {
+      title: "Voir le rapport complet",
+      body: "Indiquez votre email pour déverrouiller les 10 cibles, le détail des pages et les domaines à viser. Aucun email n'est envoyé à des sites tiers.",
+      emailLabel: "Votre email",
+      consent:
+        "J'accepte de recevoir mon rapport et des conseils sur mon audit. Je peux me désinscrire à tout moment.",
+      submit: "Débloquer le rapport",
+      pending: "Envoi en cours",
+      legal:
+        "Texte de consentement provisoire, à valider par un juriste avant ouverture au public.",
+    },
+    cta: {
+      title: "Aller plus loin",
+      body: "Un compte permet de lancer l'audit complet (10 à 20 concurrents, toutes les cibles) puis de préparer un plan de liens que vous validez avant toute action.",
+      signIn: "Créer un compte",
+    },
   },
   errors: {
     notFoundTitle: "Page introuvable",

@@ -101,7 +101,7 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
       Number(audit.cost_cap_usd) - spent,
     );
     const done = audit.profile_status === "termine";
-    const [pagesRes, gapRes] = done
+    const [pagesRes, gapRes, rankedRes] = done
       ? await Promise.all([
           supabase
             .from("audit_pages")
@@ -117,8 +117,9 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
             .order("competitors_count", { ascending: false })
             .order("best_rank", { ascending: false, nullsFirst: false })
             .limit(25),
+          supabase.from("audit_pages").select("best_position").eq("audit_id", id).limit(1000),
         ])
-      : [{ data: [] }, { data: [] }];
+      : [{ data: [] }, { data: [] }, { data: [] }];
     profile = {
       status: audit.profile_status,
       estimate: est
@@ -138,6 +139,10 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
       summarySource: audit.profile_summary_source as "llm" | "modele" | null,
       costUsd: audit.profile_cost_usd === null ? null : Number(audit.profile_cost_usd),
       errorMessage: audit.profile_error,
+      pagesRanked: {
+        total: (rankedRes.data ?? []).length,
+        top10: (rankedRes.data ?? []).filter((p) => (p.best_position ?? 99) <= 10).length,
+      },
       pages: (pagesRes.data ?? []).map((p) => ({
         url: p.url,
         avgPosition: p.avg_position === null ? null : Number(p.avg_position),

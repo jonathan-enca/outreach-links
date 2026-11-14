@@ -47,6 +47,18 @@ const schema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((v) => v === "true"),
+  /**
+   * Audit gratuit public (M1.6). Valeurs par défaut sûres : non requises.
+   * PUBLIC_AUDIT_ENABLED=false = interrupteur manuel ; PUBLIC_AUDIT_DAILY_CAP_USD = coupe-circuit
+   * de dépense (DataForSEO + LLM) par jour UTC pour l'ensemble des audits gratuits.
+   */
+  PUBLIC_AUDIT_ENABLED: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((v) => v === "true"),
+  PUBLIC_AUDIT_DAILY_CAP_USD: z.coerce.number().positive().max(1000).default(3),
+  /** Sel du hachage des IP (anti-abus). À défaut, dérivé de SUPABASE_SERVICE_ROLE_KEY. */
+  ABUSE_HASH_SALT: z.string().min(16).optional(),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   /**
    * Second garde d'envoi réel (avec EMAIL_DRY_RUN). Faux par défaut partout :
