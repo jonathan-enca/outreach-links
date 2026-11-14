@@ -679,6 +679,7 @@ export type Database = {
           source_domain: string;
           source_title: string | null;
           source_url: string | null;
+          url_exact: boolean;
           status: string;
           target_page_url: string;
           type: string;
@@ -702,6 +703,7 @@ export type Database = {
           source_domain: string;
           source_title?: string | null;
           source_url?: string | null;
+          url_exact?: boolean;
           status?: string;
           target_page_url: string;
           type: string;
@@ -725,6 +727,7 @@ export type Database = {
           source_domain?: string;
           source_title?: string | null;
           source_url?: string | null;
+          url_exact?: boolean;
           status?: string;
           target_page_url?: string;
           type?: string;
@@ -770,6 +773,7 @@ export type Database = {
           rationale: string;
           source_domain: string;
           source_url: string | null;
+          url_exact: boolean;
           target_page_url: string;
           type: string;
           workspace_id: string;
@@ -789,6 +793,7 @@ export type Database = {
           rationale: string;
           source_domain: string;
           source_url?: string | null;
+          url_exact?: boolean;
           target_page_url: string;
           type: string;
           workspace_id: string;
@@ -808,6 +813,7 @@ export type Database = {
           rationale?: string;
           source_domain?: string;
           source_url?: string | null;
+          url_exact?: boolean;
           target_page_url?: string;
           type?: string;
           workspace_id?: string;

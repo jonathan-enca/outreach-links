@@ -28,7 +28,13 @@ const fixture = JSON.parse(
 ) as { tasks: { result: SerpResult[] }[] };
 
 function entries(domains: string[]): QueryEntries["entries"] {
-  return domains.map((d, i) => ({ rank: i + 1, domain: d, url: `https://${d}/`, title: null }));
+  return domains.map((d, i) => ({
+    rank: i + 1,
+    domain: d,
+    url: `https://${d}/`,
+    title: null,
+    urlExact: true,
+  }));
 }
 
 describe("domaines exclus", () => {
@@ -220,6 +226,7 @@ describe("resolveRedirect (liens de redirection Google constatés en production)
     expect(resolveRedirect({ url: "https://www.a.fr/page", domain: "www.a.fr" })).toEqual({
       domain: "a.fr",
       url: "https://www.a.fr/page",
+      exact: true,
     });
   });
   it("reconstruit le site depuis le breadcrumb", () => {
@@ -229,7 +236,30 @@ describe("resolveRedirect (liens de redirection Google constatés en production)
         domain: "google.com",
         breadcrumb: "https://www.coloriage-en-ligne.net › 207-coloriages-licor...",
       }),
-    ).toEqual({ domain: "coloriage-en-ligne.net", url: "https://www.coloriage-en-ligne.net" });
+    ).toEqual({
+      domain: "coloriage-en-ligne.net",
+      url: "https://www.coloriage-en-ligne.net",
+      exact: false,
+    });
+  });
+  it("serpEntries marque partielle l'URL reconstruite et exacte l'URL directe", () => {
+    const result = {
+      items: [
+        { type: "organic", rank_group: 1, url: "https://a.fr/p", domain: "a.fr", title: "A" },
+        {
+          type: "organic",
+          rank_group: 2,
+          url: "https://google.com/goto?url=x",
+          domain: "google.com",
+          breadcrumb: "https://b.fr › dossier",
+          title: "B",
+        },
+      ],
+    } as unknown as SerpResult;
+    expect(serpEntries(result).map((e) => [e.domain, e.urlExact])).toEqual([
+      ["a.fr", true],
+      ["b.fr", false],
+    ]);
   });
   it("écarte une redirection sans breadcrumb exploitable", () => {
     expect(

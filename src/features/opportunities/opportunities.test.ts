@@ -137,6 +137,14 @@ describe("finalizeOpportunities", () => {
     expect(priorityLabel(49)).toBe("basse");
   });
 
+  it("candidatesFromSerp : propage le caractère partiel de l'URL", () => {
+    const cs = candidatesFromSerp({ type: "annuaire", query: "q" }, [
+      { rank: 1, domain: "a.fr", url: "https://a.fr", title: null, urlExact: false },
+      { rank: 2, domain: "b.fr", url: "https://b.fr/x", title: null, urlExact: true },
+    ]);
+    expect(cs.map((c) => c.urlExact)).toEqual([false, true]);
+  });
+
   it("candidatesFromSerp : rationale lisible avec la requête", () => {
     const [c] = candidatesFromSerp({ type: "annuaire", query: "annuaire coloriages" }, [
       { rank: 2, domain: "a.fr", url: "https://a.fr/", title: "A" },
