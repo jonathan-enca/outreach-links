@@ -159,9 +159,9 @@ describe("startBacklinks (confirmation du coût)", () => {
     expect(res.status).toBe("ok");
     expect(db.tables.audits![0]).toMatchObject({
       backlinks_status: "confirme",
-      backlinks_limit: 300,
+      backlinks_limit: 75,
     });
-    expect(Number(db.tables.audits![0]!.backlinks_estimated_cost_usd)).toBeCloseTo(0.04918, 4);
+    expect(Number(db.tables.audits![0]!.backlinks_estimated_cost_usd)).toBeCloseTo(0.0509, 4);
     expect(send).toHaveBeenCalledWith(
       expect.objectContaining({
         name: BACKLINKS_EVENT,
@@ -225,11 +225,12 @@ describe("startBacklinks (confirmation du coût)", () => {
 
 describe("estimateBacklinks", () => {
   it("coût par plan, limite réduite si le budget ne suffit pas, null si impossible", () => {
-    expect(estimateBacklinks(3, "gratuit", 0.23)).toMatchObject({ limit: 300, totalUsd: 0.10724 });
-    expect(estimateBacklinks(20, "payant", 1.48)).toMatchObject({ limit: 1000, totalUsd: 1.02075 });
-    const reduced = estimateBacklinks(3, "gratuit", 0.095);
-    expect(reduced!.limit).toBeLessThan(300);
-    expect(reduced!.totalUsd).toBeLessThanOrEqual(0.095);
+    expect(estimateBacklinks(3, "gratuit", 0.23)).toMatchObject({ limit: 75, totalUsd: 0.104388 });
+    expect(estimateBacklinks(20, "payant", 1.48)).toMatchObject({ limit: 1000, totalUsd: 1.2249 });
+    const reduced = estimateBacklinks(3, "gratuit", 0.103);
+    expect(reduced!.limit).toBe(50);
+    expect(reduced!.totalUsd).toBeLessThanOrEqual(0.103);
+    expect(estimateBacklinks(3, "gratuit", 0.095)).toBeNull();
     expect(estimateBacklinks(3, "gratuit", 0.01)).toBeNull();
     expect(estimateBacklinks(0, "gratuit", 1)).toBeNull();
   });

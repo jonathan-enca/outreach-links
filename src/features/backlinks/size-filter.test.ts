@@ -179,7 +179,7 @@ describe("filterCompetitorsBySize (MA.2)", () => {
 describe("estimation avec mesure de taille", () => {
   it("inclut la requête groupée dans le total", () => {
     const size = sizeCheckCostUsd(3);
-    expect(size).toBeCloseTo(0.02024, 5);
+    expect(size).toBeCloseTo(0.024288, 5);
     const est = estimateBacklinks(3, "gratuit", 0.23)!;
     expect(est.sizeCheckUsd).toBe(size);
     expect(est.totalUsd).toBeCloseTo(est.perCompetitorUsd * 3 + size, 5);

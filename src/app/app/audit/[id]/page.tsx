@@ -41,7 +41,7 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
   if (!audit) notFound();
   const { data: competitors } = await supabase
     .from("competitors")
-    .select("domain, queries_count, best_rank, appearances, selected, score")
+    .select("domain, queries_count, best_rank, appearances, selected, score, referring_domains")
     .eq("audit_id", id)
     .order("selected", { ascending: false })
     .order("queries_count", { ascending: false })
@@ -104,6 +104,7 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
       selected,
       isPlanKey(audit.plan) ? audit.plan : "gratuit",
       Number(audit.cost_cap_usd) - spent,
+      (competitors ?? []).filter((c) => c.selected && c.referring_domains != null).length,
     );
     const done = audit.profile_status === "termine";
     const [pagesRes, gapRes, rankedRes] = done

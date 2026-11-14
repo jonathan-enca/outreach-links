@@ -18,7 +18,13 @@ export async function previewProfileEstimate(
 ): Promise<ProfileEstimate | null> {
   const plan: PlanKey = isPlanKey(audit.plan) ? audit.plan : "gratuit";
   const spent = await totalCostForAudit(service, audit.id);
-  return estimateProfile(selectedCompetitors, plan, Number(audit.cost_cap_usd) - spent);
+  const { data: sized } = await service
+    .from("competitors")
+    .select("referring_domains")
+    .eq("audit_id", audit.id)
+    .eq("selected", true);
+  const known = (sized ?? []).filter((c) => c.referring_domains != null).length;
+  return estimateProfile(selectedCompetitors, plan, Number(audit.cost_cap_usd) - spent, known);
 }
 
 /**

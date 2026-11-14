@@ -43,7 +43,7 @@ export interface ProfileRun {
   limits: ProfileLimits;
   costCapUsd: number;
   /** Concurrents de repère (les mieux classés parmi les retenus). */
-  benchmark: { id: string; domain: string }[];
+  benchmark: { id: string; domain: string; referringDomains?: number | null }[];
 }
 
 export interface OwnProfile {
@@ -103,7 +103,7 @@ export async function beginProfile(service: Client, auditId: string): Promise<Pr
   const limits: ProfileLimits = { ...PROFILE_LIMITS[plan], ...stored };
   const { data: comps, error: cErr } = await service
     .from("competitors")
-    .select("id, domain")
+    .select("id, domain, referring_domains")
     .eq("audit_id", auditId)
     .eq("selected", true)
     .order("score", { ascending: false });
@@ -115,7 +115,11 @@ export async function beginProfile(service: Client, auditId: string): Promise<Pr
     plan,
     limits,
     costCapUsd: Number(audit.cost_cap_usd),
-    benchmark: (comps ?? []).slice(0, limits.benchmarkCompetitors),
+    benchmark: (comps ?? []).slice(0, limits.benchmarkCompetitors).map((c) => ({
+      id: c.id,
+      domain: c.domain,
+      referringDomains: c.referring_domains,
+    })),
   };
 }
 
@@ -197,8 +201,12 @@ export async function fetchBenchmark(
   service: Client,
   dfs: Pick<Dfs, "backlinksSummary">,
   run: ProfileRun,
-  competitor: { id: string; domain: string },
+  competitor: { id: string; domain: string; referringDomains?: number | null },
 ): Promise<{ domain: string; referringDomains: number | null }> {
+  // Taille déjà mesurée par la mesure groupée de MA.2 : aucun appel payant (MA.3).
+  if (competitor.referringDomains != null) {
+    return { domain: competitor.domain, referringDomains: competitor.referringDomains };
+  }
   const params = { target: competitor.domain };
   await assertBudget(service, run, "backlinksSummary", params);
   const out = await dfs.backlinksSummary(params, ids(run));

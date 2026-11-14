@@ -14,9 +14,9 @@ export const FREE_LIMITS = {
   /** Mots-clés classés du site demandés à DataForSEO Labs. */
   rankedKeywords: 100,
   /** Domaines référents du site lus (borne : l'écart est approximatif au-delà). */
-  ownReferringDomains: 300,
+  ownReferringDomains: 100,
   /** Backlinks (un par domaine référent) lus par concurrent. */
-  competitorBacklinks: 100,
+  competitorBacklinks: 50,
   /** Pages prioritaires affichées. */
   pages: 3,
   /** Cibles montrées (floutées sans email). */
