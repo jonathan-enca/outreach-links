@@ -162,6 +162,31 @@ describe.skipIf(!adminUrl)("audit gratuit public : base de données", () => {
     expect(Number(r.rows[0].spend)).toBeCloseTo(0.0261, 6);
   });
 
+  it("dépense gratuite : compte aussi le reste estimé des audits en file", async () => {
+    const before = Number(
+      (await db.query("select public.public_audit_spend_since(now() - interval '1 day') as s"))
+        .rows[0].s,
+    );
+    const r = await db.query(
+      "insert into public.public_audits (domain, period_key, status, estimated_cost_usd) values ('file.fr', '2026-11', 'en_attente', 0.2) returning id",
+    );
+    const mid = Number(
+      (await db.query("select public.public_audit_spend_since(now() - interval '1 day') as s"))
+        .rows[0].s,
+    );
+    expect(mid - before).toBeCloseTo(0.2, 6);
+    await db.query(
+      "insert into public.cost_ledger (provider, operation, estimated_cost_usd, public_audit_id) values ('x', 'y', 0.05, $1)",
+      [r.rows[0].id],
+    );
+    const after = Number(
+      (await db.query("select public.public_audit_spend_since(now() - interval '1 day') as s"))
+        .rows[0].s,
+    );
+    // Les 0,05 déjà dépensés ne sont pas comptés deux fois.
+    expect(after - before).toBeCloseTo(0.2, 6);
+  });
+
   it("service_role écrit les audits publics et le journal des coûts rattaché", async () => {
     await asRole("service_role", async () => {
       const r = await db.query(

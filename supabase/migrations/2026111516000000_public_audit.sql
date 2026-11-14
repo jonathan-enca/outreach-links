@@ -119,9 +119,24 @@ stable
 security definer
 set search_path = public
 as $$
-  select coalesce(sum(coalesce(actual_cost_usd, estimated_cost_usd)), 0)
-  from public.cost_ledger
-  where public_audit_id is not null and created_at >= p_since
+  -- Coûts déjà enregistrés + reste estimé des audits en file ou en cours (sinon une rafale de
+  -- demandes dépasserait le plafond : leur coût n'apparaît dans le journal qu'à l'exécution).
+  select
+    coalesce((
+      select sum(coalesce(actual_cost_usd, estimated_cost_usd))
+      from public.cost_ledger
+      where public_audit_id is not null and created_at >= p_since
+    ), 0)
+    + coalesce((
+      select sum(greatest(0, pa.estimated_cost_usd - coalesce((
+        select sum(coalesce(c.actual_cost_usd, c.estimated_cost_usd))
+        from public.cost_ledger c where c.public_audit_id = pa.id
+      ), 0)))
+      from public.public_audits pa
+      where pa.status in ('en_attente', 'en_cours')
+        and pa.estimated_cost_usd is not null
+        and pa.created_at > now() - interval '1 day'
+    ), 0)
 $$;
 revoke all on function public.public_audit_spend_since(timestamptz) from public, anon, authenticated;
 grant execute on function public.public_audit_spend_since(timestamptz) to service_role;
