@@ -109,6 +109,10 @@ export function fakeSupabase(
       filters.push((r) => r[col] === val);
       return chain;
     };
+    chain.neq = (col: string, val: unknown) => {
+      filters.push((r) => r[col] !== val);
+      return chain;
+    };
     chain.in = (col: string, vals: unknown[]) => {
       filters.push((r) => vals.includes(r[col]));
       return chain;

@@ -218,6 +218,11 @@ export type Database = {
           cost_cap_usd: number;
           created_at: string;
           created_by: string | null;
+          deadlinks_error: string | null;
+          deadlinks_finished_at: string | null;
+          deadlinks_started_at: string | null;
+          deadlinks_stats: Json;
+          deadlinks_status: string;
           error_message: string | null;
           estimate_details: Json;
           estimated_at: string | null;
@@ -266,6 +271,11 @@ export type Database = {
           cost_cap_usd: number;
           created_at?: string;
           created_by?: string | null;
+          deadlinks_error?: string | null;
+          deadlinks_finished_at?: string | null;
+          deadlinks_started_at?: string | null;
+          deadlinks_stats?: Json;
+          deadlinks_status?: string;
           error_message?: string | null;
           estimate_details?: Json;
           estimated_at?: string | null;
@@ -314,6 +324,11 @@ export type Database = {
           cost_cap_usd?: number;
           created_at?: string;
           created_by?: string | null;
+          deadlinks_error?: string | null;
+          deadlinks_finished_at?: string | null;
+          deadlinks_started_at?: string | null;
+          deadlinks_stats?: Json;
+          deadlinks_status?: string;
           error_message?: string | null;
           estimate_details?: Json;
           estimated_at?: string | null;
@@ -642,6 +657,9 @@ export type Database = {
       link_opportunities: {
         Row: {
           audit_id: string;
+          broken_checked_at: string | null;
+          broken_http_status: number | null;
+          broken_url: string | null;
           created_at: string;
           expected_link_type: string;
           id: string;
@@ -661,6 +679,9 @@ export type Database = {
         };
         Insert: {
           audit_id: string;
+          broken_checked_at?: string | null;
+          broken_http_status?: number | null;
+          broken_url?: string | null;
           created_at?: string;
           expected_link_type: string;
           id?: string;
@@ -680,6 +701,9 @@ export type Database = {
         };
         Update: {
           audit_id?: string;
+          broken_checked_at?: string | null;
+          broken_http_status?: number | null;
+          broken_url?: string | null;
           created_at?: string;
           expected_link_type?: string;
           id?: string;

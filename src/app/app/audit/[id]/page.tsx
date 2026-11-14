@@ -10,6 +10,8 @@ import { startBacklinksAction } from "@/features/backlinks/actions";
 import type { BacklinksView } from "@/features/backlinks/backlinks-section";
 import type { CleanStats } from "@/features/backlinks/clean";
 import { estimateBacklinks } from "@/features/backlinks/limits";
+import { startDeadlinksAction } from "@/features/deadlinks/actions";
+import type { DeadlinksView } from "@/features/deadlinks/deadlinks-section";
 import { startOpportunitiesAction } from "@/features/opportunities/actions";
 import type { OpportunitiesView } from "@/features/opportunities/opportunities-section";
 import { estimateForSite } from "@/features/opportunities/service";
@@ -211,6 +213,27 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
     };
   }
 
+  let deadlinks: DeadlinksView | undefined;
+  if (audit.opportunities_status === "termine") {
+    const ds = (audit.deadlinks_stats ?? {}) as Partial<NonNullable<DeadlinksView["stats"]>>;
+    deadlinks = {
+      status: audit.deadlinks_status,
+      errorMessage: audit.deadlinks_error,
+      stats:
+        audit.deadlinks_status === "termine"
+          ? {
+              requests: ds.requests ?? 0,
+              competitorUrlsChecked: ds.competitorUrlsChecked ?? 0,
+              resourcePagesCrawled: ds.resourcePagesCrawled ?? 0,
+              linksChecked: ds.linksChecked ?? 0,
+              blockedByRobots: ds.blockedByRobots ?? 0,
+              created: ds.created ?? 0,
+              truncated: ds.truncated ?? false,
+            }
+          : null,
+    };
+  }
+
   const details = (audit.estimate_details ?? {}) as { perQuery?: { query: string; usd: number }[] };
   const site = audit.sites as unknown as { domain: string } | null;
   const view: AuditView = {
@@ -226,6 +249,7 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
     backlinks,
     profile,
     opportunities,
+    deadlinks,
     competitors: (competitors ?? []).map((c) => ({
       domain: c.domain,
       queriesCount: c.queries_count,
@@ -246,6 +270,7 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
         startBacklinksAction={startBacklinksAction.bind(null, audit.id)}
         startProfileAction={startProfileAction.bind(null, audit.id)}
         startOpportunitiesAction={startOpportunitiesAction.bind(null, audit.id)}
+        startDeadlinksAction={startDeadlinksAction.bind(null, audit.id)}
       />
     </>
   );

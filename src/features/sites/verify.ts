@@ -85,7 +85,21 @@ const publicOnlyLookup: LookupFunction = (hostname, options, callback) => {
     .catch((e: Error) => callback(e, "", 0));
 };
 
-function getOnce(u: URL): Promise<{ status: number; location: string | null; text: string }> {
+export interface SafeFetchOptions {
+  userAgent: string;
+  maxBytes: number;
+  accept?: string;
+}
+
+const DEFAULT_OPTIONS: SafeFetchOptions = {
+  userAgent: "OutreachLinksVerifier/1.0",
+  maxBytes: MAX_BYTES,
+};
+
+function getOnce(
+  u: URL,
+  opts: SafeFetchOptions,
+): Promise<{ status: number; location: string | null; text: string }> {
   return new Promise((resolve, reject) => {
     const doRequest = u.protocol === "https:" ? httpsRequest : httpRequest;
     const req = doRequest(
@@ -94,7 +108,7 @@ function getOnce(u: URL): Promise<{ status: number; location: string | null; tex
         method: "GET",
         lookup: publicOnlyLookup,
         timeout: TIMEOUT_MS,
-        headers: { "user-agent": "OutreachLinksVerifier/1.0", accept: "text/html,text/plain" },
+        headers: { "user-agent": opts.userAgent, accept: opts.accept ?? "text/html,text/plain" },
       },
       (res) => {
         const chunks: Buffer[] = [];
@@ -112,7 +126,7 @@ function getOnce(u: URL): Promise<{ status: number; location: string | null; tex
         res.on("data", (c: Buffer) => {
           received += c.byteLength;
           chunks.push(c);
-          if (received >= MAX_BYTES) {
+          if (received >= opts.maxBytes) {
             res.destroy();
             finish();
           }
@@ -133,24 +147,28 @@ function getOnce(u: URL): Promise<{ status: number; location: string | null; tex
  * filtré au moment de la connexion (anti-rebinding), redirections suivies à la
  * main (3 au maximum, mêmes contrôles à chaque saut), corps limité à 512 Ko.
  */
-export const safeFetchPage: PageFetcher = async (startUrl) => {
-  let url = startUrl;
-  try {
-    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-      const u = new URL(url);
-      if (!["http:", "https:"].includes(u.protocol)) return null;
-      if (u.port && u.port !== "80" && u.port !== "443") return null;
-      if (u.username || u.password) return null;
-      const r = await getOnce(u);
-      if (r.status >= 300 && r.status < 400) {
-        if (!r.location) return { status: r.status, text: "" };
-        url = new URL(r.location, u).toString();
-        continue;
+export function createSafeFetcher(opts: SafeFetchOptions = DEFAULT_OPTIONS): PageFetcher {
+  return async (startUrl) => {
+    let url = startUrl;
+    try {
+      for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+        const u = new URL(url);
+        if (!["http:", "https:"].includes(u.protocol)) return null;
+        if (u.port && u.port !== "80" && u.port !== "443") return null;
+        if (u.username || u.password) return null;
+        const r = await getOnce(u, opts);
+        if (r.status >= 300 && r.status < 400) {
+          if (!r.location) return { status: r.status, text: "" };
+          url = new URL(r.location, u).toString();
+          continue;
+        }
+        return { status: r.status, text: r.text };
       }
-      return { status: r.status, text: r.text };
+      return null;
+    } catch {
+      return null;
     }
-    return null;
-  } catch {
-    return null;
-  }
-};
+  };
+}
+
+export const safeFetchPage: PageFetcher = createSafeFetcher();

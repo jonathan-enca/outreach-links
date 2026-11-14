@@ -348,6 +348,44 @@ export const fr = {
       started: "Recherche d'opportunités lancée.",
     },
   },
+  deadlinks: {
+    title: "Chasseur 404 : liens morts à reprendre",
+    body: "Gratuit, aucun appel payant : on vérifie en HTTP les pages de vos concurrents qui avaient des backlinks (elles répondent 404 ou 410 aujourd'hui) et les liens cassés des pages ressources trouvées. Le crawl est limité (200 requêtes au plus, robots.txt respecté, une requête par seconde et par site). Rien n'est contacté.",
+    start: "Lancer le chasseur 404",
+    confirming: "Lancement…",
+    rationale: {
+      competitor_page:
+        "Ce site cite {url}, une page de {competitor} qui répond maintenant {status} : un lien de remplacement vers votre site peut l'intéresser.",
+      resource_page:
+        "Cette page ressources contient un lien cassé vers {url} (réponse {status}) : proposer votre page en remplacement.",
+    },
+    running: {
+      title: "Chasseur 404 en cours",
+      body: "Vous pouvez quitter cette page : actualisez-la dans une minute.",
+    },
+    failed: { title: "Le chasseur 404 a échoué" },
+    result: {
+      title: "Chasseur 404 terminé",
+      created: "Opportunités « lien mort » créées",
+      competitorUrls: "Pages de concurrents vérifiées",
+      pages: "Pages ressources lues",
+      links: "Liens sortants vérifiés",
+      robots: "Adresses ignorées (robots.txt)",
+      truncated:
+        "Le plafond de requêtes a été atteint : une partie des liens n'a pas été vérifiée.",
+      note: "Chaque lien mort est prouvé par une réponse 404 ou 410 constatée ; ils apparaissent dans la liste des opportunités.",
+    },
+    messages: {
+      unauthenticated: "Vous devez être connecté.",
+      notFound: "Audit introuvable.",
+      opportunitiesNotDone: "Générez d'abord les opportunités de liens.",
+      alreadyStarted: "Le chasseur 404 est déjà lancé ou terminé.",
+      unavailable: "Le service est momentanément indisponible. Réessayez dans un instant.",
+      saveError: "Impossible de lancer le chasseur 404. Réessayez.",
+      sendFailed: "Le lancement du travail a échoué. Cliquez de nouveau pour le relancer.",
+      started: "Chasseur 404 lancé.",
+    },
+  },
   profile: {
     title: "Profil de liens et pages à pousser",
     body: "On mesure les liens de votre site, ses positions dans Google, les domaines qui citent vos concurrents mais pas vous, et on contrôle techniquement les pages les plus utiles. Rien n'est lancé sans votre confirmation.",
