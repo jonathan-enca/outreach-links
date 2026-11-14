@@ -7,6 +7,7 @@ import {
   rankWeight,
   selectCompetitors,
   serpEntries,
+  resolveRedirect,
   type QueryEntries,
 } from "./discover";
 import { estimateDiscovery } from "./estimate";
@@ -191,5 +192,28 @@ describe("estimation et plans", () => {
     expect(canTransition("en_attente", "confirme")).toBe(false);
     expect(canTransition("termine", "en_cours")).toBe(false);
     expect(Object.keys(AUDIT_TRANSITIONS)).toEqual([...AUDIT_STATUSES]);
+  });
+});
+
+describe("resolveRedirect (liens de redirection Google constatés en production)", () => {
+  it("garde les résultats normaux", () => {
+    expect(resolveRedirect({ url: "https://www.a.fr/page", domain: "www.a.fr" })).toEqual({
+      domain: "a.fr",
+      url: "https://www.a.fr/page",
+    });
+  });
+  it("reconstruit le site depuis le breadcrumb", () => {
+    expect(
+      resolveRedirect({
+        url: "https://google.com/goto?url=CAES&gsessionid=x",
+        domain: "google.com",
+        breadcrumb: "https://www.coloriage-en-ligne.net › 207-coloriages-licor...",
+      }),
+    ).toEqual({ domain: "coloriage-en-ligne.net", url: "https://www.coloriage-en-ligne.net" });
+  });
+  it("écarte une redirection sans breadcrumb exploitable", () => {
+    expect(
+      resolveRedirect({ url: "https://google.com/goto?url=x", domain: "google.com" }),
+    ).toBeNull();
   });
 });

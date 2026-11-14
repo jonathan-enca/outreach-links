@@ -132,6 +132,7 @@ const serpItem = z.looseObject({
   title: str,
   description: str,
   url: str,
+  breadcrumb: str,
 });
 
 export const serpResult = z.looseObject({
