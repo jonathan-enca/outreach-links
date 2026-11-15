@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { inngest } from "@/inngest/client";
+import { advanceChain } from "@/features/audits/chain";
 import { median } from "@/features/profile/compute";
 import {
   beginProfile,
@@ -127,6 +128,17 @@ export const auditProfile = inngest.createFunction(
       finalizeProfile(createServiceClient(), run, data),
     );
     log.info("profil terminé", { ...done, summary: summary.source });
+
+    // MA.6 : parcours unique, lance l'étape suivante si l'audit est en enchaînement automatique.
+    // Un échec ici ne doit jamais faire échouer l'étape déjà payée et terminée.
+    await step.run("chain-next", async () => {
+      try {
+        return await advanceChain(createServiceClient(), auditId, (e) => inngest.send(e));
+      } catch (error) {
+        log.warn("enchaînement impossible", { error: (error as Error).message });
+        return { started: null };
+      }
+    });
     return { skipped: false, pages, gap, ...done };
   },
 );

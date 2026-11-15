@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { t } from "@/lib/messages";
 import { formatUsd } from "./format";
+import type { ChainEstimate } from "./chain";
 import type { AuditActionState } from "./service";
 
 /** Écran « coût estimé + confirmer » : le lancement exige un clic explicite. */
@@ -12,12 +13,15 @@ export function ConfirmAuditPanel({
   estimatedUsd,
   capUsd,
   perQuery,
+  chain,
   confirmed,
   action,
 }: {
   estimatedUsd: number;
   capUsd: number;
   perQuery: { query: string; usd: number }[];
+  /** MA.6 : coût de tout le parcours (absent sur les anciens audits). */
+  chain?: ChainEstimate | null;
   /** true : déjà confirmé, seul le renvoi du travail est proposé. */
   confirmed: boolean;
   action: (prev: AuditActionState) => Promise<AuditActionState>;
@@ -47,6 +51,30 @@ export function ConfirmAuditPanel({
           ))}
         </ul>
       </div>
+      {chain ? (
+        <div className="flex flex-col gap-2">
+          <h3 className="font-medium">{t.audits.chain.title}</h3>
+          <p className="text-sm text-muted-foreground">{t.audits.chain.body}</p>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:max-w-md">
+            <dt className="text-muted-foreground">{t.audits.chain.discovery}</dt>
+            <dd>{formatUsd(chain.discoveryUsd)}</dd>
+            <dt className="text-muted-foreground">{t.audits.chain.backlinks}</dt>
+            <dd>{formatUsd(chain.backlinksUsd)}</dd>
+            <dt className="text-muted-foreground">{t.audits.chain.profile}</dt>
+            <dd>{formatUsd(chain.profileUsd)}</dd>
+            <dt className="text-muted-foreground">{t.audits.chain.opportunities}</dt>
+            <dd>{formatUsd(chain.opportunitiesUsd)}</dd>
+            <dt className="font-medium">{t.audits.chain.total}</dt>
+            <dd className="font-semibold">{formatUsd(chain.totalUsd)}</dd>
+          </dl>
+          {chain.uncovered.length > 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {t.audits.chain.uncovered} (
+              {chain.uncovered.map((k) => t.audits.chain.stage[k]).join(", ")})
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <p className="text-sm text-muted-foreground">{e.note}</p>
       <form action={formAction} className="flex flex-col gap-2">
         <Button type="submit" disabled={pending} className="self-start">

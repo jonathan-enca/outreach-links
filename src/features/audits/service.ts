@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { t } from "@/lib/messages";
 import type { Database, Json } from "@/lib/supabase/database.types";
+import { estimateChain } from "./chain";
 import { estimateDiscovery } from "./estimate";
 import { canTransition, isPlanKey, PLAN_LIMITS, type AuditStatus, type PlanKey } from "./plans";
 
@@ -70,7 +71,7 @@ export async function createAudit(
 
   const { data: site } = await supabase
     .from("sites")
-    .select("id, workspace_id, domain, priority_queries")
+    .select("id, workspace_id, domain, priority_queries, niche, offered_asset")
     .eq("id", siteId)
     .maybeSingle();
   if (!site) return { status: "error", message: AUDIT_MESSAGES.siteNotFound };
@@ -126,9 +127,22 @@ export async function createAudit(
     return { status: "error", message: AUDIT_MESSAGES.saveError };
   }
 
+  // MA.6 : coût de tout le parcours, annoncé une seule fois.
+  const chain = estimateChain({
+    plan,
+    discoveryUsd: estimate.totalUsd,
+    capUsd: limits.costCapUsd,
+    site: {
+      domain: site.domain,
+      niche: site.niche,
+      priorityQueries: queries,
+      offeredAsset: site.offered_asset,
+    },
+  });
+
   const moved = await transitionAudit(service, audit.id, "en_attente", "estime", {
     estimated_cost_usd: estimate.totalUsd,
-    estimate_details: estimate as unknown as Json,
+    estimate_details: { ...estimate, chain } as unknown as Json,
     estimated_at: new Date().toISOString(),
   });
   if (!moved) return { status: "error", message: AUDIT_MESSAGES.saveError };
@@ -181,6 +195,8 @@ export async function confirmAudit(
     }
     const moved = await transitionAudit(service, audit.id, "estime", "confirme", {
       confirmed_at: new Date().toISOString(),
+      // MA.6 : une seule confirmation, les étapes suivantes s'enchaînent seules.
+      auto_chain: true,
     });
     if (!moved) return { status: "error", message: AUDIT_MESSAGES.notReady };
     await supabase.from("events").insert({
