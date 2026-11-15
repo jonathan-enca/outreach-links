@@ -37,9 +37,6 @@ export const fr = {
         "Aucun lien acheté",
         "Aucun email envoyé pendant l'audit",
       ],
-      justLooking: "Juste pour voir ?",
-      previewLink: "Lancer l'audit gratuit de votre site",
-      previewNote: "sans inscription",
       refine: "Préciser mes requêtes et mon thème",
       cardsLabel: "Exemples de ce que le service prépare pour vous",
       cards: {
@@ -79,10 +76,6 @@ export const fr = {
           kind: "dofollow",
         },
       },
-    },
-    startAudit: {
-      title: "Voyez vos premières cibles, gratuitement",
-      lead: "Entrez l'adresse de votre site : l'aperçu gratuit montre qui se classe devant vous et à qui demander un lien. Rien n'est envoyé.",
     },
     tour: {
       title: "Visite du produit",
@@ -194,8 +187,8 @@ export const fr = {
         { title: "Relancer", text: "Une seule relance, arrêtée à la première réponse." },
         { title: "Vérifier", text: "Le lien est-il en ligne, dofollow, indexé ?" },
       ],
-      cta: "Lancer l'audit gratuit",
-      ctaHint: "Sans inscription ni carte bancaire.",
+      cta: "Essai gratuit",
+      ctaHint: "Sans carte bancaire : elle n'est demandée qu'au premier envoi réel.",
     },
     mockup: {
       caption: "Données de démonstration",
@@ -442,7 +435,7 @@ export const fr = {
       plans: {
         gratuit: {
           tagline: "Pour voir ce que donne l'audit.",
-          cta: "Lancer l'audit gratuit",
+          cta: "Essai gratuit",
           features: [
             "Audit réduit de votre site",
             "Aperçu des cibles, certaines floutées",
@@ -522,7 +515,7 @@ export const fr = {
       label: "Prêt à commencer",
       title: "Voyez ce que l'audit trouve pour votre site",
       text: "Quelques minutes suffisent pour voir vos concurrents, vos pages à pousser et un aperçu des cibles. Aucun email n'est envoyé.",
-      primary: "Lancer l'audit gratuit",
+      primary: "Essai gratuit",
       secondary: "Voir les tarifs",
       hints: ["Sans carte bancaire", "Aucun lien acheté", "Rien n'est envoyé sans votre accord"],
     },
@@ -538,7 +531,7 @@ export const fr = {
         { href: "/confidentialite", label: "Confidentialité" },
         { href: "/conditions", label: "Conditions d'utilisation" },
       ],
-      freeAudit: "Audit gratuit",
+      freeAudit: "Essai gratuit",
       signIn: "Se connecter",
       rights: "Tous droits réservés.",
     },
@@ -655,6 +648,53 @@ export const fr = {
     errorSend: "Impossible d'envoyer le lien. Réessayez dans un instant.",
     errorCallback: "Le lien de connexion est invalide ou a expiré. Demandez-en un nouveau.",
     signOut: "Se déconnecter",
+    welcome: "Bon retour",
+    welcomeIntro:
+      "Connectez-vous à votre espace : nous vous envoyons un lien de connexion, sans mot de passe.",
+    noAccount: "Vous n'avez pas encore d'espace ?",
+    terms: "Conditions d'utilisation",
+    privacy: "Confidentialité",
+    createOne: "Créer mon espace",
+    backToSite: "Retour au site",
+  },
+  signup: {
+    title: "Créez votre espace",
+    intro:
+      "Un seul champ et vous y êtes : aucune carte pour voir vos premières cibles, aucun mot de passe.",
+    emailLabel: "Adresse email",
+    emailPlaceholder: "vous@monsite.fr",
+    submit: "Créer mon espace",
+    hint: "Nous vous envoyons un lien de connexion. Votre espace est créé à la première connexion.",
+    steps: [
+      "Indiquez votre email : vous recevez un lien de connexion, sans mot de passe.",
+      "Ajoutez l'adresse de votre site : nous déduisons le thème et les recherches à surveiller.",
+      "Voyez vos vraies cibles et des exemples de messages, gratuitement. La carte n'est demandée qu'au premier envoi réel.",
+    ],
+    already: "Vous avez déjà un espace ?",
+    signIn: "Se connecter",
+    legal: "En créant votre espace, vous acceptez les",
+    legalLink: "conditions d'utilisation",
+    panel: {
+      label: "Netlinking par audit",
+      title: "Les demandes partent toutes seules. Vous validez les lots.",
+      points: [
+        "Messages envoyés depuis votre propre boîte mail",
+        "Tri des cibles : liens payants, sites piratés et concurrents écartés",
+        "Chaque lien vérifié sur la page en ligne",
+      ],
+      agent: "agent",
+      running: "En cours",
+      example: "Exemple",
+      lines: [
+        { step: "Vérifié", text: "Lien en ligne : blog-voyage.fr/ressources" },
+        { step: "Réponse", text: "« Avec plaisir, je l'ajoute à ma page ressources. »" },
+        { step: "Envoi", text: "Demande envoyée depuis vous@votresite.fr" },
+        {
+          step: "Brouillon",
+          text: "Accroche tirée de leur page : « guide complet des randonnées en Bretagne »",
+        },
+      ],
+    },
   },
   workspace: {
     title: "Votre espace",

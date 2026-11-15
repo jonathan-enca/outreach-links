@@ -15,7 +15,6 @@ function texts(value: unknown, skip = new Set<string>()): string[] {
 describe("home FR", () => {
   it("chaque lien de l'en-tête pointe vers une section existante", () => {
     const ids = new Set<string>(Object.values(HOME_SECTIONS));
-    ids.add("audit");
     for (const l of homeNavLinks()) expect(ids.has(l.href.slice(1))).toBe(true);
   });
 
@@ -87,5 +86,21 @@ describe("home FR", () => {
       PROOF_SITES.reduce((n, s) => n + s.metrics.find((m) => m.label === "links")!.to, 0),
     );
     expect(sum.trafficRatio).toBeGreaterThan(1);
+  });
+
+  it("tous les boutons « essai gratuit » mènent à l'inscription, « Fonctionnement » aux fonctionnalités", async () => {
+    const { readdirSync, readFileSync } = await import("node:fs");
+    const dir = new URL(".", import.meta.url);
+    const files = readdirSync(dir).filter((f) => f.endsWith(".tsx"));
+    for (const f of files) {
+      const src = readFileSync(new URL(f, dir), "utf8");
+      // L'audit gratuit n'est plus sur la home : aucune ancre #audit ne doit rester.
+      expect(src, f).not.toMatch(/#audit/);
+    }
+    expect(fr.home.hero.cta).toEqual({ primary: "Essai gratuit", secondary: "Fonctionnement" });
+    expect(fr.home.nav.cta).toBe("Essai gratuit");
+    const hero = readFileSync(new URL("hero.tsx", dir), "utf8");
+    expect(hero).toContain('href="/inscription"');
+    expect(hero).toContain("HOME_SECTIONS.features");
   });
 });

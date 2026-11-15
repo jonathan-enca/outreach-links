@@ -1,4 +1,5 @@
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/messages";
 import { AppMockup } from "./app-mockup";
@@ -38,10 +39,10 @@ export function HowItWorks() {
         </div>
         <div className="mt-10 flex flex-col items-center gap-2 text-center">
           <Button asChild className="h-11 px-5 text-base">
-            <a href="#audit">
+            <Link href="/inscription">
               {s.cta}
               <ArrowRight aria-hidden />
-            </a>
+            </Link>
           </Button>
           <p className="text-sm text-muted-foreground">{s.ctaHint}</p>
         </div>

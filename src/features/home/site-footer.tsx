@@ -23,7 +23,7 @@ export function SiteFooter() {
           <h2 className="mb-3 text-sm font-semibold">{f.productTitle}</h2>
           <ul className="grid gap-2 text-sm text-muted-foreground">
             <li>
-              <Link className={link} href="/#audit">
+              <Link className={link} href="/inscription">
                 {f.freeAudit}
               </Link>
             </li>
