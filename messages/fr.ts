@@ -885,6 +885,12 @@ export const fr = {
         body: "Une seule confirmation : concurrents, backlinks, profil de liens et opportunités s'enchaînent ensuite seuls. Vous validerez le plan de liens avant toute action. Aucun email n'est envoyé.",
         capNote: "Plafond de sécurité de cet audit",
       },
+      queryPlan: {
+        title: "Recherches d'éditeurs prévues",
+        body: "Pour trouver les sites qui peuvent vous citer, nous préparerons jusqu'à {count} recherches Google : une par profil d'éditeur et par type de page, classées de la plus prometteuse à la moins prometteuse, plus quelques recherches sur le nom de votre marque. Elles ne sont pas lancées ici et ne sont pas comprises dans le total ci-dessus.",
+        max: "Coût maximal de cette étape",
+        budget: "Budget réservé",
+      },
       seeCost: "Enregistrer et voir le coût",
       launch: "Confirmer et lancer l'analyse",
       launching: "Lancement…",

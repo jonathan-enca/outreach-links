@@ -531,3 +531,142 @@ describe("profil de marque dans l'onboarding (MT.1)", () => {
     expect(user.tables.brand_profiles ?? []).toHaveLength(0);
   });
 });
+
+describe("univers de requêtes au lancement (MT.2b)", () => {
+  const PERSONAS = [
+    { label: "Enseignants", sites: "blogs de classe", reason: "Activités à imprimer." },
+    { label: "Médiathèques", sites: "pages ressources", reason: "Activités gratuites." },
+  ];
+  const profileRow = {
+    site_id: "site-1",
+    version: 1,
+    source: "llm",
+    pages_read: [],
+    cost_usd: 0,
+    created_at: "2026-11-15T00:00:00Z",
+    profile: {
+      activity: "Site de coloriages à imprimer.",
+      offer: "Des coloriages gratuits en PDF.",
+      language: "fr",
+      audience: ["Parents"],
+      linkable_resources: [],
+      name_variants: ["Exemple Coloriage"],
+      tone: "chaleureux",
+      personas: PERSONAS,
+    },
+  };
+  const llmOut = {
+    personas: PERSONAS.map((p) => ({
+      label: p.label,
+      queries: [
+        { q: `blog ${p.label.toLowerCase()} coloriages`, tactic: "inconnus", rating: 4 },
+        { q: `ressources ${p.label.toLowerCase()} enfants`, tactic: "ressources", rating: 3 },
+      ],
+    })),
+  };
+  const queryDeps = (
+    service: ReturnType<typeof fakeSupabase>,
+    generate = vi.fn(async (o: { schema: { parse: (x: unknown) => unknown } }) => ({
+      data: o.schema.parse(llmOut),
+      costUsd: 0.0004,
+    })),
+  ) => ({
+    generate,
+    deps: {
+      makeLlm: () => ({ generate }) as unknown as LlmClient,
+      getServiceClient: () => service.client,
+    },
+  });
+  const accepted = async (user: ReturnType<typeof setup>["user"]) => ({
+    ...Object.fromEntries([
+      ["theme", "coloriages"],
+      ["query1", SITE.priority_queries[0]!],
+      ["query2", SITE.priority_queries[1]!],
+      ["query3", SITE.priority_queries[2]!],
+    ]),
+    acceptedUsd: String((await getLaunchPreview(user.client, "site-1"))!.totalUsd),
+  });
+
+  it("l'aperçu annonce le nombre maximal de recherches d'éditeurs et leur coût (0 USD)", async () => {
+    const { user } = setup({ sites: [SITE] });
+    const p = (await getLaunchPreview(user.client, "site-1"))!;
+    expect(p.queryPhase.maxQueries).toBeGreaterThan(5);
+    expect(p.queryPhase.totalUsd).toBeGreaterThan(0);
+    expect(p.queryPhase.totalUsd).toBeLessThanOrEqual(
+      p.queryPhase.budgetUsd + p.queryPhase.perQueryUsd,
+    );
+    // Annonce seulement : n'entre pas dans le total facturé du parcours.
+    expect(p.totalUsd).toBe(p.chain.totalUsd);
+  });
+
+  it("enregistre l'univers au lancement, avec un seul appel LLM, sans toucher au total", async () => {
+    const { user, service, getService } = setup({ sites: [SITE] });
+    user.tables.brand_profiles = [profileRow];
+    user.tables.query_universes = [];
+    user.tables.query_recipes = [];
+    const q = queryDeps(service);
+    service.tables.query_recipes = [];
+    const res = await launchJourney(
+      user.client,
+      "site-1",
+      form(await accepted(user)),
+      getService,
+      async () => ({}),
+      q.deps,
+    );
+    expect(res.status).toBe("ok");
+    expect(q.generate).toHaveBeenCalledTimes(1);
+    expect(user.tables.query_universes).toHaveLength(1);
+    expect(user.tables.query_universes![0]).toMatchObject({
+      site_id: "site-1",
+      brand_profile_version: 1,
+    });
+    expect(user.tables.events!.map((e) => e.type)).toContain("query_universe.created");
+  });
+
+  it("une panne de l'univers ne bloque jamais le lancement", async () => {
+    const { user, service, getService } = setup({ sites: [SITE] });
+    user.tables.brand_profiles = [profileRow];
+    const boom = vi.fn(async () => {
+      throw new Error("panne");
+    });
+    const q = queryDeps(service, boom as never);
+    service.tables.query_recipes = [];
+    user.tables.query_universes = [];
+    const res = await launchJourney(
+      user.client,
+      "site-1",
+      form(await accepted(user)),
+      getService,
+      async () => ({}),
+      q.deps,
+    );
+    expect(res.status).toBe("ok");
+    expect(service.tables.audits![0]).toMatchObject({ status: "confirme" });
+  });
+
+  it("sans profil de marque, aucun univers n'est inventé ; sans dépendances, rien ne change", async () => {
+    const a = setup({ sites: [SITE] });
+    a.user.tables.query_universes = [];
+    const qa = queryDeps(a.service);
+    await launchJourney(
+      a.user.client,
+      "site-1",
+      form(await accepted(a.user)),
+      a.getService,
+      async () => ({}),
+      qa.deps,
+    );
+    expect(qa.generate).not.toHaveBeenCalled();
+    expect(a.user.tables.query_universes).toHaveLength(0);
+    const b = setup({ sites: [SITE] });
+    const res = await launchJourney(
+      b.user.client,
+      "site-1",
+      form(await accepted(b.user)),
+      b.getService,
+      async () => ({}),
+    );
+    expect(res.status).toBe("ok");
+  });
+});

@@ -5,6 +5,9 @@ import { createLlmClientFromEnv, type LlmClient } from "@/lib/llm/client";
 import { BRAND_LIMITS } from "@/features/brand/limits";
 import { readSite } from "@/features/brand/read-site";
 import type { BrandDeps } from "@/features/brand/service";
+import { QUERY_LIMITS } from "@/features/queries/limits";
+import type { QueryDeps } from "@/features/queries/service";
+import { createServiceClient } from "@/lib/supabase/service";
 import { DEDUCE_LIMITS } from "./deduce";
 import type { StartDeps } from "./service";
 
@@ -49,3 +52,17 @@ const brand: BrandDeps = {
 };
 
 export const startDeps: StartDeps = { readHomepage, makeLlm, brand };
+
+/** Client LLM plafonné pour l'univers de requêtes (MT.2b) : un seul appel court ; null sans clé. */
+function makeQueriesLlm(): LlmClient | null {
+  if (!env.ANTHROPIC_API_KEY && !env.OPENAI_API_KEY && !env.LLM_PROXY_AUTH) return null;
+  return createLlmClientFromEnv({
+    budgetUsd: QUERY_LIMITS.llmBudgetUsd,
+    maxCostPerCallUsd: QUERY_LIMITS.llmMaxCostPerCallUsd,
+  });
+}
+
+export const queryDeps: QueryDeps = {
+  makeLlm: makeQueriesLlm,
+  getServiceClient: createServiceClient,
+};

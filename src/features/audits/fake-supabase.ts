@@ -30,6 +30,7 @@ export function fakeSupabase(
     tables[table] ??= [];
     let op: "select" | "insert" | "update" | "delete" | "upsert" = "select";
     let conflictCol = "";
+    let ignoreDuplicates = false;
     let payload: unknown;
     const filters: ((r: Row) => boolean)[] = [];
     let orderBy: { col: string; asc: boolean } | null = null;
@@ -40,11 +41,19 @@ export function fakeSupabase(
     const exec = () => {
       const rows = tables[table]!;
       if (op === "upsert") {
-        const item = payload as Row;
-        const found = rows.find((r) => r[conflictCol] === item[conflictCol]);
-        if (found) Object.assign(found, item);
-        else rows.push({ id: `${table}-${++seq}`, ...item });
-        return { data: [found ?? rows[rows.length - 1]], error: null };
+        const cols = conflictCol.split(",").map((c) => c.trim());
+        const items = (Array.isArray(payload) ? payload : [payload]) as Row[];
+        const out: Row[] = [];
+        for (const item of items) {
+          const found = rows.find((r) => cols.every((c) => r[c] === item[c]));
+          if (found) {
+            if (!ignoreDuplicates) Object.assign(found, item);
+          } else {
+            rows.push({ id: `${table}-${++seq}`, ...item });
+          }
+          out.push(found ?? rows[rows.length - 1]!);
+        }
+        return { data: out, error: null };
       }
       if (op === "insert") {
         const items = (Array.isArray(payload) ? payload : [payload]) as Row[];
@@ -118,10 +127,11 @@ export function fakeSupabase(
       log.push({ table, op, payload: p });
       return chain;
     };
-    chain.upsert = (p: unknown, o?: { onConflict?: string }) => {
+    chain.upsert = (p: unknown, o?: { onConflict?: string; ignoreDuplicates?: boolean }) => {
       op = "upsert";
       payload = p;
       conflictCol = o?.onConflict ?? "id";
+      ignoreDuplicates = o?.ignoreDuplicates === true;
       log.push({ table, op, payload: p });
       return chain;
     };

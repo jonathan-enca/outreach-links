@@ -548,6 +548,109 @@ export type Database = {
           },
         ];
       };
+      query_recipes: {
+        Row: {
+          cost_usd: number;
+          created_at: string;
+          id: string;
+          language: string;
+          niche_key: string;
+          persona_key: string;
+          persona_label: string;
+          queries: Json;
+          recipe_version: number;
+        };
+        Insert: {
+          cost_usd?: number;
+          created_at?: string;
+          id?: string;
+          language: string;
+          niche_key: string;
+          persona_key: string;
+          persona_label: string;
+          queries: Json;
+          recipe_version: number;
+        };
+        Update: {
+          cost_usd?: number;
+          created_at?: string;
+          id?: string;
+          language?: string;
+          niche_key?: string;
+          persona_key?: string;
+          persona_label?: string;
+          queries?: Json;
+          recipe_version?: number;
+        };
+        Relationships: [];
+      };
+      query_universes: {
+        Row: {
+          brand_profile_version: number | null;
+          budget_usd: number;
+          created_at: string;
+          created_by: string | null;
+          est_cost_usd: number;
+          goal: string;
+          id: string;
+          llm_cost_usd: number;
+          queries: Json;
+          recipes: Json;
+          site_id: string;
+          workspace_id: string;
+        };
+        Insert: {
+          brand_profile_version?: number | null;
+          budget_usd: number;
+          created_at?: string;
+          created_by?: string | null;
+          est_cost_usd: number;
+          goal: string;
+          id?: string;
+          llm_cost_usd?: number;
+          queries: Json;
+          recipes?: Json;
+          site_id: string;
+          workspace_id: string;
+        };
+        Update: {
+          brand_profile_version?: number | null;
+          budget_usd?: number;
+          created_at?: string;
+          created_by?: string | null;
+          est_cost_usd?: number;
+          goal?: string;
+          id?: string;
+          llm_cost_usd?: number;
+          queries?: Json;
+          recipes?: Json;
+          site_id?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "query_universes_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "query_universes_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "query_universes_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       competitor_backlinks: {
         Row: {
           anchor: string | null;

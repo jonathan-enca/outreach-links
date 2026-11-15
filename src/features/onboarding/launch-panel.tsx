@@ -136,6 +136,18 @@ export function LaunchPanel({
               {preview.chain.uncovered.map((k) => t.audits.chain.stage[k]).join(", ")})
             </p>
           ) : null}
+          <div className="flex flex-col gap-1 rounded-control border border-border p-3">
+            <h3 className="text-sm font-medium">{r.queryPlan.title}</h3>
+            <p className="text-sm text-muted-foreground">
+              {r.queryPlan.body.replace("{count}", String(preview.queryPhase.maxQueries))}
+            </p>
+            <dl className="mt-1 grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:max-w-md">
+              <dt className="text-muted-foreground">{r.queryPlan.max}</dt>
+              <dd>{formatUsd(preview.queryPhase.totalUsd)}</dd>
+              <dt className="text-muted-foreground">{r.queryPlan.budget}</dt>
+              <dd>{formatUsd(preview.queryPhase.budgetUsd)}</dd>
+            </dl>
+          </div>
           <input type="hidden" name="acceptedUsd" value={preview.totalUsd} />
           <Button type="submit" disabled={pending} className="mt-1 h-12 self-start px-6 text-base">
             {pending ? r.launching : r.launch}

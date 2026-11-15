@@ -17,6 +17,7 @@
     "demo:replies": "REPLIES_LIVE_EVAL=1 vitest run src/features/classification/eval.live.test.ts",
     "demo:onboarding": "ONBOARDING_LIVE_DEMO=1 vitest run src/features/onboarding/deduce.live.test.ts",
     "demo:brand": "BRAND_LIVE_DEMO=1 vitest run src/features/brand/brand.live.test.ts",
+    "demo:queries": "QUERIES_LIVE_DEMO=1 vitest run src/features/queries/queries.live.test.ts",
     "demo:llm": "LLM_LIVE_DEMO=1 vitest run src/features/profile/summary.live.test.ts",
     "inngest:dev": "npx --yes --ignore-scripts=false inngest-cli@1.53.0 dev -u http://localhost:3000/api/inngest --no-discovery",
     "format": "prettier --write .",
