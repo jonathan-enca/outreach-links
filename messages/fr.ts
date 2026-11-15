@@ -135,6 +135,50 @@ export const fr = {
         "Un suivi éparpillé dans trois tableurs",
       ],
     },
+    tactics: {
+      label: "Tactiques",
+      title: "Trois façons d'obtenir des liens gratuits",
+      intro:
+        "Chaque tactique s'exécute dans le cadre que vous fixez : validation de chaque lot avant tout envoi, plafond d'envoi par heure, une seule relance. Ouvrez une tactique pour voir comment elle se déroule.",
+      primary: "Essai gratuit",
+      secondary: "Fonctionnement",
+      hint: "Voyez vos premières cibles gratuitement : la carte n'est demandée qu'au premier envoi réel.",
+      howLabel: "Comment ça marche",
+      closing:
+        "Ce que nous ne faisons pas : acheter des liens, publier des articles sponsorisés déguisés, monter des réseaux de sites.",
+      items: [
+        {
+          title: "Les sites que personne ne sollicite",
+          text: "Mairies, associations, photographes, boutiques, forums modérés : des sites qui ne vendent pas de liens, mais qui en donnent quand la demande est utile et bien adressée.",
+          steps: [
+            "Nous listons les sites du top 30 sur vos recherches prioritaires, et ceux qui citent déjà vos concurrents.",
+            "Nous écartons les vendeurs de liens, les sites piratés et vos concurrents directs, avec le motif affiché.",
+            "Nous cherchons un contact jusque dans les mentions légales et les conditions d'utilisation.",
+            "Nous rédigeons une demande courte, avec une accroche tirée de leur page. Rien ne part avant votre accord sur le lot.",
+          ],
+        },
+        {
+          title: "Pages ressources et liens morts",
+          text: "Nous repérons les pages ressources de votre thème et leurs liens cassés, puis nous proposons votre page comme remplaçante.",
+          steps: [
+            "Nous trouvons les pages de ressources et de liens utiles de votre thème.",
+            "Nous lisons leurs liens sortants : un lien n'est déclaré mort que si la page répond bien « introuvable ».",
+            "Nous proposons à l'éditeur votre page à jour à la place du lien cassé, en une demande de trois lignes.",
+            "Nous vérifions ensuite, sur la page en ligne, que le lien est bien posé.",
+          ],
+        },
+        {
+          title: "Mentions de votre marque sans lien",
+          text: "Des sites parlent déjà de vous sans vous lier. Une simple demande d'ajout de lien suffit souvent.",
+          steps: [
+            "Nous repérons les pages qui citent le nom de votre marque.",
+            "Nous écartons les sites payants, morts ou hors sujet, et les concurrents.",
+            "Nous rédigeons la demande d'ajout, avec la page à lier et l'ancre suggérée.",
+            "Nous classons les réponses et vérifions le lien une fois posé.",
+          ],
+        },
+      ],
+    },
     proofs: {
       label: "Sur le terrain",
       title: "La preuve, sur les sites que nous gérons nous-mêmes",
