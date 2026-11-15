@@ -10,6 +10,8 @@ Le produit part d'un **audit** (comme le ferait un vrai consultant SEO) qui trou
 
 Positionnement : « Outlink AI / MentionAgent / HeyLinks, mais avec un vrai audit en amont, un tri des cibles qui évite les mauvaises, et un français natif ».
 
+**Décision de Jonathan (15/11/2026)** : on assume d'être **l'alternative française d'Outlink AI** : même philosophie, même outil, **même structure et mêmes sections de site** (voir `docs/home-reference.md`), avec un meilleur audit de base et un prix nettement plus bas. Les textes, le logo, les marques, les captures et les chiffres de la référence ne sont jamais repris : tout est réécrit en français pour notre produit, et toute affirmation comparative (prix, qualité) doit être vérifiable.
+
 **Règles de messaging**
 
 - Jamais « backlinks garantis ». Promettre un audit précis, un plan priorisé, des cibles filtrées et un envoi maîtrisé.
@@ -196,7 +198,7 @@ Modèle mixte : abonnement avec crédits (audits, cibles qualifiées) et plafond
 - **Délivrabilité** : plafonds, échauffement, domaine secondaire recommandé, désinscription, arrêt à la réponse ou à la plainte.
 - **Juridique** [à valider avec un juriste avant lancement] : prospection B2B par email en France tolérée si pertinente pour l'activité professionnelle du destinataire, avec opt-out ; RGPD : base légale, information, droit d'opposition, liste de suppression. Position à documenter sur la non-mention de l'IA dans les emails (honnêteté en cas de question).
 - **Liens** : respect des consignes Google (liens sponsorisés à qualifier), pas de PBN ni de réseaux.
-- **Conditions des concurrents** : ne pas copier leurs bases, textes ni gabarits.
+- **Conditions des concurrents** : ne pas copier leurs bases ni leurs textes (structure et philosophie assumées, voir section 1) ; pas de comparatif nominatif non vérifiable.
 - **Données personnelles des cibles** : conservation limitée, accès restreint, suppression à la demande.
 
 ## 9. Jalons
