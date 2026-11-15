@@ -100,7 +100,25 @@ export function isOwnDomainEmail(email: string, siteDomain: string): boolean {
 }
 
 const CONTACT_PATH =
-  /(contact|nous-contacter|contactez|mentions?-?legales?|mentions|legal|cgu|cgv|conditions|a-propos|apropos|about|qui-sommes|equipe|redaction|ecrire)/i;
+  /(contact|nous-contacter|contactez|mentions?-?legales?|mentions|legal|cgu|cgv|conditions|a-propos|apropos|about|qui-sommes|equipe|team|redaction|ecrire|presse|partenair|auteur|webmaster|annonceur|collaborat|contribu|proposer|devenir|nous-ecrire|joindre)/i;
+
+/** URL internes listées dans un sitemap XML (texte des balises <loc>), même hôte uniquement. */
+export function sitemapLinks(text: string, host: string, max = 500): PageLink[] {
+  const h = host.replace(/^www\./, "").toLowerCase();
+  const out: PageLink[] = [];
+  for (const m of text.matchAll(/https?:\/\/.+?(?=https?:\/\/|\s|$)/g)) {
+    if (out.length >= max) break;
+    try {
+      const u = new URL(m[0]);
+      if (u.hostname.replace(/^www\./, "").toLowerCase() !== h) continue;
+      if (/\.(xml|jpe?g|png|gif|webp|pdf|svg)$/i.test(u.pathname)) continue;
+      out.push({ href: u.toString(), text: "" });
+    } catch {
+      /* URL invalide ignorée */
+    }
+  }
+  return out;
+}
 
 /** Pages internes les plus utiles pour trouver un contact (contact d'abord, légal ensuite). */
 export function contactCandidates(links: readonly PageLink[], max: number): string[] {
