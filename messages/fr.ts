@@ -647,7 +647,7 @@ export const fr = {
     errorCallback:
       "Le lien est invalide ou a expiré. Reconnectez-vous ou demandez un nouveau lien.",
     signupConfirm:
-      "Un email de confirmation vous a été envoyé. Cliquez sur le lien qu'il contient pour ouvrir votre espace.",
+      "Si cette adresse n'a pas encore d'espace, un email de confirmation vient de lui être envoyé : cliquez sur le lien qu'il contient. Sinon, connectez-vous, ou utilisez « Mot de passe oublié ? » si vous n'avez pas encore de mot de passe.",
     forgot: {
       title: "Mot de passe oublié",
       intro:
