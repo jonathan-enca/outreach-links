@@ -28,7 +28,8 @@
 | M3.2        | fait (enquêteur : contacts ; testé sur faux web et fixtures ; finder Hunter derrière une interface, désactivé sans clé ; migration appliquée sur la vraie base)   | PR M3.2                                                        | 2026-11-16 |
 | M3.3        | fait (rédacteur : URL vérifiée 200, linter, anti-doublons ; testé sur faux LLM, aucun run réel ; migrations appliquées sur la vraie base)                         | PR M3.3                                                        | 2026-11-16 |
 | M3.4        | fait (lots, édition relue par le linter, validation par lot verrouillée en base ; pas de test Playwright ; migration appliquée sur la vraie base)                 | PR M3.4                                                        | 2026-11-17 |
-| M4.1 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
+| M4.1        | fait côté code (PR M4.1) ; **migration `2026111800000000_mailboxes.sql` NON appliquée sur la vraie base** (refus du classifieur, voir ci-dessous)                 | PR M4.1                                                        | 2026-11-18 |
+| M4.2 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
 
 ## Décisions prises
 
@@ -280,6 +281,19 @@
 - Non fait : test Playwright (aucune session connectée possible) ; anti-doublon entre un message modifié et les autres du lot.
 - Piège : relancer la rédaction (M3.3) après validation échouera sur les brouillons verrouillés (voulu) ; une nouvelle rédaction devra ignorer les brouillons `valide`.
 
+### M4.1 (connexion de la boîte d'envoi, 18/11/2026)
+
+- Migration additive `2026111800000000_mailboxes.sql` : table `mailboxes` (une boîte par adresse et par espace, liée à un site). Mot de passe chiffré AES-256-GCM (`password_enc`, `key_version`) ; l'utilisateur connecté lit les colonnes **sans** `password_enc` (droits `select` par colonne) ; écriture réservée au serveur. `status = 'verifiee'` exige SMTP et IMAP réussis (contrainte SQL). Plafonds par défaut 10 par heure (max 10) et 20 par jour. 4 tests SQL réels.
+- **Migration NON appliquée sur la vraie base** : l'appel `POST .../database/query` a été refusé par le classifieur (« action destructive ou non voulue ») et je n'ai pas contourné ce refus. Tant qu'elle n'est pas appliquée, **ne pas fusionner la PR** : la page `/app/site/[id]` interroge `mailboxes` et casserait en production.
+- Chiffrement (`src/features/mailboxes/crypto.ts`) : variable `MAILBOX_ENCRYPTION_KEYS` = `v2:<base64 32 o>,v1:<base64 32 o>` (`openssl rand -base64 32`) ; la première clé chiffre, toutes déchiffrent. Rotation : ajouter une clé en tête, rechiffrer les lignes (`needsRotation`), retirer l'ancienne. **À définir sur Vercel (sensitive)** avant de connecter une vraie boîte ; sans elle l'écran répond « chiffrement non configuré » et rien n'est enregistré.
+- Transport (`transport.ts`) : `verifySmtp` (EHLO + AUTH, aucun message), `verifyImap` (connexion + login + logout, aucune lecture), `sendSmtp` (message de test). Ports admis SMTP 25/465/587/2525, IMAP 143/993 ; STARTTLS obligatoire hors 465/993. Anti-SSRF (`network.ts`) : hôte résolu, adresses privées refusées, connexion sur l'IP validée. Les erreurs ne contiennent jamais le mot de passe.
+- Santé du domaine (`health.ts`) : SPF, DMARC et DKIM (sélecteurs courants) par DNS ; avertissement non bloquant à l'écran.
+- [auto] Règle d'envoi : le message de test n'est envoyé que si `EMAIL_DRY_RUN` est faux ET `OUTREACH_SENDING_ENABLED` est vrai, et seulement à l'adresse de l'utilisateur connecté. Sinon : vérification de connexion seule, message « mode simulation ».
+- Écran : section « Boîte d'envoi » sur `/app/site/[id]` (connecter, tester, supprimer ; une boîte par site pour l'instant). Journal `events` : `mailbox.connected`, `mailbox.tested`, `mailbox.removed`.
+- Tests : 19 tests (chiffrement et rotation, formulaire, SSRF, santé DNS, service, et connexions contre un **faux serveur SMTP local (`smtp-server`) et un faux serveur IMAP minimal** : bon et mauvais mot de passe, aucun message envoyé par le simple test). Aucun appel payant : 0 USD.
+- Dépendances ajoutées : `nodemailer`, `imapflow` ; dev : `smtp-server`, types.
+- Non fait : envoi réel (M4.2), lecture des réponses (M4.4), OAuth Gmail, plusieurs boîtes par site, rotation automatique des lignes.
+
 ## Backlog (idées hors périmètre)
 
 - M3.4 : page `/app/lots` listant les lots de tous les sites ; anti-doublon des messages modifiés ; rédaction qui ignore les brouillons verrouillés ; test Playwright connecté.
@@ -346,4 +360,4 @@
 
 ## Prochain sous-jalon recommandé
 
-M3.4 (lots et validation : création d'un lot de N cibles prêtes, liste courte classée, édition, validation par lot, verrouillage, journal ; test Playwright si une session de test est faisable), voir PLAN.md. Prérequis : brouillons `ready` (M3.3). En parallèle, finir la mise en production d'Inngest et le run réel DataForSEO dès que Jonathan fournit les identifiants.
+**Débloquer M4.1** : appliquer `supabase/migrations/2026111800000000_mailboxes.sql` sur la vraie base, définir `MAILBOX_ENCRYPTION_KEYS` sur Vercel, puis fusionner la PR M4.1. Ensuite M4.2 (moteur d'envoi plafonné, dry run, filtre `batches.status = 'valide'`), voir PLAN.md. En parallèle, finir la mise en production d'Inngest et le run réel DataForSEO dès que Jonathan fournit les identifiants.

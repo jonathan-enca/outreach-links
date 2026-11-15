@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
+import { MailboxSection, type MailboxView } from "@/features/mailboxes/mailbox-section";
 import { updateSiteAction, verifySiteAction } from "@/features/sites/actions";
 import { SiteForm } from "@/features/sites/site-form";
 import { VerificationPanel } from "@/features/sites/verification-panel";
@@ -22,6 +23,22 @@ async function Site({ params }: { params: Promise<{ id: string }> }) {
   if (!auth.user) redirect("/connexion");
   const { data: site } = await supabase.from("sites").select("*").eq("id", id).maybeSingle();
   if (!site) notFound();
+  const { data: rows } = await supabase
+    .from("mailboxes")
+    .select("id, email, status, smtp_ok, imap_ok, last_error, health, hourly_cap, daily_cap")
+    .eq("site_id", site.id)
+    .order("created_at");
+  const boxes: MailboxView[] = (rows ?? []).map((r) => ({
+    id: r.id,
+    email: r.email,
+    status: r.status as MailboxView["status"],
+    smtpOk: r.smtp_ok,
+    imapOk: r.imap_ok,
+    lastError: r.last_error,
+    health: (r.health as MailboxView["health"]) ?? null,
+    hourlyCap: r.hourly_cap,
+    dailyCap: r.daily_cap,
+  }));
   return (
     <div className="flex flex-col gap-6">
       <VerificationPanel
@@ -46,6 +63,7 @@ async function Site({ params }: { params: Promise<{ id: string }> }) {
           }}
         />
       </Card>
+      <MailboxSection siteId={site.id} boxes={boxes} />
     </div>
   );
 }

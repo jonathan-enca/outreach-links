@@ -39,6 +39,11 @@ const schema = z.object({
   EMAIL_FINDER_API_KEY: z.string().min(1).optional(),
   /** Vérification gratuite (DNS) des emails publiés par la cible sur son domaine ; `none` la coupe. */
   EMAIL_FREE_VERIFY: z.enum(["mx", "none"]).default("mx"),
+  /**
+   * Clés AES-256 des identifiants de boîte (M4.1) : « v2:<base64 32 o>,v1:<base64 32 o> ».
+   * La première chiffre, toutes déchiffrent (rotation). Génération : `openssl rand -base64 32`.
+   */
+  MAILBOX_ENCRYPTION_KEYS: z.string().min(1).optional(),
   /** LLM (optionnels : erreur claire à l'usage). Anthropic est la cible ; OpenAI sert au développement. */
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   OPENAI_API_KEY: z.string().min(1).optional(),
