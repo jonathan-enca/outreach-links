@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { fr } from "../../../messages/fr";
 import { HOME_SECTIONS } from "./sections";
+import { PROOF_SITES, PROOFS_ARE_ILLUSTRATIVE, proofSummary } from "./proofs";
 import { homeNavLinks } from "./site-header";
 
 function texts(value: unknown, skip = new Set<string>()): string[] {
@@ -63,5 +64,28 @@ describe("home FR", () => {
   it("l'honnêteté est dite : aucun lien acheté", () => {
     expect(texts(fr.home.trust).join(" ")).toMatch(/aucun lien acheté/i);
     expect(texts(fr.home.whatItIs).join(" ")).toMatch(/ne faisons pas/i);
+  });
+
+  it("preuves : les quatre sites du fondateur, chiffres d'illustration signalés, synthèse calculée", () => {
+    expect(PROOF_SITES.map((x) => x.domain).sort()).toEqual([
+      "mega-coloring.com",
+      "oma-and-me.com",
+      "remove-me.io",
+      "squadraplanning.com",
+    ]);
+    // Tant que ce sont des chiffres inventés, le bandeau d'avertissement doit exister.
+    expect(PROOFS_ARE_ILLUSTRATIVE).toBe(true);
+    expect(fr.home.proofs.illustrative).toMatch(/illustration/i);
+    for (const s of PROOF_SITES) {
+      expect(s.series[0]).toBe(s.authority.from);
+      expect(s.series.at(-1)).toBe(s.authority.to);
+      // Aucune vraie source de liens inventée : les domaines cités sont des exemples.
+      for (const l of s.linkedFrom) expect(l.domain.startsWith("exemple-")).toBe(true);
+    }
+    const sum = proofSummary();
+    expect(sum.links).toBe(
+      PROOF_SITES.reduce((n, s) => n + s.metrics.find((m) => m.label === "links")!.to, 0),
+    );
+    expect(sum.trafficRatio).toBeGreaterThan(1);
   });
 });

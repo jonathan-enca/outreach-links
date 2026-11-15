@@ -16,6 +16,7 @@ export const fr = {
       whatItIs: "C'est quoi",
       problem: "Le problème",
       howItWorks: "Comment ça marche",
+      features: "Fonctionnalités",
       pricing: "Tarifs",
       faq: "FAQ",
       menu: "Menu",
@@ -52,10 +53,10 @@ export const fr = {
       ],
     },
     whatItIs: {
-      label: "C'est quoi",
-      title: "Un audit d'abord, puis des demandes ciblées",
+      label: "En clair",
+      title: "C'est quoi ?",
       intro:
-        "C'est un service de netlinking pour sites francophones : il commence par analyser votre place dans Google, trouve les sites qui ont une vraie raison de vous citer, puis prépare et envoie les demandes à votre place, avec votre accord.",
+        "Un service de netlinking pour sites francophones. Il analyse d'abord votre place dans Google, trouve les sites qui ont une vraie raison de vous citer, puis prépare et envoie les demandes depuis votre boîte mail, avec votre accord, relance les silencieux et vérifie que le lien est bien en ligne.",
       items: [
         {
           q: "Ce que c'est",
@@ -102,6 +103,34 @@ export const fr = {
         "Des demandes de paiement à traiter au cas par cas",
         "Un suivi éparpillé dans trois tableurs",
       ],
+    },
+    proofs: {
+      label: "Sur le terrain",
+      title: "La preuve, sur les sites que nous gérons nous-mêmes",
+      intro:
+        "Ce sont les sites de notre fondateur. Leurs liens ont été demandés à la main, avec la méthode que ce service automatise. Voici ce que ces liens ont changé : autorité du domaine, trafic, et qui les cite aujourd'hui.",
+      illustrative:
+        "Chiffres d'illustration : les mesures réelles remplaceront ces valeurs avant l'ouverture. Les sites cités comme sources de liens sont des exemples.",
+      authority: "Autorité du domaine",
+      linkedFrom: "Cité par",
+      footnote: "Site du fondateur · liens demandés à la main",
+      summary: {
+        authority: "Autorité du domaine",
+        traffic: "Trafic organique",
+        links: "Liens obtenus",
+        linksNote: "Sur l'ensemble des quatre sites",
+      },
+      metrics: {
+        traffic: "Trafic organique par mois",
+        referring: "Nouveaux sites référents de bon niveau",
+        links: "Liens obtenus",
+      },
+      kinds: {
+        outil: "Outil en ligne",
+        coloriages: "Coloriages à imprimer",
+        ecommerce: "Boutique en ligne",
+        saas: "Logiciel en ligne (SaaS)",
+      },
     },
     how: {
       label: "Comment ça marche",
@@ -586,7 +615,60 @@ export const fr = {
     intro: "Commencez par l'audit : il alimente tout le reste.",
     startAudit: "Aller à l'audit",
     setupSite: "Configurer mon site",
+    analyzeSite: "Analyser mon site",
     mySites: "Mon site",
+  },
+  onboarding: {
+    title: "Analyser votre site",
+    description:
+      "Collez l'adresse de votre site. Nous en déduisons le thème et les recherches à surveiller, puis vous confirmez le coût une seule fois.",
+    urlLabel: "Adresse de votre site",
+    urlPlaceholder: "monsite.fr",
+    urlHint: "Rien d'autre à renseigner pour commencer.",
+    submit: "Analyser mon site",
+    submitting: "Lecture de votre site…",
+    advanced: "Vous préférez tout saisir vous-même ?",
+    advancedLink: "Formulaire complet",
+    messages: {
+      invalidUrl: "Cette adresse ne ressemble pas à un site public. Exemple : monsite.fr",
+      unauthenticated: "Votre session a expiré. Reconnectez-vous.",
+      noWorkspace: "Aucun espace de travail trouvé pour ce compte.",
+      saveError: "Impossible d'enregistrer votre site. Réessayez dans un instant.",
+      siteNotFound: "Site introuvable.",
+      invalid: "Vérifiez les informations saisies.",
+      themeInvalid: "Indiquez le thème de votre site en quelques mots (2 à 60 caractères).",
+      queriesMissing: "Indiquez au moins une recherche à surveiller.",
+      costChanged:
+        "Le coût ou les recherches ont changé depuis l'affichage. Rechargez la page pour revoir le total avant de lancer.",
+    },
+    review: {
+      title: "Voici ce que nous avons compris",
+      body: "Corrigez si besoin : ces recherches servent à trouver vos vrais concurrents dans Google, puis les sites qui peuvent vous citer.",
+      domain: "Site",
+      theme: "Thème",
+      themeHint: "Quelques mots, sans le nom de votre marque.",
+      queries: "Recherches à surveiller",
+      queriesHint:
+        "Ce que vos clients tapent dans Google. Une à trois recherches ; plus il y en a, plus le coût augmente.",
+      query: "Recherche",
+      emptyDeduction:
+        "Nous n'avons pas pu lire votre site pour en déduire le thème. Indiquez-le ci-dessous : une seule information suffit.",
+      later: {
+        title: "Ce que nous vous demanderons plus tard",
+        body: "Rien de tout cela n'est nécessaire pour voir les résultats : la vérification que le site est bien le vôtre, votre prénom de signature, ce que vous offrez en échange et votre boîte d'envoi. Nous les demandons juste avant le premier lot de messages. Aucun message n'est envoyé avant que vous ayez validé un lot.",
+      },
+      cost: {
+        title: "Coût du parcours",
+        total: "Coût total estimé",
+        body: "Une seule confirmation : concurrents, backlinks, profil de liens et opportunités s'enchaînent ensuite seuls. Vous validerez le plan de liens avant toute action. Aucun email n'est envoyé.",
+        capNote: "Plafond de sécurité de cet audit",
+      },
+      seeCost: "Enregistrer et voir le coût",
+      launch: "Confirmer et lancer l'analyse",
+      launching: "Lancement…",
+      alreadyTitle: "Une analyse existe déjà pour ce site",
+      alreadyOpen: "Voir l'analyse",
+    },
   },
   sites: {
     title: "Votre site",
