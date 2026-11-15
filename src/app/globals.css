@@ -2,43 +2,43 @@
 
 /*
  * Jetons de la direction artistique (docs/da.md, MN.2).
- * « L'instrument d'audit » : craie froide, encre marine, vert « lien », surligneur ambre pour le hook.
+ * Piste I « clair et émeraude » : blanc, encre marine, vert émeraude, surligneur ambre pour le hook.
  * L'application est en mode clair. Les sections « nuit » de la home réutilisent les mêmes noms de jetons
  * dans une surface `.surface-night` : un composant (bouton, carte, pastille) n'a rien à savoir du fond.
  */
 :root {
-  --background: #f5f7fa;
-  --foreground: #0f1b2d;
+  --background: #ffffff;
+  --foreground: #0e1a2b;
   --card: #ffffff;
-  --card-foreground: #0f1b2d;
-  --muted: #eaeef3;
-  --muted-foreground: #4b5a6e;
-  --border: #d5dce6;
-  --primary: #0b6b5e;
+  --card-foreground: #0e1a2b;
+  --muted: #f1f5f9;
+  --muted-foreground: #5b6678;
+  --border: #e3e8ef;
+  --primary: #047857;
   --primary-foreground: #ffffff;
-  --ring: #0b6b5e;
+  --ring: #047857;
   --info: #1d4f91;
   --warning: #8a5300;
-  --success: #1f6b3a;
+  --success: #166534;
   --danger: #a3301d;
-  /* Surligneur du hook : fond ambre, texte toujours en encre. */
+  /* Surligneur du hook : fond ambre clair, texte toujours en encre. */
   --highlight: #fde68a;
-  --highlight-foreground: #0f1b2d;
+  --highlight-foreground: #0e1a2b;
   color-scheme: light;
 }
 
-/* Surface sombre (hero, boucle, appel final, pied de page). */
+/* Surface sombre : bande produit, appel final, pied de page. */
 .surface-night {
-  --background: #0f1b2d;
-  --foreground: #eef2f7;
-  --card: #172a43;
-  --card-foreground: #eef2f7;
-  --muted: #1c3250;
-  --muted-foreground: #a9b6c8;
-  --border: #2a4264;
-  --primary: #6fe3cf;
-  --primary-foreground: #0f1b2d;
-  --ring: #6fe3cf;
+  --background: #0b1b2e;
+  --foreground: #eaf2f8;
+  --card: #12263d;
+  --card-foreground: #eaf2f8;
+  --muted: #162d47;
+  --muted-foreground: #9db0c4;
+  --border: #243a55;
+  --primary: #5eead4;
+  --primary-foreground: #0b1b2e;
+  --ring: #5eead4;
   --info: #8db8f0;
   --warning: #f2c26b;
   --success: #7fd69a;
@@ -66,14 +66,14 @@
   --color-highlight: var(--highlight);
   --color-highlight-foreground: var(--highlight-foreground);
   --font-sans: var(--font-body);
-  --font-display: var(--font-display);
+  --font-display: var(--font-body);
   /* Rayons hiérarchisés : contrôle, carte, panneau. */
   --radius-control: 0.5rem;
   --radius-card: 0.875rem;
-  --radius-panel: 1.25rem;
+  --radius-panel: 1rem;
   /* Ombres froides, teintées d'encre : posée (carte), flottante (maquette, menu). */
-  --shadow-card: 0 1px 2px rgb(15 27 45 / 0.06), 0 1px 1px rgb(15 27 45 / 0.04);
-  --shadow-float: 0 12px 32px -8px rgb(15 27 45 / 0.18), 0 2px 6px rgb(15 27 45 / 0.08);
+  --shadow-card: 0 1px 2px rgb(14 26 43 / 0.06), 0 1px 1px rgb(14 26 43 / 0.04);
+  --shadow-float: 0 30px 60px -30px rgb(14 26 43 / 0.35);
 }
 
 body {
@@ -87,6 +87,7 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display), system-ui, sans-serif;
+  letter-spacing: -0.03em;
   text-wrap: balance;
 }
 
@@ -105,12 +106,17 @@ h3 {
   -webkit-box-decoration-break: clone;
 }
 
-/* Quadrillage discret du fond des sections « nuit ». */
+/* Dégradé vert très léger du haut de la home. */
+@utility bg-hero-wash {
+  background: linear-gradient(#ecfdf5, #ffffff 520px);
+}
+
+/* Quadrillage discret de la bande produit sombre. */
 @utility bg-grid {
   background-image:
-    linear-gradient(to right, rgb(255 255 255 / 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(255 255 255 / 0.05) 1px, transparent 1px);
-  background-size: 48px 48px;
+    linear-gradient(to right, rgb(255 255 255 / 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.04) 1px, transparent 1px);
+  background-size: 56px 56px;
 }
 
 @media (prefers-reduced-motion: reduce) {
