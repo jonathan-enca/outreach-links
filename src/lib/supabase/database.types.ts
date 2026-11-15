@@ -383,6 +383,110 @@ export type Database = {
           },
         ];
       };
+      batch_items: {
+        Row: {
+          batch_id: string;
+          draft_id: string;
+          plan_id: string;
+          position: number;
+          workspace_id: string;
+        };
+        Insert: {
+          batch_id: string;
+          draft_id: string;
+          plan_id: string;
+          position: number;
+          workspace_id: string;
+        };
+        Update: {
+          batch_id?: string;
+          draft_id?: string;
+          plan_id?: string;
+          position?: number;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "batch_items_batch_id_fkey";
+            columns: ["batch_id"];
+            isOneToOne: false;
+            referencedRelation: "batches";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "batch_items_draft_id_fkey";
+            columns: ["draft_id"];
+            isOneToOne: true;
+            referencedRelation: "target_drafts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "batch_items_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "link_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "batch_items_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      batches: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          number: number;
+          plan_id: string;
+          status: string;
+          validated_at: string | null;
+          validated_by: string | null;
+          workspace_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          number: number;
+          plan_id: string;
+          status?: string;
+          validated_at?: string | null;
+          validated_by?: string | null;
+          workspace_id: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          number?: number;
+          plan_id?: string;
+          status?: string;
+          validated_at?: string | null;
+          validated_by?: string | null;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "batches_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "link_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "batches_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       competitor_backlinks: {
         Row: {
           anchor: string | null;
@@ -1512,6 +1616,8 @@ export type Database = {
           body: string;
           channel: string;
           cost_usd: number;
+          edited_at: string | null;
+          edited_by_user: boolean;
           generated_at: string;
           hook: string;
           id: string;
@@ -1531,6 +1637,8 @@ export type Database = {
           body: string;
           channel: string;
           cost_usd?: number;
+          edited_at?: string | null;
+          edited_by_user?: boolean;
           generated_at?: string;
           hook: string;
           id?: string;
@@ -1550,6 +1658,8 @@ export type Database = {
           body?: string;
           channel?: string;
           cost_usd?: number;
+          edited_at?: string | null;
+          edited_by_user?: boolean;
           generated_at?: string;
           hook?: string;
           id?: string;
