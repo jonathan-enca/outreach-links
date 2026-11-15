@@ -666,3 +666,7 @@ Prochain sous-jalon : MH.2 (construction de la home).
 
 - `docs/audit-v2.md` : profil de marque d'abord ; requêtes par persona (enseignants, parents, associations, médiathèques pour mega-coloring.com) ; collecte par tactique via Domain Intersection (recoupement des concurrents, comme Semrush Backlink Gap et Ahrefs Link Intersect), SERP top 30 et **Content Analysis `search` de DataForSEO** (filtre `page_type` = blogs, organization, message-boards, ecommerce : correspond aux types de sites visés) ; entonnoir de qualification ; liste courte classée ; recettes mises en cache par niche pour industrialiser. Coût estimé ~0,5 à 1 USD par audit (hypothèse). Rien n'est construit : conception à valider par Jonathan avant MT.0 et MT.1.
 - Inconnues à lever par un run réel borné : français et tarif de Content Analysis, coût de Domain Intersection.
+
+## Coût raisonnable de l'audit v2 (15/11/2026, décision de Jonathan)
+
+- L'audit doit rester **exhaustif mais à coût raisonnable** (réservé aux plans payants). Intégré à `docs/audit-v2.md` section 6 : budget cible ~1 USD par audit, plafond d'audit 2 USD, plafond de sécurité bêta 5 USD par audit et 25 USD par jour ; part de budget par phase ; cinq mécanismes (entonnoir, arrêt par rendement décroissant, requêtes classées par rendement, caches partagés entre clients, appels groupés) ; coût affiché avant lancement et tableau de bord interne (MT.7). Valeurs proposées, à confirmer ; le coût réel mesuré fixera ensuite le nombre d'audits par plan.

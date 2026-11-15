@@ -69,9 +69,40 @@ Personas de donneurs de liens que le profil doit faire émerger : enseignants et
 - **Idempotence et reprise** : chaque phase peut être relancée sans repayer ce qui est fait.
 - **Évaluation continue** : jeu annoté (types de sites, vendeurs de liens, adéquation) rejoué à chaque changement de prompt ou de règle.
 
-## 6. Coût estimé par audit (à mesurer sur le site de test)
+## 6. Coût : exhaustif, mais raisonnable (règle de construction, 15/11/2026)
 
-Grille mesurée : SERP live ~0,006 USD par requête (top 30), backlinks ~0,0277 par 100 lignes, LLM ~0,00012 par appel court. Estimation : profil ~0,005 ; 20 à 30 requêtes ~0,15 ; gap ~0,10 ; Content Analysis 8 à 12 appels ~0,2 (exemple de la doc : 0,0203 USD pour 10 résultats, **tarif non confirmé**) ; qualification de ~300 pages ~0,05 ; total **~0,5 à 1 USD** par audit complet. Hypothèses à valider par un run réel borné.
+Décision de Jonathan : l'audit est le cœur du produit et sera réservé aux plans payants, mais **son coût doit rester raisonnable**. Chaque phase est donc conçue avec un budget, pas seulement une fonction.
+
+**Trois niveaux de budget par audit** (valeurs proposées, à confirmer)
+
+- **Budget cible : environ 1 USD** pour un audit complet. C'est ce que la conception doit viser et ce qui est annoncé à l'utilisateur.
+- **Plafond d'audit : 2 USD.** Aucune phase ne démarre si le cumul prévisible le dépasse (même mécanisme que MA.6 : contrôle avant chaque appel payant).
+- **Plafond de sécurité bêta : 5 USD par audit et 25 USD par jour**, uniquement contre les bugs (une boucle qui s'emballe).
+
+**Budget alloué par phase** (part du budget cible)
+
+| Phase                                                         | Part  | Remarque                                  |
+| ------------------------------------------------------------- | ----- | ----------------------------------------- |
+| 0. Profil de marque                                           | ~1 %  | lecture gratuite + un appel LLM court     |
+| 1. Requêtes de personas                                       | ~2 %  | LLM, mis en cache par recette             |
+| 2. Concurrents (SERP, tailles)                                | ~15 % | requêtes limitées, mesure groupée         |
+| 3. Collecte (recoupement, SERP de personas, Content Analysis) | ~55 % | la plus chère : c'est elle qu'on règle    |
+| 4. Qualification (LLM sur les survivants)                     | ~10 % | modèle économique, après filtres gratuits |
+| Marge                                                         | ~17 % | imprévus, relances                        |
+
+**Cinq mécanismes pour tenir le budget sans perdre en exhaustivité**
+
+1. **Entonnoir du moins cher au plus cher** : tout ce qui est gratuit (déduplication, exclusions, lecture de page) passe avant tout appel payant ; le LLM ne voit que les survivants, jamais les 3 000 candidats bruts.
+2. **Arrêt par rendement décroissant** : la collecte s'arrête quand les nouvelles requêtes n'apportent presque plus de cibles qualifiées par dollar (seuil réglable), et non quand les requêtes prévues sont épuisées.
+3. **Priorité aux requêtes les plus rentables** : les requêtes de personas sont classées par rendement attendu (déduit du profil, puis des audits passés sur la même niche) ; on dépense d'abord sur les meilleures.
+4. **Caches réels** : réponses DataForSEO par requête et par domaine, lectures de pages, qualifications de domaines partagées entre clients, recettes par niche. Le coût d'un audit **baisse avec le nombre de clients de la même niche**.
+5. **Appels groupés et bornés** : mesure de taille et recoupement en une requête, une ligne par domaine, nombre de lignes plafonné, profondeur SERP adaptée (le top 30 seulement quand le top 10 ne suffit pas).
+
+**Transparence** : le coût attendu et le pire cas sont affichés avant le lancement (une seule confirmation) ; le coût réel par phase est consigné dans `cost_ledger` et visible dans un tableau de bord interne par audit et par utilisateur (obligation de CLAUDE.md 4.5), avec le coût par cible livrée et par lien obtenu une fois les envois en place.
+
+**Économie du produit** : ce coût par audit servira à fixer le nombre d'audits inclus dans chaque plan payant (Médium, Total) et le prix des audits supplémentaires ; les limites par palier se calculent sur le coût mesuré, jamais sur l'estimation.
+
+**Estimation de départ (hypothèse à mesurer)** : grille mesurée : SERP live ~0,006 USD par requête (top 30), backlinks ~0,0277 par 100 lignes, LLM ~0,00012 par appel court. Profil ~0,005 ; 20 à 30 requêtes ~0,15 ; recoupement ~0,10 ; Content Analysis 8 à 12 appels ~0,2 (exemple de la doc : 0,0203 USD pour 10 résultats, **tarif non confirmé**) ; qualification de ~300 pages ~0,05 ; soit **~0,5 à 1 USD**. Un run réel borné sur le site de test fixe les vraies valeurs.
 
 ## 7. À vérifier avant de construire
 
