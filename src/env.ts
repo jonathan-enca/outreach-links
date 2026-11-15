@@ -34,6 +34,9 @@ const schema = z.object({
     .transform((v) => v === "true"),
   /** Lecteur de pages de secours du tri (M3.1) : `jina` active r.jina.ai (hôte à autoriser). */
   PAGE_READER_FALLBACK: z.enum(["none", "jina"]).default("none"),
+  /** Finder et vérificateur d'emails (M3.2) : sans clé, rien n'est jamais « envoyable ». */
+  EMAIL_FINDER_PROVIDER: z.enum(["hunter"]).default("hunter"),
+  EMAIL_FINDER_API_KEY: z.string().min(1).optional(),
   /** LLM (optionnels : erreur claire à l'usage). Anthropic est la cible ; OpenAI sert au développement. */
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   OPENAI_API_KEY: z.string().min(1).optional(),
