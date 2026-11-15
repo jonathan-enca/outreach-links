@@ -11,6 +11,7 @@ import {
   verifyUnsubscribeToken,
   verifyUnsubscribeTokenWithRing,
 } from "./message";
+import { buildFollowUp, followUpState, type SignalKind } from "./followup";
 import { addDays, effectiveDailyCap, isInSendWindow } from "./schedule";
 import { runSendTick, type SendDeps } from "./service";
 
@@ -347,5 +348,173 @@ describe("moteur d'envoi : mode réel contre un faux serveur SMTP local", () => 
     const before = received.length;
     expect((await runSendTick(d))[0]).toMatchObject({ result: "a_reessayer" });
     expect(received.length).toBe(before);
+  });
+
+  it("relance réelle à J+10 : même fil (In-Reply-To / References), même adresse, texte court sans IA", async () => {
+    mode = "ok";
+    const db = world({ drafts: 1, smtpPort: port });
+    let now = MONDAY_10H;
+    const d = real(db, () => now);
+    const before = received.length;
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "envoye" });
+    const initial = db.tables.sent_messages![0]!;
+    now = addDays(MONDAY_10H, 9);
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "rien_a_envoyer" });
+    now = addDays(MONDAY_10H, 10);
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "envoye", draftId: "d1" });
+    expect(received.length).toBe(before + 2);
+    const mail = await simpleParser(received.at(-1)!);
+    expect([mail.to].flat()[0]?.text).toBe("c1@cible1.fr");
+    expect(mail.subject).toBe("Re: Sujet 1");
+    expect(mail.inReplyTo).toBe(initial.message_id);
+    expect(mail.references).toContain(initial.message_id as string);
+    expect(mail.messageId).not.toBe(initial.message_id);
+    expect(mail.text).toContain("Corps 1");
+    expect(mail.text).not.toMatch(/\bIA\b|intelligence artificielle|automatis/i);
+    const rows = db.tables.sent_messages!;
+    expect(rows).toHaveLength(2);
+    expect(rows[1]).toMatchObject({ step: "relance", status: "envoye", dry_run: false });
+    expect(rows[1]!.follow_up_due_at ?? null).toBeNull();
+    // Une seule relance, jamais deux.
+    now = addDays(MONDAY_10H, 21);
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "rien_a_envoyer" });
+    expect(received.length).toBe(before + 2);
+  });
+});
+
+describe("relance unique : dry run", () => {
+  const J10 = addDays(MONDAY_10H, 10);
+
+  async function sentOnce(drafts = 1) {
+    const db = world({ drafts });
+    const d = deps(db);
+    await runSendTick(d);
+    return { db, d };
+  }
+  const signal = (db: ReturnType<typeof world>, kind: SignalKind) =>
+    (db.tables.reply_signals ??= []).push({
+      sent_message_id: db.tables.sent_messages![0]!.id,
+      kind,
+    });
+
+  it("simule la relance à J+10 (pas avant), dans le même fil, une seule fois", async () => {
+    const { db, d } = await sentOnce();
+    d.now = () => addDays(MONDAY_10H, 9);
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "rien_a_envoyer" });
+    d.now = () => J10;
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "simule", draftId: "d1" });
+    const [initial, relance] = db.tables.sent_messages!;
+    expect(relance).toMatchObject({
+      step: "relance",
+      status: "simule",
+      dry_run: true,
+      to_email: "c1@cible1.fr",
+      subject: "Re: Sujet 1",
+      in_reply_to: initial!.message_id,
+    });
+    expect(relance!.message_id).not.toBe(initial!.message_id);
+    expect(relance!.follow_up_due_at ?? null).toBeNull();
+    expect(d.send).not.toHaveBeenCalled();
+    d.now = () => addDays(MONDAY_10H, 30);
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "rien_a_envoyer" });
+    expect(db.tables.sent_messages).toHaveLength(2);
+  });
+
+  it("la relance due passe avant un nouvel envoi", async () => {
+    const { db, d } = await sentOnce(2);
+    d.now = () => J10;
+    const r = (await runSendTick(d))[0];
+    expect(r).toMatchObject({ result: "simule", draftId: "d1" });
+    expect(db.tables.sent_messages!.map((m) => `${m.draft_id}:${m.step}`)).toEqual([
+      "d1:initial",
+      "d1:relance",
+    ]);
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "simule", draftId: "d2" });
+  });
+
+  it.each(["reponse", "desinscription", "rebond"] as const)(
+    "un signal « %s » annule la relance : rien n'est envoyé, motif enregistré, jamais retentée",
+    async (kind) => {
+      const { db, d } = await sentOnce();
+      signal(db, kind);
+      d.now = () => J10;
+      expect((await runSendTick(d))[0]).toMatchObject({ result: "rien_a_envoyer" });
+      const relance = db.tables.sent_messages![1]!;
+      expect(relance).toMatchObject({
+        step: "relance",
+        status: "ignore",
+        skip_reason: {
+          reponse: "reponse_recue",
+          desinscription: "desinscription",
+          rebond: "rebond",
+        }[kind],
+      });
+      expect(db.tables.events!.map((e) => e.type)).toContain("send.followup_cancelled");
+      d.now = () => addDays(MONDAY_10H, 40);
+      await runSendTick(d);
+      expect(db.tables.sent_messages).toHaveLength(2);
+      expect(d.send).not.toHaveBeenCalled();
+    },
+  );
+
+  it("adresse passée en suppression entre-temps : relance ignorée", async () => {
+    const { db, d } = await sentOnce();
+    db.tables.suppressions!.push({ workspace_id: WS, email: "c1@cible1.fr", domain: null });
+    d.now = () => J10;
+    await runSendTick(d);
+    expect(db.tables.sent_messages![1]).toMatchObject({
+      status: "ignore",
+      skip_reason: "supprime",
+    });
+  });
+
+  it("les relances respectent la fenêtre d'envoi (week-end : attendre lundi)", async () => {
+    const { db, d } = await sentOnce();
+    d.now = () => new Date("2026-11-28T11:00:00+01:00"); // samedi, J+12
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "hors_fenetre" });
+    d.now = () => new Date("2026-11-30T10:00:00+01:00");
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "simule" });
+    expect(db.tables.sent_messages).toHaveLength(2);
+  });
+});
+
+describe("machine à états de la relance", () => {
+  const now = new Date("2026-12-01T10:00:00Z");
+  const initial = {
+    status: "envoye",
+    sent_at: "2026-11-16T09:00:00Z",
+    follow_up_due_at: "2026-11-26T09:00:00Z",
+  };
+  it("Envoyé J0 → relance due → Relancé → Terminé sans réponse", () => {
+    const early = new Date("2026-11-20T10:00:00Z");
+    expect(followUpState(initial, null, [], early)).toBe("envoye_j0");
+    expect(followUpState(initial, null, [], now)).toBe("relance_due");
+    const relance = { status: "envoye", sent_at: "2026-11-30T09:00:00Z" };
+    expect(followUpState(initial, relance, [], now)).toBe("relancé");
+    expect(followUpState(initial, relance, [], addDays(now, 7))).toBe("termine_sans_reponse");
+    expect(followUpState(initial, { status: "a_reessayer" }, [], now)).toBe("relance_a_reessayer");
+    expect(followUpState(initial, { status: "ignore" }, [], now)).toBe("annulee_autre");
+  });
+  it("un signal annule, quelle que soit l'étape ; la réponse prime", () => {
+    expect(followUpState(initial, null, ["rebond"], now)).toBe("annulee_rebond");
+    expect(followUpState(initial, null, ["desinscription", "rebond"], now)).toBe(
+      "annulee_desinscription",
+    );
+    expect(followUpState(initial, null, ["rebond", "reponse"], now)).toBe("annulee_reponse");
+    expect(followUpState({ status: "en_cours" }, null, [], now)).toBe("sans_relance");
+    expect(followUpState(null, null, [], now)).toBe("sans_relance");
+  });
+  it("le texte de relance cite le message d'origine, reste court et ne mentionne pas l'IA", () => {
+    const m = buildFollowUp({
+      fromName: "Jo",
+      subject: "Re: Sujet",
+      body: "Bonjour,\n\nCorps\n\nJo",
+      sentAt: new Date("2026-11-16T09:00:00Z"),
+    });
+    expect(m.subject).toBe("Re: Sujet");
+    expect(m.body).toContain("> Corps");
+    expect(m.body).toContain("16 novembre 2026");
+    expect(m.body.split("\n> ")[0]!.length).toBeLessThan(500);
+    expect(m.body).not.toMatch(/\bIA\b|intelligence artificielle|automatis/i);
   });
 });

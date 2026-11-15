@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 import type { Database } from "@/lib/supabase/database.types";
 import { SEND_LIMITS } from "./limits";
 import { buildOutgoing, makeMessageId, makeUnsubscribeToken, unsubscribeSecrets } from "./message";
+import { buildFollowUp, skipReasonForSignals, type SignalKind } from "./followup";
 import { addDays, effectiveDailyCap, isInSendWindow } from "./schedule";
 
 type Client = SupabaseClient<Database>;
@@ -109,6 +110,10 @@ async function sendNext(db: Client, box: MailboxRow, deps: SendDeps): Promise<Ma
   const hourly = Math.min(box.hourly_cap, SEND_LIMITS.hourlyMax);
   const daily = effectiveDailyCap(box.daily_cap, firstAt, now);
   if (inHour >= hourly || rows.length >= daily) return { ...base, result: "plafond" };
+
+  // Relances dues d'abord : une relance en retard passe avant un nouvel envoi.
+  const followUp = await sendNextFollowUp(db, box, dry, now, deps);
+  if (followUp) return { ...base, ...followUp };
 
   // Candidats : brouillons email des lots VALIDÉS des plans de ce site, dans l'ordre.
   const { data: plans } = await db.from("link_plans").select("id").eq("site_id", box.site_id);
@@ -271,6 +276,7 @@ async function finish(
   dry: boolean,
   now: Date,
   deps: SendDeps,
+  opts: { step: "initial" | "relance"; inReplyTo?: string | null } = { step: "initial" },
 ) {
   const draftId = (await db.from("sent_messages").select("draft_id").eq("id", rowId).single()).data!
     .draft_id;
@@ -278,7 +284,13 @@ async function finish(
     await db.from("events").insert({
       workspace_id: draft.workspace_id,
       type,
-      payload: { sent_message_id: rowId, mailbox_id: box.id, dry_run: dry, ...extra } as never,
+      payload: {
+        sent_message_id: rowId,
+        mailbox_id: box.id,
+        dry_run: dry,
+        step: opts.step,
+        ...extra,
+      } as never,
     });
   };
 
@@ -288,7 +300,9 @@ async function finish(
       .update({
         status: "simule",
         sent_at: now.toISOString(),
-        follow_up_due_at: addDays(now, SEND_LIMITS.followUpDays).toISOString(),
+        ...(opts.step === "initial"
+          ? { follow_up_due_at: addDays(now, SEND_LIMITS.followUpDays).toISOString() }
+          : {}),
       })
       .eq("id", rowId);
     await log("send.simulated", { to_domain: to.split("@")[1] });
@@ -319,6 +333,7 @@ async function finish(
     subject: draft.subject ?? "",
     body: draft.body,
     messageId,
+    inReplyTo: opts.inReplyTo ?? null,
     unsubscribeUrl: `${deps.appUrl}/api/unsubscribe?t=${makeUnsubscribeToken(rowId, secret)}`,
   });
   const res = await deps.send(
@@ -333,7 +348,9 @@ async function finish(
       .update({
         status: "envoye",
         sent_at: now.toISOString(),
-        follow_up_due_at: addDays(now, SEND_LIMITS.followUpDays).toISOString(),
+        ...(opts.step === "initial"
+          ? { follow_up_due_at: addDays(now, SEND_LIMITS.followUpDays).toISOString() }
+          : {}),
       })
       .eq("id", rowId);
     await log("send.sent", { to_domain: to.split("@")[1] });
@@ -359,4 +376,174 @@ async function finish(
     .eq("id", rowId);
   await log("send.failed", { kind: res.kind, retry });
   return { result: retry ? ("a_reessayer" as const) : ("echec" as const), draftId };
+}
+
+type Outcome = {
+  result: "simule" | "envoye" | "echec" | "a_reessayer" | "ignore";
+  draftId: string;
+} | null;
+
+/**
+ * Relance unique (M4.3) : pour un envoi initial de cette boîte dont `follow_up_due_at` est passé.
+ * Une réponse, une désinscription ou un rebond (table `reply_signals`) l'annule : elle est alors
+ * enregistrée « ignore » (jamais envoyée, jamais retentée). Même fil (In-Reply-To), même adresse.
+ * La base refuse en plus toute relance trop tôt, sans signal absent, ou hors du fil (trigger).
+ */
+async function sendNextFollowUp(
+  db: Client,
+  box: MailboxRow,
+  dry: boolean,
+  now: Date,
+  deps: SendDeps,
+): Promise<Outcome> {
+  const { data: initials } = await db
+    .from("sent_messages")
+    .select("*")
+    .eq("mailbox_id", box.id)
+    .eq("step", "initial")
+    .eq("dry_run", dry)
+    .in("status", ["envoye", "simule"]);
+  const due = (initials ?? [])
+    .filter((m) => m.follow_up_due_at && new Date(m.follow_up_due_at) <= now)
+    .sort((a, b) => a.follow_up_due_at!.localeCompare(b.follow_up_due_at!));
+  if (due.length === 0) return null;
+  const ids = due.map((m) => m.id);
+  const { data: relances } = await db
+    .from("sent_messages")
+    .select("*")
+    .in(
+      "draft_id",
+      due.map((m) => m.draft_id),
+    )
+    .eq("step", "relance")
+    .eq("dry_run", dry);
+  const { data: sigs } = await db
+    .from("reply_signals")
+    .select("sent_message_id, kind")
+    .in("sent_message_id", ids);
+  const byDraft = new Map((relances ?? []).map((r) => [r.draft_id, r]));
+  const signalsOf = (id: string) =>
+    (sigs ?? []).filter((s) => s.sent_message_id === id).map((s) => s.kind as SignalKind);
+
+  for (const initial of due) {
+    const prev = byDraft.get(initial.draft_id);
+    const retry = prev?.status === "a_reessayer" && new Date(prev.next_attempt_at ?? 0) <= now;
+    if (prev && !retry) continue;
+    const base = {
+      workspace_id: initial.workspace_id,
+      plan_id: initial.plan_id,
+      batch_id: initial.batch_id,
+      draft_id: initial.draft_id,
+      mailbox_id: box.id,
+      step: "relance",
+      dry_run: dry,
+      claimed_at: now.toISOString(),
+      to_email: initial.to_email,
+      in_reply_to: initial.message_id,
+    };
+    const reason = skipReasonForSignals(signalsOf(initial.id));
+    const mail = buildFollowUp({
+      fromName: box.from_name,
+      subject: initial.subject,
+      body: initial.body,
+      sentAt: new Date(initial.sent_at ?? now),
+    });
+    const skip = async (why: string): Promise<Outcome> => {
+      if (prev) {
+        await db
+          .from("sent_messages")
+          .update({ status: "ignore", skip_reason: why })
+          .eq("id", prev.id);
+      } else {
+        await db.from("sent_messages").insert({
+          ...base,
+          subject: mail.subject,
+          body: mail.body,
+          message_id: makeMessageId(box.email),
+          status: "ignore",
+          skip_reason: why,
+        });
+      }
+      await db.from("events").insert({
+        workspace_id: initial.workspace_id,
+        type: "send.followup_cancelled",
+        payload: { sent_message_id: initial.id, reason: why, dry_run: dry } as never,
+      });
+      return { result: "ignore", draftId: initial.draft_id };
+    };
+    if (reason) {
+      await skip(reason);
+      continue;
+    }
+    if (await isSuppressed(db, initial.workspace_id, initial.to_email)) {
+      await skip("supprime");
+      continue;
+    }
+
+    let rowId: string;
+    let messageId: string;
+    let attempts: number;
+    if (prev) {
+      const { data } = await db
+        .from("sent_messages")
+        .update({
+          status: "en_cours",
+          attempts: prev.attempts + 1,
+          claimed_at: now.toISOString(),
+          error: null,
+        })
+        .eq("id", prev.id)
+        .eq("status", "a_reessayer")
+        .select("id, message_id")
+        .maybeSingle();
+      if (!data) continue;
+      rowId = data.id;
+      messageId = data.message_id;
+      attempts = prev.attempts + 1;
+    } else {
+      messageId = makeMessageId(box.email);
+      const { data, error } = await db
+        .from("sent_messages")
+        .insert({
+          ...base,
+          subject: mail.subject,
+          body: mail.body,
+          message_id: messageId,
+          status: "en_cours",
+          attempts: 1,
+        })
+        .select("id")
+        .single();
+      if (error || !data) {
+        if (error?.code !== "23505") {
+          logger.warn("relance refusée par la base", {
+            code: error?.code,
+            message: error?.message,
+          });
+        }
+        continue;
+      }
+      rowId = data.id;
+      attempts = 1;
+    }
+    return finish(
+      db,
+      box,
+      {
+        workspace_id: initial.workspace_id,
+        plan_id: initial.plan_id,
+        subject: mail.subject,
+        body: mail.body,
+      },
+      initial.to_email,
+      messageId,
+      rowId,
+      attempts,
+      dry,
+      now,
+      deps,
+      { step: "relance", inReplyTo: initial.message_id },
+    );
+  }
+  return null;
 }

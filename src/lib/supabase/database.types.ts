@@ -1537,6 +1537,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      reply_signals: {
+        Row: {
+          created_at: string;
+          id: string;
+          kind: string;
+          received_at: string;
+          sent_message_id: string;
+          workspace_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          kind: string;
+          received_at?: string;
+          sent_message_id: string;
+          workspace_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          received_at?: string;
+          sent_message_id?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reply_signals_sent_message_id_fkey";
+            columns: ["sent_message_id"];
+            isOneToOne: false;
+            referencedRelation: "sent_messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reply_signals_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       sent_messages: {
         Row: {
           attempts: number;
