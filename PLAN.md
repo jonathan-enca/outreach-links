@@ -218,7 +218,7 @@ Ordre : chaque sous-jalon est livrable seul, sans appel payant en CI, et réduit
 - **Tâches** : job de crawl à J+7, J+14, J+30 : le lien est-il en ligne, dofollow/nofollow, contextuel, page indexable ; table `links` ; statut « Live » ; alerte si le lien disparaît ; page « Liens obtenus ».
 - **Acceptation** : détection correcte sur pages de test (lien présent, nofollow, disparu).
 
-### 5.4 Tâches manuelles (formulaires)
+### 5.4 Tâches manuelles (formulaires) (fait)
 
 - **Prérequis** : 3.2, 3.4.
 - **Tâches** : écran des `manual_tasks` : lien vers la page de contact, message pré-rédigé, bouton copier, marquer comme fait ; intégration au suivi (même statuts) ; rappel dans le digest.

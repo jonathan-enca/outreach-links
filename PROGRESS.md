@@ -36,7 +36,8 @@
 | M5.2        | fait (inbox classé en 7 vues, fiche de fil, brouillons à valider, réponse prête à insérer, politique « payant », autonomie manuel/assisté ; AUCUN envoi de réponse : voir M5.2b ; migration appliquée sur la vraie base ; 0 USD d'API) | PR M5.2                                                        | 2026-11-23 |
 | M5.2b       | fait (envoi des réponses validées, dry run et faux serveur SMTP seulement ; migration appliquée sur la vraie base ; aucun envoi réel ; 0 USD d'API)                                                                                    | PR M5.2b                                                       | 2026-11-24 |
 | M5.3        | fait (vérification des liens à J+7, J+14, J+30 : live / disparu / nofollow / indexable, alertes, page « Liens obtenus » ; testé sur pages de test, aucun appel payant ; migration appliquée sur la vraie base)                         | PR M5.3                                                        | 2026-11-25 |
-| M5.4 à M7.3 | à faire                                                                                                                                                                                                                                |                                                                |            |
+| M5.4        | fait (écran Tâches, message à copier, relance J+10 en tâche, rappels pour le digest ; garde-fous en base ; migration appliquée sur la vraie base ; 0 USD d'API)                                                                        | PR M5.4                                                        | 2026-11-26 |
+| M6.1 à M7.3 | à faire                                                                                                                                                                                                                                |                                                                |            |
 
 ## Décisions prises
 
@@ -451,3 +452,14 @@
 ## Prochain sous-jalon recommandé
 
 M5.4 (tâches manuelles des formulaires). En parallèle, finir la mise en production d'Inngest et le run réel DataForSEO dès que Jonathan fournit les identifiants.
+
+## M5.4 : tâches manuelles (formulaires)
+
+- Migration additive `2026112600000000_manual_tasks_followup.sql` (appliquée sur la vraie base) : `manual_tasks` gagne `done_at`, `follow_up_status` (`en_attente`, `fait`, `annulee`), `follow_up_due_at`, `follow_up_message`, `follow_up_done_at`, `follow_up_cancel_reason` (`reponse`, `refus`, `abandon`) et des contraintes de cohérence. Trigger `guard_manual_task` : une tâche ne devient « faite » que si son message est dans un **lot validé** ; statuts finaux figés ; relance « faite » refusée avant l'échéance. 4 tests SQL (`supabase/tests/manual-tasks.test.ts`).
+- Code : `src/features/tasks/` (`view.ts` états et groupes, `followup-message.ts` gabarit de relance sans LLM passant le linter, `service.ts` : `listTasks`, `countDueTasks`, `completeTask`, `completeFollowUp`, `cancelFollowUp`, `skipTask`, `actions.ts`, `tasks-section.tsx`). Écran `/app/taches` (entrée « Tâches » dans la navigation) : 4 groupes (à faire, à relancer, en attente, terminées), message copiable (le brouillon validé du lot), lien vers le formulaire, « J'ai envoyé le message ».
+- Décisions [auto] : « fait » programme la relance à J+10 (`SEND_LIMITS.followUpDays`) ; le message de relance est un gabarit français fixe signé du prénom, avec la même URL ; aucune action serveur ne remplit un formulaire ; réponse, refus ou abandon annulent la relance (même logique que les signaux de l'inbox) ; les tâches ne sont visibles qu'après validation du lot.
+- Rappel pour le digest : `countDueTasks(supabase, now)` renvoie `{ toDo, followUps }` et `reminderText` en fait une phrase ; M6.3 n'a qu'à les appeler.
+- Pas de test Playwright (pas de session de test). 0 USD d'API. Dette : le message initial copié dans `manual_tasks.message` (M3.3) n'est plus lu, l'écran lit le brouillon validé ; la relance n'est pas encore mise à jour automatiquement par une réponse reçue dans l'inbox (formulaires sans fil email).
+- Sessions enfants lancées : 4 sur 12 (la 4e = M5.4).
+
+Prochain sous-jalon : M6.1 (Stripe en mode test).

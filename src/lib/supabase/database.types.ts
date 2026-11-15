@@ -1641,6 +1641,12 @@ export type Database = {
           status: string;
           type: string;
           workspace_id: string;
+          done_at: string | null;
+          follow_up_cancel_reason: string | null;
+          follow_up_done_at: string | null;
+          follow_up_due_at: string | null;
+          follow_up_message: string | null;
+          follow_up_status: string | null;
         };
         Insert: {
           created_at?: string;
@@ -1652,6 +1658,12 @@ export type Database = {
           status?: string;
           type?: string;
           workspace_id: string;
+          done_at?: string | null;
+          follow_up_cancel_reason?: string | null;
+          follow_up_done_at?: string | null;
+          follow_up_due_at?: string | null;
+          follow_up_message?: string | null;
+          follow_up_status?: string | null;
         };
         Update: {
           created_at?: string;
@@ -1663,6 +1675,12 @@ export type Database = {
           status?: string;
           type?: string;
           workspace_id?: string;
+          done_at?: string | null;
+          follow_up_cancel_reason?: string | null;
+          follow_up_done_at?: string | null;
+          follow_up_due_at?: string | null;
+          follow_up_message?: string | null;
+          follow_up_status?: string | null;
         };
         Relationships: [
           {
