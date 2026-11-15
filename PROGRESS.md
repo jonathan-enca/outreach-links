@@ -593,3 +593,7 @@ Prochain sous-jalon : MH.2 (construction de la home).
 - ⚠ **Bloquant avant ouverture au public** : la confirmation d'email est active (voulu) mais l'envoi par défaut de Supabase est limité à 2 mails par heure et aux membres de l'organisation (voir « Décisions prises »). Tant qu'un SMTP dédié (Resend, domaine d'envoi) n'est pas branché, un visiteur ne peut pas confirmer son inscription. Je n'ai pas désactivé la confirmation (adresses non vérifiées) ni acheté de domaine. Vérifié en vrai : un mauvais mot de passe renvoie bien « Email ou mot de passe incorrect » ; aucune inscription réelle testée (elle enverrait un mail).
 - Votre compte existant (créé par lien magique) n'a pas de mot de passe : utiliser « Mot de passe oublié ? » une fois pour en choisir un.
 - Après confirmation, le lien mène à `/app` (tableau de bord, bouton « Analyser mon site ») ; une inscription avec session immédiate mènerait à `/app/demarrer`.
+
+## Texte du hero (15/11/2026, demande de Jonathan)
+
+- Description du hero remplacée par la traduction française, tournée vers l'utilisateur : « Nous trouvons les sites qui méritent de vous citer, rédigeons pour chacun une demande personnalisée et l'envoyons depuis votre propre boîte mail. Puis nous relançons, classons les réponses et vérifions que le lien est bien en ligne. Vous fixez les règles et validez chaque lot : le reste tourne tout seul. » (`messages/fr.ts > home.hero.lead`). Le nom du produit n'y figure pas (réglage unique `app.name`). Le digest hebdo n'est pas cité (M6.3 pas fait).

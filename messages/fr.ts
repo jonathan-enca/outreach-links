@@ -30,7 +30,7 @@ export const fr = {
       title: "Des backlinks gratuits, demandés aux bons sites",
       titleAccent: "Des backlinks gratuits,",
       titleRest: "demandés aux bons sites",
-      lead: "L'audit repère qui se classe devant vous et d'où viennent leurs liens. Vous validez le plan, puis les demandes partent de votre boîte mail, lot par lot, avec une seule relance.",
+      lead: "Nous trouvons les sites qui méritent de vous citer, rédigeons pour chacun une demande personnalisée et l'envoyons depuis votre propre boîte mail. Puis nous relançons, classons les réponses et vérifions que le lien est bien en ligne. Vous fixez les règles et validez chaque lot : le reste tourne tout seul.",
       cta: { primary: "Essai gratuit", secondary: "Fonctionnement" },
       hints: [
         "Résultat en une à deux minutes",
