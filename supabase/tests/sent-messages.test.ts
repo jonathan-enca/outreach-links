@@ -443,8 +443,11 @@ describe.skipIf(!adminUrl)("envois : garde-fous en base", () => {
           ),
         ).rejects.toThrow(/duplicate key/);
         await c.query("rollback to savepoint s");
+        // Un rebond met aussi l'adresse en suppression (M4.4) : ce garde-fou, plus ancien, répond d'abord.
         await expect(relance(c, b, drafts[0]!, { inReplyTo: i.message_id })).rejects.toThrow(
-          /réponse, désinscription ou rebond/,
+          kind === "rebond"
+            ? /réponse, désinscription ou rebond|liste de suppression/
+            : /réponse, désinscription ou rebond/,
         );
       });
     },

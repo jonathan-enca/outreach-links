@@ -869,6 +869,76 @@ export type Database = {
           },
         ];
       };
+      inbound_messages: {
+        Row: {
+          body_excerpt: string;
+          created_at: string;
+          from_email: string | null;
+          id: string;
+          in_reply_to: string | null;
+          kind: string;
+          mailbox_id: string;
+          match_method: string;
+          message_id: string;
+          received_at: string;
+          sent_message_id: string;
+          subject: string | null;
+          workspace_id: string;
+        };
+        Insert: {
+          body_excerpt?: string;
+          created_at?: string;
+          from_email?: string | null;
+          id?: string;
+          in_reply_to?: string | null;
+          kind: string;
+          mailbox_id: string;
+          match_method: string;
+          message_id: string;
+          received_at: string;
+          sent_message_id: string;
+          subject?: string | null;
+          workspace_id: string;
+        };
+        Update: {
+          body_excerpt?: string;
+          created_at?: string;
+          from_email?: string | null;
+          id?: string;
+          in_reply_to?: string | null;
+          kind?: string;
+          mailbox_id?: string;
+          match_method?: string;
+          message_id?: string;
+          received_at?: string;
+          sent_message_id?: string;
+          subject?: string | null;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inbound_messages_mailbox_id_fkey";
+            columns: ["mailbox_id"];
+            isOneToOne: false;
+            referencedRelation: "mailboxes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inbound_messages_sent_message_id_fkey";
+            columns: ["sent_message_id"];
+            isOneToOne: false;
+            referencedRelation: "sent_messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inbound_messages_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       link_opportunities: {
         Row: {
           audit_id: string;
@@ -1240,8 +1310,11 @@ export type Database = {
           hourly_cap: number;
           id: string;
           imap_host: string;
+          imap_last_read_at: string | null;
+          imap_last_uid: number;
           imap_ok: boolean | null;
           imap_port: number;
+          imap_uid_validity: number | null;
           key_version: string;
           last_error: string | null;
           last_test_at: string | null;
@@ -1268,8 +1341,11 @@ export type Database = {
           hourly_cap?: number;
           id?: string;
           imap_host: string;
+          imap_last_read_at?: string | null;
+          imap_last_uid?: number;
           imap_ok?: boolean | null;
           imap_port: number;
+          imap_uid_validity?: number | null;
           key_version: string;
           last_error?: string | null;
           last_test_at?: string | null;
@@ -1296,8 +1372,11 @@ export type Database = {
           hourly_cap?: number;
           id?: string;
           imap_host?: string;
+          imap_last_read_at?: string | null;
+          imap_last_uid?: number;
           imap_ok?: boolean | null;
           imap_port?: number;
+          imap_uid_validity?: number | null;
           key_version?: string;
           last_error?: string | null;
           last_test_at?: string | null;
