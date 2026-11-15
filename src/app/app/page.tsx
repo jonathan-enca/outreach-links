@@ -30,6 +30,9 @@ async function Workspace() {
         <Button asChild variant="outline">
           <Link href="/app/audit">{t.workspace.startAudit}</Link>
         </Button>
+        <Button asChild variant="outline">
+          <Link href="/app/facturation">{t.billing.link}</Link>
+        </Button>
         <form action={signOut}>
           <Button type="submit" variant="outline">
             {t.auth.signOut}

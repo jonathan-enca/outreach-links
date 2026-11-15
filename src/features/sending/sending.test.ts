@@ -90,9 +90,20 @@ function world(
   const n = opts.drafts ?? 3;
   const enc = encryptSecret("pw-secret", ring);
   const t = {
+    // M6.1 : l'envoi réel exige un abonnement actif.
+    plans: [{ key: "starter", monthly_send_cap: 150 }],
+    subscriptions: [
+      {
+        workspace_id: WS,
+        plan: "starter",
+        status: "active",
+        current_period_end: "2099-01-01T00:00:00Z",
+      },
+    ],
     mailboxes: [
       {
         id: "mb1",
+        workspace_id: WS,
         site_id: "site1",
         status: "verifiee",
         email: "jo@alice-site.fr",
@@ -542,5 +553,40 @@ describe("machine à états de la relance", () => {
     expect(m.body).toContain("16 novembre 2026");
     expect(m.body.split("\n> ")[0]!.length).toBeLessThan(500);
     expect(m.body).not.toMatch(/\bIA\b|intelligence artificielle|automatis/i);
+  });
+});
+
+describe("moteur d'envoi : plan d'abonnement (M6.1)", () => {
+  const realDeps = (db: ReturnType<typeof world>): SendDeps => ({
+    getServiceClient: () => db.client,
+    now: () => new Date("2026-11-16T10:00:00+01:00"),
+    realSendingAllowed: () => true,
+    keyRing: () => parseKeyRing(`v1:${Buffer.alloc(32, 1).toString("base64")}`),
+    send: vi.fn() as unknown as SendDeps["send"],
+    appUrl: "https://app.test",
+  });
+  it("sans abonnement actif, aucun envoi réel (le transport n'est jamais appelé)", async () => {
+    const db = world({ drafts: 2 });
+    db.tables.subscriptions!.length = 0;
+    const deps = realDeps(db);
+    const out = await runSendTick(deps);
+    expect(out[0]).toMatchObject({ result: "abonnement_requis" });
+    expect(deps.send).not.toHaveBeenCalled();
+    expect(db.tables.sent_messages).toHaveLength(0);
+  });
+  it("plafond mensuel atteint : plus d'envoi réel", async () => {
+    const db = world({ drafts: 2 });
+    db.tables.plans![0]!.monthly_send_cap = 1;
+    db.tables.sent_messages!.push({
+      workspace_id: WS,
+      dry_run: false,
+      status: "envoye",
+      claimed_at: "2026-11-02T10:00:00Z",
+      mailbox_id: "mb1",
+    });
+    const deps = realDeps(db);
+    const out = await runSendTick(deps);
+    expect(out[0]).toMatchObject({ result: "quota_mensuel" });
+    expect(deps.send).not.toHaveBeenCalled();
   });
 });
