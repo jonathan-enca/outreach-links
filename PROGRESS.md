@@ -567,3 +567,8 @@ Prochain sous-jalon : MH.2 (construction de la home).
 - Le champ « votre site » et la visite du produit sont passés dans une section juste sous le hero (`start-audit.tsx`, ancre `#audit`, titre « Voyez vos premières cibles, gratuitement »). L'en-tête reste blanc sur le hero sombre (à discuter : en-tête sombre sur la home ?).
 - Point à confirmer avec Jonathan : « Fonctionnement » mène à l'audit gratuit (demande littérale) alors que la section « Comment ça marche » existe plus bas ; changer l'ancre de `hero.tsx` si on préfère `#comment-ca-marche`.
 - Vérifié : tests (848), lint, typecheck, format, build ; Playwright 1440, 1280, 1024 et 390 px sans débordement. Mobile : cartes masquées.
+
+## Retour de Jonathan : respecter la DA de base (15/11/2026)
+
+- Constat : le hero sombre, la police mono et les majuscules espacées (hero, « C'est quoi », « Sur le terrain ») dérogeaient à `docs/da.md` (surface nuit réservée à la bande produit, à l'appel final et au pied de page ; Inter seul). Corrigé : hero clair (`bg-hero-wash`), pastille verte pâle, cartes d'exemple blanches, libellés `text-sm font-semibold text-primary`. `docs/da.md` complété (section 7 bis) ; **règle à retenir : relire `docs/da.md` avant toute section de la home**.
+- Bouton d'en-tête (bureau et menu mobile) : « Essai gratuit », lien vers `/connexion` (avant : « Audit gratuit » vers `#audit`).

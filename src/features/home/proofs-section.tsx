@@ -56,9 +56,7 @@ function SiteCard({ site }: { site: ProofSite }) {
         </div>
       </header>
 
-      <p className="mt-6 font-mono text-xs uppercase tracking-[0.14em] text-primary">
-        {p.authority}
-      </p>
+      <p className="mt-6 text-sm font-semibold text-primary">{p.authority}</p>
       <p className="mt-1 flex flex-wrap items-baseline gap-x-3 text-4xl font-bold tracking-tight">
         <span>
           {site.authority.from} {ARROW} {site.authority.to}
@@ -83,20 +81,18 @@ function SiteCard({ site }: { site: ProofSite }) {
         ))}
       </dl>
 
-      <p className="mt-3 font-mono text-xs uppercase tracking-[0.14em] text-primary">
-        {p.linkedFrom}
-      </p>
+      <p className="mt-3 text-sm font-semibold text-primary">{p.linkedFrom}</p>
       <ul className="mt-2 flex flex-wrap gap-2">
         {site.linkedFrom.map((l) => (
           <li
             key={l.domain}
-            className="rounded-control border border-border bg-muted px-2.5 py-1 font-mono text-xs"
+            className="rounded-control border border-border bg-muted px-2.5 py-1 text-xs"
           >
             {l.domain} <span className="text-primary">{l.authority}</span>
           </li>
         ))}
       </ul>
-      <p className="mt-auto pt-5 font-mono text-xs text-muted-foreground">{p.footnote}</p>
+      <p className="mt-auto pt-5 text-xs text-muted-foreground">{p.footnote}</p>
     </article>
   );
 }
@@ -128,7 +124,7 @@ export function Proofs() {
       <div className="mx-auto max-w-6xl">
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-20">
           <div>
-            <p className="flex items-center gap-4 font-mono text-xs font-medium uppercase tracking-[0.18em] text-primary">
+            <p className="flex items-center gap-4 text-sm font-semibold text-primary">
               {p.label}
               <span aria-hidden className="h-px flex-1 bg-border" />
             </p>
@@ -154,9 +150,7 @@ export function Proofs() {
         <div className="mt-10 grid gap-8 rounded-card border border-border bg-card p-6 shadow-card sm:grid-cols-3">
           {stats.map((s) => (
             <div key={s.label}>
-              <p className="font-mono text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                {s.label}
-              </p>
+              <p className="text-sm font-medium text-muted-foreground">{s.label}</p>
               <p className="mt-2 text-5xl font-bold tracking-tight text-primary">{s.value}</p>
               <p className="mt-2 text-sm text-muted-foreground">{s.note}</p>
             </div>

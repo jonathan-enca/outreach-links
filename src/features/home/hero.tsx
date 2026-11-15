@@ -13,25 +13,19 @@ export function Hero() {
   return (
     <section
       aria-labelledby="hero-titre"
-      className="surface-night bg-grid relative isolate overflow-hidden bg-background px-4 pb-20 pt-16 text-foreground sm:px-7 sm:pt-24 xl:pb-28 xl:pt-28"
+      className="bg-hero-wash relative isolate overflow-hidden px-4 pb-20 pt-16 sm:px-7 sm:pt-24 xl:pb-28 xl:pt-28"
     >
-      <div
-        aria-hidden
-        className="absolute left-1/2 top-1/3 -z-10 h-[34rem] w-[52rem] max-w-full -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/15 blur-3xl"
-      />
       <div className="relative mx-auto max-w-[1480px] xl:min-h-[640px]">
         <HeroCards />
         <div className="relative mx-auto flex max-w-2xl flex-col items-center text-center">
           <a
             href="#audit"
-            className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-[13px] font-medium transition-colors hover:bg-white/10"
+            className="mb-6 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3.5 py-1.5 text-[13px] font-semibold text-primary transition-colors hover:bg-primary/15"
           >
             {h.pill}
             <ArrowRight aria-hidden className="size-3.5" />
           </a>
-          <p className="mb-5 font-mono text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-            {h.audience}
-          </p>
+          <p className="mb-5 text-sm font-medium text-muted-foreground">{h.audience}</p>
           <h1
             id="hero-titre"
             className="text-balance text-5xl font-bold leading-[1.03] tracking-tight sm:text-6xl"
