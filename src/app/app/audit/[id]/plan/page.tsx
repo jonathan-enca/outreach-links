@@ -9,6 +9,9 @@ import {
 } from "@/features/plan/actions";
 import { PlanEditor } from "@/features/plan/plan-editor";
 import { loadPlan } from "@/features/plan/service";
+import { startTriageAction } from "@/features/triage/actions";
+import { loadTriage } from "@/features/triage/service";
+import { TriageSection } from "@/features/triage/triage-section";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 
@@ -24,6 +27,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   if (!auth.user) redirect("/connexion");
   const view = await loadPlan(supabase, id);
   if (!view) notFound();
+  const triage = await loadTriage(supabase, id);
   return (
     <>
       <PageHeader title={t.plan.title} description={t.plan.description} />
@@ -38,6 +42,11 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
         move={moveOpportunityAction.bind(null, id)}
         validate={validatePlanAction.bind(null, id)}
       />
+      {triage ? (
+        <div className="mt-6">
+          <TriageSection view={triage} startAction={startTriageAction.bind(null, id)} />
+        </div>
+      ) : null}
     </>
   );
 }
