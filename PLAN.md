@@ -37,7 +37,7 @@ Ordre : chaque sous-jalon est livrable seul, sans appel payant en CI, et réduit
 - **MA.4 Site neuf sans mot-clé classé (fait : audit gratuit par thème facultatif, « non classé » ; l'audit connecté exige déjà 1 à 3 requêtes).** Au lieu d'échouer (`aucun_mot_cle`), mode « site neuf » : requêtes issues de la niche saisie (3 requêtes par défaut, sans LLM), score affiché « non classé » (pas 0), plan fondé sur les concurrents seulement.
 - **MA.5 URL exactes des cibles (fait : `url_exact` sur les opportunités et le plan ; la résolution par fetch reste à faire en M3.1).** Marquer les URL issues de redirections Google comme partielles (`url_exact = false`) ; résolution tardive par fetch (M3.1) ; pas de second appel SERP payant.
 - **MA.6 Parcours unique (fait : colonne `auto_chain`, coût total annoncé, enchaînement par les jobs, progression unique ; le chasseur 404 reste manuel).** Une seule confirmation du coût total, puis enchaînement automatique concurrents → backlinks → profil → opportunités ; progression unique sur la page d'audit.
-- **MA.7 Valeur de l'aperçu gratuit.** Revoir ce que montre l'aperçu (en tenant compte de MA.2 à MA.5) ; hors design visuel (MD).
+- **MA.7 Valeur de l'aperçu gratuit (fait : indices sur cibles floutées, cibles partagées, message site neuf).** Revoir ce que montre l'aperçu (en tenant compte de MA.2 à MA.5) ; hors design visuel (MD).
 
 ---
 

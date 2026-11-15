@@ -556,6 +556,26 @@ describe("projection serveur du rapport (floutage)", () => {
     expect(html).toContain("cibles de plus");
   });
 
+  it("sans email : indices non révélateurs (extension, type de lien, cibles partagées), jamais le domaine (MA.7)", () => {
+    const view = projectReport(res, false);
+    const first = view.targets[0]!;
+    expect(first.locked).toBe(true);
+    if (first.locked) {
+      expect(typeof first.tld).toBe("string");
+      expect(first.tld).not.toContain(".");
+    }
+    expect(view.sharedTargets).toBe(view.targets.filter((t) => t.citedCompetitors >= 2).length);
+    const html = renderToStaticMarkup(createElement(ReportView, { view }));
+    expect(html).toMatch(/\.[a-z]+/);
+    expect(html).not.toContain("blog-secret");
+  });
+
+  it("site neuf sans page : message dédié plutôt que l'absence de pages 4 à 20", () => {
+    const view = { ...projectReport(res, false), pages: [], newSite: true };
+    const html = renderToStaticMarkup(createElement(ReportView, { view }));
+    expect(html).toContain("première page à pousser est votre accueil");
+  });
+
   it("avec email : les 10 cibles et le détail des pages sont présents, pas plus de 10", () => {
     const view = projectReport(res, true);
     expect(view.targets.every((t) => !t.locked)).toBe(true);

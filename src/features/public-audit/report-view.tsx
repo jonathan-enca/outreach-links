@@ -73,7 +73,7 @@ export function ReportView({ view }: { view: PublicReportView }) {
         <h2 className="font-display text-xl font-semibold">{r.pagesTitle}</h2>
         <p className="text-muted-foreground">{r.pagesBody}</p>
         {view.pages.length === 0 ? (
-          <p>{r.pagesNone}</p>
+          <p>{view.newSite ? r.pagesNewSite : r.pagesNone}</p>
         ) : (
           <ul className="flex flex-col gap-4">
             {view.pages.map((p) => (
@@ -111,6 +111,11 @@ export function ReportView({ view }: { view: PublicReportView }) {
       <Card className="flex flex-col gap-3 p-6">
         <h2 className="font-display text-xl font-semibold">{r.targetsTitle}</h2>
         <p className="text-muted-foreground">{r.targetsBody}</p>
+        {view.sharedTargets > 0 ? (
+          <p className="text-sm font-medium">
+            {r.targetsShared.replace("{n}", String(view.sharedTargets))}
+          </p>
+        ) : null}
         {view.partialLinks ? <p className="text-xs text-muted-foreground">{r.partial}</p> : null}
         <ol className="flex flex-col gap-2">
           {view.targets.map((tg) => (
@@ -135,6 +140,13 @@ export function ReportView({ view }: { view: PublicReportView }) {
                   : r.targetCitesMany.replace("{n}", String(tg.citedCompetitors))}
                 {!tg.locked ? ` (${tg.competitors.join(", ")})` : null}
               </span>
+              {tg.locked ? (
+                <span className="text-xs text-muted-foreground">
+                  {`.${tg.tld}`}
+                  {tg.dofollow === true ? ` - ${r.targetDofollow}` : null}
+                  {tg.dofollow === false ? ` - ${r.targetNofollow}` : null}
+                </span>
+              ) : null}
               {!tg.locked ? (
                 <span className="text-xs break-all text-muted-foreground">
                   {r.targetExample} : {tg.sampleUrl}

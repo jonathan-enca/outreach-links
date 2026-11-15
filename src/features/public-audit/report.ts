@@ -7,7 +7,14 @@ import type { PublicAuditResult } from "./types";
  * l'objet renvoyé (donc ni dans le HTML ni dans le flux RSC). Un test le vérifie.
  */
 export type TargetView =
-  | { locked: true; index: number; citedCompetitors: number }
+  | {
+      locked: true;
+      index: number;
+      citedCompetitors: number;
+      /** Indices qui ne révèlent pas le domaine : extension et type de lien (MA.7). */
+      tld: string;
+      dofollow: boolean | null;
+    }
   | {
       locked: false;
       index: number;
@@ -41,6 +48,8 @@ export interface PublicReportView {
   targets: TargetView[];
   /** Cibles supplémentaires non montrées ("+N de plus"). */
   moreTargets: number;
+  /** Cibles montrées qui renvoient vers au moins 2 concurrents (les plus accessibles à convaincre). */
+  sharedTargets: number;
   partialLinks: boolean;
 }
 
@@ -82,8 +91,15 @@ export function projectReport(result: PublicAuditResult, unlocked: boolean): Pub
             competitors: t.competitors,
             sampleUrl: t.sampleUrl,
           }
-        : { locked: true, index: i + 1, citedCompetitors: t.competitorsCount },
+        : {
+            locked: true,
+            index: i + 1,
+            citedCompetitors: t.competitorsCount,
+            tld: t.domain.slice(t.domain.lastIndexOf(".") + 1),
+            dofollow: t.dofollow,
+          },
     ),
+    sharedTargets: shown.filter((t) => t.competitorsCount >= 2).length,
     moreTargets: Math.max(0, result.targetsTotal - shown.length),
     partialLinks: result.site.referringDomainsPartial,
   };
