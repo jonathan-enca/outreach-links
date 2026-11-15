@@ -7,8 +7,8 @@ import { normalizeDomain } from "./domain";
  */
 export const TEST_DOMAINS = ["remove-me.io", "mega-coloring.com"] as const;
 
-/** Plafond de coût d'un audit de site de test (USD) : filet de sécurité, pas une limite produit. */
-export const TEST_COST_CAP_USD = 50;
+/** Plafond de coût d'un audit de site de test (USD) : filet de sécurité, pas une limite produit (ramené de 50 à 5 USD le 15/11/2026, décision de Jonathan : plafond de sécurité unique). */
+export const TEST_COST_CAP_USD = 5;
 
 export function isTestDomain(input: string | null | undefined): boolean {
   if (!input) return false;

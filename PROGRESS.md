@@ -699,3 +699,7 @@ Prochain sous-jalon : MH.2 (construction de la home).
 - **Vérifié** : 908 tests verts (Postgres 16 local, dont `supabase/tests/brand-profiles.test.ts`), lint, typecheck, format, build ; Playwright (page temporaire supprimée, aucune session de test) bureau 1440 et mobile 390 : aucun débordement horizontal, tous les champs étiquetés ; état « profil non établi » rendu aussi.
 - **Dettes** : pas de test Playwright connecté ; profil en français même pour un site anglais (MT.2 traduira les requêtes) ; lecture synchrone dans l'action (~15 s, pas de limite de débit) ; le profil n'alimente pas encore l'audit v1 (c'est MT.2) ; pas d'écran pour revenir à une ancienne version ; le tri des pages ne tient pas compte du contenu, seulement de l'URL.
 - Prochain sous-jalon : **MT.2 (univers de requêtes par persona)**.
+
+## Plafond des sites de test : 5 USD (15/11/2026, décision de Jonathan)
+
+- `TEST_COST_CAP_USD` passe de 50 à **5 USD** (`src/features/sites/test-domains.ts`) : même plafond de sécurité que `AUDIT_BUDGET.safetyCapUsd` ; il s'applique aux audits connectés et à l'audit public des sites de test (`remove-me.io`, `mega-coloring.com`). Les budgets 1 / 2 / 5 / 25 USD (cible, plafond d'audit, sécurité, quotidien) sont donc confirmés pour la sécurité ; la cible de 1 USD par audit reste à valider par mesure.
