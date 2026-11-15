@@ -296,9 +296,8 @@ describe.skipIf(!adminUrl)("envois : garde-fous en base", () => {
         /duplicate key/,
       );
       await c.query("rollback to savepoint s");
-      // Mode réel (autre mode) et relance (autre étape) restent possibles.
+      // Mode réel (autre mode) reste possible ; la relance (autre étape) a ses propres garde-fous (M4.3).
       await claim(c, { batch: b, draft: drafts[0]!, dry: false });
-      await claim(c, { batch: b, draft: drafts[0]!, dry: false, step: "relance" });
     });
   });
 
@@ -337,6 +336,173 @@ describe.skipIf(!adminUrl)("envois : garde-fous en base", () => {
       ]);
       const other = await db.query("select count(*)::int as n from public.sent_messages");
       expect(other.rows[0].n).toBe(0);
+    } finally {
+      await db.query("rollback");
+    }
+  });
+
+  // --- M4.3 : relance unique ---
+  async function sentInitial(c: Client, b: string, draft: string, dueInterval: string) {
+    await c.query("update public.mailboxes set hourly_cap = 10, daily_cap = 20 where id = $1", [
+      mailboxId,
+    ]);
+    const r = await claim(c, { batch: b, draft, to: "contact@cible.fr" });
+    const id = r.rows[0].id as string;
+    await c.query(
+      `update public.sent_messages
+         set status = 'envoye', sent_at = now() - interval '10 days',
+             follow_up_due_at = now() + $2::interval
+       where id = $1`,
+      [id, dueInterval],
+    );
+    return (await c.query("select id, message_id from public.sent_messages where id = $1", [id]))
+      .rows[0] as { id: string; message_id: string };
+  }
+  const relance = (
+    c: Client,
+    b: string,
+    draft: string,
+    o: { inReplyTo: string; to?: string; mailbox?: string | null; dry?: boolean },
+  ) =>
+    c.query(
+      `insert into public.sent_messages (workspace_id, plan_id, batch_id, draft_id, mailbox_id, dry_run,
+         to_email, subject, body, message_id, in_reply_to, status, step)
+       values ($1, $2, $3, $4, $5, $6, $7, 'Re: s', 'relance', $8, $9, 'en_cours', 'relance')
+       returning id`,
+      [
+        workspaceId,
+        planId,
+        b,
+        draft,
+        o.mailbox === undefined ? mailboxId : o.mailbox,
+        o.dry ?? true,
+        o.to ?? "contact@cible.fr",
+        `<r${++seq}@alice-site.fr>`,
+        o.inReplyTo,
+      ],
+    );
+
+  it("relance : acceptée quand elle est due, même fil, même adresse, même boîte", async () => {
+    await inTx(async (c) => {
+      const b = await validatedBatch(c, 1);
+      const i = await sentInitial(c, b, drafts[0]!, "-1 day");
+      await relance(c, b, drafts[0]!, { inReplyTo: i.message_id });
+    });
+  });
+
+  it("relance : refusée trop tôt, sans envoi initial terminé, ou hors du fil", async () => {
+    await inTx(async (c) => {
+      const b = await validatedBatch(c, 3);
+      const early = await sentInitial(c, b, drafts[0]!, "+3 days");
+      await c.query("savepoint s");
+      await expect(relance(c, b, drafts[0]!, { inReplyTo: early.message_id })).rejects.toThrow(
+        /trop tôt/,
+      );
+      await c.query("rollback to savepoint s");
+      // Aucun envoi initial pour ce brouillon.
+      await expect(relance(c, b, drafts[1]!, { inReplyTo: "<x@y>" })).rejects.toThrow(
+        /aucun envoi initial/,
+      );
+      await c.query("rollback to savepoint s");
+      // Envoi initial non terminé (en_cours).
+      await claim(c, { batch: b, draft: drafts[2]! });
+      await expect(relance(c, b, drafts[2]!, { inReplyTo: "<x@y>" })).rejects.toThrow(
+        /aucun envoi initial/,
+      );
+      await c.query("rollback to savepoint s");
+    });
+    await inTx(async (c) => {
+      const b = await validatedBatch(c, 1);
+      const i = await sentInitial(c, b, drafts[0]!, "-1 day");
+      await c.query("savepoint s");
+      await expect(relance(c, b, drafts[0]!, { inReplyTo: "<autre@fil>" })).rejects.toThrow(
+        /même fil/,
+      );
+      await c.query("rollback to savepoint s");
+      await expect(
+        relance(c, b, drafts[0]!, { inReplyTo: i.message_id, to: "autre@cible.fr" }),
+      ).rejects.toThrow(/même fil/);
+    });
+  });
+
+  it.each(["reponse", "desinscription", "rebond"])(
+    "relance : refusée après un signal « %s » ; un seul signal par type",
+    async (kind) => {
+      await inTx(async (c) => {
+        const b = await validatedBatch(c, 1);
+        const i = await sentInitial(c, b, drafts[0]!, "-1 day");
+        await c.query(
+          "insert into public.reply_signals (workspace_id, sent_message_id, kind) values ($1, $2, $3)",
+          [workspaceId, i.id, kind],
+        );
+        await c.query("savepoint s");
+        await expect(
+          c.query(
+            "insert into public.reply_signals (workspace_id, sent_message_id, kind) values ($1, $2, $3)",
+            [workspaceId, i.id, kind],
+          ),
+        ).rejects.toThrow(/duplicate key/);
+        await c.query("rollback to savepoint s");
+        await expect(relance(c, b, drafts[0]!, { inReplyTo: i.message_id })).rejects.toThrow(
+          /réponse, désinscription ou rebond/,
+        );
+      });
+    },
+  );
+
+  it("relance : les garde-fous communs s'appliquent (suppression, lot non validé, une seule relance)", async () => {
+    await inTx(async (c) => {
+      const b = await validatedBatch(c, 1);
+      const i = await sentInitial(c, b, drafts[0]!, "-1 day");
+      await c.query("savepoint s");
+      await c.query("insert into public.suppressions (workspace_id, email) values ($1, $2)", [
+        workspaceId,
+        "contact@cible.fr",
+      ]);
+      await expect(relance(c, b, drafts[0]!, { inReplyTo: i.message_id })).rejects.toThrow(
+        /suppression/,
+      );
+      await c.query("rollback to savepoint s");
+      await relance(c, b, drafts[0]!, { inReplyTo: i.message_id });
+      await c.query("savepoint s2");
+      await expect(relance(c, b, drafts[0]!, { inReplyTo: i.message_id })).rejects.toThrow(
+        /duplicate key/,
+      );
+    });
+  });
+
+  it("reply_signals : lecture seule pour l'utilisateur, invisible pour un autre espace", async () => {
+    await db.query("begin");
+    try {
+      await db.query("set local role service_role");
+      const b = await validatedBatch(db, 1);
+      const i = await sentInitial(db, b, drafts[0]!, "-1 day");
+      await db.query(
+        "insert into public.reply_signals (workspace_id, sent_message_id, kind) values ($1, $2, 'reponse')",
+        [workspaceId, i.id],
+      );
+      await db.query("reset role");
+      await db.query("set local role authenticated");
+      await db.query("select set_config('request.jwt.claims', $1, true)", [
+        JSON.stringify({ sub: userId, role: "authenticated" }),
+      ]);
+      expect(
+        (await db.query("select count(*)::int as n from public.reply_signals")).rows[0].n,
+      ).toBe(1);
+      await db.query("savepoint s");
+      await expect(
+        db.query(
+          "insert into public.reply_signals (workspace_id, sent_message_id, kind) values ($1, $2, 'rebond')",
+          [workspaceId, i.id],
+        ),
+      ).rejects.toThrow(/permission denied/);
+      await db.query("rollback to savepoint s");
+      await db.query("select set_config('request.jwt.claims', $1, true)", [
+        JSON.stringify({ sub: "00000000-0000-4000-8000-000000000009", role: "authenticated" }),
+      ]);
+      expect(
+        (await db.query("select count(*)::int as n from public.reply_signals")).rows[0].n,
+      ).toBe(0);
     } finally {
       await db.query("rollback");
     }
