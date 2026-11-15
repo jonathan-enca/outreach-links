@@ -163,7 +163,9 @@ function DraftCard({ d, id }: { d: ReplyDraftRow; id: string }) {
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">
-          {d.status === "validee" ? m.validated : m.rejected}
+          {d.status === "validee"
+            ? `${m.validated}${d.sendStatus ? ` ${m.sendStatus[d.sendStatus]}` : ""}`
+            : m.rejected}
         </p>
       )}
     </Card>

@@ -95,7 +95,15 @@ async function sendNext(db: Client, box: MailboxRow, deps: SendDeps): Promise<Ma
     .eq("dry_run", dry)
     .in("status", COUNTED)
     .gte("claimed_at", addDays(now, -1).toISOString());
-  const rows = recent ?? [];
+  // M5.2b : les réponses validées consomment le même quota que les envois.
+  const { data: replies } = await db
+    .from("reply_sends")
+    .select("claimed_at")
+    .eq("mailbox_id", box.id)
+    .eq("dry_run", dry)
+    .in("status", COUNTED)
+    .gte("claimed_at", addDays(now, -1).toISOString());
+  const rows = [...(recent ?? []), ...(replies ?? [])];
   const hourAgo = now.getTime() - 3_600_000;
   const inHour = rows.filter((r) => new Date(r.claimed_at).getTime() > hourAgo).length;
   const { data: first } = await db

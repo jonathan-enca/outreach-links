@@ -789,7 +789,16 @@ export const fr = {
     saving: "Enregistrement…",
     validate: "Valider ce brouillon",
     reject: "Rejeter",
-    validated: "Validé. Il ne part pas encore : l'envoi des réponses vient à l'étape suivante.",
+    validated:
+      "Validé. Il partira au prochain créneau d'envoi (heures ouvrées, plafonds respectés).",
+    sendStatus: {
+      en_cours: "Envoi en cours.",
+      envoye: "Envoyé.",
+      simule: "Envoi simulé (mode test : rien n'est sorti du serveur).",
+      a_reessayer: "Envoi à réessayer (échec temporaire).",
+      echec: "Envoi en échec.",
+      ignore: "Non envoyé (adresse supprimée ou réponse à risque).",
+    },
     rejected: "Rejeté.",
     edited: "Modifié par vous",
     fromModel: "Rédigé par le modèle",
