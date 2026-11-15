@@ -28,7 +28,8 @@ export function fakeSupabase(
 
   function from(table: string) {
     tables[table] ??= [];
-    let op: "select" | "insert" | "update" | "delete" = "select";
+    let op: "select" | "insert" | "update" | "delete" | "upsert" = "select";
+    let conflictCol = "";
     let payload: unknown;
     const filters: ((r: Row) => boolean)[] = [];
     let orderBy: { col: string; asc: boolean } | null = null;
@@ -38,6 +39,13 @@ export function fakeSupabase(
 
     const exec = () => {
       const rows = tables[table]!;
+      if (op === "upsert") {
+        const item = payload as Row;
+        const found = rows.find((r) => r[conflictCol] === item[conflictCol]);
+        if (found) Object.assign(found, item);
+        else rows.push({ id: `${table}-${++seq}`, ...item });
+        return { data: [found ?? rows[rows.length - 1]], error: null };
+      }
       if (op === "insert") {
         const items = (Array.isArray(payload) ? payload : [payload]) as Row[];
         const created: Row[] = [];
@@ -51,6 +59,15 @@ export function fakeSupabase(
           ) {
             return { data: null, error: { code: "23505", message: "duplicate key" } };
           }
+          const dupKey =
+            (table === "stripe_events" && rows.some((r) => r.id === row.id)) ||
+            (table === "credits_ledger" &&
+              row.idempotency_key != null &&
+              rows.some(
+                (r) =>
+                  r.workspace_id === row.workspace_id && r.idempotency_key === row.idempotency_key,
+              ));
+          if (dupKey) return { data: null, error: { code: "23505", message: "duplicate key" } };
           rows.push(row);
           created.push(row);
         }
@@ -98,6 +115,13 @@ export function fakeSupabase(
     chain.insert = (p: unknown) => {
       op = "insert";
       payload = p;
+      log.push({ table, op, payload: p });
+      return chain;
+    };
+    chain.upsert = (p: unknown, o?: { onConflict?: string }) => {
+      op = "upsert";
+      payload = p;
+      conflictCol = o?.onConflict ?? "id";
       log.push({ table, op, payload: p });
       return chain;
     };

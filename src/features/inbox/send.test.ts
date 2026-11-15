@@ -24,9 +24,20 @@ function world(
 ) {
   const enc = encryptSecret("pw-secret", ring);
   const t = {
+    // M6.1 : l'envoi réel exige un abonnement actif.
+    plans: [{ key: "starter", monthly_send_cap: 150 }],
+    subscriptions: [
+      {
+        workspace_id: WS,
+        plan: "starter",
+        status: "active",
+        current_period_end: "2099-01-01T00:00:00Z",
+      },
+    ],
     mailboxes: [
       {
         id: "mb1",
+        workspace_id: WS,
         site_id: "site1",
         status: "verifiee",
         email: "jo@alice-site.fr",

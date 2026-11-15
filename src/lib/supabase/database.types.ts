@@ -753,6 +753,41 @@ export type Database = {
           },
         ];
       };
+      credits_ledger: {
+        Row: {
+          created_at: string;
+          delta: number;
+          id: string;
+          idempotency_key: string | null;
+          reason: string;
+          workspace_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          delta: number;
+          id?: string;
+          idempotency_key?: string | null;
+          reason: string;
+          workspace_id: string;
+        };
+        Update: {
+          created_at?: string;
+          delta?: number;
+          id?: string;
+          idempotency_key?: string | null;
+          reason?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "credits_ledger_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       dataforseo_cache: {
         Row: {
           cache_key: string;
@@ -1633,6 +1668,12 @@ export type Database = {
       manual_tasks: {
         Row: {
           created_at: string;
+          done_at: string | null;
+          follow_up_cancel_reason: string | null;
+          follow_up_done_at: string | null;
+          follow_up_due_at: string | null;
+          follow_up_message: string | null;
+          follow_up_status: string | null;
           form_url: string;
           id: string;
           message: string | null;
@@ -1641,15 +1682,15 @@ export type Database = {
           status: string;
           type: string;
           workspace_id: string;
-          done_at: string | null;
-          follow_up_cancel_reason: string | null;
-          follow_up_done_at: string | null;
-          follow_up_due_at: string | null;
-          follow_up_message: string | null;
-          follow_up_status: string | null;
         };
         Insert: {
           created_at?: string;
+          done_at?: string | null;
+          follow_up_cancel_reason?: string | null;
+          follow_up_done_at?: string | null;
+          follow_up_due_at?: string | null;
+          follow_up_message?: string | null;
+          follow_up_status?: string | null;
           form_url: string;
           id?: string;
           message?: string | null;
@@ -1658,15 +1699,15 @@ export type Database = {
           status?: string;
           type?: string;
           workspace_id: string;
+        };
+        Update: {
+          created_at?: string;
           done_at?: string | null;
           follow_up_cancel_reason?: string | null;
           follow_up_done_at?: string | null;
           follow_up_due_at?: string | null;
           follow_up_message?: string | null;
           follow_up_status?: string | null;
-        };
-        Update: {
-          created_at?: string;
           form_url?: string;
           id?: string;
           message?: string | null;
@@ -1675,12 +1716,6 @@ export type Database = {
           status?: string;
           type?: string;
           workspace_id?: string;
-          done_at?: string | null;
-          follow_up_cancel_reason?: string | null;
-          follow_up_done_at?: string | null;
-          follow_up_due_at?: string | null;
-          follow_up_message?: string | null;
-          follow_up_status?: string | null;
         };
         Relationships: [
           {
@@ -1734,6 +1769,39 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      plans: {
+        Row: {
+          key: string;
+          max_mailboxes: number;
+          max_sites: number;
+          monthly_credits: number;
+          monthly_send_cap: number;
+          name: string;
+          price_eur_cents: number;
+          sort_order: number;
+        };
+        Insert: {
+          key: string;
+          max_mailboxes: number;
+          max_sites: number;
+          monthly_credits: number;
+          monthly_send_cap: number;
+          name: string;
+          price_eur_cents: number;
+          sort_order: number;
+        };
+        Update: {
+          key?: string;
+          max_mailboxes?: number;
+          max_sites?: number;
+          monthly_credits?: number;
+          monthly_send_cap?: number;
+          name?: string;
+          price_eur_cents?: number;
+          sort_order?: number;
+        };
+        Relationships: [];
       };
       public_audit_leads: {
         Row: {
@@ -2345,6 +2413,84 @@ export type Database = {
             foreignKeyName: "sites_workspace_id_fkey";
             columns: ["workspace_id"];
             isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      stripe_events: {
+        Row: {
+          id: string;
+          livemode: boolean;
+          received_at: string;
+          type: string;
+        };
+        Insert: {
+          id: string;
+          livemode?: boolean;
+          received_at?: string;
+          type: string;
+        };
+        Update: {
+          id?: string;
+          livemode?: boolean;
+          received_at?: string;
+          type?: string;
+        };
+        Relationships: [];
+      };
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean;
+          current_period_end: string | null;
+          current_period_start: string | null;
+          id: string;
+          livemode: boolean;
+          plan: string;
+          status: string;
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
+          updated_at: string;
+          workspace_id: string;
+        };
+        Insert: {
+          cancel_at_period_end?: boolean;
+          current_period_end?: string | null;
+          current_period_start?: string | null;
+          id?: string;
+          livemode?: boolean;
+          plan: string;
+          status: string;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          updated_at?: string;
+          workspace_id: string;
+        };
+        Update: {
+          cancel_at_period_end?: boolean;
+          current_period_end?: string | null;
+          current_period_start?: string | null;
+          id?: string;
+          livemode?: boolean;
+          plan?: string;
+          status?: string;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          updated_at?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_fkey";
+            columns: ["plan"];
+            isOneToOne: false;
+            referencedRelation: "plans";
+            referencedColumns: ["key"];
+          },
+          {
+            foreignKeyName: "subscriptions_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: true;
             referencedRelation: "workspaces";
             referencedColumns: ["id"];
           },
