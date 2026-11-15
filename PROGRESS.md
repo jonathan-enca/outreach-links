@@ -597,3 +597,8 @@ Prochain sous-jalon : MH.2 (construction de la home).
 ## Texte du hero (15/11/2026, demande de Jonathan)
 
 - Description du hero remplacée par la traduction française, tournée vers l'utilisateur : « Nous trouvons les sites qui méritent de vous citer, rédigeons pour chacun une demande personnalisée et l'envoyons depuis votre propre boîte mail. Puis nous relançons, classons les réponses et vérifions que le lien est bien en ligne. Vous fixez les règles et validez chaque lot : le reste tourne tout seul. » (`messages/fr.ts > home.hero.lead`). Le nom du produit n'y figure pas (réglage unique `app.name`). Le digest hebdo n'est pas cité (M6.3 pas fait).
+
+## Inscription : « pas de mail reçu » (15/11/2026)
+
+- Cause : le compte de Jonathan existait déjà (lien magique du 14/11, confirmé). Supabase répond « OK » sans rien envoyer pour une adresse déjà inscrite (protection contre l'énumération de comptes) ; aucun doublon créé (1 seul utilisateur en base). Message d'inscription reformulé : il ne promet plus un mail et oriente vers la connexion ou « Mot de passe oublié ? ».
+- **Resend** : sans domaine vérifié, Resend n'envoie qu'à l'adresse du propriétaire du compte (expéditeur de test). Le compte Resend de Jonathan a déjà 3 domaines vérifiés (mega-coloring.com, remove-me.io, ouiouioui.app) : un SMTP Resend branché sur Supabase est possible sans achat. **Décision attendue : quel domaine pour l'expéditeur des emails de connexion** (jusqu'au domaine définitif du produit), puis clé API Resend en SMTP dans Supabase.
