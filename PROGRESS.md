@@ -414,6 +414,10 @@
 - **Dettes** : le déclenchement n'est pas dans la chaîne d'audit automatique ni dans l'interface ; relancer la collecte d'un audit réécrit ses candidats ; les intersections en mode partiel ne sont pas ordonnées (risque de lignes peu utiles dans les 500 premières, à voir au run réel) ; la fusion n'écarte pas encore les domaines déjà contactés par un autre utilisateur (MT.4) ; l'ordre `signal_count` est indicatif, le score final est MT.4.
 - Prochain sous-jalon recommandé : **terminer le run réel de MT.3** (identifiants DataForSEO valides), puis **MT.4**.
 
+## Vidéo de visite ajoutée à la home (15/11/2026, demande de Jonathan)
+
+- `PRODUCT_TOUR_VIDEO` (`src/features/home/sections.ts`) renseigné : `public/visite-produit.mp4` (1920x1080, 61 s, ~5 Mo, fournie par Jonathan) et sa vignette `public/visite-produit-poster.jpg` (image à 3 s). Lecture manuelle, sans son au départ, chargement différé (`preload="none"`). Vérifié avec Playwright (bureau 1440 et mobile 390) : vidéo chargée (61,5 s), vignette affichée, aucun débordement horizontal. Le fichier est servi par Vercel depuis `public/` (pas de stockage externe).
+
 ## Backlog (idées hors périmètre)
 
 - M5.3 : bouton « lien posé » dans la fiche de fil (crée le lien avec `plan_item_id`, origine `reponse`, passe le prospect à `lien_pose`) ; digest des alertes (M6.3) ; `X-Robots-Tag` ; vérifier l'indexation réelle si une API le permet.
