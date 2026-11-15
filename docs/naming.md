@@ -45,3 +45,10 @@ Aucun achat n'a été fait. Cette note sert à choisir ; l'achat (dépense nouve
 1. Choisir le nom parmi les 3 (ou en demander d'autres).
 2. Faire vérifier l'antériorité à l'INPI et à l'EUIPO (classes 9, 35, 42) avant achat si l'on veut déposer la marque.
 3. Valider la dépense (`.com` ~12 $, `.fr` chez un registrar français), puis : achat, branchement Vercel, `NEXT_PUBLIC_APP_URL`, URL de redirection Supabase Auth, domaine d'envoi Resend (SPF/DKIM/DMARC), renommage du dépôt et des textes.
+
+## Décision du 15/11/2026 : nom de travail « Autolink.ai »
+
+- **Jonathan** : le nom et le domaine définitifs seront trouvés plus tard ; pour avancer, le produit s'appelle provisoirement **« Autolink.ai »** (MN.2, home, textes).
+- **Aucun achat.** `autolink.ai` est déjà enregistré par un tiers (outil de maillage interne SEO, surtout Webflow, société allemande) : le nom ne peut être ni acheté ni déposé tel quel, et la confusion de marque est un risque réel. `getautolink.ai` est libre (160 $ pour 2 ans), `getautolink.io` libre (14,99 $ puis 46 $), `getautolink.fr` libre, `getautolink.com` pris. Rien n'est acheté.
+- **Conséquence pour le code et les textes** : le nom doit rester **un seul réglage** (constante / message dans `messages/fr.ts`), jamais écrit en dur, pour pouvoir le changer sans refonte. Pas de logo définitif, pas d'achat de domaine, pas de dépôt de marque, pas de branchement Vercel / Resend / Supabase sur un domaine d'ici là : l'URL reste `https://outreach-links.vercel.app`.
+- **Brief de nom pour plus tard** (précisé le 15/11) : mélange lien / netlinking / IA / automatique, qui se prononce et s'écrit pareil dans toutes les langues (donc « link » plutôt que « lien », sans accent). Pistes testées avec `.fr` et `.com` libres : Linknaut (recommandé), Linkomia, Linkomatia, Netlinkia, Linkautomat. L'antériorité INPI / EUIPO reste à vérifier avant tout dépôt.
