@@ -981,6 +981,72 @@ export type Database = {
           },
         ];
       };
+      link_checks: {
+        Row: {
+          anchor_found: string | null;
+          checked_at: string;
+          contextual: boolean | null;
+          error: string | null;
+          exact_page: boolean | null;
+          found: boolean;
+          http_status: number | null;
+          id: string;
+          indexable: boolean | null;
+          link_id: string;
+          milestone_day: number | null;
+          outcome: string;
+          rel: string | null;
+          workspace_id: string;
+        };
+        Insert: {
+          anchor_found?: string | null;
+          checked_at?: string;
+          contextual?: boolean | null;
+          error?: string | null;
+          exact_page?: boolean | null;
+          found?: boolean;
+          http_status?: number | null;
+          id?: string;
+          indexable?: boolean | null;
+          link_id: string;
+          milestone_day?: number | null;
+          outcome: string;
+          rel?: string | null;
+          workspace_id: string;
+        };
+        Update: {
+          anchor_found?: string | null;
+          checked_at?: string;
+          contextual?: boolean | null;
+          error?: string | null;
+          exact_page?: boolean | null;
+          found?: boolean;
+          http_status?: number | null;
+          id?: string;
+          indexable?: boolean | null;
+          link_id?: string;
+          milestone_day?: number | null;
+          outcome?: string;
+          rel?: string | null;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "link_checks_link_id_fkey";
+            columns: ["link_id"];
+            isOneToOne: false;
+            referencedRelation: "links";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "link_checks_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       link_opportunities: {
         Row: {
           audit_id: string;
@@ -1334,6 +1400,118 @@ export type Database = {
           },
           {
             foreignKeyName: "link_target_triage_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      links: {
+        Row: {
+          alert: string | null;
+          alert_at: string | null;
+          anchor_found: string | null;
+          attempts: number;
+          checks_done: number;
+          contextual: boolean | null;
+          created_at: string;
+          declared_at: string;
+          exact_page: boolean | null;
+          expected_anchor: string | null;
+          first_live_at: string | null;
+          http_status: number | null;
+          id: string;
+          indexable: boolean | null;
+          last_checked_at: string | null;
+          last_error: string | null;
+          lost_at: string | null;
+          next_check_at: string | null;
+          origin: string;
+          plan_item_id: string | null;
+          rel: string | null;
+          site_id: string;
+          source_domain: string;
+          source_url: string;
+          status: string;
+          target_url: string;
+          workspace_id: string;
+        };
+        Insert: {
+          alert?: string | null;
+          alert_at?: string | null;
+          anchor_found?: string | null;
+          attempts?: number;
+          checks_done?: number;
+          contextual?: boolean | null;
+          created_at?: string;
+          declared_at?: string;
+          exact_page?: boolean | null;
+          expected_anchor?: string | null;
+          first_live_at?: string | null;
+          http_status?: number | null;
+          id?: string;
+          indexable?: boolean | null;
+          last_checked_at?: string | null;
+          last_error?: string | null;
+          lost_at?: string | null;
+          next_check_at?: string | null;
+          origin?: string;
+          plan_item_id?: string | null;
+          rel?: string | null;
+          site_id: string;
+          source_domain: string;
+          source_url: string;
+          status?: string;
+          target_url: string;
+          workspace_id: string;
+        };
+        Update: {
+          alert?: string | null;
+          alert_at?: string | null;
+          anchor_found?: string | null;
+          attempts?: number;
+          checks_done?: number;
+          contextual?: boolean | null;
+          created_at?: string;
+          declared_at?: string;
+          exact_page?: boolean | null;
+          expected_anchor?: string | null;
+          first_live_at?: string | null;
+          http_status?: number | null;
+          id?: string;
+          indexable?: boolean | null;
+          last_checked_at?: string | null;
+          last_error?: string | null;
+          lost_at?: string | null;
+          next_check_at?: string | null;
+          origin?: string;
+          plan_item_id?: string | null;
+          rel?: string | null;
+          site_id?: string;
+          source_domain?: string;
+          source_url?: string;
+          status?: string;
+          target_url?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "links_plan_item_id_fkey";
+            columns: ["plan_item_id"];
+            isOneToOne: false;
+            referencedRelation: "link_plan_items";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "links_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "links_workspace_id_fkey";
             columns: ["workspace_id"];
             isOneToOne: false;
             referencedRelation: "workspaces";

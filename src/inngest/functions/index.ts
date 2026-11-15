@@ -5,6 +5,7 @@ import { auditOpportunities } from "./audit-opportunities";
 import { auditProfile } from "./audit-profile";
 import { planContacts } from "./plan-contacts";
 import { planDrafts } from "./plan-drafts";
+import { linkCheckTick } from "./link-check-tick";
 import { health } from "./health";
 import { planTriage } from "./plan-triage";
 import { publicAudit } from "./public-audit";
@@ -31,4 +32,5 @@ export const functions = [
   replyClassify,
   replyDrafts,
   replySendTick,
+  linkCheckTick,
 ];

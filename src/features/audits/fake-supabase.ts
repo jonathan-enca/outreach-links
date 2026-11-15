@@ -132,6 +132,10 @@ export function fakeSupabase(
       filters.push((r) => String(r[col]) >= String(val));
       return chain;
     };
+    chain.lte = (col: string, val: unknown) => {
+      filters.push((r) => r[col] != null && String(r[col]) <= String(val));
+      return chain;
+    };
     chain.order = (col: string, o?: { ascending?: boolean }) => {
       orderBy = { col, asc: o?.ascending !== false };
       return chain;
