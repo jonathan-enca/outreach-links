@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { inngest } from "@/inngest/client";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { startDeps } from "./deps";
+import { queryDeps, startDeps } from "./deps";
 import {
   launchJourney,
   saveCorrections,
@@ -38,6 +38,7 @@ export async function launchJourneyAction(
     formData,
     createServiceClient,
     (e) => inngest.send(e),
+    queryDeps,
   );
   revalidatePath("/app/audit");
   if (result.status === "ok" && result.auditId) redirect(`/app/audit/${result.auditId}`);

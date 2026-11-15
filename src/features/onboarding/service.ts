@@ -22,6 +22,8 @@ import {
 import { parseProfileForm, sameProfile } from "@/features/brand/form";
 import type { StoredBrandProfile } from "@/features/brand/schema";
 import { nicheQueries } from "@/features/public-audit/niche";
+import { estimateQueryPhase, type QueryPhaseEstimate } from "@/features/queries/plan";
+import { buildAndStoreQueryUniverse, type QueryDeps } from "@/features/queries/service";
 import { deduceSite } from "./deduce";
 
 type Client = SupabaseClient<Database>;
@@ -260,6 +262,8 @@ export interface LaunchPreview {
   auditId: string | null;
   /** Dernière version du profil de marque (MT.1), null si elle n'a pas pu être établie. */
   brand: StoredBrandProfile | null;
+  /** MT.2b : recherches d'éditeurs prévues (nombre maximal, coût maximal). Annonce seulement : rien n'est lancé. */
+  queryPhase: QueryPhaseEstimate;
 }
 
 /** Écran de confirmation : ce qui a été compris + coût total du parcours. Lecture seule, 0 USD. */
@@ -311,6 +315,7 @@ export async function getLaunchPreview(
     chain: est.chain,
     auditId: audit?.id ?? null,
     brand,
+    queryPhase: estimateQueryPhase(),
   };
 }
 
@@ -415,6 +420,7 @@ export async function launchJourney(
   formData: FormData,
   getServiceClient: () => Client,
   sendEvent: SendEvent,
+  queries?: QueryDeps,
 ): Promise<LaunchState> {
   const userId = await currentUserId(supabase);
   if (!userId) return { status: "error", message: ONBOARDING_MESSAGES.unauthenticated };
@@ -458,6 +464,10 @@ export async function launchJourney(
     formData,
   );
   if (!edits.ok) return { status: "error", message: edits.message };
+
+  // MT.2b : univers de requêtes par persona (un appel LLM court, zéro DataForSEO). Ne bloque jamais
+  // le lancement : sans profil, sans clé ou en cas de panne, l'audit part quand même.
+  if (queries) await buildAndStoreQueryUniverse(supabase, { siteId, userId }, queries);
 
   const created = await createAudit(supabase, siteId, getServiceClient);
   if (created.status !== "ok" || !created.auditId) {
