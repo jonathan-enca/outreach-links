@@ -602,3 +602,7 @@ Prochain sous-jalon : MH.2 (construction de la home).
 
 - Cause : le compte de Jonathan existait déjà (lien magique du 14/11, confirmé). Supabase répond « OK » sans rien envoyer pour une adresse déjà inscrite (protection contre l'énumération de comptes) ; aucun doublon créé (1 seul utilisateur en base). Message d'inscription reformulé : il ne promet plus un mail et oriente vers la connexion ou « Mot de passe oublié ? ».
 - **Resend** : sans domaine vérifié, Resend n'envoie qu'à l'adresse du propriétaire du compte (expéditeur de test). Le compte Resend de Jonathan a déjà 3 domaines vérifiés (mega-coloring.com, remove-me.io, ouiouioui.app) : un SMTP Resend branché sur Supabase est possible sans achat. **Décision attendue : quel domaine pour l'expéditeur des emails de connexion** (jusqu'au domaine définitif du produit), puis clé API Resend en SMTP dans Supabase.
+
+## Lien de réinitialisation arrivé sur la home (15/11/2026)
+
+- Symptôme : le lien du mail menait à `/?code=...` (la home). Cause probable : l'URL de redirection construite depuis `NEXT_PUBLIC_APP_URL` (valeur masquée, probablement avec une barre finale) n'a pas été reconnue par Supabase, qui a replié sur l'URL du site. Corrigé : `cleanAppUrl` (sans barre finale) dans les actions d'auth ; `/auth/recuperation` réutilise `/auth/callback` ; `/auth/callback` mène à `/reinitialiser` quand le dernier mail est une récupération récente (`destinationAfterCode`), sinon à `/app` ; filet de sécurité dans `proxy.ts` : `/?code=` est repris par `/auth/callback`.

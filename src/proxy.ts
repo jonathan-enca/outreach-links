@@ -20,6 +20,13 @@ export async function proxy(request: NextRequest) {
       },
     },
   );
+  // Filet de sécurité : un lien d'email dont l'URL de redirection n'a pas été reconnue atterrit sur
+  // l'accueil avec `?code=` ; on le reprend dans la route de callback.
+  if (request.nextUrl.pathname === "/" && request.nextUrl.searchParams.has("code")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/callback";
+    return NextResponse.redirect(url);
+  }
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims && request.nextUrl.pathname.startsWith("/app")) {
     const url = request.nextUrl.clone();

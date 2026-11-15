@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cleanAppUrl, destinationAfterCode } from "./destination";
 import { requestPasswordReset, setNewPassword, signIn, signUp } from "./service";
 
 type AuthErr = { code?: string; status?: number } | null;
@@ -139,5 +140,29 @@ describe("mot de passe oublié", () => {
       redirectTo: "/app",
     });
     expect(ok.auth.updateUser).toHaveBeenCalledWith({ password: "12345678" });
+  });
+});
+
+describe("destination après un lien d'email", () => {
+  const now = new Date("2026-11-15T20:00:00Z");
+  it("un lien de réinitialisation récent mène au choix du mot de passe", () => {
+    expect(
+      destinationAfterCode(
+        { recovery_sent_at: "2026-11-15T19:50:00Z", confirmation_sent_at: "2026-11-14T14:36:00Z" },
+        now,
+      ),
+    ).toBe("/reinitialiser");
+  });
+  it("une confirmation d'inscription, ou une récupération ancienne, mène à l'espace", () => {
+    expect(destinationAfterCode({ confirmation_sent_at: "2026-11-15T19:55:00Z" }, now)).toBe(
+      "/app",
+    );
+    expect(destinationAfterCode({ recovery_sent_at: "2026-11-15T10:00:00Z" }, now)).toBe("/app");
+    expect(destinationAfterCode(null, now)).toBe("/app");
+  });
+  it("retire la barre finale de l'URL de l'application", () => {
+    expect(cleanAppUrl("https://outreach-links.vercel.app/ ")).toBe(
+      "https://outreach-links.vercel.app",
+    );
   });
 });

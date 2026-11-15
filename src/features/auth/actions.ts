@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { env } from "@/env";
 import { createClient } from "@/lib/supabase/server";
+import { cleanAppUrl } from "./destination";
 import { requestPasswordReset, setNewPassword, signIn, signUp, type AuthState } from "./service";
 
 const field = (fd: FormData, k: string) =>
@@ -18,7 +19,7 @@ export async function signUpAction(_prev: AuthState, fd: FormData): Promise<Auth
     await signUp(
       await createClient(),
       { name: field(fd, "name"), email: field(fd, "email"), password: field(fd, "password") },
-      env.NEXT_PUBLIC_APP_URL,
+      cleanAppUrl(env.NEXT_PUBLIC_APP_URL),
     ),
   );
 }
@@ -33,7 +34,11 @@ export async function signInAction(_prev: AuthState, fd: FormData): Promise<Auth
 }
 
 export async function forgotPasswordAction(_prev: AuthState, fd: FormData): Promise<AuthState> {
-  return requestPasswordReset(await createClient(), field(fd, "email"), env.NEXT_PUBLIC_APP_URL);
+  return requestPasswordReset(
+    await createClient(),
+    field(fd, "email"),
+    cleanAppUrl(env.NEXT_PUBLIC_APP_URL),
+  );
 }
 
 export async function resetPasswordAction(_prev: AuthState, fd: FormData): Promise<AuthState> {
