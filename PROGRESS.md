@@ -613,3 +613,22 @@ Prochain sous-jalon : MH.2 (construction de la home).
 - **Gabarits français** (inscription, mot de passe oublié, lien de connexion, invitation, changement d'adresse, ré-authentification) : sources versionnées dans `supabase/email-templates/` (HTML à la marque, bouton émeraude), objets en français. Le nom « Autolink.ai » y est en dur (à changer avec le nom).
 - **Après l'inscription et « mot de passe oublié »** : le formulaire est remplacé par un écran « Vérifiez votre boîte mail » (adresse affichée, rappel des courriers indésirables, « Utiliser une autre adresse », lien vers la connexion), au lieu de rester sur la même page. Wording volontairement neutre (« si un espace peut être créé… ») : Supabase ne révèle pas si une adresse existe.
 - Non testé en réel : l'envoi d'un vrai mail (il part vers une vraie adresse) ; à faire par Jonathan via « Mot de passe oublié ? ». Vérifier ensuite dans les logs Resend et la délivrabilité (SPF/DKIM de `ouiouioui.app` déjà vérifiés par Resend).
+
+## Audit complet inscription / mails / mot de passe oublié (15/11/2026, demande de Jonathan)
+
+**Ce qui n'allait pas (diagnostiqué dans les journaux Supabase et Resend)**
+
+1. **Vercel bloque tous les déploiements depuis 20:08** (« Deployment rate limited, retry in 24 hours », limite du plan gratuit après ~100 déploiements dans la journée). Les PR #71 à #73 sont fusionnées mais **pas en production** (elle tourne sur #70, 19:56). Erreur de ma part : mes « déploiement prêt » lisaient le dernier déploiement existant, pas celui de la PR. Règle : vérifier le statut du commit (`get_status`) avant de dire qu'un déploiement est prêt.
+2. **`NEXT_PUBLIC_APP_URL` valait `https://example.com` en production** (visible dans le `canonical` de la home). Les adresses de redirection envoyées à Supabase étaient donc refusées, et Supabase renvoyait sur l'URL du site avec `?code=` : c'est le lien qui atterrissait sur la home. Valeur corrigée via l'API Vercel (`https://outreach-links.vercel.app`) : **prend effet au prochain déploiement**.
+3. « Pas de mail à l'inscription » : l'adresse de Jonathan avait déjà un compte (`user_repeated_signup` dans les logs) : Supabase n'envoie rien dans ce cas. Pas un bug, mais le message était trompeur (corrigé dans #73, pas encore en ligne).
+4. « otp_expired » : le lien de réinitialisation est à usage unique ; le premier clic avait réussi (login dans les logs), les clics suivants (le sien et des analyseurs Google) tombent en « One-time token not found ». Un clic de trop = erreur. À durcir (page intermédiaire avec bouton) après le déploiement.
+
+**Réglages faits sans déploiement (API Supabase)**
+
+- Gabarits : inscription, invitation, changement d'adresse et lien magique pointent directement vers `https://outreach-links.vercel.app/auth/callback?token_hash=...&type=...` (vérifié en vrai : lien -> connecté dans `/app`, espace créé avec le nom saisi). Sources dans `supabase/email-templates/` (URL écrite en dur, plus de `{{ .SiteURL }}`).
+- **Contournement temporaire** : l'URL du site Supabase (`site_url`) vaut `https://outreach-links.vercel.app/auth/recuperation`. Le lien de réinitialisation retombe dessus quand `redirect_to` est refusé, et la route en ligne le traite (échange du code puis `/reinitialiser`). **À remettre à `https://outreach-links.vercel.app` après le prochain déploiement**, quand `NEXT_PUBLIC_APP_URL` sera juste.
+- Anomalie non élucidée : le gabarit « recovery » enregistré n'est pas utilisé à l'envoi (les mails de réinitialisation gardent l'ancien lien `/auth/v1/verify`), alors que « confirmation » l'est. Le contournement ci-dessus rend la chose sans effet ; à revérifier après déploiement.
+
+**Test de bout en bout en production** (compte jetable `autotest-…@mega-coloring.com`, supprimé ensuite avec son espace) : inscription -> mail livré -> lien -> connecté, espace « Test Auto » ; mot de passe oublié -> mail -> lien -> `/reinitialiser` -> nouveau mot de passe -> `/app` ; reconnexion avec le nouveau mot de passe OK. Les mails de Resend sont lus côté « envoyés » (la boîte de réception de `mega-coloring.com` contient les vraies réponses de prospection : non consultée).
+
+**À faire dès que Vercel redéploie (limite levée vers le 16/11 ~20:10, ou passage Pro)** : redéployer `main`, vérifier `canonical`, remettre `site_url`, rejouer le test de bout en bout, ajouter la page intermédiaire anti-analyseur (bouton « Continuer ») pour les liens de confirmation et de récupération.
