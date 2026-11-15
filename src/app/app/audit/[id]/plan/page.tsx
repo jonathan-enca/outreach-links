@@ -10,6 +10,9 @@ import {
 import { PlanEditor } from "@/features/plan/plan-editor";
 import { loadPlan } from "@/features/plan/service";
 import { ContactsSection } from "@/features/contacts/contacts-section";
+import { DraftsSection } from "@/features/drafting/drafts-section";
+import { startDraftsAction } from "@/features/drafting/actions";
+import { loadDrafts } from "@/features/drafting/service";
 import { startContactsAction } from "@/features/contacts/actions";
 import { loadContacts } from "@/features/contacts/service";
 import { startTriageAction } from "@/features/triage/actions";
@@ -32,6 +35,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   if (!view) notFound();
   const triage = await loadTriage(supabase, id);
   const contacts = await loadContacts(supabase, id);
+  const drafts = await loadDrafts(supabase, id);
   return (
     <>
       <PageHeader title={t.plan.title} description={t.plan.description} />
@@ -54,6 +58,11 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       {contacts && contacts.triageDone ? (
         <div className="mt-6">
           <ContactsSection view={contacts} startAction={startContactsAction.bind(null, id)} />
+        </div>
+      ) : null}
+      {drafts && drafts.contactsDone ? (
+        <div className="mt-6">
+          <DraftsSection view={drafts} startAction={startDraftsAction.bind(null, id)} />
         </div>
       ) : null}
     </>

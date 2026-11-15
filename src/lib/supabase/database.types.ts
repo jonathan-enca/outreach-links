@@ -679,6 +679,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      draft_runs: {
+        Row: {
+          cost_usd: number;
+          error_message: string | null;
+          finished_at: string | null;
+          plan_id: string;
+          requested_by: string | null;
+          started_at: string;
+          stats: Json;
+          status: string;
+          workspace_id: string;
+        };
+        Insert: {
+          cost_usd?: number;
+          error_message?: string | null;
+          finished_at?: string | null;
+          plan_id: string;
+          requested_by?: string | null;
+          started_at?: string;
+          stats?: Json;
+          status: string;
+          workspace_id: string;
+        };
+        Update: {
+          cost_usd?: number;
+          error_message?: string | null;
+          finished_at?: string | null;
+          plan_id?: string;
+          requested_by?: string | null;
+          started_at?: string;
+          stats?: Json;
+          status?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "draft_runs_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: true;
+            referencedRelation: "link_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "draft_runs_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       events: {
         Row: {
           actor_id: string | null;
@@ -1449,6 +1500,88 @@ export type Database = {
           },
           {
             foreignKeyName: "target_contacts_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      target_drafts: {
+        Row: {
+          body: string;
+          channel: string;
+          cost_usd: number;
+          generated_at: string;
+          hook: string;
+          id: string;
+          lint_issues: Json;
+          plan_id: string;
+          plan_item_id: string;
+          proposed_url: string;
+          ready: boolean;
+          status: string;
+          subject: string | null;
+          targeting_reason: string;
+          url_checked_at: string | null;
+          url_status: number | null;
+          workspace_id: string;
+        };
+        Insert: {
+          body: string;
+          channel: string;
+          cost_usd?: number;
+          generated_at?: string;
+          hook: string;
+          id?: string;
+          lint_issues?: Json;
+          plan_id: string;
+          plan_item_id: string;
+          proposed_url: string;
+          ready?: boolean;
+          status?: string;
+          subject?: string | null;
+          targeting_reason: string;
+          url_checked_at?: string | null;
+          url_status?: number | null;
+          workspace_id: string;
+        };
+        Update: {
+          body?: string;
+          channel?: string;
+          cost_usd?: number;
+          generated_at?: string;
+          hook?: string;
+          id?: string;
+          lint_issues?: Json;
+          plan_id?: string;
+          plan_item_id?: string;
+          proposed_url?: string;
+          ready?: boolean;
+          status?: string;
+          subject?: string | null;
+          targeting_reason?: string;
+          url_checked_at?: string | null;
+          url_status?: number | null;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "target_drafts_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "link_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "target_drafts_plan_item_id_fkey";
+            columns: ["plan_item_id"];
+            isOneToOne: true;
+            referencedRelation: "link_plan_items";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "target_drafts_workspace_id_fkey";
             columns: ["workspace_id"];
             isOneToOne: false;
             referencedRelation: "workspaces";
