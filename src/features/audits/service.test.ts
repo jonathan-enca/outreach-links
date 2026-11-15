@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { TEST_COST_CAP_USD } from "@/features/sites/test-domains";
 import { fakeSupabase } from "./fake-supabase";
 import { confirmAudit, createAudit, DISCOVER_EVENT, transitionAudit } from "./service";
 
@@ -74,7 +75,7 @@ describe("createAudit", () => {
     expect(service.tables.audits![0]).toMatchObject({
       plan: "payant",
       max_competitors: 20,
-      cost_cap_usd: 50,
+      cost_cap_usd: TEST_COST_CAP_USD,
     });
   });
 
