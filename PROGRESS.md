@@ -632,3 +632,9 @@ Prochain sous-jalon : MH.2 (construction de la home).
 **Test de bout en bout en production** (compte jetable `autotest-…@mega-coloring.com`, supprimé ensuite avec son espace) : inscription -> mail livré -> lien -> connecté, espace « Test Auto » ; mot de passe oublié -> mail -> lien -> `/reinitialiser` -> nouveau mot de passe -> `/app` ; reconnexion avec le nouveau mot de passe OK. Les mails de Resend sont lus côté « envoyés » (la boîte de réception de `mega-coloring.com` contient les vraies réponses de prospection : non consultée).
 
 **À faire dès que Vercel redéploie (limite levée vers le 16/11 ~20:10, ou passage Pro)** : redéployer `main`, vérifier `canonical`, remettre `site_url`, rejouer le test de bout en bout, ajouter la page intermédiaire anti-analyseur (bouton « Continuer ») pour les liens de confirmation et de récupération.
+
+## Vercel : plus de prévisualisation pour les branches de travail (15/11/2026, accord de Jonathan)
+
+- Limite Vercel gratuite : 100 déploiements par 24 h glissantes, **par équipe** ; atteinte le 15/11 à 20:08 UTC (81 déploiements listés ce jour-là : 46 de prévisualisation, 35 de production). Pas de plan Pro (décision de Jonathan).
+- `vercel.json` : `git.deploymentEnabled: { "claude/*": false }` : les branches `claude/*` ne créent plus de prévisualisation ; seules les fusions vers `main` déploient. Conséquence : plus de lien de prévisualisation pour relire ; la vérification passe par build local et Playwright (déjà la pratique). Si le motif `claude/*` n'était pas pris en compte, ajouter le nom exact de la branche.
+- Règle de travail : regrouper les changements en peu de PR (une fusion = un déploiement de production) et ne jamais annoncer « déployé » sans le statut du commit (`get_status`) ou l'API de déploiements filtrée sur le SHA.
