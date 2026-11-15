@@ -12,7 +12,6 @@ import { Problem } from "@/features/home/problem";
 import { Quality } from "@/features/home/quality";
 import { SiteFooter } from "@/features/home/site-footer";
 import { SiteHeader } from "@/features/home/site-header";
-import { TrustStrip } from "@/features/home/trust-strip";
 import { Proofs } from "@/features/home/proofs-section";
 import { WhatItIs } from "@/features/home/what-it-is";
 import { t } from "@/lib/messages";
@@ -34,7 +33,6 @@ export default async function Home() {
       <SiteHeader />
       <main id="contenu">
         <Hero />
-        <TrustStrip />
         <WhatItIs />
         <Problem />
         <Proofs />

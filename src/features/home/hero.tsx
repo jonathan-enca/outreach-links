@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/messages";
 import { HeroCards } from "./hero-cards";
+import { ProductTour } from "./product-tour";
 import { HOME_SECTIONS } from "./sections";
 
 /**
@@ -50,6 +51,9 @@ export function Hero() {
             ))}
           </ul>
         </div>
+      </div>
+      <div className="mx-auto max-w-6xl">
+        <ProductTour />
       </div>
     </section>
   );
