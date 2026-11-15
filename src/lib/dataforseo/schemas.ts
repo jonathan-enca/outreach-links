@@ -108,9 +108,36 @@ export const domainIntersectionParams = z.object({
   /** Domaines à croiser, au moins 2 (clés "1", "2", ... construites par le client). */
   targets: z.array(domain).min(2).max(20),
   exclude_targets: z.array(domain).max(20).default([]),
+  /**
+   * "all" : domaines liant TOUTES les cibles ; "partial" : au moins une cible (le recoupement ≥ 2
+   * se calcule ensuite côté client avec les clés de `domain_intersection`). MT.3.
+   */
+  intersection_mode: z.enum(["all", "partial"]).default("all"),
   limit: z.number().int().min(1).max(1000).default(100),
   offset: z.number().int().min(0).default(0),
   include_subdomains: z.boolean().default(true),
+  filters,
+  order_by: orderBy,
+});
+
+/** Types de pages de Content Analysis (MT.3) : blogs, organisations, forums, e-commerce, médias. */
+export const CONTENT_PAGE_TYPES = [
+  "ecommerce",
+  "news",
+  "blogs",
+  "message-boards",
+  "organization",
+] as const;
+export type ContentPageType = (typeof CONTENT_PAGE_TYPES)[number];
+
+/** Content Analysis `search` : pages qui mentionnent un mot-clé ou une expression (entre guillemets). */
+export const contentSearchParams = z.object({
+  keyword: z.string().trim().min(2).max(700),
+  page_type: z.array(z.enum(CONTENT_PAGE_TYPES)).max(5).optional(),
+  /** `one_per_domain` : une ligne par domaine (moins de lignes facturées, plus de domaines distincts). */
+  search_mode: z.enum(["as_is", "one_per_domain"]).default("one_per_domain"),
+  limit: z.number().int().min(1).max(1000).default(100),
+  offset: z.number().int().min(0).default(0),
   filters,
   order_by: orderBy,
 });
@@ -273,6 +300,34 @@ export const domainIntersectionResult = z.looseObject({
     .nullish(),
 });
 
+export const contentSearchResult = z.looseObject({
+  total_count: num,
+  items_count: num,
+  items: z
+    .array(
+      z.looseObject({
+        url: str,
+        domain: str,
+        main_domain: str,
+        url_rank: num,
+        domain_rank: num,
+        spam_score: num,
+        country: str,
+        language: str,
+        page_types: z.array(z.string()).nullish(),
+        content_info: z
+          .looseObject({
+            title: str,
+            main_title: str,
+            snippet: str,
+            language: str,
+          })
+          .nullish(),
+      }),
+    )
+    .nullish(),
+});
+
 export const instantPagesResult = z.looseObject({
   crawl_progress: str,
   items_count: num,
@@ -320,5 +375,6 @@ export type CompetitorsDomainResult = z.infer<typeof competitorsDomainResult>;
 export type BacklinksSummaryResult = z.infer<typeof backlinksSummaryResult>;
 export type ReferringDomainsResult = z.infer<typeof referringDomainsResult>;
 export type BacklinksListResult = z.infer<typeof backlinksListResult>;
+export type ContentSearchResult = z.infer<typeof contentSearchResult>;
 export type DomainIntersectionResult = z.infer<typeof domainIntersectionResult>;
 export type InstantPagesResult = z.infer<typeof instantPagesResult>;

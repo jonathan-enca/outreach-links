@@ -317,6 +317,9 @@ export function createDataForSeoClient(options: DataForSeoClientOptions) {
       p: EndpointInput<"backlinksDomainIntersection">,
       o?: CallOptions,
     ) => call("backlinksDomainIntersection", p, o),
+    /** Content Analysis `search` (MT.3) : pages qui parlent d'un sujet, filtrables par type de page. */
+    contentAnalysisSearch: (p: EndpointInput<"contentAnalysisSearch">, o?: CallOptions) =>
+      call("contentAnalysisSearch", p, o),
     onpageInstantPages: (p: EndpointInput<"onpageInstantPages">, o?: CallOptions) =>
       call("onpageInstantPages", p, o),
     /** Dépense estimée cumulée de ce client (USD). */

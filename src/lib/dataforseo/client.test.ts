@@ -241,6 +241,37 @@ describe("autres endpoints", () => {
     expect(out.result?.items?.[0]?.domain_intersection["1"]).toBeTruthy();
   });
 
+  it("domain_intersection : le mode partiel est transmis", async () => {
+    const { client, fetchImpl } = setup([fixture("backlinks-domain-intersection")]);
+    await client.backlinksDomainIntersection({
+      targets: ["coloriez.com", "hugolescargot.com", "tete-a-modeler.com"],
+      intersection_mode: "partial",
+      limit: 500,
+    });
+    const body = JSON.parse(fetchImpl.mock.calls[0]![1]!.body as string)[0];
+    expect(body.intersection_mode).toBe("partial");
+    expect(body.limit).toBe(500);
+  });
+
+  it("Content Analysis search : corps, résultat, coût journalisé", async () => {
+    const { client, fetchImpl, rows } = setup([fixture("content-analysis-search")]);
+    const out = await client.contentAnalysisSearch(
+      { keyword: "coloriages à imprimer", page_type: ["blogs", "organization"], limit: 10 },
+      { auditId: "11111111-1111-4111-8111-111111111111" },
+    );
+    const body = JSON.parse(fetchImpl.mock.calls[0]![1]!.body as string)[0];
+    expect(fetchImpl.mock.calls[0]![0]).toContain("/v3/content_analysis/search/live");
+    expect(body).toMatchObject({
+      keyword: "coloriages à imprimer",
+      page_type: ["blogs", "organization"],
+      search_mode: "one_per_domain",
+      limit: 10,
+    });
+    expect(out.result?.items).toHaveLength(3);
+    expect(out.estimatedCostUsd).toBeCloseTo(0.024 + 10 * 0.000036, 6);
+    expect(rows[0]).toMatchObject({ operation: "content_analysis.search" });
+  });
+
   it("OnPage instant_pages", async () => {
     const { client } = setup([fixture("onpage-instant-pages")]);
     const out = await client.onpageInstantPages({ url: "https://mega-coloring.com/licorne" });

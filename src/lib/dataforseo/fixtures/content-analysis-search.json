@@ -1,0 +1,73 @@
+{
+  "version": "0.1.20261103",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "0.9 sec.",
+  "cost": 0.0203,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "11150900-1234-0001-0000-bbbbbbbbbbbb",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "0.8 sec.",
+      "cost": 0.0203,
+      "result_count": 1,
+      "path": ["v3", "content_analysis", "search", "live"],
+      "data": {},
+      "result": [
+        {
+          "total_count": 412,
+          "items_count": 3,
+          "items": [
+            {
+              "type": "content_analysis_search",
+              "url": "https://ecole-des-lilas.example.fr/activites/coloriages-classe",
+              "domain": "ecole-des-lilas.example.fr",
+              "main_domain": "ecole-des-lilas.example.fr",
+              "url_rank": 120,
+              "domain_rank": 310,
+              "spam_score": 4,
+              "country": "FR",
+              "language": "fr",
+              "page_types": ["organization"],
+              "content_info": {
+                "title": "Coloriages pour la classe de maternelle",
+                "main_title": "Nos activités",
+                "snippet": "Les coloriages à imprimer pour la classe...",
+                "language": "fr"
+              }
+            },
+            {
+              "type": "content_analysis_search",
+              "url": "https://blog-de-maman.example.fr/2026/coloriages-pluie",
+              "domain": "blog-de-maman.example.fr",
+              "main_domain": "blog-de-maman.example.fr",
+              "url_rank": 80,
+              "domain_rank": 150,
+              "spam_score": 12,
+              "country": "FR",
+              "language": "fr",
+              "page_types": ["blogs"],
+              "content_info": { "title": "Idées pour un jour de pluie", "language": "fr" }
+            },
+            {
+              "type": "content_analysis_search",
+              "url": "https://coloring-fans.example.com/printables",
+              "domain": "coloring-fans.example.com",
+              "main_domain": "coloring-fans.example.com",
+              "url_rank": 50,
+              "domain_rank": 90,
+              "spam_score": 61,
+              "country": "US",
+              "language": "en",
+              "page_types": ["blogs"],
+              "content_info": { "title": "Free printables", "language": "en" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

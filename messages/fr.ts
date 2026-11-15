@@ -1182,6 +1182,30 @@ export const fr = {
       started: "Récupération des backlinks lancée.",
     },
   },
+  collection: {
+    messages: {
+      unauthenticated: "Connectez-vous pour lancer la collecte.",
+      notFound: "Audit introuvable.",
+      auditNotDone: "La collecte devient disponible une fois l'audit des concurrents terminé.",
+      noUniverse:
+        "Aucune recherche d'éditeurs n'est prête : relancez le cadrage du site pour les générer.",
+      alreadyStarted: "La collecte est déjà lancée.",
+      overCap:
+        "Le coût attendu de la collecte dépasse ce qui reste du plafond de cet audit : rien n'est lancé.",
+      dailyCap:
+        "Le plafond de sécurité du jour est atteint : la collecte est reportée, rien n'est facturé.",
+      saveError: "Impossible d'enregistrer la collecte. Réessayez.",
+      sendFailed: "La collecte est enregistrée mais n'a pas pu démarrer. Réessayez.",
+      unavailable: "Service momentanément indisponible. Réessayez.",
+      started: "Collecte lancée. Rien n'est contacté à cette étape.",
+    },
+    stopReasons: {
+      termine: "Toutes les recherches prévues ont été faites.",
+      rendement: "Arrêtée : les dernières recherches n'apportaient presque plus de nouveaux sites.",
+      budget_phase: "Arrêtée : le budget prévu pour une phase est atteint.",
+      plafond: "Arrêtée : un plafond de sécurité est atteint.",
+    },
+  },
   opportunities: {
     title: "Opportunités de liens",
     body: "On cherche, à partir de votre écart de liens et de requêtes thématiques, les sites susceptibles de vous citer : mentions de marque, pages ressources, annuaires, sites que personne ne sollicite. Rien n'est contacté à cette étape.",
