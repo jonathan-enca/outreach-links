@@ -22,7 +22,7 @@ export const fr = {
       menu: "Menu",
       openMenu: "Ouvrir le menu",
       closeMenu: "Fermer le menu",
-      cta: "Audit gratuit",
+      cta: "Essai gratuit",
     },
     hero: {
       pill: "Audit gratuit, sans carte bancaire",

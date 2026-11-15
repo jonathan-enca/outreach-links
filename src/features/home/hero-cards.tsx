@@ -6,12 +6,12 @@ import { t } from "@/lib/messages";
  * sont des exemples, jamais des résultats réels ; elles montrent ce que le service prépare.
  */
 const base =
-  "absolute w-[16.5rem] rounded-card border border-white/10 bg-card/80 p-4 font-mono text-[12px] leading-relaxed text-card-foreground shadow-float backdrop-blur-sm";
-const tag = "mb-2 text-[11px] font-medium uppercase tracking-[0.16em] text-primary";
+  "absolute w-[16.5rem] rounded-card border border-border bg-card p-4 text-[13px] leading-relaxed text-card-foreground shadow-float";
+const tag = "mb-2 text-[13px] font-semibold text-primary";
 
 function Bar({ value }: { value: number }) {
   return (
-    <span className="relative block h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
+    <span className="relative block h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
       <span
         className="absolute inset-y-0 left-0 rounded-full bg-primary"
         style={{ width: `${value}%` }}
@@ -27,7 +27,7 @@ export function HeroCards() {
       <div className={`${base} left-[2%] top-[4%] -rotate-3`}>
         <div className="flex items-center justify-between gap-3 text-[13px]">
           <span className="font-semibold">blog-voyage.fr</span>
-          <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[11px] text-primary">
+          <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary">
             {c.target.badge}
           </span>
         </div>
@@ -49,9 +49,9 @@ export function HeroCards() {
       <div className={`${base} bottom-[2%] left-[6%] -rotate-2`}>
         <p className={tag}>{c.guardrails.tag}</p>
         <div className="flex flex-wrap gap-1.5">
-          <span className="rounded border border-white/15 px-2 py-0.5">{c.guardrails.perHour}</span>
-          <span className="rounded border border-white/15 px-2 py-0.5">{c.guardrails.hours}</span>
-          <span className="rounded border border-white/15 px-2 py-0.5">{c.guardrails.review}</span>
+          <span className="rounded border border-border px-2 py-0.5">{c.guardrails.perHour}</span>
+          <span className="rounded border border-border px-2 py-0.5">{c.guardrails.hours}</span>
+          <span className="rounded border border-border px-2 py-0.5">{c.guardrails.review}</span>
         </div>
         <p className="mt-2 flex items-center gap-1.5 text-primary">
           <Check className="size-3.5" /> {c.guardrails.ok}
@@ -79,13 +79,13 @@ export function HeroCards() {
         <p className="mt-2 text-muted-foreground">→ {c.reply.status}</p>
       </div>
 
-      <div className={`${base} bottom-[3%] right-[5%] rotate-1 border-primary/30`}>
+      <div className={`${base} bottom-[3%] right-[5%] rotate-1`}>
         <p className="flex items-center gap-1.5 text-primary">
           <Check className="size-3.5" /> {c.live.tag}
         </p>
         <p className="mt-1 text-[13px]">{c.live.url}</p>
         <p className="mt-2">
-          <span className="rounded border border-white/15 px-2 py-0.5">{c.live.kind}</span>
+          <span className="rounded border border-border px-2 py-0.5">{c.live.kind}</span>
         </p>
       </div>
     </div>

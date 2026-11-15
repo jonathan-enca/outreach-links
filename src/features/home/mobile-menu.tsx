@@ -91,9 +91,9 @@ export function MobileMenu({
               {signIn}
             </Link>
             <Button asChild className="mt-1 h-11">
-              <a href="#audit" onClick={() => setOpen(false)}>
+              <Link href="/connexion" onClick={() => setOpen(false)}>
                 {cta}
-              </a>
+              </Link>
             </Button>
           </div>
         </div>

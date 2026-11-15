@@ -47,7 +47,7 @@ export function SiteHeader() {
             {t.home.signIn}
           </Link>
           <Button asChild>
-            <a href="#audit">{t.home.nav.cta}</a>
+            <Link href="/connexion">{t.home.nav.cta}</Link>
           </Button>
         </nav>
         <MobileMenu links={links} signIn={t.home.signIn} cta={t.home.nav.cta} />

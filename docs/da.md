@@ -57,20 +57,24 @@ Un carré arrondi vert contenant **deux maillons croisés**, suivi du nom en Int
 
 ## 7. Composants clés
 
-| Composant             | Spécification                                                                                                                        |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Rayons                | `rounded-control` 8 px (boutons, champs), `rounded-card` 14 px (cartes), `rounded-panel` 16 px (fenêtre de capture, grands blocs)    |
-| Ombres                | `shadow-card` (carte posée), `shadow-float` (fenêtre de capture) ; teintées d'encre                                                  |
-| Bouton                | Plein émeraude (menthe en nuit), contour, fantôme ; 40 px de haut, 36 px en petit ; focus visible 2 px                               |
-| Champ « votre site »  | Champ et bouton dans un même cadre blanc (filet, ombre légère), centré dans le hero ; libellé visible, erreur sous le champ          |
-| Pastille d'annonce    | Petite pastille verte pâle au-dessus du titre (« Audit gratuit, sans carte bancaire ») ; une seule par page                          |
-| Carte fonction        | Blanc, filet, pastille numérotée (le contenu est une suite d'étapes), titre 19 px, deux lignes de texte                              |
-| Rangée de réassurance | Pastilles à filet fin (envoi depuis votre boîte, liste de suppression, RGPD, aucun lien acheté, validation par lot) ; rien d'inventé |
-| Tarifs                | 3 cartes (Gratuit, Starter, Pro), la carte du milieu inversée (marine, prix en menthe) ; prix lus dans `plans`                       |
-| Pastille de statut    | `StatusBadge` (système unique, 5 tons) ; texte toujours présent, jamais la couleur seule                                             |
-| Hook                  | `mark-hook` (surligneur ambre, texte encre)                                                                                          |
-| En-tête (home)        | Collant, 68 px ; logo, liens, « Se connecter », bouton « Audit gratuit » ; mobile : panneau latéral                                  |
-| Tableau               | Filets fins, chiffres alignés, défilement horizontal dans son cadre sur mobile                                                       |
+| Composant             | Spécification                                                                                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rayons                | `rounded-control` 8 px (boutons, champs), `rounded-card` 14 px (cartes), `rounded-panel` 16 px (fenêtre de capture, grands blocs)                                                     |
+| Ombres                | `shadow-card` (carte posée), `shadow-float` (fenêtre de capture) ; teintées d'encre                                                                                                   |
+| Bouton                | Plein émeraude (menthe en nuit), contour, fantôme ; 40 px de haut, 36 px en petit ; focus visible 2 px                                                                                |
+| Champ « votre site »  | Champ et bouton dans un même cadre blanc (filet, ombre légère), centré dans le hero ; libellé visible, erreur sous le champ                                                           |
+| Pastille d'annonce    | Petite pastille verte pâle au-dessus du titre (« Audit gratuit, sans carte bancaire ») ; une seule par page                                                                           |
+| Carte fonction        | Blanc, filet, pastille numérotée (le contenu est une suite d'étapes), titre 19 px, deux lignes de texte                                                                               |
+| Rangée de réassurance | Pastilles à filet fin (envoi depuis votre boîte, liste de suppression, RGPD, aucun lien acheté, validation par lot) ; rien d'inventé                                                  |
+| Tarifs                | 3 cartes (Gratuit, Starter, Pro), la carte du milieu inversée (marine, prix en menthe) ; prix lus dans `plans`                                                                        |
+| Pastille de statut    | `StatusBadge` (système unique, 5 tons) ; texte toujours présent, jamais la couleur seule                                                                                              |
+| Hook                  | `mark-hook` (surligneur ambre, texte encre)                                                                                                                                           |
+| En-tête (home)        | Collant, 68 px ; logo, liens (Fonctionnalités, Tarifs, FAQ), « Se connecter », bouton « Essai gratuit » (mène à l'inscription, décision de Jonathan 15/11) ; mobile : panneau latéral |
+| Tableau               | Filets fins, chiffres alignés, défilement horizontal dans son cadre sur mobile                                                                                                        |
+
+## 7 bis. Hero de la home (15/11, demande de Jonathan)
+
+Hero **clair** (`bg-hero-wash`, jamais la surface nuit) : pastille verte pâle, titre centré avec l'accroche en émeraude, deux boutons (« Essai gratuit » plein, « Fonctionnement » contour), cartes d'exemple **blanches** (filet, `shadow-float`, Inter) inclinées de chaque côté dès 1280 px, décoratives (`aria-hidden`). Libellés de section : `text-sm font-semibold text-primary`, sans majuscules espacées ni police mono.
 
 ## 8. Hors périmètre (à faire ensuite)
 
