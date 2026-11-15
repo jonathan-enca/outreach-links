@@ -10,6 +10,7 @@ import { planTriage } from "./plan-triage";
 import { publicAudit } from "./public-audit";
 import { replyClassify } from "./reply-classify";
 import { replyDrafts } from "./reply-drafts";
+import { replySendTick } from "./reply-send-tick";
 import { replyTick } from "./reply-tick";
 import { sendTick } from "./send-tick";
 
@@ -29,4 +30,5 @@ export const functions = [
   replyTick,
   replyClassify,
   replyDrafts,
+  replySendTick,
 ];

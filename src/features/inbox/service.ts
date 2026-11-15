@@ -132,6 +132,8 @@ export interface ReplyDraftRow {
   linkNature: string | null;
   status: "brouillon" | "validee" | "rejetee";
   edited: boolean;
+  /** Statut de l'envoi (M5.2b), absent tant que rien n'a été tenté. */
+  sendStatus: "en_cours" | "envoye" | "simule" | "a_reessayer" | "echec" | "ignore" | null;
   issues: { code: string; message: string }[];
 }
 
@@ -218,6 +220,17 @@ export async function getThread(
     supabase.from("reply_drafts").select("*").eq("inbound_message_id", inb.inbound_message_id),
     supabase.from("workspaces").select("autonomy_level").eq("id", inb.workspace_id).single(),
   ]);
+  const { data: sends } = await supabase
+    .from("reply_sends")
+    .select("reply_draft_id, status, dry_run")
+    .in(
+      "reply_draft_id",
+      (drafts ?? []).map((d) => d.id),
+    );
+  const sendOf = (id: string) => {
+    const mine = (sends ?? []).filter((x) => x.reply_draft_id === id);
+    return (mine.find((x) => !x.dry_run) ?? mine[0])?.status ?? null;
+  };
   const out: ReplyDraftRow[] = (drafts ?? []).map((d) => ({
     id: d.id,
     kind: d.kind as ReplyDraftRow["kind"],
@@ -229,6 +242,7 @@ export async function getThread(
     linkNature: d.link_nature,
     status: d.status as ReplyDraftRow["status"],
     edited: d.edited,
+    sendStatus: sendOf(d.id) as ReplyDraftRow["sendStatus"],
     issues: ctx
       ? checkReply({
           body: d.body,

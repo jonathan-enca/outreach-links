@@ -1831,6 +1831,111 @@ export type Database = {
           },
         ];
       };
+      reply_sends: {
+        Row: {
+          attempts: number;
+          body: string;
+          claimed_at: string;
+          created_at: string;
+          dry_run: boolean;
+          error: string | null;
+          id: string;
+          in_reply_to: string;
+          inbound_message_id: string;
+          mailbox_id: string | null;
+          message_id: string;
+          next_attempt_at: string | null;
+          reply_draft_id: string;
+          sent_at: string | null;
+          sent_message_id: string;
+          skip_reason: string | null;
+          status: string;
+          subject: string;
+          to_email: string;
+          workspace_id: string;
+        };
+        Insert: {
+          attempts?: number;
+          body: string;
+          claimed_at?: string;
+          created_at?: string;
+          dry_run: boolean;
+          error?: string | null;
+          id?: string;
+          in_reply_to: string;
+          inbound_message_id: string;
+          mailbox_id?: string | null;
+          message_id: string;
+          next_attempt_at?: string | null;
+          reply_draft_id: string;
+          sent_at?: string | null;
+          sent_message_id: string;
+          skip_reason?: string | null;
+          status: string;
+          subject: string;
+          to_email: string;
+          workspace_id: string;
+        };
+        Update: {
+          attempts?: number;
+          body?: string;
+          claimed_at?: string;
+          created_at?: string;
+          dry_run?: boolean;
+          error?: string | null;
+          id?: string;
+          in_reply_to?: string;
+          inbound_message_id?: string;
+          mailbox_id?: string | null;
+          message_id?: string;
+          next_attempt_at?: string | null;
+          reply_draft_id?: string;
+          sent_at?: string | null;
+          sent_message_id?: string;
+          skip_reason?: string | null;
+          status?: string;
+          subject?: string;
+          to_email?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reply_sends_inbound_message_id_fkey";
+            columns: ["inbound_message_id"];
+            isOneToOne: false;
+            referencedRelation: "inbound_messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reply_sends_mailbox_id_fkey";
+            columns: ["mailbox_id"];
+            isOneToOne: false;
+            referencedRelation: "mailboxes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reply_sends_reply_draft_id_fkey";
+            columns: ["reply_draft_id"];
+            isOneToOne: false;
+            referencedRelation: "reply_drafts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reply_sends_sent_message_id_fkey";
+            columns: ["sent_message_id"];
+            isOneToOne: false;
+            referencedRelation: "sent_messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reply_sends_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       reply_signals: {
         Row: {
           created_at: string;
