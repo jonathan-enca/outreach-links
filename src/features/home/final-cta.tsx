@@ -1,4 +1,5 @@
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/messages";
 import { HOME_SECTIONS } from "./sections";
@@ -18,10 +19,10 @@ export function FinalCta() {
         <p className="mx-auto mt-4 max-w-[52ch] text-lg text-muted-foreground">{s.text}</p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Button asChild className="h-12 px-6 text-base">
-            <a href="#audit">
+            <Link href="/inscription">
               {s.primary}
               <ArrowRight aria-hidden />
-            </a>
+            </Link>
           </Button>
           <Button asChild variant="outline" className="h-12 px-6 text-base">
             <a href={`#${HOME_SECTIONS.pricing}`}>{s.secondary}</a>

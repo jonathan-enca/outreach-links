@@ -572,3 +572,10 @@ Prochain sous-jalon : MH.2 (construction de la home).
 
 - Constat : le hero sombre, la police mono et les majuscules espacées (hero, « C'est quoi », « Sur le terrain ») dérogeaient à `docs/da.md` (surface nuit réservée à la bande produit, à l'appel final et au pied de page ; Inter seul). Corrigé : hero clair (`bg-hero-wash`), pastille verte pâle, cartes d'exemple blanches, libellés `text-sm font-semibold text-primary`. `docs/da.md` complété (section 7 bis) ; **règle à retenir : relire `docs/da.md` avant toute section de la home**.
 - Bouton d'en-tête (bureau et menu mobile) : « Essai gratuit », lien vers `/connexion` (avant : « Audit gratuit » vers `#audit`).
+
+## Inscription, connexion et liens de la home (15/11/2026, demandes de Jonathan)
+
+- **Section « audit gratuit » retirée de la home** (`start-audit.tsx` supprimé : champ « votre site », titre « Voyez vos premières cibles »). L'audit public (`/audit-gratuit/[id]`, `public-audit`) existe toujours côté code mais n'est plus lancé depuis la home ; la visite vidéo (`product-tour.tsx`, `PRODUCT_TOUR_VIDEO`) n'est plus affichée : à replacer ailleurs (hero ou « Comment ça marche ») quand la vidéo existera.
+- **Tous les boutons « Essai gratuit » -> `/inscription`** (hero, en-tête bureau et mobile, appel final, « Comment ça marche », les trois cartes de tarifs, pied de page) ; **« Fonctionnement » -> `#fonctions`**. Plus aucune ancre `#audit` (test `home.test.ts`).
+- **`/inscription`** (nouvelle) et **`/connexion`** refaites sur le modèle des captures : formulaire à gauche, bande produit à droite (`src/components/auth-panel.tsx`, surface nuit : c'est la « bande produit » de la DA, bureau seulement). Connexion par lien magique : **un seul champ (email), aucun mot de passe** (pas de champ nom ni mot de passe comme dans la référence : pas d'auth par mot de passe dans le produit). `signInWithOtp` crée le compte à la première connexion. Messages : `signup.*`, `auth.*`.
+- À décider : demander le prénom (signature) dès l'inscription ? Pour l'instant non (zéro champ avant la première valeur, voir MB.1).

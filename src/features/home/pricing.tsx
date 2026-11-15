@@ -70,11 +70,7 @@ export function Pricing({ plans }: { plans: PublicPlan[] | null }) {
                     ))}
                   </ul>
                   <Button asChild variant={featured ? "default" : "outline"} className="mt-6 h-11">
-                    {p.key === "gratuit" ? (
-                      <a href="#audit">{copy.cta}</a>
-                    ) : (
-                      <Link href="/connexion">{copy.cta}</Link>
-                    )}
+                    <Link href="/inscription">{copy.cta}</Link>
                   </Button>
                 </li>
               );
