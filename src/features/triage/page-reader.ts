@@ -26,6 +26,10 @@ export interface PageRead {
   lang: string | null;
   /** Liens internes (même hôte), pour retrouver une page à partir d'une URL partielle. */
   links: PageLink[];
+  /** Adresses des liens `mailto:` de la page (M3.2). */
+  mailtos: string[];
+  /** La page contient un vrai formulaire de contact (zone de message, hors recherche et commentaires). */
+  hasContactForm: boolean;
   /** Lu via le lecteur de secours (Jina, Firecrawl) après un blocage. */
   viaFallback: boolean;
 }
@@ -76,6 +80,29 @@ export function parseHtml(html: string, url: string): Omit<PageRead, "status" | 
       }
     });
   }
+  const mailtos = $('a[href^="mailto:" i]')
+    .map((_, el) => {
+      const raw = ($(el).attr("href") ?? "").slice(7).split("?")[0] ?? "";
+      try {
+        return decodeURIComponent(raw).trim().toLowerCase();
+      } catch {
+        return raw.trim().toLowerCase();
+      }
+    })
+    .get()
+    .filter((m) => m.includes("@"))
+    .slice(0, 10);
+  const hasContactForm = $("form")
+    .toArray()
+    .some((f) => {
+      const form = $(f);
+      const action = (form.attr("action") ?? "").toLowerCase();
+      const marker = `${form.attr("id") ?? ""} ${form.attr("class") ?? ""} ${action}`.toLowerCase();
+      if (/search|recherche|comment|newsletter|login|connexion|subscribe/.test(marker))
+        return false;
+      if (form.find('input[type="password"], input[type="search"]').length > 0) return false;
+      return form.find("textarea").length > 0;
+    });
   const title = collapse($("title").first().text()).slice(0, 200);
   const description = collapse($('meta[name="description"]').attr("content") ?? "").slice(0, 300);
   const headings = $("h1, h2, h3")
@@ -97,6 +124,8 @@ export function parseHtml(html: string, url: string): Omit<PageRead, "status" | 
     text,
     lang,
     links,
+    mailtos,
+    hasContactForm,
   };
 }
 
@@ -111,6 +140,8 @@ const EMPTY = (url: string): PageRead => ({
   text: "",
   lang: null,
   links: [],
+  mailtos: [],
+  hasContactForm: false,
   viaFallback: false,
 });
 

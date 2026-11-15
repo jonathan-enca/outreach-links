@@ -113,5 +113,7 @@ const EMPTY_READ = {
   text: "",
   lang: null,
   links: [],
+  mailtos: [],
+  hasContactForm: false,
   viaFallback: false,
 };

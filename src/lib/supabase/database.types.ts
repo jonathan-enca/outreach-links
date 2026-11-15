@@ -534,6 +534,57 @@ export type Database = {
           },
         ];
       };
+      contact_runs: {
+        Row: {
+          cost_usd: number;
+          error_message: string | null;
+          finished_at: string | null;
+          plan_id: string;
+          requested_by: string | null;
+          started_at: string;
+          stats: Json;
+          status: string;
+          workspace_id: string;
+        };
+        Insert: {
+          cost_usd?: number;
+          error_message?: string | null;
+          finished_at?: string | null;
+          plan_id: string;
+          requested_by?: string | null;
+          started_at?: string;
+          stats?: Json;
+          status: string;
+          workspace_id: string;
+        };
+        Update: {
+          cost_usd?: number;
+          error_message?: string | null;
+          finished_at?: string | null;
+          plan_id?: string;
+          requested_by?: string | null;
+          started_at?: string;
+          stats?: Json;
+          status?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contact_runs_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: true;
+            referencedRelation: "link_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contact_runs_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       cost_ledger: {
         Row: {
           actual_cost_usd: number | null;
@@ -682,10 +733,10 @@ export type Database = {
           source_domain: string;
           source_title: string | null;
           source_url: string | null;
-          url_exact: boolean;
           status: string;
           target_page_url: string;
           type: string;
+          url_exact: boolean;
           workspace_id: string;
         };
         Insert: {
@@ -706,10 +757,10 @@ export type Database = {
           source_domain: string;
           source_title?: string | null;
           source_url?: string | null;
-          url_exact?: boolean;
           status?: string;
           target_page_url: string;
           type: string;
+          url_exact?: boolean;
           workspace_id: string;
         };
         Update: {
@@ -730,10 +781,10 @@ export type Database = {
           source_domain?: string;
           source_title?: string | null;
           source_url?: string | null;
-          url_exact?: boolean;
           status?: string;
           target_page_url?: string;
           type?: string;
+          url_exact?: boolean;
           workspace_id?: string;
         };
         Relationships: [
@@ -776,9 +827,9 @@ export type Database = {
           rationale: string;
           source_domain: string;
           source_url: string | null;
-          url_exact: boolean;
           target_page_url: string;
           type: string;
+          url_exact: boolean;
           workspace_id: string;
         };
         Insert: {
@@ -796,9 +847,9 @@ export type Database = {
           rationale: string;
           source_domain: string;
           source_url?: string | null;
-          url_exact?: boolean;
           target_page_url: string;
           type: string;
+          url_exact?: boolean;
           workspace_id: string;
         };
         Update: {
@@ -816,12 +867,27 @@ export type Database = {
           rationale?: string;
           source_domain?: string;
           source_url?: string | null;
-          url_exact?: boolean;
           target_page_url?: string;
           type?: string;
+          url_exact?: boolean;
           workspace_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "link_plan_items_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "link_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "link_plan_items_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       link_plan_triage_runs: {
         Row: {
@@ -857,7 +923,22 @@ export type Database = {
           status?: string;
           workspace_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "link_plan_triage_runs_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: true;
+            referencedRelation: "link_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "link_plan_triage_runs_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       link_plans: {
         Row: {
@@ -890,7 +971,29 @@ export type Database = {
           version?: number;
           workspace_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "link_plans_audit_id_fkey";
+            columns: ["audit_id"];
+            isOneToOne: false;
+            referencedRelation: "audits";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "link_plans_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "link_plans_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       link_target_triage: {
         Row: {
@@ -947,7 +1050,87 @@ export type Database = {
           verdict?: string;
           workspace_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "link_target_triage_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "link_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "link_target_triage_plan_item_id_fkey";
+            columns: ["plan_item_id"];
+            isOneToOne: true;
+            referencedRelation: "link_plan_items";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "link_target_triage_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      manual_tasks: {
+        Row: {
+          created_at: string;
+          form_url: string;
+          id: string;
+          message: string | null;
+          plan_id: string;
+          plan_item_id: string;
+          status: string;
+          type: string;
+          workspace_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          form_url: string;
+          id?: string;
+          message?: string | null;
+          plan_id: string;
+          plan_item_id: string;
+          status?: string;
+          type?: string;
+          workspace_id: string;
+        };
+        Update: {
+          created_at?: string;
+          form_url?: string;
+          id?: string;
+          message?: string | null;
+          plan_id?: string;
+          plan_item_id?: string;
+          status?: string;
+          type?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "manual_tasks_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "link_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "manual_tasks_plan_item_id_fkey";
+            columns: ["plan_item_id"];
+            isOneToOne: true;
+            referencedRelation: "link_plan_items";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "manual_tasks_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       memberships: {
         Row: {
@@ -1162,6 +1345,117 @@ export type Database = {
           },
         ];
       };
+      suppressions: {
+        Row: {
+          created_at: string;
+          domain: string | null;
+          email: string | null;
+          id: string;
+          reason: string;
+          workspace_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          domain?: string | null;
+          email?: string | null;
+          id?: string;
+          reason?: string;
+          workspace_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          domain?: string | null;
+          email?: string | null;
+          id?: string;
+          reason?: string;
+          workspace_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "suppressions_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      target_contacts: {
+        Row: {
+          assessed_at: string;
+          contact_url: string | null;
+          cost_usd: number;
+          email: string | null;
+          email_source: string | null;
+          form_url: string | null;
+          id: string;
+          plan_id: string;
+          plan_item_id: string;
+          reason: string;
+          sendable: boolean;
+          status: string;
+          verification: string;
+          verifier: string | null;
+          workspace_id: string;
+        };
+        Insert: {
+          assessed_at?: string;
+          contact_url?: string | null;
+          cost_usd?: number;
+          email?: string | null;
+          email_source?: string | null;
+          form_url?: string | null;
+          id?: string;
+          plan_id: string;
+          plan_item_id: string;
+          reason: string;
+          sendable?: boolean;
+          status: string;
+          verification?: string;
+          verifier?: string | null;
+          workspace_id: string;
+        };
+        Update: {
+          assessed_at?: string;
+          contact_url?: string | null;
+          cost_usd?: number;
+          email?: string | null;
+          email_source?: string | null;
+          form_url?: string | null;
+          id?: string;
+          plan_id?: string;
+          plan_item_id?: string;
+          reason?: string;
+          sendable?: boolean;
+          status?: string;
+          verification?: string;
+          verifier?: string | null;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "target_contacts_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "link_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "target_contacts_plan_item_id_fkey";
+            columns: ["plan_item_id"];
+            isOneToOne: true;
+            referencedRelation: "link_plan_items";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "target_contacts_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       workspaces: {
         Row: {
           created_at: string;
@@ -1193,7 +1487,10 @@ export type Database = {
     Functions: {
       create_link_plan: {
         Args: { p_audit_id: string; p_items: Json; p_user_id: string };
-        Returns: { plan_id: string; version: number }[];
+        Returns: {
+          plan_id: string;
+          version: number;
+        }[];
       };
       has_workspace_role: {
         Args: { roles: string[]; ws: string };

@@ -9,6 +9,9 @@ import {
 } from "@/features/plan/actions";
 import { PlanEditor } from "@/features/plan/plan-editor";
 import { loadPlan } from "@/features/plan/service";
+import { ContactsSection } from "@/features/contacts/contacts-section";
+import { startContactsAction } from "@/features/contacts/actions";
+import { loadContacts } from "@/features/contacts/service";
 import { startTriageAction } from "@/features/triage/actions";
 import { loadTriage } from "@/features/triage/service";
 import { TriageSection } from "@/features/triage/triage-section";
@@ -28,6 +31,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   const view = await loadPlan(supabase, id);
   if (!view) notFound();
   const triage = await loadTriage(supabase, id);
+  const contacts = await loadContacts(supabase, id);
   return (
     <>
       <PageHeader title={t.plan.title} description={t.plan.description} />
@@ -45,6 +49,11 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       {triage ? (
         <div className="mt-6">
           <TriageSection view={triage} startAction={startTriageAction.bind(null, id)} />
+        </div>
+      ) : null}
+      {contacts && contacts.triageDone ? (
+        <div className="mt-6">
+          <ContactsSection view={contacts} startAction={startContactsAction.bind(null, id)} />
         </div>
       ) : null}
     </>

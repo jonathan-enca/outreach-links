@@ -45,6 +45,8 @@ const read = (over: Partial<PageRead> = {}): PageRead => ({
   text: "Des ressources pour les enfants : coloriages, jeux, bricolages. Mise à jour chaque mois.",
   lang: "fr",
   links: [],
+  mailtos: [],
+  hasContactForm: false,
   viaFallback: false,
   ...over,
 });
