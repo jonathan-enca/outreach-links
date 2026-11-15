@@ -18,6 +18,8 @@ import { loadContacts } from "@/features/contacts/service";
 import { startTriageAction } from "@/features/triage/actions";
 import { loadTriage } from "@/features/triage/service";
 import { TriageSection } from "@/features/triage/triage-section";
+import { BatchesSection } from "@/features/batches/batches-section";
+import { loadBatches } from "@/features/batches/service";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 
@@ -36,6 +38,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   const triage = await loadTriage(supabase, id);
   const contacts = await loadContacts(supabase, id);
   const drafts = await loadDrafts(supabase, id);
+  const batches = await loadBatches(supabase, id);
   return (
     <>
       <PageHeader title={t.plan.title} description={t.plan.description} />
@@ -63,6 +66,11 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       {drafts && drafts.contactsDone ? (
         <div className="mt-6">
           <DraftsSection view={drafts} startAction={startDraftsAction.bind(null, id)} />
+        </div>
+      ) : null}
+      {batches && batches.draftsDone ? (
+        <div className="mt-6">
+          <BatchesSection view={batches} auditId={id} />
         </div>
       ) : null}
     </>

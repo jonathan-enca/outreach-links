@@ -163,9 +163,10 @@ describe.skipIf(!adminUrl)("lots : verrouillage et validation", () => {
       await validate(c, b);
       await c.query("savepoint s1");
       await expect(
-        c.query("update public.batches set status = 'brouillon', validated_at = null where id = $1", [
-          b,
-        ]),
+        c.query(
+          "update public.batches set status = 'brouillon', validated_at = null where id = $1",
+          [b],
+        ),
       ).rejects.toThrow(/déjà validé/);
       await c.query("rollback to savepoint s1");
       await expect(addItem(c, b, otherReadyDraft, 2)).rejects.toThrow(/verrouillé/);

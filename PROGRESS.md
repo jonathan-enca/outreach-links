@@ -27,7 +27,8 @@
 | M3.1        | fait (tri des cibles du plan validé ; précision mesurée sur 50 cas ; migration appliquée sur la vraie base ; aucun run réel sur de vrais sites)                   | PR M3.1                                                        | 2026-11-15 |
 | M3.2        | fait (enquêteur : contacts ; testé sur faux web et fixtures ; finder Hunter derrière une interface, désactivé sans clé ; migration appliquée sur la vraie base)   | PR M3.2                                                        | 2026-11-16 |
 | M3.3        | fait (rédacteur : URL vérifiée 200, linter, anti-doublons ; testé sur faux LLM, aucun run réel ; migrations appliquées sur la vraie base)                         | PR M3.3                                                        | 2026-11-16 |
-| M3.4 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
+| M3.4        | fait (lots, édition relue par le linter, validation par lot verrouillée en base ; pas de test Playwright ; migration appliquée sur la vraie base)                 | PR M3.4                                                        | 2026-11-17 |
+| M4.1 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
 
 ## Décisions prises
 
@@ -268,7 +269,20 @@
 - Écran : section « Messages à valider » sur la page Plan de liens, après les contacts.
 - Non fait : jeu d'évaluation de style (dépend des exemples de Jonathan, voir « À fournir ») ; mesure réelle de la qualité des messages (aucun run LLM réel).
 
+### M3.4 (lots et validation, 17/11/2026)
+
+- Tables `batches` (brouillon | valide, numéro par plan) et `batch_items` (un brouillon dans un seul lot). Migration additive `2026111700000000_batches.sql`, appliquée sur la vraie base ; types régénérés.
+- [auto] Un lot ne contient que des **emails** prêts (URL 200, linter vert) dont le contact est `sendable` (email vérifié) ; les formulaires restent des tâches manuelles. Taille du lot paramétrable (défaut 10, 1 à 50) ; un seul lot « en préparation » à la fois.
+- Verrouillage **en base** (triggers) : validation refusée si lot vide ou message non prêt ; à la validation les brouillons passent à `valide` dans la même transaction ; ensuite brouillons et éléments du lot ne se modifient plus, un lot validé ne revient jamais en arrière. Seul un lot validé sera envoyable (M4.2 devra filtrer sur `batches.status = 'valide'`).
+- Édition d'un message : relue par le même linter (`lintMessage`), « prêt » seulement si tout passe ; marquée `edited_by_user`. Retrait d'un message possible avant validation. Journal des décisions dans `events` : `batch.created`, `batch.draft_edited`, `batch.draft_removed`, `batch.validated`.
+- Écran : section « Lots à valider » sur la page Plan de liens (par site : demande, pourquoi, motif de tri, accroche, destinataire, message). La page `/app/lots` reste la coquille.
+- Tests : 9 tests de service, 5 tests SQL réels (verrouillage, validation, RLS). Coût : 0 USD, aucun appel payant.
+- Non fait : test Playwright (aucune session connectée possible) ; anti-doublon entre un message modifié et les autres du lot.
+- Piège : relancer la rédaction (M3.3) après validation échouera sur les brouillons verrouillés (voulu) ; une nouvelle rédaction devra ignorer les brouillons `valide`.
+
 ## Backlog (idées hors périmètre)
+
+- M3.4 : page `/app/lots` listant les lots de tous les sites ; anti-doublon des messages modifiés ; rédaction qui ignore les brouillons verrouillés ; test Playwright connecté.
 
 - M3.1 : verdict modifiable par l'utilisateur (M3.4) ; cache de pages en base ; vérification que la mention de marque ne porte pas déjà un lien ; jeu d'évaluation sur de vraies pages (pas seulement synthétiques) ; tri automatique à la validation du plan.
 - **Jalon MA : revoir tout le process d'audit** (demande de Jonathan, 14/11/2026) ; voir PLAN.md et « M1.6 bis ».
