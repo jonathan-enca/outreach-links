@@ -8,6 +8,7 @@ import { planDrafts } from "./plan-drafts";
 import { health } from "./health";
 import { planTriage } from "./plan-triage";
 import { publicAudit } from "./public-audit";
+import { replyTick } from "./reply-tick";
 import { sendTick } from "./send-tick";
 
 /** Toutes les fonctions Inngest de l'application (ajouter ici les nouvelles). */
@@ -23,4 +24,5 @@ export const functions = [
   planDrafts,
   publicAudit,
   sendTick,
+  replyTick,
 ];
