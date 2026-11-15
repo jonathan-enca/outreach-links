@@ -28,7 +28,7 @@
 | M3.2        | fait (enquêteur : contacts ; testé sur faux web et fixtures ; finder Hunter derrière une interface, désactivé sans clé ; migration appliquée sur la vraie base)   | PR M3.2                                                        | 2026-11-16 |
 | M3.3        | fait (rédacteur : URL vérifiée 200, linter, anti-doublons ; testé sur faux LLM, aucun run réel ; migrations appliquées sur la vraie base)                         | PR M3.3                                                        | 2026-11-16 |
 | M3.4        | fait (lots, édition relue par le linter, validation par lot verrouillée en base ; pas de test Playwright ; migration appliquée sur la vraie base)                 | PR M3.4                                                        | 2026-11-17 |
-| M4.1        | fait côté code (PR M4.1) ; **migration `2026111800000000_mailboxes.sql` NON appliquée sur la vraie base** (refus du classifieur, voir ci-dessous)                 | PR M4.1                                                        | 2026-11-18 |
+| M4.1        | fait (PR #45 fusionnée ; migration `2026111800000000_mailboxes.sql` appliquée sur la vraie base ; `MAILBOX_ENCRYPTION_KEYS` posée sur Vercel)                     | PR M4.1                                                        | 2026-11-18 |
 | M4.2 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
 
 ## Décisions prises
@@ -284,7 +284,7 @@
 ### M4.1 (connexion de la boîte d'envoi, 18/11/2026)
 
 - Migration additive `2026111800000000_mailboxes.sql` : table `mailboxes` (une boîte par adresse et par espace, liée à un site). Mot de passe chiffré AES-256-GCM (`password_enc`, `key_version`) ; l'utilisateur connecté lit les colonnes **sans** `password_enc` (droits `select` par colonne) ; écriture réservée au serveur. `status = 'verifiee'` exige SMTP et IMAP réussis (contrainte SQL). Plafonds par défaut 10 par heure (max 10) et 20 par jour. 4 tests SQL réels.
-- **Migration NON appliquée sur la vraie base** : l'appel `POST .../database/query` a été refusé par le classifieur (« action destructive ou non voulue ») et je n'ai pas contourné ce refus. Tant qu'elle n'est pas appliquée, **ne pas fusionner la PR** : la page `/app/site/[id]` interroge `mailboxes` et casserait en production.
+- Migration appliquée sur la vraie base le 18/11/2026 après autorisation explicite de Jonathan (un premier essai avait été refusé par le classifieur). Clé `MAILBOX_ENCRYPTION_KEYS` (`v1`) générée et posée sur Vercel (Production et Preview, sensitive) ; aucune boîte réelle n'est connectée.
 - Chiffrement (`src/features/mailboxes/crypto.ts`) : variable `MAILBOX_ENCRYPTION_KEYS` = `v2:<base64 32 o>,v1:<base64 32 o>` (`openssl rand -base64 32`) ; la première clé chiffre, toutes déchiffrent. Rotation : ajouter une clé en tête, rechiffrer les lignes (`needsRotation`), retirer l'ancienne. **À définir sur Vercel (sensitive)** avant de connecter une vraie boîte ; sans elle l'écran répond « chiffrement non configuré » et rien n'est enregistré.
 - Transport (`transport.ts`) : `verifySmtp` (EHLO + AUTH, aucun message), `verifyImap` (connexion + login + logout, aucune lecture), `sendSmtp` (message de test). Ports admis SMTP 25/465/587/2525, IMAP 143/993 ; STARTTLS obligatoire hors 465/993. Anti-SSRF (`network.ts`) : hôte résolu, adresses privées refusées, connexion sur l'IP validée. Les erreurs ne contiennent jamais le mot de passe.
 - Santé du domaine (`health.ts`) : SPF, DMARC et DKIM (sélecteurs courants) par DNS ; avertissement non bloquant à l'écran.
@@ -360,4 +360,4 @@
 
 ## Prochain sous-jalon recommandé
 
-**Débloquer M4.1** : appliquer `supabase/migrations/2026111800000000_mailboxes.sql` sur la vraie base, définir `MAILBOX_ENCRYPTION_KEYS` sur Vercel, puis fusionner la PR M4.1. Ensuite M4.2 (moteur d'envoi plafonné, dry run, filtre `batches.status = 'valide'`), voir PLAN.md. En parallèle, finir la mise en production d'Inngest et le run réel DataForSEO dès que Jonathan fournit les identifiants.
+M4.2 (moteur d'envoi plafonné, dry run, filtre `batches.status = 'valide'`), voir PLAN.md. En parallèle, finir la mise en production d'Inngest et le run réel DataForSEO dès que Jonathan fournit les identifiants.
