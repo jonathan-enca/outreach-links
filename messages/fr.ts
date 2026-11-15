@@ -722,6 +722,8 @@ export const fr = {
         "Pages déjà classées entre la 4e et la 20e position sur des mots-clés recherchés : les plus proches d'un gain.",
       pagesNone:
         "Aucune page n'est classée entre la 4e et la 20e position sur des mots-clés recherchés.",
+      pagesNewSite:
+        "Aucune page classée pour l'instant : la première page à pousser est votre accueil, avec les cibles ci-dessous.",
       page: "Page",
       position: "Position moyenne",
       volume: "Recherches par mois",
@@ -733,6 +735,9 @@ export const fr = {
       targetsBody:
         "Sites qui renvoient vers vos concurrents et pas vers vous, après retrait du spam et des plateformes.",
       targetMasked: "Domaine masqué",
+      targetsShared: "{n} de ces cibles renvoient vers au moins 2 de vos concurrents.",
+      targetDofollow: "lien suivi (dofollow)",
+      targetNofollow: "lien non suivi (nofollow)",
       targetCitesOne: "Renvoie vers 1 de vos concurrents",
       targetCitesMany: "Renvoie vers {n} de vos concurrents",
       targetExample: "Exemple de page",
