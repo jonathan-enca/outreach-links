@@ -13,4 +13,7 @@ export const HOME_SECTIONS = {
 } as const;
 
 /** Vidéo de la visite du produit : à renseigner quand elle existera (URL d'un fichier MP4 dans `public/`). */
-export const PRODUCT_TOUR_VIDEO: { src: string; poster?: string } | null = null;
+export const PRODUCT_TOUR_VIDEO: { src: string; poster?: string } | null = {
+  src: "/visite-produit.mp4",
+  poster: "/visite-produit-poster.jpg",
+};
