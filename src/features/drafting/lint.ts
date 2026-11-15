@@ -17,7 +17,7 @@ const words = (s: string) =>
     .filter(Boolean);
 
 /** Mention de l'IA ou de l'automatisation : interdite dans les messages d'outreach (CLAUDE.md). */
-const AI_PATTERNS: RegExp[] = [
+export const AI_PATTERNS: RegExp[] = [
   /\bia\b/,
   /\bai\b/,
   /intelligence artificielle/,
