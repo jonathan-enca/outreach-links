@@ -1008,6 +1008,32 @@ export const fr = {
     taches: "Tâches",
     garde_fous: "Garde-fous",
   },
+  billing: {
+    title: "Abonnement",
+    description:
+      "Votre plan, vos plafonds d'envoi et vos crédits. Paiement en mode test pour l'instant : aucun prélèvement réel.",
+    noWorkspace: "Aucun espace de travail trouvé.",
+    currentPlan: "Plan actuel",
+    freeNote:
+      "Le plan gratuit donne l'audit et le plan de liens. L'envoi réel de messages demande un abonnement.",
+    usage: (used: number, cap: number) => `${used} envois sur ${cap} ce mois-ci.`,
+    renewsOn: "Renouvellement le",
+    endsOn: "Fin de l'abonnement le",
+    credits: (n: number) => `Crédits disponibles : ${n}.`,
+    fakeNote:
+      "Les clés de paiement ne sont pas encore configurées : le bouton de souscription n'aboutit pas à un vrai paiement.",
+    portal: "Gérer mon abonnement",
+    free: "Gratuit",
+    perMonth: "par mois",
+    noSending: "Aucun envoi réel",
+    sendCap: (n: number) => `${n} envois par mois`,
+    sites: (n: number) => `${n} site${n > 1 ? "s" : ""}`,
+    mailboxes: (n: number) => `${n} boîte${n > 1 ? "s" : ""} d'envoi`,
+    creditsPerMonth: (n: number) => `${n} crédits par mois`,
+    choose: (name: string) => `Choisir ${name}`,
+    paymentOk: "Merci : votre paiement est en cours de confirmation.",
+    link: "Abonnement",
+  },
   pages: {
     audit: {
       title: "Audit",

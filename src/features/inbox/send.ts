@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { checkSendAllowance } from "@/features/billing/plans";
 import { decryptSecret } from "@/features/mailboxes/crypto";
 import { logger } from "@/lib/logger";
 import type { Database } from "@/lib/supabase/database.types";
@@ -19,7 +20,10 @@ type MailboxRow = Database["public"]["Tables"]["mailboxes"]["Row"] & {
 };
 
 export type ReplyOutcome =
-  | { mailboxId: string; result: "hors_fenetre" | "plafond" | "rien_a_envoyer" }
+  | {
+      mailboxId: string;
+      result: "hors_fenetre" | "plafond" | "rien_a_envoyer" | "abonnement_requis" | "quota_mensuel";
+    }
   | {
       mailboxId: string;
       result: "simule" | "envoye" | "echec" | "a_reessayer" | "ignore";
@@ -58,6 +62,12 @@ async function sendNextReply(db: Client, box: MailboxRow, deps: SendDeps): Promi
   const now = deps.now();
   const dry = !deps.realSendingAllowed();
   const base = { mailboxId: box.id };
+
+  // M6.1 : même contrôle de plan que l'envoi initial (envoi réel seulement).
+  if (!dry) {
+    const allowance = await checkSendAllowance(db, box.workspace_id, now);
+    if (!allowance.allowed) return { ...base, result: allowance.reason };
+  }
 
   // Candidats : brouillons validés des messages entrants reçus par cette boîte.
   const { data: inbounds } = await db

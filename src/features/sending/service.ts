@@ -4,6 +4,7 @@ import { decryptSecret, parseKeyRing, type KeyRing } from "@/features/mailboxes/
 import { sendOutreachMail, type TransportOptions } from "@/features/mailboxes/transport";
 import { logger } from "@/lib/logger";
 import type { Database } from "@/lib/supabase/database.types";
+import { checkSendAllowance } from "@/features/billing/plans";
 import { SEND_LIMITS } from "./limits";
 import { buildOutgoing, makeMessageId, makeUnsubscribeToken, unsubscribeSecrets } from "./message";
 import { buildFollowUp, skipReasonForSignals, type SignalKind } from "./followup";
@@ -44,7 +45,10 @@ export function defaultSendDeps(
 }
 
 export type MailboxOutcome =
-  | { mailboxId: string; result: "hors_fenetre" | "plafond" | "rien_a_envoyer" }
+  | {
+      mailboxId: string;
+      result: "hors_fenetre" | "plafond" | "rien_a_envoyer" | "abonnement_requis" | "quota_mensuel";
+    }
   | {
       mailboxId: string;
       result: "simule" | "envoye" | "echec" | "a_reessayer" | "ignore";
@@ -76,6 +80,13 @@ async function sendNext(db: Client, box: MailboxRow, deps: SendDeps): Promise<Ma
   const now = deps.now();
   const dry = !deps.realSendingAllowed();
   const base = { mailboxId: box.id };
+
+  // M6.1 : un envoi RÉEL exige un abonnement actif et respecte le plafond mensuel du plan.
+  // Le dry run (simulation) n'est pas soumis au plan.
+  if (!dry) {
+    const allowance = await checkSendAllowance(db, box.workspace_id, now);
+    if (!allowance.allowed) return { ...base, result: allowance.reason };
+  }
 
   if (
     !isInSendWindow(now, {
