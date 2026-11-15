@@ -659,5 +659,10 @@ Prochain sous-jalon : MH.2 (construction de la home).
 
 ## Cap produit : outil complet d'abord, paliers ensuite (15/11/2026, décision de Jonathan)
 
-- Les trois tactiques de la home sont exactement ce que l'outil doit faire. Phase bêta sans vrai client : être **exhaustif et performant** ; **limites par palier (Gratuit, Médium, Total) à ajouter après**. Plan détaillé : PLAN.md, jalon **MT** (MT.0 mode bêta sans limites de volume avec plafonds de sécurité de coût ; MT.1 typage des cibles ; MT.2 tactique 1 ; MT.3 tactique 2 ; MT.4 tactique 3 ; MT.5 écran « Vos cibles » ; MT.6 mesure par tactique).
+- Les trois tactiques de la home sont exactement ce que l'outil doit faire. Phase bêta sans vrai client : être **exhaustif et performant** ; **limites par palier (Gratuit, Médium, Total) à ajouter après**. Plan détaillé : PLAN.md, jalon **MT** (découpe révisée le 15/11 après la demande de repenser l'audit : voir `docs/audit-v2.md` ; MT.0 mode bêta ; MT.1 profil de marque ; MT.2 requêtes par persona ; MT.3 collecte de candidats ; MT.4 qualification ; MT.5 tactiques 2 et 3 ; MT.6 écran « Vos cibles » ; MT.7 mesure).
 - Décisions à confirmer par Jonathan : plafonds de sécurité (proposés 5 USD par audit, 25 USD par jour), correspondance Médium/Total = Starter/Pro.
+
+## Refonte de l'audit : conception (15/11/2026, demande de Jonathan)
+
+- `docs/audit-v2.md` : profil de marque d'abord ; requêtes par persona (enseignants, parents, associations, médiathèques pour mega-coloring.com) ; collecte par tactique via Domain Intersection (recoupement des concurrents, comme Semrush Backlink Gap et Ahrefs Link Intersect), SERP top 30 et **Content Analysis `search` de DataForSEO** (filtre `page_type` = blogs, organization, message-boards, ecommerce : correspond aux types de sites visés) ; entonnoir de qualification ; liste courte classée ; recettes mises en cache par niche pour industrialiser. Coût estimé ~0,5 à 1 USD par audit (hypothèse). Rien n'est construit : conception à valider par Jonathan avant MT.0 et MT.1.
+- Inconnues à lever par un run réel borné : français et tarif de Content Analysis, coût de Domain Intersection.
