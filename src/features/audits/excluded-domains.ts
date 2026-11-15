@@ -6,6 +6,9 @@
  * "wikipedia.org" couvre aussi ses sous-domaines (fr.wikipedia.org).
  */
 export const DEFAULT_EXCLUDED_DOMAINS: readonly string[] = [
+  // Hébergeurs et partage de fichiers (le vrai site est un sous-domaine d'un hébergeur)
+  "dropbox.com",
+  "sitefinity.com",
   // Encyclopédies et Q&R
   "wikipedia.org",
   "wikimedia.org",
@@ -135,6 +138,18 @@ export function hostOf(input: string): string {
     .replace(/:\d+$/, "")
     .replace(/\.$/, "")
     .replace(/^www\./, "");
+}
+
+/**
+ * Vrai si `host` ressemble à un vrai nom de domaine (étiquettes lettres, chiffres, tirets, extension
+ * d'au moins 2 lettres). Constaté en production (15/11/2026) : la SERP renvoie des éléments qui ne
+ * sont pas des sites (« il y a 3 mois », « plus de 114,7 k abonnés ») ; ils ne doivent jamais devenir
+ * des concurrents ni partir vers DataForSEO.
+ */
+export function isValidHost(host: string): boolean {
+  return /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:[a-z]{2,24}|xn--[a-z0-9-]{2,59})$/.test(
+    host,
+  );
 }
 
 function matches(host: string, entry: string): boolean {
