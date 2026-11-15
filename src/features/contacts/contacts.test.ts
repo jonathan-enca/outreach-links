@@ -335,6 +335,67 @@ describe("investigateItem", () => {
   });
 });
 
+describe("exploration profonde du site", () => {
+  const cf = (email: string, key = 0x42) =>
+    key.toString(16).padStart(2, "0") +
+    [...email].map((c) => (c.charCodeAt(0) ^ key).toString(16).padStart(2, "0")).join("");
+
+  it("décode les emails protégés par Cloudflare et lit le JSON-LD", () => {
+    const p = parseHtml(
+      html(
+        `<a class="__cf_email__" data-cfemail="${cf("Jean@Blog.fr")}">[email protected]</a><script type="application/ld+json">{"@type":"Organization","contactPoint":{"email":"mailto:Pro@Blog.fr"}}</script>`,
+      ),
+      "https://blog.fr/",
+    );
+    expect(p.mailtos.sort()).toEqual(["jean@blog.fr", "pro@blog.fr"]);
+  });
+
+  it("trouve un email à 2 niveaux : accueil -> à propos -> équipe", async () => {
+    const w = web({
+      "https://blog.fr/p": html('<a href="/a-propos">À propos</a>'),
+      "https://blog.fr/a-propos": html('<a href="/equipe">Notre équipe</a><p>Bienvenue</p>'),
+      "https://blog.fr/equipe": html("<p>Marie : marie@blog.fr</p>"),
+    });
+    const r = await investigateItem(item("blog.fr", "https://blog.fr/p"), deps(w.fetch));
+    expect(r.email).toBe("marie@blog.fr");
+  });
+
+  it("utilise le sitemap quand le menu ne montre aucune page de contact", async () => {
+    const w = web({
+      "https://blog.fr/p": html("<p>Un article</p>"),
+      "https://blog.fr/sitemap.xml":
+        "<urlset><url><loc>https://blog.fr/article-1</loc></url><url><loc>https://blog.fr/nous-contacter</loc></url><url><loc>https://autre.com/contact</loc></url></urlset>",
+      "https://blog.fr/nous-contacter": html("<p>redaction@blog.fr</p>"),
+    });
+    const r = await investigateItem(item("blog.fr", "https://blog.fr/p"), deps(w.fetch));
+    expect(r.email).toBe("redaction@blog.fr");
+    expect(w.hits).not.toContain("https://autre.com/contact");
+  });
+
+  it("s'arrête dès qu'un email du domaine est trouvé (pas de sitemap ni de pages en plus)", async () => {
+    const w = web({
+      "https://blog.fr/p": html('<a href="/contact">Contact</a><a href="/equipe">Équipe</a>'),
+      "https://blog.fr/contact": html("<p>contact@blog.fr</p>"),
+      "https://blog.fr/equipe": html("<p>Équipe</p>"),
+    });
+    await investigateItem(item("blog.fr", "https://blog.fr/p"), deps(w.fetch));
+    expect(w.hits).not.toContain("https://blog.fr/sitemap.xml");
+  });
+
+  it("respecte le plafond de requêtes par cible même sur un site énorme", async () => {
+    const pages: Record<string, string> = {
+      "https://big.fr/p": html(
+        Array.from({ length: 40 }, (_, i) => `<a href="/contact-${i}">Contact ${i}</a>`).join(""),
+      ),
+    };
+    for (let i = 0; i < 40; i++) pages[`https://big.fr/contact-${i}`] = html("<p>Rien</p>");
+    const w = web(pages);
+    const r = await investigateItem(item("big.fr", "https://big.fr/p"), deps(w.fetch));
+    expect(r.status).toBe("introuvable");
+    expect(w.hits.length).toBeLessThanOrEqual(18);
+  });
+});
+
 describe("vérification gratuite (DNS)", () => {
   const mx = (records: string[]) =>
     createMxVerifier(async () => records.map((exchange) => ({ exchange })));

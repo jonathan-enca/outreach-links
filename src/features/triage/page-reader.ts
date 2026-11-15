@@ -90,8 +90,17 @@ export function parseHtml(html: string, url: string): Omit<PageRead, "status" | 
       }
     })
     .get()
-    .filter((m) => m.includes("@"))
-    .slice(0, 10);
+    .filter((m) => m.includes("@"));
+  const cf = $("[data-cfemail]")
+    .map((_, el) => decodeCfEmail($(el).attr("data-cfemail") ?? ""))
+    .get()
+    .filter((m): m is string => !!m);
+  const ld = ldJsonEmails(
+    $('script[type="application/ld+json"]')
+      .map((_, el) => $(el).text())
+      .get(),
+  ).filter((m) => m.includes("@"));
+  const allMailtos = [...new Set([...mailtos, ...cf, ...ld])].slice(0, 12);
   const hasContactForm = $("form")
     .toArray()
     .some((f) => {
@@ -124,9 +133,46 @@ export function parseHtml(html: string, url: string): Omit<PageRead, "status" | 
     text,
     lang,
     links,
-    mailtos,
+    mailtos: allMailtos,
     hasContactForm,
   };
+}
+
+/** Décode un email protégé par Cloudflare (`data-cfemail`, hexadécimal XOR sur le premier octet). */
+export function decodeCfEmail(hex: string): string | null {
+  if (!/^[0-9a-f]{4,}$/i.test(hex) || hex.length % 2 !== 0) return null;
+  const key = parseInt(hex.slice(0, 2), 16);
+  let out = "";
+  for (let i = 2; i < hex.length; i += 2) {
+    out += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16) ^ key);
+  }
+  return out.includes("@") ? out.toLowerCase() : null;
+}
+
+/** Emails déclarés dans les données structurées JSON-LD (`email` d'une organisation, d'un contact). */
+function ldJsonEmails(raw: string[]): string[] {
+  const found: string[] = [];
+  const walk = (v: unknown, depth = 0) => {
+    if (depth > 6 || v === null || typeof v !== "object") return;
+    for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+      if (k.toLowerCase() === "email" && typeof val === "string") {
+        found.push(
+          val
+            .replace(/^mailto:/i, "")
+            .trim()
+            .toLowerCase(),
+        );
+      } else walk(val, depth + 1);
+    }
+  };
+  for (const r of raw) {
+    try {
+      walk(JSON.parse(r));
+    } catch {
+      /* JSON-LD invalide ignoré */
+    }
+  }
+  return found;
 }
 
 const EMPTY = (url: string): PageRead => ({

@@ -1,9 +1,16 @@
 import {
   createPageReader,
+  type PageLink,
   type PageReaderDeps,
   type PageRead,
 } from "@/features/triage/page-reader";
-import { contactCandidates, extractEmails, isOwnDomainEmail, rankEmails } from "./extract";
+import {
+  contactCandidates,
+  extractEmails,
+  isOwnDomainEmail,
+  rankEmails,
+  sitemapLinks,
+} from "./extract";
 import { CONTACT_LIMITS } from "./limits";
 import type { EmailProvider, FreeVerifier } from "./provider";
 import type { ContactItem, ContactResult, Verification } from "./types";
@@ -78,9 +85,34 @@ export async function investigateItem(
   } catch {
     /* URL invalide : seule la page de la cible compte */
   }
-  const linkPool = [...(first?.links ?? []), ...(home?.links ?? [])];
-  for (const href of contactCandidates(linkPool, CONTACT_LIMITS.maxContactPages)) {
-    await readOnce(href);
+  // 2. Exploration progressive : par tours de quelques pages (contact, mentions légales, équipe,
+  //    presse…), en s'arrêtant dès qu'un email du domaine de la cible est trouvé. Les liens des
+  //    pages lues alimentent le tour suivant ; le sitemap est lu une fois si rien n'est trouvé.
+  const hasOwnEmail = () =>
+    pages.some((p) => extractEmails(p.text, p.mailtos).some((e) => isOwnDomainEmail(e, domain)));
+  const pool: PageLink[] = [...(first?.links ?? []), ...(home?.links ?? [])];
+  let budget = CONTACT_LIMITS.maxContactPages;
+  let sitemapDone = false;
+  for (let round = 0; round < CONTACT_LIMITS.maxRounds && budget > 0; round++) {
+    if (hasOwnEmail()) break;
+    if (round >= 1 && !sitemapDone) {
+      sitemapDone = true;
+      try {
+        const sm = await reader.read(new URL(item.resolvedUrl).origin + "/sitemap.xml");
+        if (sm.status === 200) pool.push(...sitemapLinks(sm.text, new URL(item.resolvedUrl).host));
+      } catch {
+        /* pas de sitemap exploitable */
+      }
+    }
+    const next = contactCandidates(pool, 50)
+      .filter((h) => !seen.has(h))
+      .slice(0, Math.min(CONTACT_LIMITS.pagesPerRound, budget));
+    if (next.length === 0 && (sitemapDone || round >= 1)) break;
+    for (const href of next) {
+      budget--;
+      const p = await readOnce(href);
+      if (p?.links) pool.push(...p.links);
+    }
   }
 
   const emails = rankEmails(
