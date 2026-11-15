@@ -16,7 +16,7 @@ async function unsubscribe(token: string | null): Promise<boolean> {
   const db = createServiceClient();
   const { data } = await db
     .from("sent_messages")
-    .select("workspace_id, to_email")
+    .select("workspace_id, to_email, draft_id, dry_run")
     .eq("id", id)
     .maybeSingle();
   if (!data) return false;
@@ -24,6 +24,22 @@ async function unsubscribe(token: string | null): Promise<boolean> {
   await db
     .from("suppressions")
     .insert({ workspace_id: data.workspace_id, email: data.to_email, reason: "desinscription" });
+  // Annule la relance éventuelle (23505 : signal déjà enregistré, sans conséquence).
+  // Le jeton peut venir de la relance : le signal se rattache toujours à l'envoi initial.
+  const { data: initial } = await db
+    .from("sent_messages")
+    .select("id")
+    .eq("draft_id", data.draft_id)
+    .eq("step", "initial")
+    .eq("dry_run", data.dry_run)
+    .maybeSingle();
+  if (initial) {
+    await db.from("reply_signals").insert({
+      workspace_id: data.workspace_id,
+      sent_message_id: initial.id,
+      kind: "desinscription",
+    });
+  }
   await db.from("events").insert({
     workspace_id: data.workspace_id,
     type: "send.unsubscribed",

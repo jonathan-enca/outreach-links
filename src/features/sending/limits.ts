@@ -4,6 +4,8 @@ export const SEND_LIMITS = {
   hourlyMax: 10,
   /** Relance unique, en jours après l'envoi initial (M4.3). */
   followUpDays: 10,
+  /** Après la relance, le prospect passe à « terminé sans réponse » au bout de ce délai. */
+  followUpGraceDays: 7,
   /** Tentatives d'envoi par message (échecs temporaires seulement). */
   maxAttempts: 3,
   retryDelayMinutes: 30,
