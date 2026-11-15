@@ -4,6 +4,7 @@ import { auditDiscover } from "./audit-discover";
 import { auditOpportunities } from "./audit-opportunities";
 import { auditProfile } from "./audit-profile";
 import { planContacts } from "./plan-contacts";
+import { planDrafts } from "./plan-drafts";
 import { health } from "./health";
 import { planTriage } from "./plan-triage";
 import { publicAudit } from "./public-audit";
@@ -18,5 +19,6 @@ export const functions = [
   auditDeadlinks,
   planTriage,
   planContacts,
+  planDrafts,
   publicAudit,
 ];

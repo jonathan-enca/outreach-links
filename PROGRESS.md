@@ -26,7 +26,8 @@
 | MA.7        | fait (aperçu gratuit : indices sur cibles floutées, cibles partagées, message site neuf ; zéro appel payant ; aucune migration)                                   | PR MA.7                                                        | 2026-11-15 |
 | M3.1        | fait (tri des cibles du plan validé ; précision mesurée sur 50 cas ; migration appliquée sur la vraie base ; aucun run réel sur de vrais sites)                   | PR M3.1                                                        | 2026-11-15 |
 | M3.2        | fait (enquêteur : contacts ; testé sur faux web et fixtures ; finder Hunter derrière une interface, désactivé sans clé ; migration appliquée sur la vraie base)   | PR M3.2                                                        | 2026-11-16 |
-| M3.3 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
+| M3.3        | fait (rédacteur : URL vérifiée 200, linter, anti-doublons ; testé sur faux LLM, aucun run réel ; migrations appliquées sur la vraie base)                         | PR M3.3                                                        | 2026-11-16 |
+| M3.4 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
 
 ## Décisions prises
 
@@ -175,6 +176,8 @@
 
 - M3.2 : `supabase/migrations/2026111600000000_target_contacts.sql`, `supabase/tests/target-contacts.test.ts`, `src/features/contacts/{types,limits,extract,provider,investigate,run,service,actions}.ts`, `src/features/contacts/contacts-section.tsx`, `src/features/contacts/contacts.test.ts`, `src/inngest/functions/plan-contacts.ts`.
 
+- M3.3 : `supabase/migrations/2026111601000000_target_drafts.sql` et `2026111601100000_target_drafts_ready_check.sql`, `supabase/tests/target-drafts.test.ts`, `src/features/drafting/{types,limits,lint,write,draft,run,service,actions}.ts`, `src/features/drafting/drafts-section.tsx`, `src/features/drafting/drafting.test.ts`, `src/inngest/functions/plan-drafts.ts`.
+
 ## Commandes (dev, tests, migrations, Inngest)
 
 `pnpm dev`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm format:check`, `pnpm build` (voir README). Évaluation réelle du tri des cibles (plafond 0,05 USD) : `NODE_USE_ENV_PROXY=1 LLM_PROXY_AUTH=true pnpm demo:triage`. Résumé LLM réel (jeu d'évaluation, plafond 0,10 USD) : `NODE_USE_ENV_PROXY=1 LLM_PROXY_AUTH=true pnpm demo:llm`. Démo DataForSEO : `pnpm demo:dataforseo` (clés requises). Audit réel : `pnpm demo:audit` (crée un vrai audit en base ; exige `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD`, `SUPABASE_SERVICE_ROLE_KEY`). Build local : exige `NEXT_PUBLIC_APP_URL` et les variables Supabase publiques. Tests de RLS : `TEST_DATABASE_URL=postgres://user@host:port/postgres pnpm test` (Postgres 16 avec un superutilisateur ; une base temporaire est créée puis supprimée ; ignorés si la variable manque en local, obligatoires en CI). Migrations : fichiers dans `supabase/migrations`, appliqués par la CLI Supabase (`supabase db push`). Types : `pnpm db:types`. Inngest en local : `pnpm dev`, puis dans un autre terminal `pnpm inngest:dev` (dev server Inngest, doit rester sur le port 8288) ; enregistrer l'app : `curl -X PUT http://localhost:3000/api/inngest` ; événement d'essai : `curl -X POST http://localhost:8288/e/dev -H 'content-type: application/json' -d '{"name":"app/health.ping","data":{}}'`.
@@ -251,6 +254,18 @@
 - 3e essai réel (après correctif `resolveRedirect`) : audit gratuit terminé sur mega-coloring.com. **Coût réel 0,209 USD** pour 0,196 estimé (plafond 0,25) : SERP 3 x 0,006 ; ranked_keywords 0,012 (réel, estimé 0,020) ; backlinks.summary 3 appels 0,072 (estimé 0,060) ; backlinks.backlinks 3 appels 0,083 (estimé 0,069) ; referring_domains 0,024 (estimé 0,029). Les backlinks coûtent ~20 % de plus que la grille : marge gratuite très faible. Résultat : score 0, 0 page classée, 1 domaine référent ; concurrents retenus cultura.com, shutterstock.com, pixabay.com (grosses plateformes, peu actionnables : à filtrer ou pondérer par taille). Piège : la remise à 1 de `attempts` à la main a recréé un identifiant d'événement Inngest déjà utilisé (dédoublonnage) ; événement renvoyé avec `send_event` et un id neuf.
 - Ancien « À faire » (fait) : relancer l'audit de `mega-coloring.com` avec 1 à 3 requêtes saisies (2 tentatives max par mois et par domaine ; la 1re est consommée) pour mesurer le coût réel complet.
 
+### M3.3 (rédacteur de messages, 16/11/2026)
+
+- Périmètre : un brouillon par cible `ok` dont le contact est `email_verifie`, `email_a_verifier` ou `formulaire` (jamais pour `introuvable`/`supprime`). Un brouillon n'est PAS un envoi ; `sendable` reste dans `target_contacts`. Validation par lot : M3.4.
+- [auto] Hook = citation vérifiée du tri (M3.1), sinon titre de la page ; sans l'un ni l'autre la cible n'est pas rédigée (pas d'accroche inventée).
+- [auto] URL proposée = `target_page_url` du plan, vérifiée par GET (redirections suivies) AVANT d'écrire : si pas 200, rien n'est écrit et le LLM n'est pas appelé. Contrainte SQL : `ready` exige `url_status = 200` et aucun problème de linter (un trou du CHECK sur `url_status` nul a été trouvé par le test SQL et corrigé par la 2e migration).
+- Linter (`lint.ts`) : longueur 25 à 110 mots, sujet (email seulement) ≤ 70 caractères, mention de l'IA ou d'automatisation, formules creuses, promesses/argent/urgence, restes de gabarit, ton, URL exacte présente et aucune autre, hook repris dans le message, signature du prénom en fin de message. Anti-doublon : Jaccard sur 4-grammes de mots, seuil 0,35 contre les messages déjà écrits du plan.
+- Une régénération au plus (avec les ouvertures déjà utilisées à éviter) ; si le message échoue encore il est conservé avec ses problèmes, marqué « À relire », jamais « Prêt ».
+- Formulaires : le message est copié dans `manual_tasks.message` (tâche encore « à faire » seulement). Prénom de signature (`sites.signature_first_name`) obligatoire pour lancer.
+- Coûts : LLM via le client plafonné (`DRAFT_LIMITS` : 0,10 USD par exécution, 0,01 USD par appel), consigné dans `cost_ledger` (`llm.outreach_draft`). Aucun appel payant réel durant ce sous-jalon : 0 USD.
+- Écran : section « Messages à valider » sur la page Plan de liens, après les contacts.
+- Non fait : jeu d'évaluation de style (dépend des exemples de Jonathan, voir « À fournir ») ; mesure réelle de la qualité des messages (aucun run LLM réel).
+
 ## Backlog (idées hors périmètre)
 
 - M3.1 : verdict modifiable par l'utilisateur (M3.4) ; cache de pages en base ; vérification que la mention de marque ne porte pas déjà un lien ; jeu d'évaluation sur de vraies pages (pas seulement synthétiques) ; tri automatique à la validation du plan.
@@ -315,4 +330,4 @@
 
 ## Prochain sous-jalon recommandé
 
-M3.3 (rédacteur : messages ; URL vérifiée 200, linter, hook, jamais de mention de l'IA), voir PLAN.md. Prérequis : cibles `ok` avec contact `email_verifie` ou `formulaire` (M3.2) ; sans clé finder, rédiger quand même pour `email_a_verifier` et `formulaire` mais ne jamais marquer envoyable. En parallèle, finir la mise en production d'Inngest (clés `INNGEST_EVENT_KEY` et `INNGEST_SIGNING_KEY`) et le run réel DataForSEO (retester d'abord avec `NODE_USE_ENV_PROXY=1` dans l'environnement agent) dès que Jonathan fournit les identifiants.
+M3.4 (lots et validation : création d'un lot de N cibles prêtes, liste courte classée, édition, validation par lot, verrouillage, journal ; test Playwright si une session de test est faisable), voir PLAN.md. Prérequis : brouillons `ready` (M3.3). En parallèle, finir la mise en production d'Inngest et le run réel DataForSEO dès que Jonathan fournit les identifiants.

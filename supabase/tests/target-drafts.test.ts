@@ -1,0 +1,182 @@
+import { readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
+import { Client } from "pg";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+/** M3.3 : RLS et contraintes de target_drafts et draft_runs. */
+const adminUrl = process.env.TEST_DATABASE_URL;
+if (!adminUrl && process.env.CI) throw new Error("TEST_DATABASE_URL est obligatoire en CI");
+
+const dbName = `drafts_test_${process.pid}_${Date.now()}`;
+const dir = path.resolve(__dirname, "..");
+let admin: Client;
+let db: Client;
+
+async function asRole<T>(
+  role: "authenticated" | "service_role",
+  userId: string | null,
+  fn: (c: Client) => Promise<T>,
+): Promise<T> {
+  await db.query("begin");
+  try {
+    await db.query(`set local role ${role}`);
+    if (userId) {
+      await db.query("select set_config('request.jwt.claims', $1, true)", [
+        JSON.stringify({ sub: userId, role }),
+      ]);
+    }
+    return await fn(db);
+  } finally {
+    await db.query("rollback");
+  }
+}
+
+async function signUp(email: string) {
+  const u = await db.query("insert into auth.users (email) values ($1) returning id", [email]);
+  const userId = u.rows[0].id as string;
+  const m = await db.query("select workspace_id from public.memberships where user_id = $1", [
+    userId,
+  ]);
+  return { userId, workspaceId: m.rows[0].workspace_id as string };
+}
+
+describe.skipIf(!adminUrl)("brouillons : RLS et contraintes", () => {
+  let alice: { userId: string; workspaceId: string };
+  let bob: { userId: string; workspaceId: string };
+  let planId: string;
+  let itemId: string;
+
+  const insertDraft = (cols: string, vals: string) =>
+    `insert into public.target_drafts
+       (plan_item_id, plan_id, workspace_id, hook, targeting_reason, proposed_url, body, ${cols})
+     select '${itemId}', '${planId}', '${alice.workspaceId}', 'h', 'r', 'https://alice-site.fr/', 'corps', ${vals}`;
+
+  beforeAll(async () => {
+    admin = new Client({ connectionString: adminUrl });
+    await admin.connect();
+    await admin.query(`create database ${dbName}`);
+    const url = new URL(adminUrl!);
+    url.pathname = `/${dbName}`;
+    db = new Client({ connectionString: url.toString() });
+    await db.connect();
+    await db.query(readFileSync(path.join(dir, "tests/bootstrap.sql"), "utf8"));
+    for (const f of readdirSync(path.join(dir, "migrations")).sort()) {
+      await db.query(readFileSync(path.join(dir, "migrations", f), "utf8"));
+    }
+    alice = await signUp("alice@example.com");
+    bob = await signUp("bob@example.com");
+    const s = await db.query(
+      "insert into public.sites (workspace_id, domain) values ($1, 'alice-site.fr') returning id",
+      [alice.workspaceId],
+    );
+    const a = await db.query(
+      `insert into public.audits (workspace_id, site_id, queries, max_competitors, cost_cap_usd)
+       values ($1, $2, array['coloriage licorne'], 3, 0.25) returning id`,
+      [alice.workspaceId, s.rows[0].id],
+    );
+    const items = JSON.stringify([
+      {
+        type: "annuaire",
+        source_domain: "annuaire.fr",
+        target_page_url: "https://alice-site.fr/",
+        anchor_kind: "marque",
+        anchor_text: "Alice",
+        expected_link_type: "editorial",
+        rationale: "test",
+        priority: "haute",
+        priority_score: 80,
+      },
+    ]);
+    const p = await db.query("select * from public.create_link_plan($1, $2, $3::jsonb)", [
+      a.rows[0].id,
+      alice.userId,
+      items,
+    ]);
+    planId = p.rows[0].plan_id;
+    itemId = (await db.query("select id from public.link_plan_items where plan_id = $1", [planId]))
+      .rows[0].id;
+  });
+
+  afterAll(async () => {
+    await db?.end();
+    await admin?.query(`drop database if exists ${dbName}`);
+    await admin?.end();
+  });
+
+  it("un brouillon n'est « prêt » que si l'URL a répondu 200 et le linter est vide", async () => {
+    const run = (cols: string, vals: string) =>
+      asRole("service_role", null, (c) => c.query(insertDraft(cols, vals)));
+    await expect(
+      run("channel, subject, ready, url_status", "'email', 's', true, 404"),
+    ).rejects.toThrow(/ready_needs_checks/);
+    await expect(
+      run("channel, subject, ready, url_status", "'email', 's', true, null"),
+    ).rejects.toThrow(/ready_needs_checks/);
+    await expect(
+      run(
+        "channel, subject, ready, url_status, lint_issues",
+        `'email', 's', true, 200, '[{"code":"x","message":"y"}]'::jsonb`,
+      ),
+    ).rejects.toThrow(/ready_needs_checks/);
+    await expect(
+      run("channel, subject, ready, url_status", "'email', 's', true, 200"),
+    ).resolves.toBeTruthy();
+  });
+
+  it("un email exige un sujet, un formulaire non", async () => {
+    await asRole("service_role", null, async (c) => {
+      await expect(c.query(insertDraft("channel", "'email'"))).rejects.toThrow(/has_subject/);
+    });
+    await asRole("service_role", null, async (c) => {
+      await expect(c.query(insertDraft("channel", "'formulaire'"))).resolves.toBeTruthy();
+    });
+  });
+
+  it("un seul brouillon par cible et statut limité à « brouillon »", async () => {
+    await asRole("service_role", null, async (c) => {
+      await c.query(insertDraft("channel, subject", "'email', 's'"));
+      await expect(c.query(insertDraft("channel, subject", "'email', 's'"))).rejects.toThrow(
+        /duplicate key/,
+      );
+    });
+    await asRole("service_role", null, async (c) => {
+      await expect(
+        c.query(insertDraft("channel, subject, status", "'email', 's', 'envoye'")),
+      ).rejects.toThrow(/status_check/);
+    });
+  });
+
+  it("RLS : lecture réservée au workspace, aucune écriture par un utilisateur", async () => {
+    await db.query(
+      `insert into public.target_drafts
+         (plan_item_id, plan_id, workspace_id, channel, subject, body, hook, targeting_reason, proposed_url)
+       values ($1, $2, $3, 'email', 's', 'corps', 'h', 'r', 'https://alice-site.fr/')`,
+      [itemId, planId, alice.workspaceId],
+    );
+    try {
+      const seen = (u: { userId: string }) =>
+        asRole(
+          "authenticated",
+          u.userId,
+          async (c) => (await c.query("select id from public.target_drafts")).rowCount,
+        );
+      expect(await seen(alice)).toBe(1);
+      expect(await seen(bob)).toBe(0);
+      await asRole("authenticated", alice.userId, async (c) => {
+        await expect(c.query("update public.target_drafts set body = 'x'")).rejects.toThrow(
+          /permission denied/,
+        );
+      });
+      await asRole("authenticated", alice.userId, async (c) => {
+        await expect(
+          c.query(
+            `insert into public.draft_runs (plan_id, workspace_id, status) values ($1, $2, 'en_cours')`,
+            [planId, alice.workspaceId],
+          ),
+        ).rejects.toThrow(/permission denied/);
+      });
+    } finally {
+      await db.query("delete from public.target_drafts");
+    }
+  });
+});
