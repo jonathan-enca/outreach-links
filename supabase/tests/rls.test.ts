@@ -84,6 +84,23 @@ describe.skipIf(!adminUrl)("RLS", () => {
     expect(e.rows).toEqual([{ type: "workspace.created" }]);
   });
 
+  it("le nom saisi à l'inscription nomme l'espace, sinon la partie locale de l'email", async () => {
+    const named = await db.query(
+      "insert into auth.users (email, raw_user_meta_data) values ($1, $2::jsonb) returning id",
+      ["camille@example.com", JSON.stringify({ full_name: "  Camille Martin " })],
+    );
+    const a = await db.query(
+      "select w.name from public.workspaces w join public.memberships m on m.workspace_id = w.id where m.user_id = $1",
+      [named.rows[0].id],
+    );
+    expect(a.rows).toEqual([{ name: "Camille Martin" }]);
+    const b = await db.query(
+      "select w.name from public.workspaces w join public.memberships m on m.workspace_id = w.id where m.user_id = $1",
+      [alice.userId],
+    );
+    expect(b.rows).toEqual([{ name: "alice" }]);
+  });
+
   it("un utilisateur ne lit que son workspace", async () => {
     const r = await asUser(bob.userId, (c) => c.query("select id from public.workspaces"));
     expect(r.rows.map((x) => x.id)).toEqual([bob.workspaceId]);
