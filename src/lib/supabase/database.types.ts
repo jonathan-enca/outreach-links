@@ -2425,6 +2425,8 @@ export type Database = {
           niche: string | null;
           offered_asset: string | null;
           priority_queries: string[];
+          goal: string;
+          target_keywords: string[];
           sender_email: string | null;
           signature_first_name: string | null;
           updated_at: string;
@@ -2443,6 +2445,8 @@ export type Database = {
           niche?: string | null;
           offered_asset?: string | null;
           priority_queries?: string[];
+          goal?: string;
+          target_keywords?: string[];
           sender_email?: string | null;
           signature_first_name?: string | null;
           updated_at?: string;
@@ -2461,6 +2465,8 @@ export type Database = {
           niche?: string | null;
           offered_asset?: string | null;
           priority_queries?: string[];
+          goal?: string;
+          target_keywords?: string[];
           sender_email?: string | null;
           signature_first_name?: string | null;
           updated_at?: string;

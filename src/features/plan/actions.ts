@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { AuditActionState } from "@/features/audits/service";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { saveTargetKeywords } from "./keywords";
 import { moveSelection, setSelection, validatePlan } from "./service";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -43,6 +44,21 @@ export async function moveOpportunityAction(
 export async function validatePlanAction(auditId: string): Promise<AuditActionState> {
   if (!UUID.test(auditId)) return bad;
   const r = await validatePlan(await createClient(), auditId, createServiceClient);
+  revalidatePath(`/app/audit/${auditId}/plan`);
+  return r;
+}
+
+export async function saveTargetKeywordsAction(
+  auditId: string,
+  _prev: AuditActionState,
+  form: FormData,
+): Promise<AuditActionState> {
+  if (!UUID.test(auditId)) return bad;
+  const r = await saveTargetKeywords(
+    await createClient(),
+    auditId,
+    form.getAll("keyword").map(String),
+  );
   revalidatePath(`/app/audit/${auditId}/plan`);
   return r;
 }

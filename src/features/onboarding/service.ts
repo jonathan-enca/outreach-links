@@ -21,6 +21,7 @@ import {
 } from "@/features/brand/service";
 import { parseProfileForm, sameProfile } from "@/features/brand/form";
 import type { StoredBrandProfile } from "@/features/brand/schema";
+import { nicheQueries } from "@/features/public-audit/niche";
 import { deduceSite } from "./deduce";
 
 type Client = SupabaseClient<Database>;
@@ -235,6 +236,11 @@ async function applyProfileEdits(
   return { ok: true };
 }
 
+/** MT.2a : objectif de l'utilisateur (colonne `sites.goal`). */
+export const SITE_GOALS = ["autorite_generale", "mots_cles"] as const;
+export type SiteGoal = (typeof SITE_GOALS)[number];
+export const DEFAULT_GOAL: SiteGoal = "autorite_generale";
+
 export interface LaunchPreview {
   siteId: string;
   workspaceId: string;
@@ -242,7 +248,9 @@ export interface LaunchPreview {
   theme: string;
   language: string;
   country: string;
+  /** Recherches internes de l'audit v1 (jamais saisies à l'écran depuis MT.2a). */
   queries: string[];
+  goal: SiteGoal;
   verified: boolean;
   /** Coût de tout le parcours annoncé (USD) et son détail. */
   totalUsd: number;
@@ -262,7 +270,7 @@ export async function getLaunchPreview(
   const { data: site } = await supabase
     .from("sites")
     .select(
-      "id, workspace_id, domain, niche, language, country, priority_queries, offered_asset, verified_at",
+      "id, workspace_id, domain, niche, language, country, priority_queries, offered_asset, verified_at, goal",
     )
     .eq("id", siteId)
     .maybeSingle();
@@ -294,6 +302,9 @@ export async function getLaunchPreview(
     language: site.language,
     country: site.country ?? "FR",
     queries: est.queries,
+    goal: (SITE_GOALS as readonly string[]).includes(site.goal)
+      ? (site.goal as SiteGoal)
+      : DEFAULT_GOAL,
     verified: Boolean(site.verified_at),
     totalUsd: est.chain.totalUsd,
     capUsd: est.limits.costCapUsd,
@@ -315,14 +326,18 @@ const launchSchema = z.object({
     .trim()
     .min(2, ONBOARDING_MESSAGES.themeInvalid)
     .max(60, ONBOARDING_MESSAGES.themeInvalid),
-  queries: z.array(z.string()).max(3),
+  goal: z.enum(SITE_GOALS, { message: t.onboarding.review.goal.invalid }),
 });
 
-/** Thème et requêtes saisis dans le formulaire de l'écran de confirmation (normalisés). */
-function readCorrections(formData: FormData) {
-  const parsed = launchSchema.pick({ theme: true, queries: true }).safeParse({
+/**
+ * Thème et objectif saisis à l'écran de relecture (normalisés). Les recherches Google de l'audit v1
+ * ne sont plus saisies : elles restent celles déjà déduites, ou, à défaut, les requêtes de secours
+ * tirées du thème (voir `internalQueries`). Un formulaire sans objectif garde l'objectif actuel du site.
+ */
+function readCorrections(formData: FormData, currentGoal: SiteGoal = DEFAULT_GOAL) {
+  const parsed = launchSchema.safeParse({
     theme: formData.get("theme") ?? "",
-    queries: ["query1", "query2", "query3"].map((k) => String(formData.get(k) ?? "")),
+    goal: formData.get("goal") ?? currentGoal,
   });
   if (!parsed.success) {
     return {
@@ -330,25 +345,27 @@ function readCorrections(formData: FormData) {
       message: parsed.error.issues[0]?.message ?? ONBOARDING_MESSAGES.invalid,
     };
   }
-  const queries = [
-    ...new Set(
-      parsed.data.queries
-        .map((q) => q.trim().toLowerCase().replace(/\s+/g, " "))
-        .filter((q) => q.length >= 3 && q.length <= 120),
-    ),
-  ].slice(0, 3);
-  if (queries.length === 0)
-    return { ok: false as const, message: ONBOARDING_MESSAGES.queriesMissing };
   return {
     ok: true as const,
     theme: parsed.data.theme.toLowerCase().replace(/\s+/g, " "),
-    queries,
+    goal: parsed.data.goal,
   };
+}
+
+/** Recherches internes de l'audit v1 : celles déjà connues, sinon le repli sans LLM (MA.4). */
+function internalQueries(known: readonly string[], theme: string): string[] {
+  return known.length > 0 ? [...known] : nicheQueries(theme);
+}
+
+/** Colonnes à écrire pour un objectif : en autorité générale, aucun mot-clé n'est retenu. */
+function goalColumns(goal: SiteGoal) {
+  return goal === "autorite_generale" ? { goal, target_keywords: [] as string[] } : { goal };
 }
 
 /**
  * Cas où rien n'a pu être déduit (site illisible, sans clé LLM) : la seule saisie demandée est le
- * thème et au moins une recherche ; on les enregistre puis l'écran réaffiche le coût réel.
+ * thème ; on l'enregistre avec l'objectif, les recherches internes viennent du repli, puis l'écran
+ * réaffiche le coût réel.
  */
 export async function saveCorrections(
   supabase: Client,
@@ -359,9 +376,18 @@ export async function saveCorrections(
   if (!userId) return { status: "error", message: ONBOARDING_MESSAGES.unauthenticated };
   const c = readCorrections(formData);
   if (!c.ok) return { status: "error", message: c.message };
+  const { data: current } = await supabase
+    .from("sites")
+    .select("priority_queries")
+    .eq("id", siteId)
+    .maybeSingle();
   const { data, error } = await supabase
     .from("sites")
-    .update({ niche: c.theme, priority_queries: c.queries })
+    .update({
+      niche: c.theme,
+      priority_queries: internalQueries(current?.priority_queries ?? [], c.theme).slice(0, 3),
+      ...goalColumns(c.goal),
+    })
     .eq("id", siteId)
     .select("id, workspace_id, domain, language")
     .maybeSingle();
@@ -396,20 +422,26 @@ export async function launchJourney(
   const preview = await getLaunchPreview(supabase, siteId);
   if (!preview) return { status: "error", message: ONBOARDING_MESSAGES.siteNotFound };
 
-  const c = readCorrections(formData);
+  const c = readCorrections(formData, preview.goal);
   if (!c.ok) return { status: "error", message: c.message };
   const acceptedUsd = Number(formData.get("acceptedUsd") ?? "0");
   if (!Number.isFinite(acceptedUsd) || acceptedUsd < 0) {
     return { status: "error", message: ONBOARDING_MESSAGES.invalid };
   }
   const theme = c.theme;
-  const finalQueries = c.queries;
+  const finalQueries = internalQueries(preview.queries, theme).slice(0, 3);
+  if (finalQueries.length === 0) {
+    return { status: "error", message: ONBOARDING_MESSAGES.queriesMissing };
+  }
 
-  const changed = theme !== preview.theme || finalQueries.join("|") !== preview.queries.join("|");
+  const changed =
+    theme !== preview.theme ||
+    c.goal !== preview.goal ||
+    finalQueries.join("|") !== preview.queries.join("|");
   if (changed) {
     const { error } = await supabase
       .from("sites")
-      .update({ niche: theme, priority_queries: finalQueries })
+      .update({ niche: theme, priority_queries: finalQueries, ...goalColumns(c.goal) })
       .eq("id", siteId);
     if (error) return { status: "error", message: ONBOARDING_MESSAGES.saveError };
   }
@@ -433,8 +465,8 @@ export async function launchJourney(
   }
   // Un audit déjà « estimé » (pas encore payé) suit les corrections faites ici.
   await refreshEstimatedAudit(supabase, created.auditId, getServiceClient);
-  // Le parcours figé doit être celui que la personne a vu : mêmes requêtes, coût au plus égal au
-  // coût accepté.
+  // Le parcours figé doit être celui que la personne a vu : mêmes recherches internes, coût au plus
+  // égal au coût accepté.
   const { data: audit } = await supabase
     .from("audits")
     .select("estimate_details, queries")
@@ -454,7 +486,12 @@ export async function launchJourney(
     workspace_id: preview.workspaceId,
     actor_id: userId,
     type: "onboarding.launched",
-    payload: { site_id: siteId, audit_id: created.auditId, accepted_usd: acceptedUsd },
+    payload: {
+      site_id: siteId,
+      audit_id: created.auditId,
+      accepted_usd: acceptedUsd,
+      goal: c.goal,
+    },
   });
   return { status: "ok", auditId: created.auditId };
 }

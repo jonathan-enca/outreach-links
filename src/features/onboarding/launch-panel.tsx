@@ -11,8 +11,13 @@ import type { LaunchPreview, LaunchState } from "./service";
 const inputClass =
   "h-10 w-full rounded-control border border-border bg-card px-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
+const GOALS = [
+  { value: "autorite_generale", key: "authority" },
+  { value: "mots_cles", key: "keywords" },
+] as const;
+
 /**
- * Écran « ce que nous avons compris + coût total » : thème et recherches modifiables, puis UNE
+ * Écran « ce que nous avons compris + coût total » : thème, objectif et profil modifiables, puis UNE
  * confirmation qui lance tout le parcours. Le coût affiché est renvoyé au serveur, qui refuse de
  * lancer si le coût recalculé le dépasse.
  */
@@ -32,7 +37,6 @@ export function LaunchPanel({
     status: "idle",
   });
   const nothingDeduced = needsInput;
-  const slots = [0, 1, 2].map((i) => preview.queries[i] ?? "");
   return (
     <form action={formAction} className="flex flex-col gap-6">
       <Card className="flex flex-col gap-5 p-6">
@@ -60,19 +64,39 @@ export function LaunchPanel({
             {r.themeHint}
           </p>
         </div>
-        <fieldset className="flex flex-col gap-2">
-          <legend className="text-sm font-medium">{r.queries}</legend>
-          {slots.map((q, i) => (
-            <input
-              key={i}
-              name={`query${i + 1}`}
-              defaultValue={q}
-              aria-label={`${r.query} ${i + 1}`}
-              className={inputClass}
-            />
+        <fieldset className="flex flex-col gap-3">
+          <legend className="text-sm font-medium">{r.goal.legend}</legend>
+          {GOALS.map((g) => (
+            <label
+              key={g.value}
+              className="flex cursor-pointer items-start gap-3 rounded-control border border-border p-3 has-[:checked]:border-primary has-[:checked]:bg-muted"
+            >
+              <input
+                type="radio"
+                name="goal"
+                value={g.value}
+                defaultChecked={preview.goal === g.value}
+                className="mt-1"
+              />
+              <span className="flex flex-col gap-0.5">
+                <span className="font-medium">
+                  {r.goal[g.key].label}
+                  {g.key === "authority" ? (
+                    <span className="ml-2 text-sm font-normal text-muted-foreground">
+                      ({r.goal.authority.badge})
+                    </span>
+                  ) : null}
+                </span>
+                <span className="text-sm text-muted-foreground">{r.goal[g.key].body}</span>
+              </span>
+            </label>
           ))}
-          <p className="text-sm text-muted-foreground">{r.queriesHint}</p>
+          <p className="text-sm text-muted-foreground">{r.goal.hint}</p>
         </fieldset>
+        <div className="flex flex-col gap-1">
+          <h3 className="text-sm font-medium">{r.queriesTitle}</h3>
+          <p className="text-sm text-muted-foreground">{r.queriesNote}</p>
+        </div>
       </Card>
 
       <BrandFields key={preview.brand?.version ?? 0} brand={preview.brand} />

@@ -366,6 +366,32 @@ describe("formulaire de relecture", () => {
     expect(res.status).toBe("ok");
     if (res.status === "ok") expect(sameProfile(res.profile, PROFILE)).toBe(true);
   });
+  it("MT.2a : cases à cocher, une page décochée reste proposée mais n'est plus choisie", () => {
+    const f = new FormData();
+    for (const [k, v] of Object.entries(profileToFields(PROFILE))) f.set(`profile_${k}`, v);
+    f.delete("profile_resources");
+    f.append("profile_res_all", `https://${DOMAIN}/guide | Guide du coloriage`);
+    f.append("profile_res_all", `https://${DOMAIN}/outil | Outil`);
+    f.append("profile_res_on", `https://${DOMAIN}/outil`);
+    const res = parseProfileForm(f, ctx);
+    expect(res.status).toBe("ok");
+    if (res.status === "ok") {
+      expect(res.profile.linkable_resources).toEqual([
+        { url: `https://${DOMAIN}/guide`, title: "Guide du coloriage", selected: false },
+        { url: `https://${DOMAIN}/outil`, title: "Outil", selected: true },
+      ]);
+      expect(profileToFields(res.profile).cited).toBe(`https://${DOMAIN}/outil`);
+      // Décocher change le profil : une nouvelle version sera créée.
+      expect(sameProfile(res.profile, PROFILE)).toBe(false);
+    }
+  });
+  it("MT.2a : une page cochée hors du site est refusée", () => {
+    const f = new FormData();
+    for (const [k, v] of Object.entries(profileToFields(PROFILE))) f.set(`profile_${k}`, v);
+    f.append("profile_res_all", "https://autre.fr/x | Autre");
+    f.append("profile_res_on", "https://autre.fr/x");
+    expect(parseProfileForm(f, ctx).status).toBe("error");
+  });
   it("tout vide : rien à enregistrer", () => {
     expect(parseProfileForm(fd(profileToFields(null)), ctx)).toEqual({ status: "empty" });
   });

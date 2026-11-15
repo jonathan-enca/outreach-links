@@ -21,6 +21,8 @@ export type Persona = z.infer<typeof personaSchema>;
 export const resourceSchema = z.object({
   url: z.string().trim().max(300),
   title: z.string().trim().min(2).max(120),
+  /** MT.2a : page cochée à l'écran de relecture. Absent = cochée (profils d'avant MT.2a). */
+  selected: z.boolean().optional(),
 });
 export type LinkableResource = z.infer<typeof resourceSchema>;
 

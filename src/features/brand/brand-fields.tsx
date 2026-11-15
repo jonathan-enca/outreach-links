@@ -41,6 +41,46 @@ function Field({
 }
 
 /**
+ * MT.2a : « Pages à faire citer » en cases à cocher. L'accueil est toujours incluse (case figée) ;
+ * les autres pages sont celles réellement lues sur le site. Une page décochée reste proposée.
+ */
+function CitedPages({ brand }: { brand: StoredBrandProfile | null }) {
+  const b = t.onboarding.brand;
+  const resources = brand?.profile.linkable_resources ?? [];
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend className="text-sm font-medium">{b.resources}</legend>
+      <label className="flex items-start gap-2">
+        <input type="checkbox" checked disabled className="mt-1" aria-describedby="cited-hint" />
+        <span>
+          {b.homePage} <span className="text-sm text-muted-foreground">{b.homeAlways}</span>
+        </span>
+      </label>
+      {resources.map((r, i) => (
+        <label key={r.url} className="flex items-start gap-2">
+          <input type="hidden" name="profile_res_all" value={`${r.url} | ${r.title}`} />
+          <input
+            type="checkbox"
+            name="profile_res_on"
+            value={r.url}
+            defaultChecked={r.selected !== false}
+            className="mt-1"
+            aria-describedby="cited-hint"
+            data-testid={`cited-${i}`}
+          />
+          <span>
+            {r.title} <span className="break-all text-sm text-muted-foreground">{r.url}</span>
+          </span>
+        </label>
+      ))}
+      <p id="cited-hint" className="text-sm text-muted-foreground">
+        {resources.length > 0 ? b.resourcesHint : b.resourcesNone}
+      </p>
+    </fieldset>
+  );
+}
+
+/**
  * Profil de marque (MT.1) en une étape de relecture : tout est modifiable, une zone de texte par
  * rubrique. Les champs sont envoyés avec le reste du formulaire d'onboarding ; une correction
  * crée une nouvelle version côté serveur.
@@ -77,13 +117,7 @@ export function BrandFields({ brand }: { brand: StoredBrandProfile | null }) {
         value={f.personas}
         rows={Math.max(6, (brand?.profile.personas.length ?? 0) * 3)}
       />
-      <Field
-        name="resources"
-        label={b.resources}
-        hint={b.resourcesHint}
-        value={f.resources}
-        rows={Math.max(3, brand?.profile.linkable_resources.length ?? 3)}
-      />
+      <CitedPages brand={brand} />
       <Field
         name="names"
         label={b.names}

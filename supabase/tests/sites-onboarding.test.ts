@@ -103,6 +103,37 @@ describe.skipIf(!adminUrl)("sites : onboarding et vérification", () => {
     ).rejects.toThrow(/check/);
   });
 
+  it("MT.2a : objectif « autorité générale » par défaut, mots-clés choisis par le membre", async () => {
+    const d = await db.query("select goal, target_keywords from public.sites where id = $1", [
+      siteId,
+    ]);
+    expect(d.rows[0]).toMatchObject({ goal: "autorite_generale", target_keywords: [] });
+    await asRole("authenticated", alice.userId, async (c) => {
+      const u = await c.query(
+        "update public.sites set goal = 'mots_cles', target_keywords = array['coloriage licorne'] where id = $1 returning goal, target_keywords",
+        [siteId],
+      );
+      expect(u.rows[0]).toMatchObject({
+        goal: "mots_cles",
+        target_keywords: ["coloriage licorne"],
+      });
+    });
+  });
+
+  it("MT.2a : objectif inconnu et plus de 10 mots-clés refusés", async () => {
+    await expect(
+      asRole("authenticated", alice.userId, (c) =>
+        c.query("update public.sites set goal = 'garanti' where id = $1", [siteId]),
+      ),
+    ).rejects.toThrow(/check/);
+    const many = Array.from({ length: 11 }, (_, i) => `mot ${i}`);
+    await expect(
+      asRole("authenticated", alice.userId, (c) =>
+        c.query("update public.sites set target_keywords = $2 where id = $1", [siteId, many]),
+      ),
+    ).rejects.toThrow(/check/);
+  });
+
   it("un membre ne peut pas s'auto-déclarer vérifié ni écrire le jeton", async () => {
     for (const col of [
       "verified_at = now()",
