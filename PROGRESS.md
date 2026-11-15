@@ -29,7 +29,8 @@
 | M3.3        | fait (rédacteur : URL vérifiée 200, linter, anti-doublons ; testé sur faux LLM, aucun run réel ; migrations appliquées sur la vraie base)                         | PR M3.3                                                        | 2026-11-16 |
 | M3.4        | fait (lots, édition relue par le linter, validation par lot verrouillée en base ; pas de test Playwright ; migration appliquée sur la vraie base)                 | PR M3.4                                                        | 2026-11-17 |
 | M4.1        | fait (PR #45 fusionnée ; migration `2026111800000000_mailboxes.sql` appliquée sur la vraie base ; `MAILBOX_ENCRYPTION_KEYS` posée sur Vercel)                     | PR M4.1                                                        | 2026-11-18 |
-| M4.2 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
+| M4.2        | fait (moteur d'envoi plafonné, dry run par défaut ; testé sur faux serveur SMTP local ; migration appliquée sur la vraie base ; aucun envoi réel)                 | PR M4.2                                                        | 2026-11-19 |
+| M4.3 à M7.3 | à faire                                                                                                                                                           |                                                                |            |
 
 ## Décisions prises
 
@@ -294,6 +295,17 @@
 - Dépendances ajoutées : `nodemailer`, `imapflow` ; dev : `smtp-server`, types.
 - Non fait : envoi réel (M4.2), lecture des réponses (M4.4), OAuth Gmail, plusieurs boîtes par site, rotation automatique des lignes.
 
+### M4.2 (moteur d'envoi plafonné, 19/11/2026)
+
+- Migration additive `2026111900000000_sent_messages.sql` (appliquée sur la vraie base) : table `sent_messages` (un enregistrement par brouillon, étape `initial`/`relance` et mode `dry_run` : `unique(draft_id, step, dry_run)` = idempotence ; `message_id` unique ; `follow_up_due_at` = J+10 pour M4.3) et colonnes `timezone`, `send_window_start/end` sur `mailboxes` (défaut Europe/Paris, 9 h à 18 h).
+- **Garde-fous en base** (trigger `guard_sent_message`, verrou par boîte) : refus si lot non `valide`, brouillon non validé ou non email, boîte non `verifiee`, adresse ou domaine (et sous-domaines) en `suppressions` (espace ou global), plafond horaire (`hourly_cap`, max 10) et journalier (`daily_cap`) sur 24 h glissantes ; un envoi terminé (`envoye`, `simule`, `ignore`, `echec`) ne change plus. Simulations et réel ont des compteurs séparés. 9 tests SQL réels.
+- Moteur (`src/features/sending/`) : `runSendTick` envoie **au plus un message par boîte et par passage** ; job Inngest `send-tick` (cron toutes les 6 min + événement `sending/tick`) = 10 par heure au maximum. Fenêtre : lundi à vendredi, heures de la boîte. Échauffement (réel et simulé) : 5, 10, 15 par jour pendant les trois premières semaines puis `daily_cap`. Candidats : brouillons email des lots validés des plans du site, dans l'ordre. Contact non envoyable ou supprimé : enregistrement `ignore` avec motif. Échec temporaire : jusqu'à 3 essais espacés de 30 min ; échec permanent : `echec` ; identifiants refusés : boîte passée en `erreur`.
+- [auto] **Dry run** : sans `EMAIL_DRY_RUN=false` ET `OUTREACH_SENDING_ENABLED=true`, le moteur ne fait que **simuler** (enregistrement `simule`, aucune connexion, aucun déchiffrement). En production ces variables ne sont pas posées : le cron simule les lots validés réels (visibles dans `sent_messages`, `events` `send.simulated`). Un enregistrement simulé ne bloque pas un futur envoi réel (mode distinct).
+- Message : `Message-ID` sur le domaine de la boîte, `List-Unsubscribe` (mailto + lien https) et `List-Unsubscribe-Post`, pied de page « répondez stop » (aucune mention de l'IA). Route `/api/unsubscribe` (hors session) : GET = page de confirmation sans effet, POST = ajout à `suppressions` ; jeton HMAC dérivé de `MAILBOX_ENCRYPTION_KEYS` (anciennes clés acceptées).
+- Tests : 15 tests de moteur (fenêtre, échauffement, jeton, dry run, idempotence, lot non validé, suppression, plafonds, mode réel contre un **faux serveur SMTP local** : en-têtes, réessai, identifiants refusés), 9 tests SQL. Aucun appel payant : 0 USD.
+- Non fait : écran de suivi des envois ; relance (M4.3) ; blocage des domaines sensibles ; suspension automatique sur rebonds (M4.4/M6.2) ; fenêtre selon le fuseau du destinataire ; envoi dans la durée d'un message resté `en_cours` (crash entre l'envoi SMTP et la mise à jour : jamais renvoyé, à purger/inspecter).
+- Dépendance dev : `mailparser`.
+
 ## Backlog (idées hors périmètre)
 
 - M3.4 : page `/app/lots` listant les lots de tous les sites ; anti-doublon des messages modifiés ; rédaction qui ignore les brouillons verrouillés ; test Playwright connecté.
@@ -360,4 +372,4 @@
 
 ## Prochain sous-jalon recommandé
 
-M4.2 (moteur d'envoi plafonné, dry run, filtre `batches.status = 'valide'`), voir PLAN.md. En parallèle, finir la mise en production d'Inngest et le run réel DataForSEO dès que Jonathan fournit les identifiants.
+M4.3 (relance unique, lit `sent_messages.follow_up_due_at`, mêmes garde-fous en base ; une réponse annule la relance), voir PLAN.md. En parallèle, finir la mise en production d'Inngest et le run réel DataForSEO dès que Jonathan fournit les identifiants.

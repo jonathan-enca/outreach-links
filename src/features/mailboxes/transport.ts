@@ -149,8 +149,7 @@ export interface OutreachMail {
 }
 
 export type OutreachResult =
-  | { ok: true }
-  | { ok: false; error: string; kind: "auth" | "permanent" | "temporary" };
+  { ok: true } | { ok: false; error: string; kind: "auth" | "permanent" | "temporary" };
 
 /**
  * Envoi d'un message d'outreach (garde d'envoi vérifiée par l'appelant : `realSendingAllowed`).

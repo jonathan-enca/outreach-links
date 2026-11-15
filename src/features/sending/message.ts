@@ -1,3 +1,4 @@
+import type { KeyRing } from "@/features/mailboxes/crypto";
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
 export interface OutgoingInput {
@@ -28,7 +29,8 @@ export function makeMessageId(mailboxEmail: string): string {
   return `<${randomUUID()}@${domain}>`;
 }
 
-const FOOTER = "\n\n--\nSi vous ne souhaitez plus recevoir de message de ma part, répondez « stop ».";
+const FOOTER =
+  "\n\n--\nSi vous ne souhaitez plus recevoir de message de ma part, répondez « stop ».";
 
 export function buildOutgoing(i: OutgoingInput): OutgoingMail {
   return {
@@ -61,4 +63,18 @@ export function verifyUnsubscribeToken(token: string, secret: string): string | 
   const given = Buffer.from(sig);
   if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
   return id;
+}
+
+/** Secrets de signature : la clé courante d'abord, puis les anciennes (rotation sans casser les liens). */
+export function unsubscribeSecrets(ring: KeyRing): string[] {
+  const ordered = [ring.current, ...[...ring.keys.keys()].filter((k) => k !== ring.current)];
+  return ordered.map((v) => ring.keys.get(v)!.toString("base64"));
+}
+
+export function verifyUnsubscribeTokenWithRing(token: string, ring: KeyRing): string | null {
+  for (const secret of unsubscribeSecrets(ring)) {
+    const id = verifyUnsubscribeToken(token, secret);
+    if (id) return id;
+  }
+  return null;
 }

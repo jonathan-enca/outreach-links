@@ -27,7 +27,7 @@ describe.skipIf(!adminUrl)("envois : garde-fous en base", () => {
   let userId: string;
   let planId: string;
   let siteId: string;
-  let drafts: string[] = [];
+  const drafts: string[] = [];
   let mailboxId: string;
 
   beforeAll(async () => {
