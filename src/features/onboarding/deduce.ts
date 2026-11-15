@@ -98,13 +98,24 @@ export function cleanQueries(queries: readonly string[], domain: string): string
   return out;
 }
 
-/** Thème de repli tiré du titre de la page : la partie avant le séparateur de marque, sans la marque. */
+/** Morceaux de titre sans valeur de thème. */
+const GENERIC_TITLE =
+  /^(accueil|home|homepage|page d.accueil|welcome|bienvenue|index|site officiel|official site)$/i;
+
+/**
+ * Thème de repli tiré du titre de la page : le titre est coupé aux séparateurs de marque (« | », « - »,
+ * « : »), puis on garde le premier morceau qui ne contient pas la marque (« Mega Coloring: free printable
+ * coloring pages » donne « free printable coloring pages », « Coloriages à imprimer | Exemple » donne
+ * « coloriages à imprimer »).
+ */
 export function themeFromTitle(title: string, domain: string): string {
-  const first = collapse(title.split(/\s[|–—-]\s|\s:\s/)[0] ?? "");
   const brands = brandWords(domain).map(squash);
-  if (first.length < 3 || first.length > 60) return "";
-  if (brands.some((b) => squash(first).includes(b))) return "";
-  return first.toLowerCase();
+  const parts = title
+    .split(/\s*[|–—:]\s+|\s+-\s+/)
+    .map((p) => collapse(p))
+    .filter((p) => p.length >= 3 && p.length <= 60 && !GENERIC_TITLE.test(p));
+  const part = parts.find((p) => !brands.some((b) => squash(p).includes(b)));
+  return part ? part.toLowerCase() : "";
 }
 
 /** Repli SANS LLM : thème tiré du titre, requêtes de secours de MA.4 (thème, « en ligne », « guide »). */

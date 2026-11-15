@@ -763,6 +763,8 @@ export const fr = {
         "Le coût ou les recherches ont changé depuis l'affichage. Rechargez la page pour revoir le total avant de lancer.",
     },
     review: {
+      pageDescription:
+        "Vérifiez le thème et les recherches, puis confirmez le coût une seule fois. Rien n'est envoyé.",
       title: "Voici ce que nous avons compris",
       body: "Corrigez si besoin : ces recherches servent à trouver vos vrais concurrents dans Google, puis les sites qui peuvent vous citer.",
       domain: "Site",
