@@ -43,6 +43,13 @@ export const PRICING = {
    */
   backlinksPerRequest: 0.024,
   backlinksPerRow: 0.000036,
+  /**
+   * Content Analysis `search` : par requête + par ligne. Grille publique 0,02 + 0,00003 par ligne
+   * (exemple de la doc : 0,0203 pour 10) ; on applique le même écart que Backlinks (+20 %, mesuré)
+   * [HYPOTHÈSE, à recaler sur le run réel de MT.3].
+   */
+  contentAnalysisPerRequest: 0.024,
+  contentAnalysisPerRow: 0.000036,
   /** OnPage instant pages : par page analysée. */
   onpagePerPage: 0.000125,
 } as const;
@@ -167,6 +174,18 @@ export const endpoints = {
     okStatus: 20000,
     cacheable: true,
     estimate: (p) => r6(PRICING.backlinksPerRequest + p.limit * PRICING.backlinksPerRow),
+  }),
+  contentAnalysisSearch: defineSpec({
+    name: "content_analysis.search",
+    method: "POST",
+    path: () => "/v3/content_analysis/search/live",
+    params: s.contentSearchParams,
+    result: s.contentSearchResult,
+    body: (p) => ({ ...p }),
+    okStatus: 20000,
+    cacheable: true,
+    estimate: (p) =>
+      r6(PRICING.contentAnalysisPerRequest + p.limit * PRICING.contentAnalysisPerRow),
   }),
   onpageInstantPages: defineSpec({
     name: "onpage.instant_pages",

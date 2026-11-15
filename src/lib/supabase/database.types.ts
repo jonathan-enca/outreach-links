@@ -651,6 +651,123 @@ export type Database = {
           },
         ];
       };
+      candidate_collections: {
+        Row: {
+          actual_cost_usd: number | null;
+          audit_id: string;
+          confirmed_by: string | null;
+          created_at: string;
+          error_message: string | null;
+          expected_cost_usd: number;
+          finished_at: string | null;
+          id: string;
+          plan: Json;
+          site_id: string;
+          started_at: string | null;
+          stats: Json;
+          status: string;
+          stop_reason: string | null;
+          target_usd: number;
+          updated_at: string;
+          workspace_id: string;
+          worst_case_usd: number;
+        };
+        Insert: {
+          actual_cost_usd?: number | null;
+          audit_id: string;
+          confirmed_by?: string | null;
+          created_at?: string;
+          error_message?: string | null;
+          expected_cost_usd: number;
+          finished_at?: string | null;
+          id?: string;
+          plan: Json;
+          site_id: string;
+          started_at?: string | null;
+          stats?: Json;
+          status?: string;
+          stop_reason?: string | null;
+          target_usd: number;
+          updated_at?: string;
+          workspace_id: string;
+          worst_case_usd: number;
+        };
+        Update: {
+          actual_cost_usd?: number | null;
+          audit_id?: string;
+          confirmed_by?: string | null;
+          created_at?: string;
+          error_message?: string | null;
+          expected_cost_usd?: number;
+          finished_at?: string | null;
+          id?: string;
+          plan?: Json;
+          site_id?: string;
+          started_at?: string | null;
+          stats?: Json;
+          status?: string;
+          stop_reason?: string | null;
+          target_usd?: number;
+          updated_at?: string;
+          workspace_id?: string;
+          worst_case_usd?: number;
+        };
+        Relationships: [];
+      };
+      collection_candidates: {
+        Row: {
+          audit_id: string;
+          collection_id: string;
+          competitors_count: number;
+          created_at: string;
+          domain: string;
+          domain_rank: number | null;
+          id: string;
+          page_type: string | null;
+          signal_count: number;
+          sources: Json;
+          spam_score: number | null;
+          tactics: string[];
+          title: string | null;
+          url: string | null;
+          workspace_id: string;
+        };
+        Insert: {
+          audit_id: string;
+          collection_id: string;
+          competitors_count?: number;
+          created_at?: string;
+          domain: string;
+          domain_rank?: number | null;
+          id?: string;
+          page_type?: string | null;
+          signal_count?: number;
+          sources?: Json;
+          spam_score?: number | null;
+          tactics: string[];
+          title?: string | null;
+          url?: string | null;
+          workspace_id: string;
+        };
+        Update: {
+          audit_id?: string;
+          collection_id?: string;
+          competitors_count?: number;
+          created_at?: string;
+          domain?: string;
+          domain_rank?: number | null;
+          id?: string;
+          page_type?: string | null;
+          signal_count?: number;
+          sources?: Json;
+          spam_score?: number | null;
+          tactics?: string[];
+          title?: string | null;
+          url?: string | null;
+          workspace_id?: string;
+        };
+        Relationships: [];
+      };
       competitor_backlinks: {
         Row: {
           anchor: string | null;
