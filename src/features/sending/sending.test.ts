@@ -420,6 +420,32 @@ describe("relance unique : dry run", () => {
     expect(db.tables.sent_messages).toHaveLength(2);
   });
 
+  it("M5.1 : une réponse automatique d'absence repousse la relance, puis elle repart", async () => {
+    const { db, d } = await sentOnce();
+    const initialId = db.tables.sent_messages![0]!.id as string;
+    // Réponse automatique reçue mais pas encore classée : on attend, on ne relance pas.
+    (db.tables.inbound_messages ??= []).push({
+      id: "in1",
+      sent_message_id: initialId,
+      kind: "reponse_automatique",
+      classified_at: null,
+    });
+    d.now = () => J10;
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "rien_a_envoyer" });
+    // Classée : relance repoussée de 7 jours.
+    db.tables.inbound_messages![0]!.classified_at = J10.toISOString();
+    (db.tables.reply_classifications ??= []).push({
+      sent_message_id: initialId,
+      follow_up_not_before: addDays(J10, 7).toISOString(),
+    });
+    d.now = () => addDays(J10, 6);
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "rien_a_envoyer" });
+    expect(db.tables.sent_messages).toHaveLength(1);
+    d.now = () => addDays(J10, 8);
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "simule", draftId: "d1" });
+    expect(db.tables.sent_messages).toHaveLength(2);
+  });
+
   it("la relance due passe avant un nouvel envoi", async () => {
     const { db, d } = await sentOnce(2);
     d.now = () => J10;

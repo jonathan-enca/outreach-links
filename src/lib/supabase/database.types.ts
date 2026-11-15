@@ -872,6 +872,7 @@ export type Database = {
       inbound_messages: {
         Row: {
           body_excerpt: string;
+          classified_at: string | null;
           created_at: string;
           from_email: string | null;
           id: string;
@@ -887,6 +888,7 @@ export type Database = {
         };
         Insert: {
           body_excerpt?: string;
+          classified_at?: string | null;
           created_at?: string;
           from_email?: string | null;
           id?: string;
@@ -902,6 +904,7 @@ export type Database = {
         };
         Update: {
           body_excerpt?: string;
+          classified_at?: string | null;
           created_at?: string;
           from_email?: string | null;
           id?: string;
@@ -1615,6 +1618,94 @@ export type Database = {
           key_hash?: string;
         };
         Relationships: [];
+      };
+      reply_classifications: {
+        Row: {
+          action_status: string;
+          category: string;
+          confidence: number;
+          cost_usd: number;
+          created_at: string;
+          follow_up_not_before: string | null;
+          id: string;
+          inbound_message_id: string;
+          injection_suspected: boolean;
+          justification: string;
+          model: string | null;
+          needs_review: boolean;
+          proposed_action: string;
+          sent_message_id: string;
+          source: string;
+          validated_at: string | null;
+          validated_by: string | null;
+          validated_category: string | null;
+          workspace_id: string;
+        };
+        Insert: {
+          action_status: string;
+          category: string;
+          confidence: number;
+          cost_usd?: number;
+          created_at?: string;
+          follow_up_not_before?: string | null;
+          id?: string;
+          inbound_message_id: string;
+          injection_suspected?: boolean;
+          justification: string;
+          model?: string | null;
+          needs_review?: boolean;
+          proposed_action: string;
+          sent_message_id: string;
+          source: string;
+          validated_at?: string | null;
+          validated_by?: string | null;
+          validated_category?: string | null;
+          workspace_id: string;
+        };
+        Update: {
+          action_status?: string;
+          category?: string;
+          confidence?: number;
+          cost_usd?: number;
+          created_at?: string;
+          follow_up_not_before?: string | null;
+          id?: string;
+          inbound_message_id?: string;
+          injection_suspected?: boolean;
+          justification?: string;
+          model?: string | null;
+          needs_review?: boolean;
+          proposed_action?: string;
+          sent_message_id?: string;
+          source?: string;
+          validated_at?: string | null;
+          validated_by?: string | null;
+          validated_category?: string | null;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reply_classifications_inbound_message_id_fkey";
+            columns: ["inbound_message_id"];
+            isOneToOne: true;
+            referencedRelation: "inbound_messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reply_classifications_sent_message_id_fkey";
+            columns: ["sent_message_id"];
+            isOneToOne: false;
+            referencedRelation: "sent_messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reply_classifications_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       reply_signals: {
         Row: {

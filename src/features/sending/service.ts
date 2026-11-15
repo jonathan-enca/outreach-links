@@ -403,9 +403,30 @@ async function sendNextFollowUp(
     .eq("step", "initial")
     .eq("dry_run", dry)
     .in("status", ["envoye", "simule"]);
-  const due = (initials ?? [])
+  const dueAll = (initials ?? [])
     .filter((m) => m.follow_up_due_at && new Date(m.follow_up_due_at) <= now)
     .sort((a, b) => a.follow_up_due_at!.localeCompare(b.follow_up_due_at!));
+  if (dueAll.length === 0) return null;
+  // M5.1 : relance repoussée (réponse automatique d'absence), ou réponse automatique pas encore
+  // classée (on attend la classification plutôt que de relancer quelqu'un en congé).
+  const dueIds = dueAll.map((m) => m.id);
+  const { data: postponed } = await db
+    .from("reply_classifications")
+    .select("sent_message_id, follow_up_not_before")
+    .in("sent_message_id", dueIds);
+  const { data: pendingAuto } = await db
+    .from("inbound_messages")
+    .select("sent_message_id")
+    .in("sent_message_id", dueIds)
+    .eq("kind", "reponse_automatique")
+    .is("classified_at", null);
+  const held = new Set<string>([
+    ...(postponed ?? [])
+      .filter((c) => c.follow_up_not_before && new Date(c.follow_up_not_before) > now)
+      .map((c) => c.sent_message_id),
+    ...(pendingAuto ?? []).map((m) => m.sent_message_id),
+  ]);
+  const due = dueAll.filter((m) => !held.has(m.id));
   if (due.length === 0) return null;
   const ids = due.map((m) => m.id);
   const { data: relances } = await db
