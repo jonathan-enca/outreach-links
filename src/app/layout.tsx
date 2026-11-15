@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
-import { Fraunces, Public_Sans } from "next/font/google";
+import { Bricolage_Grotesque, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 import "@/env";
 import { t } from "@/lib/messages";
 
-const display = Fraunces({
+const display = Bricolage_Grotesque({
   variable: "--font-display",
   subsets: ["latin"],
   display: "swap",
 });
 
-const body = Public_Sans({
+const body = Instrument_Sans({
   variable: "--font-body",
   subsets: ["latin"],
   display: "swap",

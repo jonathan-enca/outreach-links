@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { PaidPlanKey } from "./plans";
+import { t } from "@/lib/messages";
 
 /**
  * Adaptateur Stripe en MODE TEST uniquement (fetch direct, sans SDK). Une clé `sk_live_...` est
@@ -71,7 +72,7 @@ export function createStripeProvider(
       f.set("line_items[0][price_data][currency]", "eur");
       f.set("line_items[0][price_data][unit_amount]", String(i.priceEurCents));
       f.set("line_items[0][price_data][recurring][interval]", "month");
-      f.set("line_items[0][price_data][product_data][name]", `Outreach Links ${i.planName}`);
+      f.set("line_items[0][price_data][product_data][name]", `${t.app.name} ${i.planName}`);
       if (i.customerId) f.set("customer", i.customerId);
       else if (i.customerEmail) f.set("customer_email", i.customerEmail);
       const r = await post("checkout/sessions", f);
