@@ -42,7 +42,10 @@ async function Review({ params }: { params: Promise<{ siteId: string }> }) {
 export default function Page(props: { params: Promise<{ siteId: string }> }) {
   return (
     <>
-      <PageHeader title={t.onboarding.review.title} description={t.onboarding.description} />
+      <PageHeader
+        title={t.onboarding.review.title}
+        description={t.onboarding.review.pageDescription}
+      />
       <Suspense>
         <Review params={props.params} />
       </Suspense>

@@ -5,6 +5,8 @@ import { estimateOpportunities } from "@/features/opportunities/limits";
 import { startOpportunities } from "@/features/opportunities/service";
 import { estimateProfile } from "@/features/profile/limits";
 import { startProfile } from "@/features/profile/service";
+import { env } from "@/env";
+import { dailyCapReached } from "@/lib/costs";
 import { logger } from "@/lib/logger";
 import type { Database } from "@/lib/supabase/database.types";
 import { PLAN_LIMITS, type PlanKey } from "./plans";
@@ -104,6 +106,11 @@ export async function advanceChain(
     stage = "opportunities";
   }
   if (!stage) return { started: null };
+  // Plafond de sécurité quotidien : l'enchaînement s'arrête, les boutons manuels de l'étape restent.
+  if (await dailyCapReached(service, env.DAILY_COST_CAP_USD)) {
+    logger.warn("enchaînement arrêté : plafond quotidien", { auditId, stage });
+    return { started: null };
+  }
 
   const start = {
     backlinks: startBacklinks,

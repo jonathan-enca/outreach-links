@@ -1,5 +1,5 @@
 import type { SerpResult } from "@/lib/dataforseo";
-import { hostOf, isExcludedDomain, isOwnDomain } from "./excluded-domains";
+import { hostOf, isExcludedDomain, isOwnDomain, isValidHost } from "./excluded-domains";
 import type { PlanLimits } from "./plans";
 
 /** Une ligne organique d'une SERP, normalisée. */
@@ -46,12 +46,14 @@ export function resolveRedirect(item: {
 }): { domain: string; url: string; exact: boolean } | null {
   const url = item.url?.trim() ?? "";
   const host = hostOf(item.domain || url);
-  if (url && host && !REDIRECT_HOSTS.has(host)) return { domain: host, url, exact: true };
+  if (url && host && !REDIRECT_HOSTS.has(host)) {
+    return isValidHost(host) ? { domain: host, url, exact: true } : null;
+  }
   if (!url) return null;
   const [origin, ...segments] = (item.breadcrumb ?? "").split("›").map((s) => s.trim());
   if (!origin) return null;
   const real = hostOf(origin);
-  if (!real || REDIRECT_HOSTS.has(real)) return null;
+  if (!real || REDIRECT_HOSTS.has(real) || !isValidHost(real)) return null;
   const kept = segments.filter((s) => s && !s.endsWith("..."));
   const base = origin.startsWith("http") ? origin : `https://${origin}`;
   // Le fil d'Ariane est une version lisible de l'URL (décodée, parfois tronquée) : jamais exacte.

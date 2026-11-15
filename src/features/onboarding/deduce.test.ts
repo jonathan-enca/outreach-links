@@ -68,6 +68,10 @@ describe("repli sans LLM", () => {
       themeFromTitle("Coloriages pour enfants à imprimer | Mega Coloring", "mega-coloring.com"),
     ).toBe("coloriages pour enfants à imprimer");
     expect(themeFromTitle("Mega Coloring | Accueil", "mega-coloring.com")).toBe("");
+    expect(
+      themeFromTitle("Mega Coloring: free printable coloring pages", "mega-coloring.com"),
+    ).toBe("free printable coloring pages");
+    expect(themeFromTitle("Mega Coloring", "mega-coloring.com")).toBe("");
   });
 
   it("donne thème et requêtes de secours quand la page est lisible", () => {

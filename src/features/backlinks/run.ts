@@ -4,6 +4,7 @@ import { BudgetExceededError, type DataForSeoClient } from "@/lib/dataforseo";
 import { estimateCost } from "@/lib/dataforseo/endpoints";
 import { logger } from "@/lib/logger";
 import type { Database, Json } from "@/lib/supabase/database.types";
+import { isValidHost } from "@/features/audits/excluded-domains";
 import { isPlanKey } from "@/features/audits/plans";
 import { MAX_REFERRING_DOMAINS, SIZE_SPARES } from "./limits";
 import { cleanBacklinks, computeStats, type CleanStats, type ExclusionReason } from "./clean";
@@ -105,7 +106,8 @@ export async function filterCompetitorsBySize(
     .limit(SIZE_SPARES);
   if (error) throw new Error(`filterCompetitorsBySize : ${error.message}`);
   const candidates = [...kept, ...(spares ?? [])];
-  const targets = candidates.map((c) => c.domain);
+  // Un domaine illisible ne doit pas faire échouer toute la mesure : il reste « taille inconnue ».
+  const targets = candidates.map((c) => c.domain).filter(isValidHost);
 
   const spent = await totalCostForAudit(service, run.id);
   const next = estimateCost("backlinksBulkReferringDomains", { targets });

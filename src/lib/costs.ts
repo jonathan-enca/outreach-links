@@ -97,3 +97,26 @@ export async function totalCostForPublicAudit(
     0,
   );
 }
+
+/** Dépenses d'API de toute la plateforme sur les 24 dernières heures (USD, réel sinon estimé). */
+export async function dailySpendUsd(client: CostClient, now: Date = new Date()): Promise<number> {
+  const since = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await client
+    .from("cost_ledger")
+    .select("estimated_cost_usd, actual_cost_usd")
+    .gte("created_at", since);
+  if (error) throw new Error(`dailySpendUsd : ${error.message}`);
+  return (data ?? []).reduce(
+    (sum, r) => sum + Number(r.actual_cost_usd ?? r.estimated_cost_usd),
+    0,
+  );
+}
+
+/** Vrai si la plateforme a déjà dépensé le plafond quotidien de sécurité (aucun nouvel audit ni nouvelle étape). */
+export async function dailyCapReached(
+  client: CostClient,
+  capUsd: number,
+  now: Date = new Date(),
+): Promise<boolean> {
+  return (await dailySpendUsd(client, now)) >= capUsd;
+}

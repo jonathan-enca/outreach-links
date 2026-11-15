@@ -102,4 +102,12 @@ describe("home FR", () => {
     expect(hero).toContain('href="/inscription"');
     expect(hero).toContain("HOME_SECTIONS.features");
   });
+
+  it("tactiques : trois tactiques, étapes présentes, boutons conformes, aucune promesse", () => {
+    const tac = fr.home.tactics;
+    expect(tac.items).toHaveLength(3);
+    for (const it of tac.items) expect(it.steps.length).toBeGreaterThanOrEqual(3);
+    expect([tac.primary, tac.secondary]).toEqual(["Essai gratuit", "Fonctionnement"]);
+    expect(texts(tac).join(" ")).not.toMatch(/garanti|digest/i);
+  });
 });

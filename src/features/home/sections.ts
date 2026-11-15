@@ -4,6 +4,7 @@ export const HOME_SECTIONS = {
   problem: "probleme",
   proofs: "preuves",
   howItWorks: "comment-ca-marche",
+  tactics: "tactiques",
   quality: "qualite",
   features: "fonctions",
   compare: "comparatif",

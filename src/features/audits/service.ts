@@ -2,6 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { t } from "@/lib/messages";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { estimateChain } from "./chain";
+import { env } from "@/env";
+import { dailyCapReached } from "@/lib/costs";
+import { betaEnabled, effectivePlan } from "./beta";
 import { estimateDiscovery } from "./estimate";
 import { isTestDomain } from "@/features/sites/test-domains";
 import { canTransition, isPlanKey, limitsFor, type AuditStatus, type PlanKey } from "./plans";
@@ -67,9 +70,13 @@ export function computeAuditEstimate(input: {
   offeredAsset: string | null;
   priorityQueries: string[];
   workspacePlan: unknown;
+  /** Mode bêta (MT.0) : niveau « payant » pour tous. Par défaut, le réglage d'environnement. */
+  beta?: boolean;
 }) {
   const basePlan: PlanKey = isPlanKey(input.workspacePlan) ? input.workspacePlan : "gratuit";
-  const plan: PlanKey = isTestDomain(input.domain) ? "payant" : basePlan;
+  const plan: PlanKey = isTestDomain(input.domain)
+    ? "payant"
+    : effectivePlan(basePlan, input.beta ?? betaEnabled());
   const limits = limitsFor(plan, input.domain);
   const queries = input.priorityQueries.slice(0, limits.maxQueries);
   const estimate = estimateDiscovery(queries, limits);
@@ -260,6 +267,10 @@ export async function confirmAudit(
       service = getServiceClient();
     } catch {
       return { status: "error", message: AUDIT_MESSAGES.unavailable };
+    }
+    // Plafond de sécurité : la plateforme a déjà dépensé le maximum des dernières 24 h.
+    if (await dailyCapReached(service, env.DAILY_COST_CAP_USD)) {
+      return { status: "error", auditId, message: AUDIT_MESSAGES.dailyCap };
     }
     const moved = await transitionAudit(service, audit.id, "estime", "confirme", {
       confirmed_at: new Date().toISOString(),
