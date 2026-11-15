@@ -30,6 +30,36 @@ describe("home FR", () => {
     expect(all).not.toMatch(/(?<![\p{L}])(tu|ton|ta|tes|toi)(?![\p{L}])/iu);
   });
 
+  it("les sections de MH.3 existent et l'en-tête mène à Tarifs et à la FAQ", () => {
+    const hrefs = homeNavLinks().map((l) => l.href);
+    expect(hrefs).toContain(`#${HOME_SECTIONS.pricing}`);
+    expect(hrefs).toContain(`#${HOME_SECTIONS.faq}`);
+    expect(fr.home.faq.items.length).toBeGreaterThanOrEqual(9);
+    expect(fr.home.features.items).toHaveLength(8);
+    expect(fr.home.quality.blocks).toHaveLength(3);
+  });
+
+  it("le comparatif est descriptif : aucune marque, aucune note, aucun prix", () => {
+    const all = texts(fr.home.compare).join("\n");
+    expect(all).not.toMatch(/outlink|backlinkbot|mentionagent|linkee|heylinks|getfluence/i);
+    expect(all).not.toMatch(/[✓✗★]|\d\s*\/\s*\d/);
+  });
+
+  it("la FAQ ne promet aucun nombre de liens et reste honnête sur le payant et l'IA", () => {
+    const faq = texts(fr.home.faq.items).join("\n");
+    expect(faq).toMatch(/aucun nombre de liens/i);
+    expect(faq).toMatch(/décliner/i);
+    expect(faq).toMatch(/honnête/i);
+  });
+
+  it("les pages légales sont liées au pied de page et marquées provisoires", () => {
+    const slugs = [fr.legalPages.notice, fr.legalPages.privacy, fr.legalPages.terms].map(
+      (d) => `/${d.slug}`,
+    );
+    expect(fr.home.footer.legalLinks.map((l) => l.href)).toEqual(slugs);
+    expect(fr.legalPages.provisional).toMatch(/provisoire/i);
+  });
+
   it("l'honnêteté est dite : aucun lien acheté", () => {
     expect(texts(fr.home.trust).join(" ")).toMatch(/aucun lien acheté/i);
     expect(texts(fr.home.whatItIs).join(" ")).toMatch(/ne faisons pas/i);

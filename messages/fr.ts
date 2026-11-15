@@ -16,6 +16,8 @@ export const fr = {
       whatItIs: "C'est quoi",
       problem: "Le problème",
       howItWorks: "Comment ça marche",
+      pricing: "Tarifs",
+      faq: "FAQ",
       menu: "Menu",
       openMenu: "Ouvrir le menu",
       closeMenu: "Fermer le menu",
@@ -157,6 +159,412 @@ export const fr = {
           tone: "danger",
         },
         { domain: "forum.example", type: "Forum", reason: "Compte requis", tone: "warning" },
+      ],
+    },
+    quality: {
+      label: "Qualité, message, suivi",
+      title: "Des cibles triées, un message qui cite leur page, un suivi sans tableur",
+      intro:
+        "Trois choses font la différence entre une demande lue et un message ignoré : le choix du site, la raison de lui écrire et ce qui se passe après l'envoi.",
+      blocks: [
+        {
+          id: "cibles",
+          title: "Des cibles lues, pas devinées",
+          text: "Chaque site du plan est visité avant d'être retenu. Ceux qui vendent des liens, les concurrents directs, les sites morts ou hors de portée sont écartés, avec le motif affiché.",
+          points: [
+            "Page lue le jour même, adresse exacte vérifiée",
+            "Motif lisible pour chaque site écarté",
+            "Concurrents directs et très grands sites exclus d'office",
+          ],
+          mockup: {
+            retained: "Retenu",
+            discarded: "Écarté",
+            cards: [
+              {
+                domain: "guide-tirages.example",
+                kind: "Page ressources",
+                tone: "success",
+                lines: [
+                  "Ne vend pas de liens",
+                  "Page lue, réponse HTTP 200",
+                  "Contact : email publié sur le site",
+                ],
+              },
+              {
+                domain: "top-liens.example",
+                kind: "Blog",
+                tone: "danger",
+                lines: ["Motif : tarifs de liens affichés sur le site"],
+              },
+            ],
+          },
+        },
+        {
+          id: "message",
+          title: "Un message court, avec la raison de l'écrire",
+          text: "Le brouillon cite le passage de la page qui justifie votre demande, propose quelque chose de précis et renvoie vers l'adresse exacte. Vous le relisez et vous pouvez le modifier avant la validation du lot.",
+          points: [
+            "Le passage de la page ciblée est surligné",
+            "Adresse de votre page vérifiée avant l'envoi",
+            "Signé de votre prénom, sans vocabulaire marketing",
+          ],
+          mockup: {
+            from: "De",
+            to: "À",
+            subject: "Objet",
+            fromValue: "Camille, depuis votre boîte mail",
+            toValue: "contact@guide-tirages.example",
+            subjectValue: "Une ressource pour votre guide",
+            before: "Bonjour, j'ai lu votre ",
+            hook: "guide des boutiques de tirages",
+            after:
+              " et je pense que notre comparatif des formats d'impression pourrait compléter la rubrique papier. Voici la page : monsite.example/formats. Qu'en pensez-vous ?",
+            hookLabel: "Passage cité dans la page de la cible",
+            urlLabel: "Adresse vérifiée, réponse HTTP 200",
+          },
+        },
+        {
+          id: "suivi",
+          title: "Une relance, un inbox classé, des liens contrôlés",
+          text: "Une seule relance part, et elle s'arrête dès qu'une réponse arrive. Les réponses sont classées par catégorie, les demandes de paiement vous reviennent, et le lien est revérifié après la pose.",
+          points: [
+            "Une relance, dans le même fil de discussion",
+            "Réponses classées : chaud, tiède, offre payante, refus",
+            "Contrôle du lien : en ligne, dofollow, indexable",
+          ],
+          mockup: {
+            title: "Inbox",
+            rows: [
+              {
+                who: "guide-tirages.example",
+                what: "Accepte, lien à poser",
+                status: "Chaud",
+                tone: "success",
+              },
+              {
+                who: "asso-photo.example",
+                what: "Propose un échange de liens",
+                status: "En négociation",
+                tone: "info",
+              },
+              {
+                who: "annuaire-pro.example",
+                what: "Demande un paiement",
+                status: "Offre payante",
+                tone: "warning",
+              },
+              {
+                who: "mairie-exemple.example",
+                what: "Lien en ligne, dofollow",
+                status: "Lien vérifié",
+                tone: "accent",
+              },
+            ],
+          },
+        },
+      ],
+    },
+    features: {
+      label: "Fonctions",
+      title: "Ce qui est prévu pour garder la main",
+      intro: "Huit fonctions, toutes pensées pour que vous décidiez et que l'outil exécute.",
+      items: [
+        {
+          title: "Audit par page",
+          text: "Vos concurrents réels dans Google, l'écart de liens et les pages à pousser en priorité.",
+        },
+        {
+          title: "Plan de liens validé",
+          text: "Vous cochez, décochez et ordonnez les types de cibles. Rien ne démarre sans votre validation.",
+        },
+        {
+          title: "Tri avec motifs",
+          text: "Payant, mort, piraté, hors sujet, compte obligatoire, concurrent direct : chaque exclusion est expliquée.",
+        },
+        {
+          title: "Hook et adresse vérifiés",
+          text: "Chaque brouillon montre le passage qui justifie le message et l'adresse exacte de votre page.",
+        },
+        {
+          title: "Envoi plafonné",
+          text: "Vos messages partent de votre boîte, à un rythme limité et en heures ouvrées. Un lot se valide d'un bloc.",
+        },
+        {
+          title: "Formulaires en tâches",
+          text: "Quand un site n'a qu'un formulaire, le message est prêt à copier. Nous ne remplissons rien à votre place.",
+        },
+        {
+          title: "Inbox classé",
+          text: "Douze catégories de réponses, une réponse prête à insérer et trois options face à une demande de paiement.",
+        },
+        {
+          title: "Vérification des liens",
+          text: "Contrôle à une, deux puis quatre semaines environ, avec alerte si un lien disparaît.",
+        },
+      ],
+    },
+    compare: {
+      label: "Comparatif",
+      title: "Trois façons d'obtenir des liens",
+      intro:
+        "Un comparatif descriptif, sans note : ce que chaque approche implique concrètement, pour que vous choisissiez en connaissance de cause.",
+      columns: ["", "Acheter des liens", "Tout faire à la main"],
+      rows: [
+        {
+          label: "Nature des liens",
+          values: [
+            "Liens sponsorisés, à signaler comme tels",
+            "Éditoriaux, selon les réponses obtenues",
+          ],
+        },
+        {
+          label: "Choix des cibles",
+          values: ["Catalogue de sites proposés à la vente", "Votre recherche, site par site"],
+        },
+        {
+          label: "Temps à y consacrer",
+          values: ["Faible", "Élevé : tri, rédaction, relances et suivi"],
+        },
+        {
+          label: "Contrôle avant envoi",
+          values: ["Commande unitaire", "Total, mais tout est manuel"],
+        },
+        {
+          label: "Suivi du lien",
+          values: ["Selon la plateforme", "Tableur à tenir à jour"],
+        },
+      ],
+      usColumn: "Ce service",
+      usValues: [
+        "Éditoriaux, jamais achetés",
+        "Audit, plan validé, tri avec motifs",
+        "Réduit : vous validez, l'outil exécute",
+        "Validation de chaque lot, plafonds d'envoi",
+        "Vérification automatique avec alerte",
+      ],
+      note: "Aucune approche n'assure un lien : un site éditorial reste libre de répondre ou non.",
+    },
+    pricing: {
+      label: "Tarifs",
+      title: "Gratuit pour voir, payant pour envoyer",
+      intro:
+        "L'audit et l'aperçu des cibles sont gratuits et sans carte bancaire. Un abonnement est demandé au premier envoi réel.",
+      perMonth: "par mois",
+      popular: "Le plus choisi",
+      unavailable:
+        "Les tarifs ne sont pas affichables pour le moment. Lancez l'audit gratuit, ils seront disponibles à la création de votre compte.",
+      note: "Grille de lancement, susceptible d'évoluer. Plafonds d'envoi mensuels, tous sites confondus. Le paiement se fait en ligne, par abonnement mensuel.",
+      limits: {
+        sends: "envois réels par mois",
+        sites: "site",
+        sitesPlural: "sites",
+        mailboxes: "boîte mail connectée",
+        mailboxesPlural: "boîtes mail connectées",
+        none: "Aucun envoi réel",
+      },
+      plans: {
+        gratuit: {
+          tagline: "Pour voir ce que donne l'audit.",
+          cta: "Lancer l'audit gratuit",
+          features: [
+            "Audit réduit de votre site",
+            "Aperçu des cibles, certaines floutées",
+            "Aucune carte bancaire",
+          ],
+        },
+        starter: {
+          tagline: "Pour un site, avec votre propre boîte mail.",
+          cta: "Commencer",
+          features: [
+            "Audit complet et plan de liens",
+            "Tri des cibles, brouillons, lots validés",
+            "Relance unique et inbox classé",
+            "Vérification des liens",
+          ],
+        },
+        pro: {
+          tagline: "Pour plusieurs sites et un volume plus élevé.",
+          cta: "Commencer",
+          features: [
+            "Tout Starter",
+            "Plusieurs sites et plusieurs boîtes",
+            "Plafond d'envoi plus élevé",
+            "Réponses prêtes à insérer",
+          ],
+        },
+      },
+    },
+    faq: {
+      label: "Questions fréquentes",
+      title: "Ce que l'on nous demande avant de commencer",
+      intro: "Des réponses directes, y compris sur ce que le service ne peut pas promettre.",
+      items: [
+        {
+          q: "Combien de liens vais-je obtenir ?",
+          a: "Nous ne pouvons pas le dire. Un site éditorial répond ou non, et nous ne promettons aucun nombre de liens. Ce que nous maîtrisons : l'audit, le choix des cibles, la qualité du message et le suivi.",
+        },
+        {
+          q: "Les liens sont-ils payants ?",
+          a: "Non, l'objectif est le lien éditorial gratuit. Si un site demande de l'argent, la décision vous revient : décliner, proposer un échange ou, si vous fixez un budget, accepter un lien clairement présenté comme sponsorisé. Par défaut, la demande est déclinée.",
+        },
+        {
+          q: "Google peut-il pénaliser ces liens ?",
+          a: "Nous n'utilisons ni réseau de sites ni lien acheté, et les liens payants éventuels doivent être déclarés comme tels. Personne ne peut exclure tout risque, mais la méthode reste celle des consignes de Google : des liens éditoriaux demandés à des sites pertinents.",
+        },
+        {
+          q: "D'où partent les messages ?",
+          a: "De votre propre boîte mail, reliée en SMTP et IMAP, avec votre prénom en signature. Les envois sont plafonnés par heure et par mois, et nous n'envoyons rien tant que vous n'avez pas validé le lot.",
+        },
+        {
+          q: "Les messages disent-ils qu'ils sont rédigés par une IA ?",
+          a: "Non. Chaque message est relu et validé par vous avant l'envoi, et il est signé de votre nom. Si un destinataire pose la question, la réponse doit rester honnête.",
+        },
+        {
+          q: "Est-ce légal d'écrire à des sites que je ne connais pas ?",
+          a: "La prospection professionnelle par email est encadrée : le message doit concerner l'activité du destinataire et permettre de refuser. Nous tenons une liste de suppression et arrêtons tout envoi dès une désinscription. Les textes juridiques sont en cours de validation par un juriste.",
+        },
+        {
+          q: "Que fait l'outil, et que décidez-vous ?",
+          a: "L'outil analyse, trie, cherche les contacts, rédige, envoie dans les limites fixées, relance et classe les réponses. Vous validez le plan, chaque lot, les plafonds et toute suite à donner à une demande payante.",
+        },
+        {
+          q: "Que se passe-t-il pour les sites avec un simple formulaire ?",
+          a: "Ils deviennent des tâches pour vous : le message est préparé, vous le copiez et l'envoyez vous-même depuis le site. Nous ne remplissons aucun formulaire et ne créons aucun compte à votre place.",
+        },
+        {
+          q: "Combien ça coûte, et quand dois-je payer ?",
+          a: "L'audit gratuit ne demande aucune carte. Un abonnement est demandé au premier envoi réel. Les tarifs et plafonds sont affichés plus haut, dans la section Tarifs.",
+        },
+        {
+          q: "Que deviennent mes données ?",
+          a: "Les identifiants de votre boîte mail sont chiffrés, la lecture se limite aux fils de campagne, et les données de prospection sont conservées pour une durée limitée. Voir la page Confidentialité.",
+        },
+      ],
+    },
+    finalCta: {
+      label: "Prêt à commencer",
+      title: "Voyez ce que l'audit trouve pour votre site",
+      text: "Quelques minutes suffisent pour voir vos concurrents, vos pages à pousser et un aperçu des cibles. Aucun email n'est envoyé.",
+      primary: "Lancer l'audit gratuit",
+      secondary: "Voir les tarifs",
+      hints: ["Sans carte bancaire", "Aucun lien acheté", "Rien n'est envoyé sans votre accord"],
+    },
+    footer: {
+      label: "Pied de page",
+      tagline:
+        "Des demandes de liens éditoriaux préparées à partir d'un vrai audit, validées par vous.",
+      productTitle: "Produit",
+      accountTitle: "Compte",
+      legalTitle: "Informations légales",
+      legalLinks: [
+        { href: "/mentions-legales", label: "Mentions légales" },
+        { href: "/confidentialite", label: "Confidentialité" },
+        { href: "/conditions", label: "Conditions d'utilisation" },
+      ],
+      freeAudit: "Audit gratuit",
+      signIn: "Se connecter",
+      rights: "Tous droits réservés.",
+    },
+  },
+  legalPages: {
+    provisional:
+      "Version provisoire : ce texte décrit le fonctionnement actuel du service et sera revu par un juriste avant l'ouverture au public.",
+    toBeFilled: "À renseigner avant l'ouverture au public",
+    back: "Retour à l'accueil",
+    updated: "Dernière mise à jour : 15 novembre 2026",
+    notice: {
+      slug: "mentions-legales",
+      title: "Mentions légales",
+      description: "Éditeur, hébergement et contact du service.",
+      sections: [
+        {
+          title: "Éditeur du service",
+          body: [
+            "Éditeur : à renseigner (nom ou raison sociale, forme juridique, adresse, numéro d'immatriculation).",
+            "Directeur de la publication : à renseigner.",
+            "Contact : à renseigner.",
+          ],
+        },
+        {
+          title: "Hébergement",
+          body: [
+            "Application : Vercel Inc. Base de données et authentification : Supabase, projet hébergé dans la région de Paris.",
+          ],
+        },
+        {
+          title: "Nature du service",
+          body: [
+            "Le service prépare et envoie, avec l'accord de l'utilisateur, des demandes de liens éditoriaux depuis sa propre boîte mail. Il ne vend ni n'achète de liens et ne garantit l'obtention d'aucun lien.",
+          ],
+        },
+      ],
+    },
+    privacy: {
+      slug: "confidentialite",
+      title: "Confidentialité",
+      description: "Les données que nous traitons, pourquoi, et comment exercer vos droits.",
+      sections: [
+        {
+          title: "Données de votre compte",
+          body: [
+            "Votre adresse email (connexion par lien), votre site, vos requêtes et votre prénom de signature. Elles servent à faire fonctionner le service et à vous contacter à son sujet.",
+          ],
+        },
+        {
+          title: "Votre boîte mail",
+          body: [
+            "Les identifiants sont chiffrés. La lecture se limite aux fils de campagne ; le contenu d'un email entrant est traité comme une donnée, jamais comme une instruction.",
+          ],
+        },
+        {
+          title: "Données des sites contactés",
+          body: [
+            "Nous lisons des pages publiques et des adresses de contact publiées par les sites cibles, à des fins de prospection professionnelle. Chaque message permet de refuser ; une désinscription alimente une liste de suppression et arrête tout envoi. Ces données sont conservées pour une durée limitée et supprimées à la demande.",
+          ],
+        },
+        {
+          title: "Prestataires",
+          body: [
+            "Hébergement et base de données (Vercel, Supabase), orchestration (Inngest), données de référencement (DataForSEO), modèles de langage pour l'analyse et la rédaction, paiement (Stripe) et emails du service (Resend). Seules les données nécessaires leur sont transmises.",
+          ],
+        },
+        {
+          title: "Vos droits",
+          body: [
+            "Accès, rectification, effacement, opposition et limitation du traitement, auprès du contact indiqué dans les mentions légales. Vous pouvez aussi saisir la CNIL.",
+          ],
+        },
+      ],
+    },
+    terms: {
+      slug: "conditions",
+      title: "Conditions d'utilisation",
+      description: "Les règles d'usage du service.",
+      sections: [
+        {
+          title: "Objet",
+          body: [
+            "Le service aide à obtenir des liens éditoriaux gratuits : audit, plan, tri des cibles, préparation et envoi de messages validés par l'utilisateur, suivi des réponses et des liens.",
+          ],
+        },
+        {
+          title: "Aucune garantie de résultat",
+          body: [
+            "Un lien dépend de la décision du site contacté. Aucun nombre de liens, de positions ou de trafic n'est garanti.",
+          ],
+        },
+        {
+          title: "Usage autorisé",
+          body: [
+            "Vous ne devez pas envoyer de messages trompeurs, contacter des personnes qui ont refusé, ni contourner les plafonds d'envoi. Le service peut suspendre une boîte ou un compte en cas de rebonds ou de plaintes élevés.",
+          ],
+        },
+        {
+          title: "Abonnement",
+          body: [
+            "L'audit gratuit ne demande aucune carte. Les envois réels demandent un abonnement mensuel, dont les plafonds sont indiqués sur la page d'accueil. Les conditions de résiliation et de remboursement restent à définir.",
+          ],
+        },
       ],
     },
   },

@@ -3,6 +3,11 @@ export const HOME_SECTIONS = {
   whatItIs: "c-est-quoi",
   problem: "probleme",
   howItWorks: "comment-ca-marche",
+  quality: "qualite",
+  features: "fonctions",
+  compare: "comparatif",
+  pricing: "tarifs",
+  faq: "faq",
 } as const;
 
 /** Vidéo de la visite du produit : à renseigner quand elle existera (URL d'un fichier MP4 dans `public/`). */

@@ -1,7 +1,16 @@
 import type { Metadata } from "next";
+import { Compare } from "@/features/home/compare";
+import { Faq } from "@/features/home/faq";
+import { Features } from "@/features/home/features";
+import { FinalCta } from "@/features/home/final-cta";
 import { Hero } from "@/features/home/hero";
 import { HowItWorks } from "@/features/home/how-it-works";
+import { JsonLd } from "@/features/home/json-ld";
+import { getPublicPlans } from "@/features/home/plans";
+import { Pricing } from "@/features/home/pricing";
 import { Problem } from "@/features/home/problem";
+import { Quality } from "@/features/home/quality";
+import { SiteFooter } from "@/features/home/site-footer";
 import { SiteHeader } from "@/features/home/site-header";
 import { TrustStrip } from "@/features/home/trust-strip";
 import { WhatItIs } from "@/features/home/what-it-is";
@@ -10,10 +19,15 @@ import { t } from "@/lib/messages";
 export const metadata: Metadata = {
   title: `${t.app.name} : ${t.home.hero.title}`,
   description: t.app.description,
+  alternates: { canonical: "/" },
 };
 
-/** Home publique (MH.2) : en-tête, hero, réassurance, c'est quoi, problème, comment ça marche. La suite : MH.3. */
-export default function Home() {
+/** La page reste statique ; les tarifs (table `plans`) sont relus toutes les heures. */
+export const revalidate = 3600;
+
+/** Home publique (MH.2 et MH.3). La section « preuves » viendra seulement avec de vrais chiffres (après MB.2). */
+export default async function Home() {
+  const plans = await getPublicPlans();
   return (
     <>
       <SiteHeader />
@@ -23,7 +37,15 @@ export default function Home() {
         <WhatItIs />
         <Problem />
         <HowItWorks />
+        <Quality />
+        <Features />
+        <Compare />
+        <Pricing plans={plans} />
+        <Faq />
+        <FinalCta />
       </main>
+      <SiteFooter />
+      <JsonLd plans={plans} />
     </>
   );
 }

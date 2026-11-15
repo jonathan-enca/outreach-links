@@ -48,6 +48,24 @@
   color-scheme: dark;
 }
 
+/* Fenêtre claire posée dans une surface nuit (maquettes de la home) : rend les jetons clairs, badges compris. */
+.light-window {
+  --background: #ffffff;
+  --foreground: #0e1a2b;
+  --card: #ffffff;
+  --card-foreground: #0e1a2b;
+  --muted: #f1f5f9;
+  --muted-foreground: #5b6678;
+  --border: #e3e8ef;
+  --primary: #047857;
+  --primary-foreground: #ffffff;
+  --info: #1d4f91;
+  --warning: #8a5300;
+  --success: #166534;
+  --danger: #a3301d;
+  color-scheme: light;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

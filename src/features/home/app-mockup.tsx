@@ -20,10 +20,10 @@ interface Row {
 export function AppMockup() {
   const m = t.home.mockup;
   return (
-    <figure className="light-window text-foreground">
+    <figure className="text-foreground">
       <div
         aria-hidden="true"
-        className="overflow-hidden rounded-panel border border-border bg-white text-[13px] text-[#0e1a2b] shadow-float [--border:#e3e8ef] [--muted:#f1f5f9] [--muted-foreground:#5b6678]"
+        className="light-window overflow-hidden rounded-panel border border-border bg-white text-[13px] text-[#0e1a2b] shadow-float [--border:#e3e8ef] [--muted:#f1f5f9] [--muted-foreground:#5b6678]"
       >
         <div className="grid md:grid-cols-[190px_1fr]">
           <div className="hidden border-r border-border bg-[#f5f8fa] p-3 md:block">
