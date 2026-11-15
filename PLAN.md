@@ -212,7 +212,7 @@ Ordre : chaque sous-jalon est livrable seul, sans appel payant en CI, et réduit
 - **Tâches** : envoyer les brouillons `reply_drafts` au statut `validee` (dry run par défaut, faux serveur SMTP en test) dans le fil d'origine (`In-Reply-To`), avec les garde-fous d'envoi de 4.2 (suppression, plafonds, boîte vérifiée, `OUTREACH_SENDING_ENABLED` faux) ; enregistrement de l'envoi ; aucun envoi d'un brouillon non validé.
 - **Acceptation** : un brouillon non validé ne part jamais (garde-fou en base) ; une adresse supprimée refuse l'envoi ; test sur faux serveur SMTP.
 
-### 5.3 Vérification des liens
+### 5.3 Vérification des liens (fait)
 
 - **Prérequis** : 5.2.
 - **Tâches** : job de crawl à J+7, J+14, J+30 : le lien est-il en ligne, dofollow/nofollow, contextuel, page indexable ; table `links` ; statut « Live » ; alerte si le lien disparaît ; page « Liens obtenus ».
