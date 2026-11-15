@@ -5,18 +5,21 @@
 
 ## Vue d'ensemble
 
-| Jalon | Sujet                  | Sous-jalons      | Résultat visible                                       |
-| ----- | ---------------------- | ---------------- | ------------------------------------------------------ |
-| M0    | Fondations             | 0.1 à 0.4        | App déployée, auth, base, Inngest, suivi des coûts     |
-| M1    | Audit et concurrents   | 1.1 à 1.6        | Audit gratuit public avec capture d'email              |
-| M2    | Plan de liens          | 2.1 à 2.3        | Plan validable (opportunités, liens morts)             |
-| M3    | Tri des cibles et lots | 3.1 à 3.4        | Lots de messages prêts à valider                       |
-| M4    | Envoi et relance       | 4.1 à 4.4        | Envois plafonnés, relance unique, lecture des réponses |
-| M5    | Inbox et liens         | 5.1 à 5.4        | Réponses classées, liens vérifiés, tâches formulaires  |
-| M6    | Produit et paiement    | 6.1 à 6.4        | Stripe, garde-fous, digest, landing, anti-abus         |
-| M7    | Bêta et lancement      | 7.1 à 7.3        | Dogfooding, avis juridique, ouverture                  |
-| MA    | Refonte de l'audit     | A.1 à A.6        | Audit repensé sur la base des mesures réelles          |
-| MD    | Design du site global  | D.1 (à découper) | Identité visuelle et UX cohérentes, site entier        |
+| Jalon | Sujet                  | Sous-jalons      | Résultat visible                                            |
+| ----- | ---------------------- | ---------------- | ----------------------------------------------------------- |
+| M0    | Fondations             | 0.1 à 0.4        | App déployée, auth, base, Inngest, suivi des coûts          |
+| M1    | Audit et concurrents   | 1.1 à 1.6        | Audit gratuit public avec capture d'email                   |
+| M2    | Plan de liens          | 2.1 à 2.3        | Plan validable (opportunités, liens morts)                  |
+| M3    | Tri des cibles et lots | 3.1 à 3.4        | Lots de messages prêts à valider                            |
+| M4    | Envoi et relance       | 4.1 à 4.4        | Envois plafonnés, relance unique, lecture des réponses      |
+| M5    | Inbox et liens         | 5.1 à 5.4        | Réponses classées, liens vérifiés, tâches formulaires       |
+| M6    | Produit et paiement    | 6.1 à 6.4        | Stripe, garde-fous, digest, landing, anti-abus              |
+| M7    | Bêta et lancement      | 7.1 à 7.3        | Dogfooding, avis juridique, ouverture                       |
+| MA    | Refonte de l'audit     | A.1 à A.6        | Audit repensé sur la base des mesures réelles               |
+| MD    | Design du site global  | D.1 (à découper) | Identité visuelle et UX cohérentes, site entier             |
+| MN    | Nom, domaine, DA       | N.1, N.2         | **Prioritaire** : nom choisi, domaine, direction artistique |
+| MH    | Home page FR           | H.1 à H.3        | **Prioritaire** : home proche d'outlinkai.com, en français  |
+| MB    | Onboarding + test réel | B.1, B.2         | **Prioritaire** : campagne lancée depuis une URL, test réel |
 
 Chemin critique pour un **premier test réel sur mega-coloring.com** : M0 → M1 → M2 → M3 → M4.1 à 4.3. Le reste peut suivre.
 
@@ -38,6 +41,23 @@ Ordre : chaque sous-jalon est livrable seul, sans appel payant en CI, et réduit
 - **MA.5 URL exactes des cibles (fait : `url_exact` sur les opportunités et le plan ; la résolution par fetch reste à faire en M3.1).** Marquer les URL issues de redirections Google comme partielles (`url_exact = false`) ; résolution tardive par fetch (M3.1) ; pas de second appel SERP payant.
 - **MA.6 Parcours unique (fait : colonne `auto_chain`, coût total annoncé, enchaînement par les jobs, progression unique ; le chasseur 404 reste manuel).** Une seule confirmation du coût total, puis enchaînement automatique concurrents → backlinks → profil → opportunités ; progression unique sur la page d'audit.
 - **MA.7 Valeur de l'aperçu gratuit (fait : indices sur cibles floutées, cibles partagées, message site neuf).** Revoir ce que montre l'aperçu (en tenant compte de MA.2 à MA.5) ; hors design visuel (MD).
+
+### Jalons prioritaires NOW (15/11/2026, décision de Jonathan)
+
+Trois chantiers passent devant le reste (M6.2 et suivants). Hypothèse : « DA » = direction artistique (à corriger si c'est autre chose). Chaque sous-jalon = une session.
+
+- **MN. Nom, domaine et direction artistique.** Prérequis de la home (le nom et l'ambiance visuelle y sont affichés).
+  - **MN.1 Nom et domaine.** 10 à 15 noms candidats (FR, courts, prononçables, sans « backlink » ni « IA » dans le nom), vérification de disponibilité du `.fr` / `.com` / `.io`, et des noms existants (marques, INPI, résultats Google). Sortie : shortlist de 3 avec recommandation ; Jonathan choisit. Ensuite : achat du domaine (dépense nouvelle : à valider), branchement Vercel, `NEXT_PUBLIC_APP_URL`, Supabase Auth, expéditeur Resend.
+  - **MN.2 Direction artistique.** Logo simple, palette, typographies, ton des textes, style des illustrations / captures, composants clés. Sortie : `docs/da.md` + jetons Tailwind (remplace la palette papier / sapin de M0.4 si changée). Hors périmètre : pages.
+- **MH. Home page, structure proche d'outlinkai.com, en français.**
+  - **MH.1 Relevé section par section.** Lire outlinkai.com du header au footer (fetch + Playwright pour le rendu et les captures) et consigner dans `docs/home-reference.md` : ordre des sections, rôle de chacune, contenu (titres, sous-titres, étapes, chiffres, FAQ, tarifs, CTA), composants et comportements (sticky header, animations, mobile). Aucune modification du site.
+  - **MH.2 Home FR, de l'en-tête au hero et aux premières sections.** Même architecture que la référence ; textes **réécrits en français** pour notre produit (audit d'abord, tri des cibles, honnêteté sur les liens), jamais copiés mot à mot (CLAUDE.md section 8) ; aucune promesse de backlinks garantis (règles de messaging). Le champ « ton site » du hero lance l'audit gratuit existant.
+  - **MH.3 Sections suivantes, tarifs, FAQ, footer.** Tarifs alignés sur `plans` (Gratuit / Starter / Pro), FAQ, pied de page, pages légales liées ; mobile, accessibilité, Lighthouse.
+- **MB. Onboarding et test grandeur nature sur une URL.**
+  - **MB.1 Onboarding en une URL.** L'utilisateur colle son URL ; création du site, vérification de propriété différée, déduction du thème et des requêtes (LLM), une seule confirmation du coût, lancement de la campagne (audit → plan). Réutilise M1.2, MA.6 et MA.7 ; objectif : zéro champ inutile avant la première valeur.
+  - **MB.2 Test réel de bout en bout.** Sur `mega-coloring.com` (site de test sans limite, MA.8) : audit réel, plan, tri, contacts, brouillons, lot validé, envoi en **dry run** puis, seulement sur accord explicite de Jonathan, une poignée d'envois réels depuis sa boîte. Consigner coûts réels, temps, erreurs et trous du parcours dans PROGRESS.md ; corriger les bloquants. Prérequis : MB.1 ; clés DataForSEO, Inngest et Anthropic déjà sur Vercel.
+
+Ordre conseillé : MN.1 (court, sans code) et MH.1 en parallèle, puis MN.2, MH.2, MH.3, et MB.1 puis MB.2 (le test réel peut démarrer avant la fin de la home).
 
 ---
 
