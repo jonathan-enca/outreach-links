@@ -3,7 +3,8 @@ import { t } from "@/lib/messages";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { estimateChain } from "./chain";
 import { estimateDiscovery } from "./estimate";
-import { canTransition, isPlanKey, PLAN_LIMITS, type AuditStatus, type PlanKey } from "./plans";
+import { isTestDomain } from "@/features/sites/test-domains";
+import { canTransition, isPlanKey, limitsFor, type AuditStatus, type PlanKey } from "./plans";
 
 type Client = SupabaseClient<Database>;
 type AuditUpdate = Database["public"]["Tables"]["audits"]["Update"];
@@ -89,8 +90,9 @@ export async function createAudit(
     .select("plan")
     .eq("id", site.workspace_id)
     .maybeSingle();
-  const plan: PlanKey = isPlanKey(ws?.plan) ? ws.plan : "gratuit";
-  const limits = PLAN_LIMITS[plan];
+  const basePlan: PlanKey = isPlanKey(ws?.plan) ? ws.plan : "gratuit";
+  const plan: PlanKey = isTestDomain(site.domain) ? "payant" : basePlan;
+  const limits = limitsFor(plan, site.domain);
 
   const queries = site.priority_queries.slice(0, limits.maxQueries);
   if (queries.length === 0) return { status: "error", message: AUDIT_MESSAGES.noQueries };

@@ -16,6 +16,7 @@ import { BudgetExceededError, type DataForSeoClient } from "@/lib/dataforseo";
 import { estimateCost, type EndpointInput } from "@/lib/dataforseo/endpoints";
 import { logger } from "@/lib/logger";
 import type { Database, Json } from "@/lib/supabase/database.types";
+import { isTestDomain, TEST_COST_CAP_USD } from "@/features/sites/test-domains";
 import { FREE_LIMITS } from "./config";
 import { computeScore } from "./score";
 import type { PublicAuditErrorCode, PublicAuditResult } from "./types";
@@ -49,13 +50,14 @@ async function assertBudget(
   key: Parameters<typeof estimateCost>[0],
   params: unknown,
 ): Promise<void> {
+  const cap = isTestDomain(run.domain) ? TEST_COST_CAP_USD : FREE_LIMITS.costCapUsd;
   const spent = await totalCostForPublicAudit(service, run.id);
   const next = estimateCost(key, params as never);
-  if (spent + next > FREE_LIMITS.costCapUsd + 1e-9) {
+  if (spent + next > cap + 1e-9) {
     throw new BudgetExceededError(
-      `Plafond de l'audit gratuit atteint (${spent} USD engagés + ${next} > ${FREE_LIMITS.costCapUsd} USD)`,
+      `Plafond de l'audit gratuit atteint (${spent} USD engagés + ${next} > ${cap} USD)`,
       next,
-      FREE_LIMITS.costCapUsd,
+      cap,
     );
   }
 }
@@ -73,7 +75,7 @@ export async function beginPublicAudit(service: Client, id: string): Promise<Pub
   if (error) throw new Error(`beginPublicAudit : ${error.message}`);
   if (!row) return null;
   if (row.status === "en_attente") {
-    if (row.attempts >= FREE_LIMITS.maxAttempts) return null;
+    if (row.attempts >= FREE_LIMITS.maxAttempts && !isTestDomain(row.domain)) return null;
     const { data, error: uErr } = await service
       .from("public_audits")
       .update({

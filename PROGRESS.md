@@ -37,6 +37,7 @@
 | M5.2b       | fait (envoi des réponses validées, dry run et faux serveur SMTP seulement ; migration appliquée sur la vraie base ; aucun envoi réel ; 0 USD d'API)                                                                                    | PR M5.2b                                                       | 2026-11-24 |
 | M5.3        | fait (vérification des liens à J+7, J+14, J+30 : live / disparu / nofollow / indexable, alertes, page « Liens obtenus » ; testé sur pages de test, aucun appel payant ; migration appliquée sur la vraie base)                         | PR M5.3                                                        | 2026-11-25 |
 | M5.4        | fait (écran Tâches, message à copier, relance J+10 en tâche, rappels pour le digest ; garde-fous en base ; migration appliquée sur la vraie base ; 0 USD d'API)                                                                        | PR M5.4                                                        | 2026-11-26 |
+| MA.8        | fait (sites de test remove-me.io et mega-coloring.com : plafond 50 USD, 20 concurrents, cache DataForSEO jamais lu, audit gratuit relançable sans limite ; migration appliquée sur la vraie base ; 0 USD d'API)                        | PR MA.8                                                        | 2026-11-15 |
 | M6.1 à M7.3 | à faire                                                                                                                                                                                                                                |                                                                |            |
 
 ## Décisions prises
@@ -463,3 +464,13 @@ M5.4 (tâches manuelles des formulaires). En parallèle, finir la mise en produc
 - Sessions enfants lancées : 4 sur 12 (la 4e = M5.4).
 
 Prochain sous-jalon : M6.1 (Stripe en mode test).
+
+## MA.8 : sites de test (15/11/2026)
+
+- Décision de Jonathan : `remove-me.io` et `mega-coloring.com` (et leurs sous-domaines) servent de tests grandeur nature, sans limite, et chaque relance repart de zéro.
+- `src/features/sites/test-domains.ts` : liste fixe dans le code (`isTestDomain`, `TEST_COST_CAP_USD` = 50 USD, filet de sécurité). `limitsFor(plan, domain)` (plans.ts) : un site de test prend les limites du plan payant (20 concurrents) avec le plafond haut ; `createAudit` et la sélection des concurrents l'utilisent.
+- Cache : `createDataForSeoClientFromEnv` pose `shouldBypassCache` (résout le domaine de l'audit ou de l'audit public, mémorisé) : le cache n'est jamais lu pour ces domaines, la réponse fraîche est tout de même stockée. Aucun changement dans les jobs Inngest.
+- Audit gratuit public : pour ces domaines, pas de limite de débit, pas de coupe-circuit, plafond de 50 USD, pas de limite d'essais, et chaque soumission crée une nouvelle exécution (période `AAAA-MM~horodatage`). Migration `2026111527000000_public_audit_test_periods.sql` (contrainte `period_key` assouplie), appliquée sur la vraie base.
+- Tests : `test-domains.test.ts` + un cas dans `audits/service.test.ts` (le jeu de tests utilisait mega-coloring.com, passé sur un domaine neutre).
+- Inngest : app `outreach-links` resynchronisée en production (17 fonctions). Clés Inngest, DataForSEO et Anthropic déjà présentes sur Vercel (Production et Preview) ; leur validité réelle sera prouvée par le premier audit.
+- Dette : le plafond de 50 USD n'est pas un coupe-circuit global ; à surveiller dans `cost_ledger` lors des premiers runs.

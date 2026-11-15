@@ -10,7 +10,7 @@ import {
   serpEntries,
   type QueryEntries,
 } from "./discover";
-import { isPlanKey, PLAN_LIMITS } from "./plans";
+import { isPlanKey, limitsFor, PLAN_LIMITS } from "./plans";
 import { transitionAudit } from "./service";
 
 type Client = SupabaseClient<Database>;
@@ -148,8 +148,8 @@ export async function finalizeDiscovery(service: Client, audit: RunAudit): Promi
   const candidates = aggregateCompetitors([...byQuery.values()], { ownDomain: audit.domain });
   const plan = isPlanKey(row.plan) ? row.plan : "gratuit";
   const limits = {
-    ...PLAN_LIMITS[plan],
-    maxCompetitors: Math.min(row.max_competitors, PLAN_LIMITS[plan].maxCompetitors),
+    ...limitsFor(plan, audit.domain),
+    maxCompetitors: Math.min(row.max_competitors, limitsFor(plan, audit.domain).maxCompetitors),
   };
   const chosen = new Set(selectCompetitors(candidates, limits).map((c) => c.domain));
 
