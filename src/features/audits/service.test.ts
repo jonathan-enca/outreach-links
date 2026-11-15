@@ -62,7 +62,7 @@ describe("createAudit", () => {
     expect(service.tables.audits![0]).toMatchObject({
       plan: "payant",
       max_competitors: 20,
-      cost_cap_usd: 1.5,
+      cost_cap_usd: 2,
     });
   });
 

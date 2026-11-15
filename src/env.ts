@@ -86,6 +86,17 @@ const schema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((v) => v === "true"),
+  /**
+   * Mode bêta (MT.0) : tout espace est traité au niveau « payant » (limites de volume levées), sans
+   * toucher à la table `plans`. Faux par défaut ; posé à "true" sur Vercel pendant la bêta. Les
+   * plafonds de sécurité de coût et les protections d'envoi restent actifs.
+   */
+  BETA_MODE: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
+  /** Plafond de sécurité des dépenses d'API de toute la plateforme sur 24 h glissantes (USD). */
+  DAILY_COST_CAP_USD: z.coerce.number().positive().default(25),
   /** Aucun envoi d'email réel hors production, sauf décision explicite. */
   EMAIL_DRY_RUN: z
     .enum(["true", "false"])

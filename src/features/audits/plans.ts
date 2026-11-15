@@ -22,7 +22,7 @@ export interface PlanLimits {
 
 export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
   gratuit: { maxCompetitors: 3, minCompetitors: 3, maxQueries: 3, serpDepth: 30, costCapUsd: 0.25 },
-  payant: { maxCompetitors: 20, minCompetitors: 10, maxQueries: 3, serpDepth: 30, costCapUsd: 1.5 },
+  payant: { maxCompetitors: 20, minCompetitors: 10, maxQueries: 3, serpDepth: 30, costCapUsd: 2 },
 };
 
 /**

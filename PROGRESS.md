@@ -670,3 +670,11 @@ Prochain sous-jalon : MH.2 (construction de la home).
 ## Coût raisonnable de l'audit v2 (15/11/2026, décision de Jonathan)
 
 - L'audit doit rester **exhaustif mais à coût raisonnable** (réservé aux plans payants). Intégré à `docs/audit-v2.md` section 6 : budget cible ~1 USD par audit, plafond d'audit 2 USD, plafond de sécurité bêta 5 USD par audit et 25 USD par jour ; part de budget par phase ; cinq mécanismes (entonnoir, arrêt par rendement décroissant, requêtes classées par rendement, caches partagés entre clients, appels groupés) ; coût affiché avant lancement et tableau de bord interne (MT.7). Valeurs proposées, à confirmer ; le coût réel mesuré fixera ensuite le nombre d'audits par plan.
+
+## MT.0 : mode bêta, budgets et plafonds de sécurité (15/11/2026)
+
+- **Fait** (testé, 0 USD d'API) : `BETA_MODE` (`src/env.ts`, faux par défaut, **posé à `true` sur Vercel, Production et Preview**, effectif au prochain déploiement) : `effectivePlan` (`src/features/audits/beta.ts`) traite tout espace au niveau « payant » ; la table `plans`, la page tarifs et les protections d'envoi (10 par heure, heures ouvrées, validation de lot, relance unique) sont inchangées. Couper `BETA_MODE` rétablit les limites par palier. `AUDIT_BUDGET` = cible 1 USD, plafond d'audit 2 USD (`PLAN_LIMITS.payant.costCapUsd` passe de 1,5 à 2), sécurité 5 USD.
+- **Plafond quotidien de sécurité** : `DAILY_COST_CAP_USD` (25 par défaut), `dailySpendUsd` et `dailyCapReached` (`src/lib/costs.ts`) : 24 h glissantes de `cost_ledger`, toute la plateforme ; `confirmAudit` refuse de lancer (message clair, rien facturé) et `advanceChain` arrête l'enchaînement quand il est atteint.
+- Tests : `beta.test.ts` (6 cas), service existant mis à jour.
+- **Pas fait / à noter** : le plafond de sécurité de 5 USD par audit n'est pas imposé aux sites de test (`TEST_COST_CAP_USD` = 50 USD, décision antérieure de Jonathan, MA.8) ; les quotas d'opportunités par type de MT.3 viendront avec la collecte ; le tableau de bord de coût reste MT.7. Valeurs de budget (1, 2, 5 et 25 USD) proposées, à confirmer.
+- Prochain sous-jalon : **MT.1 (profil de marque)**.

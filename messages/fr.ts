@@ -1021,6 +1021,8 @@ export const fr = {
       noQueries: "Ajoutez au moins une requête prioritaire à ce site.",
       overCap: "Le coût estimé dépasse le plafond de votre plan. Réduisez le nombre de requêtes.",
       alreadyActive: "Un audit est déjà en cours de préparation pour ce site.",
+      dailyCap:
+        "Le plafond de dépense quotidien de la plateforme est atteint. Réessayez dans quelques heures : rien n'a été lancé ni facturé.",
       alreadyStarted: "Cet audit est déjà lancé.",
       notReady: "Cet audit n'est pas prêt à être confirmé.",
       unavailable: "Le service est momentanément indisponible. Réessayez dans un instant.",
