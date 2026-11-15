@@ -579,3 +579,8 @@ Prochain sous-jalon : MH.2 (construction de la home).
 - **Tous les boutons « Essai gratuit » -> `/inscription`** (hero, en-tête bureau et mobile, appel final, « Comment ça marche », les trois cartes de tarifs, pied de page) ; **« Fonctionnement » -> `#fonctions`**. Plus aucune ancre `#audit` (test `home.test.ts`).
 - **`/inscription`** (nouvelle) et **`/connexion`** refaites sur le modèle des captures : formulaire à gauche, bande produit à droite (`src/components/auth-panel.tsx`, surface nuit : c'est la « bande produit » de la DA, bureau seulement). Connexion par lien magique : **un seul champ (email), aucun mot de passe** (pas de champ nom ni mot de passe comme dans la référence : pas d'auth par mot de passe dans le produit). `signInWithOtp` crée le compte à la première connexion. Messages : `signup.*`, `auth.*`.
 - À décider : demander le prénom (signature) dès l'inscription ? Pour l'instant non (zéro champ avant la première valeur, voir MB.1).
+
+## Correctif : vidéo démo gardée, bande « cadre posé » retirée (15/11/2026)
+
+- Malentendu corrigé : seule la section « audit gratuit » devait partir ; **l'emplacement de la vidéo démo est remis sous le hero** (`hero.tsx` rend `ProductTour`, cadre 16:9 réservé ; renseigner `PRODUCT_TOUR_VIDEO` dans `sections.ts` quand le MP4 existe).
+- Bande « Un cadre posé dès le départ » (`trust-strip.tsx`, `home.trust`) supprimée à la demande de Jonathan.

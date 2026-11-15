@@ -61,7 +61,6 @@ describe("home FR", () => {
   });
 
   it("l'honnêteté est dite : aucun lien acheté", () => {
-    expect(texts(fr.home.trust).join(" ")).toMatch(/aucun lien acheté/i);
     expect(texts(fr.home.whatItIs).join(" ")).toMatch(/ne faisons pas/i);
   });
 

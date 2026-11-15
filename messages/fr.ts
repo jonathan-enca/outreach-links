@@ -80,18 +80,8 @@ export const fr = {
     tour: {
       title: "Visite du produit",
       pending: "Démonstration vidéo bientôt disponible",
-      pendingHint: "En attendant, lancez l'audit gratuit sur votre site.",
+      pendingHint: "En attendant, essayez gratuitement : votre espace se crée en un champ.",
       videoLabel: "Visite guidée du produit",
-    },
-    trust: {
-      label: "Un cadre posé dès le départ",
-      items: [
-        "Envoi depuis votre propre boîte mail",
-        "Liste de suppression et désinscription",
-        "Aucun lien acheté",
-        "Validation de chaque lot",
-        "Aucun envoi pendant l'audit",
-      ],
     },
     whatItIs: {
       label: "En clair",
