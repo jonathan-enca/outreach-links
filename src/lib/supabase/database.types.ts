@@ -823,6 +823,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      link_plan_triage_runs: {
+        Row: {
+          cost_usd: number;
+          error_message: string | null;
+          finished_at: string | null;
+          plan_id: string;
+          requested_by: string | null;
+          started_at: string;
+          stats: Json;
+          status: string;
+          workspace_id: string;
+        };
+        Insert: {
+          cost_usd?: number;
+          error_message?: string | null;
+          finished_at?: string | null;
+          plan_id: string;
+          requested_by?: string | null;
+          started_at?: string;
+          stats?: Json;
+          status: string;
+          workspace_id: string;
+        };
+        Update: {
+          cost_usd?: number;
+          error_message?: string | null;
+          finished_at?: string | null;
+          plan_id?: string;
+          requested_by?: string | null;
+          started_at?: string;
+          stats?: Json;
+          status?: string;
+          workspace_id?: string;
+        };
+        Relationships: [];
+      };
       link_plans: {
         Row: {
           audit_id: string;
@@ -852,6 +888,63 @@ export type Database = {
           validated_at?: string;
           validated_by?: string | null;
           version?: number;
+          workspace_id?: string;
+        };
+        Relationships: [];
+      };
+      link_target_triage: {
+        Row: {
+          assessed_at: string;
+          confidence: number | null;
+          cost_usd: number;
+          hook: string | null;
+          id: string;
+          needs_review: boolean;
+          page_title: string | null;
+          plan_id: string;
+          plan_item_id: string;
+          reason: string;
+          resolved_url: string | null;
+          source: string;
+          url_origin: string | null;
+          url_status: number | null;
+          verdict: string;
+          workspace_id: string;
+        };
+        Insert: {
+          assessed_at?: string;
+          confidence?: number | null;
+          cost_usd?: number;
+          hook?: string | null;
+          id?: string;
+          needs_review?: boolean;
+          page_title?: string | null;
+          plan_id: string;
+          plan_item_id: string;
+          reason: string;
+          resolved_url?: string | null;
+          source: string;
+          url_origin?: string | null;
+          url_status?: number | null;
+          verdict: string;
+          workspace_id: string;
+        };
+        Update: {
+          assessed_at?: string;
+          confidence?: number | null;
+          cost_usd?: number;
+          hook?: string | null;
+          id?: string;
+          needs_review?: boolean;
+          page_title?: string | null;
+          plan_id?: string;
+          plan_item_id?: string;
+          reason?: string;
+          resolved_url?: string | null;
+          source?: string;
+          url_origin?: string | null;
+          url_status?: number | null;
+          verdict?: string;
           workspace_id?: string;
         };
         Relationships: [];

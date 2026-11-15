@@ -32,6 +32,8 @@ const schema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((v) => v === "true"),
+  /** Lecteur de pages de secours du tri (M3.1) : `jina` active r.jina.ai (hôte à autoriser). */
+  PAGE_READER_FALLBACK: z.enum(["none", "jina"]).default("none"),
   /** LLM (optionnels : erreur claire à l'usage). Anthropic est la cible ; OpenAI sert au développement. */
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   OPENAI_API_KEY: z.string().min(1).optional(),

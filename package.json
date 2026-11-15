@@ -13,6 +13,7 @@
     "demo:dataforseo": "DATAFORSEO_LIVE_DEMO=1 vitest run src/lib/dataforseo/demo.live.test.ts",
     "demo:audit": "AUDIT_LIVE_DEMO=1 vitest run src/features/audits/validation.live.test.ts",
     "demo:public-audit": "PUBLIC_AUDIT_LIVE_DEMO=1 vitest run src/features/public-audit/measure.live.test.ts",
+    "demo:triage": "TRIAGE_LIVE_EVAL=1 vitest run src/features/triage/eval.live.test.ts",
     "demo:llm": "LLM_LIVE_DEMO=1 vitest run src/features/profile/summary.live.test.ts",
     "inngest:dev": "npx --yes --ignore-scripts=false inngest-cli@1.53.0 dev -u http://localhost:3000/api/inngest --no-discovery",
     "format": "prettier --write .",
