@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Specimen DA (nom de travail)</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap"
+    />
+    <style>
+      :root {
+        --background: #f5f7fa;
+        --foreground: #0f1b2d;
+        --card: #fff;
+        --muted: #eaeef3;
+        --mfg: #4b5a6e;
+        --border: #d5dce6;
+        --primary: #0b6b5e;
+        --hl: #fde68a;
+        --info: #1d4f91;
+        --warning: #8a5300;
+        --success: #1f6b3a;
+        --danger: #a3301d;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--background);
+        color: var(--foreground);
+        font:
+          16px/1.55 "Instrument Sans",
+          system-ui,
+          sans-serif;
+        font-variant-numeric: tabular-nums;
+      }
+      h1,
+      h2,
+      h3 {
+        font-family: "Bricolage Grotesque", system-ui, sans-serif;
+        letter-spacing: -0.02em;
+        margin: 0;
+        text-wrap: balance;
+      }
+      .wrap {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+      .night {
+        background: #0f1b2d;
+        color: #eef2f7;
+        background-image:
+          linear-gradient(to right, rgb(255 255 255/0.05) 1px, transparent 1px),
+          linear-gradient(to bottom, rgb(255 255 255/0.05) 1px, transparent 1px);
+        background-size: 48px 48px;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 64px;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font: 700 18px "Bricolage Grotesque";
+      }
+      nav a {
+        color: #a9b6c8;
+        margin-left: 24px;
+        font-size: 15px;
+        text-decoration: none;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        height: 40px;
+        padding: 0 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        border: 1px solid transparent;
+      }
+      .btn.p {
+        background: #6fe3cf;
+        color: #0f1b2d;
+      }
+      .btn.o {
+        border-color: #2a4264;
+        color: #eef2f7;
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 48px;
+        padding: 72px 0 88px;
+        align-items: center;
+      }
+      .hero h1 {
+        font-size: 60px;
+        line-height: 1.02;
+        font-weight: 700;
+      }
+      .hero p.lead {
+        color: #a9b6c8;
+        font-size: 19px;
+        max-width: 46ch;
+        margin: 20px 0 28px;
+      }
+      .field {
+        display: flex;
+        gap: 8px;
+        background: #172a43;
+        border: 1px solid #2a4264;
+        border-radius: 12px;
+        padding: 6px;
+        max-width: 480px;
+      }
+      .field span {
+        flex: 1;
+        padding: 9px 12px;
+        color: #a9b6c8;
+      }
+      .mark {
+        background: linear-gradient(
+          transparent 0.12em,
+          var(--hl) 0.12em,
+          var(--hl) 0.92em,
+          transparent 0.92em
+        );
+        color: #0f1b2d;
+        padding-inline: 0.15em;
+        border-radius: 0.15em;
+      }
+      .panel {
+        background: var(--card);
+        color: var(--foreground);
+        border-radius: 20px;
+        box-shadow: 0 12px 32px -8px rgb(15 27 45/0.45);
+        padding: 22px;
+      }
+      .panel small {
+        color: var(--mfg);
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+        border-top: 1px solid var(--border);
+        font-size: 14px;
+      }
+      .badge {
+        border: 1px solid;
+        border-radius: 999px;
+        padding: 2px 10px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .b-s {
+        color: var(--success);
+        border-color: #1f6b3a4d;
+        background: #1f6b3a1a;
+      }
+      .b-i {
+        color: var(--info);
+        border-color: #1d4f914d;
+        background: #1d4f911a;
+      }
+      .b-w {
+        color: var(--warning);
+        border-color: #8a53004d;
+        background: #8a53001a;
+      }
+      .b-d {
+        color: var(--danger);
+        border-color: #a3301d4d;
+        background: #a3301d1a;
+      }
+      .score {
+        font: 700 44px "Bricolage Grotesque";
+        letter-spacing: -0.03em;
+      }
+      section.light {
+        padding: 64px 0;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+      }
+      .sw {
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 1px 2px rgb(15 27 45/0.06);
+      }
+      .sw i {
+        display: block;
+        height: 64px;
+      }
+      .sw div {
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+      .sw b {
+        display: block;
+        font-size: 14px;
+      }
+      h2 {
+        font-size: 34px;
+        margin-bottom: 8px;
+      }
+      .sub {
+        color: var(--mfg);
+        margin: 0 0 28px;
+        max-width: 60ch;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-top: 40px;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px;
+        box-shadow: 0 1px 2px rgb(15 27 45/0.06);
+      }
+      .card h3 {
+        font-size: 19px;
+        margin-bottom: 6px;
+      }
+      .card p {
+        margin: 0;
+        color: var(--mfg);
+        font-size: 15px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--primary);
+        display: inline-block;
+        margin-right: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="night">
+      <div class="wrap">
+        <header>
+          <div class="logo">
+            <svg width="32" height="32" viewBox="0 0 32 32">
+              <rect width="32" height="32" rx="8" fill="#6fe3cf" />
+              <g fill="none" stroke="#0f1b2d" stroke-width="2.6" stroke-linecap="round">
+                <rect x="6.5" y="12" width="12" height="8" rx="4" transform="rotate(-35 12.5 16)" />
+                <rect
+                  x="13.5"
+                  y="12"
+                  width="12"
+                  height="8"
+                  rx="4"
+                  transform="rotate(-35 19.5 16)"
+                />
+              </g></svg
+            >Autolink.ai
+          </div>
+          <nav>
+            <a>Produit</a><a>Méthode</a><a>Tarifs</a><a>FAQ</a
+            ><a class="btn p" style="color: #0f1b2d; margin-left: 28px">Audit gratuit</a>
+          </nav>
+        </header>
+        <div class="hero">
+          <div>
+            <h1>Auditez d'abord. Contactez ensuite les bons sites.</h1>
+            <p class="lead">
+              Un audit de votre SERP, un plan de liens que vous validez, puis des demandes courtes
+              envoyées depuis votre boîte. Aucun lien acheté.
+            </p>
+            <div class="field">
+              <span>votre-site.fr</span><span class="btn p">Lancer l'audit gratuit</span>
+            </div>
+          </div>
+          <div class="panel">
+            <small>Brouillon pour lemagazine-photo.fr</small>
+            <p style="margin: 10px 0 14px; font-size: 15px">
+              Bonjour Claire, votre guide des
+              <span class="mark">boutiques de tirages en ligne</span> ne mentionne pas notre
+              comparatif des papiers, pourrait-il y trouver sa place ?
+            </p>
+            <div class="row">
+              <span>URL vérifiée (HTTP 200)</span><span class="badge b-s">OK</span>
+            </div>
+            <div class="row">
+              <span>Autorité du domaine</span><span class="score" style="font-size: 22px">46</span>
+            </div>
+            <div class="row"><span>Statut</span><span class="badge b-i">Validé</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <section class="light">
+      <div class="wrap">
+        <h2>Palette</h2>
+        <p class="sub">
+          Craie froide, encre marine, vert « lien ». Le surligneur ambre est réservé au hook.
+        </p>
+        <div class="grid">
+          <div class="sw">
+            <i style="background: #f5f7fa"></i>
+            <div><b>Craie</b>#f5f7fa, fond</div>
+          </div>
+          <div class="sw">
+            <i style="background: #0f1b2d"></i>
+            <div><b>Encre marine</b>#0f1b2d, texte et nuit</div>
+          </div>
+          <div class="sw">
+            <i style="background: #0b6b5e"></i>
+            <div><b>Vert lien</b>#0b6b5e, action</div>
+          </div>
+          <div class="sw">
+            <i style="background: #6fe3cf"></i>
+            <div><b>Menthe</b>#6fe3cf, action sur nuit</div>
+          </div>
+          <div class="sw">
+            <i style="background: #fde68a"></i>
+            <div><b>Surligneur</b>#fde68a, hook</div>
+          </div>
+          <div class="sw">
+            <i style="background: #d5dce6"></i>
+            <div><b>Filet</b>#d5dce6, bordures</div>
+          </div>
+          <div class="sw">
+            <i
+              style="
+                background: linear-gradient(
+                  90deg,
+                  #1d4f91 25%,
+                  #8a5300 25% 50%,
+                  #1f6b3a 50% 75%,
+                  #a3301d 75%
+                );
+              "
+            ></i>
+            <div><b>Statuts</b>info, alerte, succès, danger</div>
+          </div>
+          <div class="sw">
+            <i style="background: #172a43"></i>
+            <div><b>Carte nuit</b>#172a43</div>
+          </div>
+        </div>
+        <div class="cards">
+          <div class="card">
+            <h3><span class="dot"></span>Audit par page</h3>
+            <p>Concurrents réels de la SERP, écart de domaines, pages à pousser.</p>
+          </div>
+          <div class="card">
+            <h3><span class="dot"></span>Tri des cibles</h3>
+            <p>Chaque site écarté a un motif lisible : payant, hors sujet, concurrent.</p>
+          </div>
+          <div class="card">
+            <h3><span class="dot"></span>Lot validé</h3>
+            <p>Rien ne part sans votre accord sur le lot.</p>
+          </div>
+        </div>
+        <p style="margin-top: 28px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+          <span class="badge b-s">Lien posé</span><span class="badge b-i">Envoyé</span
+          ><span class="badge b-w">Relancé</span><span class="badge b-d">Refusé</span>
+          <span class="btn" style="background: var(--primary); color: #fff">Valider le lot</span
+          ><span class="btn" style="background: #fff; border-color: var(--border)">Modifier</span>
+        </p>
+      </div>
+    </section>
+  </body>
+</html>

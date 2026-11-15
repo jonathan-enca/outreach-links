@@ -1,22 +1,51 @@
 @import "tailwindcss";
 
-/* Palette propre au produit : papier chaud, encre sapin, accent ocre. Mode clair uniquement. */
+/*
+ * Jetons de la direction artistique (docs/da.md, MN.2).
+ * « L'instrument d'audit » : craie froide, encre marine, vert « lien », surligneur ambre pour le hook.
+ * L'application est en mode clair. Les sections « nuit » de la home réutilisent les mêmes noms de jetons
+ * dans une surface `.surface-night` : un composant (bouton, carte, pastille) n'a rien à savoir du fond.
+ */
 :root {
-  --background: #faf8f3;
-  --foreground: #1c2b2b;
+  --background: #f5f7fa;
+  --foreground: #0f1b2d;
   --card: #ffffff;
-  --card-foreground: #1c2b2b;
-  --muted: #efece3;
-  --muted-foreground: #556262;
-  --border: #ddd8ca;
-  --primary: #14595a;
+  --card-foreground: #0f1b2d;
+  --muted: #eaeef3;
+  --muted-foreground: #4b5a6e;
+  --border: #d5dce6;
+  --primary: #0b6b5e;
   --primary-foreground: #ffffff;
-  --ring: #14595a;
-  --info: #1d5a9e;
+  --ring: #0b6b5e;
+  --info: #1d4f91;
   --warning: #8a5300;
-  --success: #25693a;
+  --success: #1f6b3a;
   --danger: #a3301d;
+  /* Surligneur du hook : fond ambre, texte toujours en encre. */
+  --highlight: #fde68a;
+  --highlight-foreground: #0f1b2d;
   color-scheme: light;
+}
+
+/* Surface sombre (hero, boucle, appel final, pied de page). */
+.surface-night {
+  --background: #0f1b2d;
+  --foreground: #eef2f7;
+  --card: #172a43;
+  --card-foreground: #eef2f7;
+  --muted: #1c3250;
+  --muted-foreground: #a9b6c8;
+  --border: #2a4264;
+  --primary: #6fe3cf;
+  --primary-foreground: #0f1b2d;
+  --ring: #6fe3cf;
+  --info: #8db8f0;
+  --warning: #f2c26b;
+  --success: #7fd69a;
+  --danger: #f29b8a;
+  background: var(--background);
+  color: var(--foreground);
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -34,12 +63,63 @@
   --color-warning: var(--warning);
   --color-success: var(--success);
   --color-danger: var(--danger);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
   --font-sans: var(--font-body);
   --font-display: var(--font-display);
+  /* Rayons hiérarchisés : contrôle, carte, panneau. */
+  --radius-control: 0.5rem;
+  --radius-card: 0.875rem;
+  --radius-panel: 1.25rem;
+  /* Ombres froides, teintées d'encre : posée (carte), flottante (maquette, menu). */
+  --shadow-card: 0 1px 2px rgb(15 27 45 / 0.06), 0 1px 1px rgb(15 27 45 / 0.04);
+  --shadow-float: 0 12px 32px -8px rgb(15 27 45 / 0.18), 0 2px 6px rgb(15 27 45 / 0.08);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-body), system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display), system-ui, sans-serif;
+  text-wrap: balance;
+}
+
+/* Le hook : passage de la page cible qui justifie le message (signature visuelle du produit). */
+@utility mark-hook {
+  background: linear-gradient(
+    transparent 0.12em,
+    var(--highlight) 0.12em,
+    var(--highlight) 0.92em,
+    transparent 0.92em
+  );
+  color: var(--highlight-foreground);
+  padding-inline: 0.15em;
+  border-radius: 0.15em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* Quadrillage discret du fond des sections « nuit ». */
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.05) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

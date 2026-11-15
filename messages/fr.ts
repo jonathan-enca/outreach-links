@@ -1,7 +1,8 @@
 /** Toutes les chaînes de l'interface passent par ce fichier (UI en français). */
 export const fr = {
   app: {
-    name: "Outreach backlinks",
+    // Nom de travail provisoire : SEUL endroit où il est écrit (docs/naming.md). Le changer ici suffit.
+    name: "Autolink.ai",
     description:
       "Un audit SEO d'abord, puis une prospection par email pour obtenir des backlinks éditoriaux gratuits.",
   },
