@@ -57,6 +57,37 @@ export async function transitionAudit(
 }
 
 /**
+ * Plan effectif, limites, requêtes retenues et coût de tout le parcours pour un site (MB.1 : le
+ * même calcul sert à l'aperçu avant lancement et à `createAudit`, donc le coût affiché est le coût
+ * figé). Aucun appel payant : la grille de prix seule.
+ */
+export function computeAuditEstimate(input: {
+  domain: string;
+  niche: string | null;
+  offeredAsset: string | null;
+  priorityQueries: string[];
+  workspacePlan: unknown;
+}) {
+  const basePlan: PlanKey = isPlanKey(input.workspacePlan) ? input.workspacePlan : "gratuit";
+  const plan: PlanKey = isTestDomain(input.domain) ? "payant" : basePlan;
+  const limits = limitsFor(plan, input.domain);
+  const queries = input.priorityQueries.slice(0, limits.maxQueries);
+  const estimate = estimateDiscovery(queries, limits);
+  const chain = estimateChain({
+    plan,
+    discoveryUsd: estimate.totalUsd,
+    capUsd: limits.costCapUsd,
+    site: {
+      domain: input.domain,
+      niche: input.niche,
+      priorityQueries: queries,
+      offeredAsset: input.offeredAsset,
+    },
+  });
+  return { plan, limits, queries, estimate, chain };
+}
+
+/**
  * Crée un audit pour un site et calcule le coût estimé : en_attente -> estime.
  * `supabase` = client de l'utilisateur (la RLS garantit l'appartenance du site) ;
  * `getServiceClient` est appelé pour écrire (statuts et coûts = faits serveur).
@@ -90,14 +121,14 @@ export async function createAudit(
     .select("plan")
     .eq("id", site.workspace_id)
     .maybeSingle();
-  const basePlan: PlanKey = isPlanKey(ws?.plan) ? ws.plan : "gratuit";
-  const plan: PlanKey = isTestDomain(site.domain) ? "payant" : basePlan;
-  const limits = limitsFor(plan, site.domain);
-
-  const queries = site.priority_queries.slice(0, limits.maxQueries);
+  const { plan, limits, queries, estimate, chain } = computeAuditEstimate({
+    domain: site.domain,
+    niche: site.niche,
+    offeredAsset: site.offered_asset,
+    priorityQueries: site.priority_queries,
+    workspacePlan: ws?.plan,
+  });
   if (queries.length === 0) return { status: "error", message: AUDIT_MESSAGES.noQueries };
-
-  const estimate = estimateDiscovery(queries, limits);
   if (estimate.totalUsd > limits.costCapUsd) {
     return { status: "error", message: AUDIT_MESSAGES.overCap };
   }
@@ -129,19 +160,6 @@ export async function createAudit(
     return { status: "error", message: AUDIT_MESSAGES.saveError };
   }
 
-  // MA.6 : coût de tout le parcours, annoncé une seule fois.
-  const chain = estimateChain({
-    plan,
-    discoveryUsd: estimate.totalUsd,
-    capUsd: limits.costCapUsd,
-    site: {
-      domain: site.domain,
-      niche: site.niche,
-      priorityQueries: queries,
-      offeredAsset: site.offered_asset,
-    },
-  });
-
   const moved = await transitionAudit(service, audit.id, "en_attente", "estime", {
     estimated_cost_usd: estimate.totalUsd,
     estimate_details: { ...estimate, chain } as unknown as Json,
@@ -156,6 +174,54 @@ export async function createAudit(
     payload: { audit_id: audit.id, site_id: site.id, estimated_cost_usd: estimate.totalUsd },
   });
   return { status: "ok", auditId: audit.id };
+}
+
+/**
+ * MB.1 : un audit encore au stade « estimé » (rien n'a été payé) suit les corrections du site.
+ * Recalcule requêtes et coût d'après le site actuel ; sans effet sur un audit déjà confirmé.
+ */
+export async function refreshEstimatedAudit(
+  supabase: Client,
+  auditId: string,
+  getServiceClient: () => Client,
+): Promise<boolean> {
+  const { data: audit } = await supabase
+    .from("audits")
+    .select("id, site_id, status, workspace_id")
+    .eq("id", auditId)
+    .maybeSingle();
+  if (!audit || audit.status !== "estime") return false;
+  const { data: site } = await supabase
+    .from("sites")
+    .select("domain, niche, offered_asset, priority_queries")
+    .eq("id", audit.site_id)
+    .maybeSingle();
+  const { data: ws } = await supabase
+    .from("workspaces")
+    .select("plan")
+    .eq("id", audit.workspace_id)
+    .maybeSingle();
+  if (!site) return false;
+  const { limits, queries, estimate, chain } = computeAuditEstimate({
+    domain: site.domain,
+    niche: site.niche,
+    offeredAsset: site.offered_asset,
+    priorityQueries: site.priority_queries,
+    workspacePlan: ws?.plan,
+  });
+  if (queries.length === 0 || estimate.totalUsd > limits.costCapUsd) return false;
+  const { data, error } = await getServiceClient()
+    .from("audits")
+    .update({
+      queries,
+      estimated_cost_usd: estimate.totalUsd,
+      estimate_details: { ...estimate, chain } as unknown as Json,
+      estimated_at: new Date().toISOString(),
+    })
+    .eq("id", audit.id)
+    .eq("status", "estime")
+    .select("id");
+  return !error && (data?.length ?? 0) > 0;
 }
 
 /**

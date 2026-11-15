@@ -13,6 +13,7 @@ import { Quality } from "@/features/home/quality";
 import { SiteFooter } from "@/features/home/site-footer";
 import { SiteHeader } from "@/features/home/site-header";
 import { TrustStrip } from "@/features/home/trust-strip";
+import { Proofs } from "@/features/home/proofs-section";
 import { WhatItIs } from "@/features/home/what-it-is";
 import { t } from "@/lib/messages";
 
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
 /** La page reste statique ; les tarifs (table `plans`) sont relus toutes les heures. */
 export const revalidate = 3600;
 
-/** Home publique (MH.2 et MH.3). La section « preuves » viendra seulement avec de vrais chiffres (après MB.2). */
+/** Home publique (MH.2 et MH.3). La section « preuves » affiche des chiffres d'illustration (proofs.ts) jusqu'aux vraies mesures. */
 export default async function Home() {
   const plans = await getPublicPlans();
   return (
@@ -36,6 +37,7 @@ export default async function Home() {
         <TrustStrip />
         <WhatItIs />
         <Problem />
+        <Proofs />
         <HowItWorks />
         <Quality />
         <Features />

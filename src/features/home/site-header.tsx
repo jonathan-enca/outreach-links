@@ -8,9 +8,7 @@ import { HOME_SECTIONS } from "./sections";
 export function homeNavLinks() {
   const n = t.home.nav;
   return [
-    { href: `#${HOME_SECTIONS.whatItIs}`, label: n.whatItIs },
-    { href: `#${HOME_SECTIONS.problem}`, label: n.problem },
-    { href: `#${HOME_SECTIONS.howItWorks}`, label: n.howItWorks },
+    { href: `#${HOME_SECTIONS.features}`, label: n.features },
     { href: `#${HOME_SECTIONS.pricing}`, label: n.pricing },
     { href: `#${HOME_SECTIONS.faq}`, label: n.faq },
   ];

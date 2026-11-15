@@ -2,6 +2,7 @@
 export const HOME_SECTIONS = {
   whatItIs: "c-est-quoi",
   problem: "probleme",
+  proofs: "preuves",
   howItWorks: "comment-ca-marche",
   quality: "qualite",
   features: "fonctions",
