@@ -69,6 +69,14 @@ describe.skipIf(!adminUrl)("facturation : garde-fous en base", () => {
     expect(r.rows[1].monthly_send_cap).toBeLessThan(r.rows[2].monthly_send_cap);
   });
 
+  it("le catalogue est lisible sans connexion (page Tarifs), sans aucune écriture", async () => {
+    const r = await inTx("anon", null, (c) => c.query("select key from public.plans"));
+    expect(r.rows).toHaveLength(3);
+    await expect(
+      inTx("anon", null, (c) => c.query("update public.plans set price_eur_cents = 1")),
+    ).rejects.toThrow(/permission denied/);
+  });
+
   it("un abonnement live est refusé en base (mode test uniquement)", async () => {
     await expect(
       inTx("service_role", null, (c) =>

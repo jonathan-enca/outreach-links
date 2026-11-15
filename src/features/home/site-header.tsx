@@ -11,6 +11,8 @@ export function homeNavLinks() {
     { href: `#${HOME_SECTIONS.whatItIs}`, label: n.whatItIs },
     { href: `#${HOME_SECTIONS.problem}`, label: n.problem },
     { href: `#${HOME_SECTIONS.howItWorks}`, label: n.howItWorks },
+    { href: `#${HOME_SECTIONS.pricing}`, label: n.pricing },
+    { href: `#${HOME_SECTIONS.faq}`, label: n.faq },
   ];
 }
 
@@ -29,20 +31,20 @@ export function SiteHeader() {
         </Link>
         <nav
           aria-label={t.home.nav.label}
-          className="hidden items-center gap-7 text-[15px] text-muted-foreground md:flex"
+          className="hidden items-center gap-6 text-[15px] text-muted-foreground lg:flex"
         >
           {links.map((l) => (
             <a
               key={l.href}
               href={l.href}
-              className="rounded-control hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="rounded-control px-1 py-2.5 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               {l.label}
             </a>
           ))}
           <Link
             href="/connexion"
-            className="rounded-control hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="rounded-control px-1 py-2.5 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             {t.home.signIn}
           </Link>

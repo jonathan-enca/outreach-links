@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import "@/env";
+import { env } from "@/env";
 import { t } from "@/lib/messages";
 
 const body = Inter({
@@ -11,6 +11,7 @@ const body = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(env.NEXT_PUBLIC_APP_URL),
   title: t.app.name,
   description: t.app.description,
 };

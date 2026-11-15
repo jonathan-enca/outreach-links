@@ -35,7 +35,7 @@ export function MobileMenu({
 
   const n = t.home.nav;
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       <Button
         ref={trigger}
         variant="outline"
