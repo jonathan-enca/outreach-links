@@ -3,6 +3,9 @@ import { fakeSupabase } from "@/features/audits/fake-supabase";
 import { DISCOVER_EVENT } from "@/features/audits/service";
 import type { PageRead } from "@/features/triage/page-reader";
 import type { LlmClient } from "@/lib/llm/client";
+import { profileToFields } from "@/features/brand/form";
+import type { BrandProfile } from "@/features/brand/schema";
+import type { SiteRead } from "@/features/brand/read-site";
 import { getLaunchPreview, launchJourney, saveCorrections, startFromUrl } from "./service";
 
 const PAGE: PageRead = {
@@ -289,5 +292,191 @@ describe("aperçu et lancement", () => {
       priority_queries: ["coloriage licorne"],
     });
     expect(service.tables.audits ?? []).toHaveLength(0);
+  });
+});
+
+const BRAND: BrandProfile = {
+  activity: "Site de coloriages gratuits à imprimer pour les enfants.",
+  offer: "Des coloriages classés par thème, en PDF.",
+  language: "fr",
+  audience: ["Parents", "Enseignants"],
+  linkable_resources: [{ url: "https://exemple-coloriage.fr/guide", title: "Guide" }],
+  name_variants: ["Exemple Coloriage", "exemple-coloriage.fr"],
+  tone: "chaleureux",
+  personas: [
+    { label: "Enseignants", sites: "blogs de classe", reason: "Activités à imprimer en classe." },
+    {
+      label: "Médiathèques",
+      sites: "pages ressources",
+      reason: "Activités gratuites pour enfants.",
+    },
+  ],
+};
+
+const SITE_READ = (): SiteRead => ({
+  domain: "exemple-coloriage.fr",
+  home: PAGE,
+  pages: [{ ...PAGE, url: "https://exemple-coloriage.fr/guide" }],
+  knownUrls: ["https://exemple-coloriage.fr/guide"],
+  sitemapUsed: true,
+  requests: 5,
+});
+
+describe("profil de marque dans l'onboarding (MT.1)", () => {
+  const brandDeps = (generate = vi.fn(async () => ({ data: BRAND, costUsd: 0.001 }))) => ({
+    generate,
+    deps: {
+      readSite: vi.fn(async () => SITE_READ()),
+      makeLlm: () => ({ generate }) as unknown as LlmClient,
+    },
+  });
+  const startLlm = () =>
+    llmReturning({ theme: "coloriages", language: "fr", queries: ["coloriage licorne"] }).llm;
+
+  it("établit le profil (version 1) pendant la déduction et l'enregistre avec son coût", async () => {
+    const { user } = setup();
+    const b = brandDeps();
+    const res = await startFromUrl(user.client, "exemple-coloriage.fr", {
+      readHomepage: async () => PAGE,
+      makeLlm: startLlm,
+      brand: b.deps,
+    });
+    expect(res.status).toBe("ok");
+    const row = user.tables.brand_profiles![0]!;
+    expect(row).toMatchObject({ version: 1, source: "llm", cost_usd: 0.001, workspace_id: "ws-1" });
+    expect(b.deps.readSite).toHaveBeenCalledWith("exemple-coloriage.fr", PAGE); // accueil non relu
+    expect(user.tables.events!.map((e) => e.type)).toContain("brand_profile.created");
+  });
+
+  it("un échec du profil ne bloque pas l'onboarding", async () => {
+    const { user } = setup();
+    const res = await startFromUrl(user.client, "exemple-coloriage.fr", {
+      readHomepage: async () => PAGE,
+      makeLlm: startLlm,
+      brand: {
+        readSite: async () => {
+          throw new Error("réseau");
+        },
+        makeLlm: () => null,
+      },
+    });
+    expect(res.status).toBe("ok");
+    expect(user.tables.brand_profiles ?? []).toHaveLength(0);
+  });
+
+  it("établit le profil d'un site déjà cadré qui n'en a pas, sans le redéduire ni le doubler", async () => {
+    const { user } = setup({ sites: [SITE] });
+    const b = brandDeps();
+    const makeLlm = vi.fn();
+    const deps = { readHomepage: vi.fn(), makeLlm, brand: b.deps };
+    await startFromUrl(user.client, "exemple-coloriage.fr", deps);
+    expect(user.tables.brand_profiles).toHaveLength(1);
+    expect(makeLlm).not.toHaveBeenCalled();
+    await startFromUrl(user.client, "exemple-coloriage.fr", deps);
+    expect(user.tables.brand_profiles).toHaveLength(1); // jamais de second appel LLM
+    expect(b.generate).toHaveBeenCalledTimes(1);
+  });
+
+  it("l'aperçu porte le profil, null s'il n'existe pas", async () => {
+    const { user } = setup({ sites: [SITE] });
+    expect((await getLaunchPreview(user.client, "site-1"))!.brand).toBeNull();
+    const b = brandDeps();
+    await startFromUrl(user.client, "exemple-coloriage.fr", {
+      readHomepage: vi.fn(),
+      makeLlm: vi.fn(),
+      brand: b.deps,
+    });
+    const p = (await getLaunchPreview(user.client, "site-1"))!;
+    expect(p.brand?.profile.personas.map((x) => x.label)).toContain("Enseignants");
+  });
+
+  const base = {
+    theme: "coloriages",
+    query1: SITE.priority_queries[0]!,
+    query2: SITE.priority_queries[1]!,
+    query3: SITE.priority_queries[2]!,
+  };
+  const withProfile = (fields: Record<string, string>) =>
+    Object.fromEntries(Object.entries(fields).map(([k, v]) => [`profile_${k}`, v]));
+
+  it("une correction crée la version 2 « utilisateur » ; sans changement, aucune version", async () => {
+    const { user, getService } = setup({ sites: [SITE] });
+    await startFromUrl(user.client, "exemple-coloriage.fr", {
+      readHomepage: vi.fn(),
+      makeLlm: vi.fn(),
+      brand: brandDeps().deps,
+    });
+    const preview = (await getLaunchPreview(user.client, "site-1"))!;
+    const fields = profileToFields(preview.brand!.profile);
+    const ev = vi.fn<(...a: unknown[]) => Promise<unknown>>(async () => ({}));
+    // Identique : pas de nouvelle version.
+    await launchJourney(
+      user.client,
+      "site-1",
+      form({ ...base, ...withProfile(fields), acceptedUsd: String(preview.totalUsd) }),
+      getService,
+      ev,
+    );
+    expect(user.tables.brand_profiles).toHaveLength(1);
+    // Corrigé : une version de plus, l'ancienne reste.
+    const res = await saveCorrections(
+      user.client,
+      "site-1",
+      form({
+        ...base,
+        ...withProfile({
+          ...fields,
+          personas: `${fields.personas}\nAssociations | scoutisme, catéchèse | Activités pour les groupes d'enfants`,
+        }),
+      }),
+    );
+    expect(res.status).toBe("ok");
+    expect(user.tables.brand_profiles).toHaveLength(2);
+    expect(user.tables.brand_profiles![1]).toMatchObject({ version: 2, source: "utilisateur" });
+    expect(user.tables.brand_profiles![0]).toMatchObject({ version: 1, source: "llm" });
+    expect(user.tables.events!.map((e) => e.type)).toContain("brand_profile.edited");
+  });
+
+  it("un profil saisi invalide bloque le lancement avant tout audit", async () => {
+    const { user, service, getService } = setup({ sites: [SITE] });
+    const preview = (await getLaunchPreview(user.client, "site-1"))!;
+    const sendEvent = vi.fn<(...a: unknown[]) => Promise<unknown>>(async () => ({}));
+    const res = await launchJourney(
+      user.client,
+      "site-1",
+      form({
+        ...base,
+        ...withProfile({
+          activity: "Un site",
+          offer: "Des choses",
+          audience: "Parents",
+          personas: "Un seul",
+        }),
+        acceptedUsd: String(preview.totalUsd),
+      }),
+      getService,
+      sendEvent,
+    );
+    expect(res.status).toBe("error");
+    expect(service.tables.audits ?? []).toHaveLength(0);
+    expect(sendEvent).not.toHaveBeenCalled();
+  });
+
+  it("sans profil établi, un formulaire profil vide n'empêche rien et ne crée rien", async () => {
+    const { user, getService } = setup({ sites: [SITE] });
+    const preview = (await getLaunchPreview(user.client, "site-1"))!;
+    const res = await launchJourney(
+      user.client,
+      "site-1",
+      form({
+        ...base,
+        ...withProfile(profileToFields(null)),
+        acceptedUsd: String(preview.totalUsd),
+      }),
+      getService,
+      async () => ({}),
+    );
+    expect(res.status).toBe("ok");
+    expect(user.tables.brand_profiles ?? []).toHaveLength(0);
   });
 });

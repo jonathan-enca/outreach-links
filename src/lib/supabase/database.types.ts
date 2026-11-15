@@ -487,6 +487,67 @@ export type Database = {
           },
         ];
       };
+      brand_profiles: {
+        Row: {
+          cost_usd: number;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          pages_read: Json;
+          profile: Json;
+          site_id: string;
+          source: string;
+          version: number;
+          workspace_id: string;
+        };
+        Insert: {
+          cost_usd?: number;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          pages_read?: Json;
+          profile: Json;
+          site_id: string;
+          source: string;
+          version: number;
+          workspace_id: string;
+        };
+        Update: {
+          cost_usd?: number;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          pages_read?: Json;
+          profile?: Json;
+          site_id?: string;
+          source?: string;
+          version?: number;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "brand_profiles_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "brand_profiles_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "brand_profiles_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       competitor_backlinks: {
         Row: {
           anchor: string | null;

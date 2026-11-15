@@ -6,6 +6,9 @@ import { startFromUrlAction } from "@/features/onboarding/actions";
 import { UrlForm } from "@/features/onboarding/url-form";
 import { t } from "@/lib/messages";
 
+/** Lecture du site (accueil, sitemap, quelques pages) et profil de marque : jusqu'à ~40 s. */
+export const maxDuration = 60;
+
 export const metadata: Metadata = { title: t.onboarding.title };
 
 export default function Page() {

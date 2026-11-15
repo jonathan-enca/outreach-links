@@ -13,6 +13,14 @@ import type { PageRead } from "@/features/triage/page-reader";
 import type { LlmClient } from "@/lib/llm/client";
 import { t } from "@/lib/messages";
 import type { Database } from "@/lib/supabase/database.types";
+import {
+  buildAndStoreBrandProfile,
+  getLatestBrandProfile,
+  saveBrandProfileVersion,
+  type BrandDeps,
+} from "@/features/brand/service";
+import { parseProfileForm, sameProfile } from "@/features/brand/form";
+import type { StoredBrandProfile } from "@/features/brand/schema";
 import { deduceSite } from "./deduce";
 
 type Client = SupabaseClient<Database>;
@@ -35,6 +43,8 @@ export interface StartDeps {
   readHomepage: (domain: string) => Promise<PageRead | null>;
   /** Client LLM borné, ou null sans clé. */
   makeLlm: () => LlmClient | null;
+  /** MT.1 : profil de marque (lecture du site + un appel LLM). Absent = pas de profil. */
+  brand?: BrandDeps;
 }
 
 async function currentUserId(supabase: Client): Promise<string | null> {
@@ -86,7 +96,15 @@ export async function startFromUrl(
       .maybeSingle();
     if (audit) return { status: "ok", siteId: existing.id, auditId: audit.id };
     // Site déjà cadré (ou saisi à la main) : pas de nouvelle déduction, donc pas de nouvel appel LLM.
+    // Le profil de marque, lui, est établi s'il manque (site créé avant MT.1).
     if (existing.niche && existing.priority_queries.length > 0) {
+      await ensureBrandProfile(supabase, deps, {
+        siteId: existing.id,
+        workspaceId: ws.id,
+        userId,
+        domain,
+        home: null,
+      });
       return { status: "ok", siteId: existing.id };
     }
   }
@@ -144,7 +162,77 @@ export async function startFromUrl(
       queries: deduction.queries.length,
     },
   });
+  const brand = await ensureBrandProfile(supabase, deps, {
+    siteId,
+    workspaceId: ws.id,
+    userId,
+    domain,
+    home: page,
+  });
+  if (brand) {
+    await supabase.from("events").insert({
+      workspace_id: ws.id,
+      actor_id: userId,
+      type: "brand_profile.created",
+      payload: { site_id: siteId, version: brand.version, pages: brand.pagesRead.length },
+    });
+  }
   return { status: "ok", siteId };
+}
+
+/** Établit le profil de marque d'un site qui n'en a pas encore ; ne lève jamais. */
+async function ensureBrandProfile(
+  supabase: Client,
+  deps: StartDeps,
+  input: {
+    siteId: string;
+    workspaceId: string;
+    userId: string;
+    domain: string;
+    home: PageRead | null;
+  },
+): Promise<StoredBrandProfile | null> {
+  if (!deps.brand) return null;
+  try {
+    if (await getLatestBrandProfile(supabase, input.siteId)) return null;
+    return await buildAndStoreBrandProfile(supabase, input, deps.brand);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Enregistre les corrections du profil de marque saisies à l'écran de relecture. Rien de saisi :
+ * rien à faire. Profil modifié : une NOUVELLE version « utilisateur » (l'ancienne reste, jamais
+ * écrasée). Profil identique à la dernière version : aucune version créée.
+ */
+async function applyProfileEdits(
+  supabase: Client,
+  site: { id: string; workspaceId: string; domain: string; language: string },
+  userId: string,
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const parsed = parseProfileForm(formData, { domain: site.domain, language: site.language });
+  if (parsed.status === "error") return { ok: false, message: parsed.message };
+  if (parsed.status === "empty") return { ok: true };
+  const latest = await getLatestBrandProfile(supabase, site.id);
+  if (latest && sameProfile(latest.profile, parsed.profile)) return { ok: true };
+  const saved = await saveBrandProfileVersion(supabase, {
+    siteId: site.id,
+    workspaceId: site.workspaceId,
+    userId,
+    profile: parsed.profile,
+    source: "utilisateur",
+    pagesRead: latest?.pagesRead ?? [],
+  });
+  if (!saved.ok) return { ok: false, message: t.onboarding.brand.messages.saveError };
+  await supabase.from("events").insert({
+    workspace_id: site.workspaceId,
+    actor_id: userId,
+    type: "brand_profile.edited",
+    payload: { site_id: site.id, version: saved.version },
+  });
+  return { ok: true };
 }
 
 export interface LaunchPreview {
@@ -162,6 +250,8 @@ export interface LaunchPreview {
   chain: ChainEstimate;
   /** Un audit existe déjà pour ce site (rien à lancer). */
   auditId: string | null;
+  /** Dernière version du profil de marque (MT.1), null si elle n'a pas pu être établie. */
+  brand: StoredBrandProfile | null;
 }
 
 /** Écran de confirmation : ce qui a été compris + coût total du parcours. Lecture seule, 0 USD. */
@@ -177,7 +267,7 @@ export async function getLaunchPreview(
     .eq("id", siteId)
     .maybeSingle();
   if (!site) return null;
-  const [{ data: ws }, { data: audit }] = await Promise.all([
+  const [{ data: ws }, { data: audit }, brand] = await Promise.all([
     supabase.from("workspaces").select("plan").eq("id", site.workspace_id).maybeSingle(),
     supabase
       .from("audits")
@@ -187,6 +277,7 @@ export async function getLaunchPreview(
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    getLatestBrandProfile(supabase, siteId),
   ]);
   const est = computeAuditEstimate({
     domain: site.domain,
@@ -208,6 +299,7 @@ export async function getLaunchPreview(
     capUsd: est.limits.costCapUsd,
     chain: est.chain,
     auditId: audit?.id ?? null,
+    brand,
   };
 }
 
@@ -263,19 +355,25 @@ export async function saveCorrections(
   siteId: string,
   formData: FormData,
 ): Promise<LaunchState> {
-  if (!(await currentUserId(supabase))) {
-    return { status: "error", message: ONBOARDING_MESSAGES.unauthenticated };
-  }
+  const userId = await currentUserId(supabase);
+  if (!userId) return { status: "error", message: ONBOARDING_MESSAGES.unauthenticated };
   const c = readCorrections(formData);
   if (!c.ok) return { status: "error", message: c.message };
   const { data, error } = await supabase
     .from("sites")
     .update({ niche: c.theme, priority_queries: c.queries })
     .eq("id", siteId)
-    .select("id")
+    .select("id, workspace_id, domain, language")
     .maybeSingle();
   if (error) return { status: "error", message: ONBOARDING_MESSAGES.saveError };
   if (!data) return { status: "error", message: ONBOARDING_MESSAGES.siteNotFound };
+  const edits = await applyProfileEdits(
+    supabase,
+    { id: data.id, workspaceId: data.workspace_id, domain: data.domain, language: data.language },
+    userId,
+    formData,
+  );
+  if (!edits.ok) return { status: "error", message: edits.message };
   return { status: "ok" };
 }
 
@@ -315,6 +413,19 @@ export async function launchJourney(
       .eq("id", siteId);
     if (error) return { status: "error", message: ONBOARDING_MESSAGES.saveError };
   }
+
+  const edits = await applyProfileEdits(
+    supabase,
+    {
+      id: siteId,
+      workspaceId: preview.workspaceId,
+      domain: preview.domain,
+      language: preview.language,
+    },
+    userId,
+    formData,
+  );
+  if (!edits.ok) return { status: "error", message: edits.message };
 
   const created = await createAudit(supabase, siteId, getServiceClient);
   if (created.status !== "ok" || !created.auditId) {

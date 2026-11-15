@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatUsd } from "@/features/audits/format";
+import { BrandFields } from "@/features/brand/brand-fields";
 import { t } from "@/lib/messages";
 import type { LaunchPreview, LaunchState } from "./service";
 
@@ -73,6 +74,8 @@ export function LaunchPanel({
           <p className="text-sm text-muted-foreground">{r.queriesHint}</p>
         </fieldset>
       </Card>
+
+      <BrandFields key={preview.brand?.version ?? 0} brand={preview.brand} />
 
       {needsInput ? (
         <div className="flex flex-col gap-2">
