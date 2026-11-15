@@ -3,7 +3,7 @@ import type { Database } from "@/lib/supabase/database.types";
 
 /**
  * Client Supabase simulé en mémoire pour les tests (select / insert / update / delete,
- * filtres eq et in, order, limit, single). Ce n'est PAS une base : les contraintes
+ * filtres eq, neq, in, is et gte, order, limit, single). Ce n'est PAS une base : les contraintes
  * réelles (RLS, index uniques) sont testées sur Postgres dans supabase/tests.
  * `hooks.uniqueActivePerSite` reproduit l'index unique des audits actifs.
  */
@@ -122,6 +122,14 @@ export function fakeSupabase(
     };
     chain.in = (col: string, vals: unknown[]) => {
       filters.push((r) => vals.includes(r[col]));
+      return chain;
+    };
+    chain.is = (col: string, val: unknown) => {
+      filters.push((r) => (r[col] ?? null) === val);
+      return chain;
+    };
+    chain.gte = (col: string, val: unknown) => {
+      filters.push((r) => String(r[col]) >= String(val));
       return chain;
     };
     chain.order = (col: string, o?: { ascending?: boolean }) => {

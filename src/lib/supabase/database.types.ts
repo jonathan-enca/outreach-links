@@ -1229,6 +1229,108 @@ export type Database = {
           },
         ];
       };
+      mailboxes: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          daily_cap: number;
+          email: string;
+          from_name: string;
+          health: Json | null;
+          hourly_cap: number;
+          id: string;
+          imap_host: string;
+          imap_ok: boolean | null;
+          imap_port: number;
+          key_version: string;
+          last_error: string | null;
+          last_test_at: string | null;
+          password_enc: string;
+          send_window_end: number;
+          send_window_start: number;
+          site_id: string;
+          smtp_host: string;
+          smtp_ok: boolean | null;
+          smtp_port: number;
+          status: string;
+          timezone: string;
+          updated_at: string;
+          username: string;
+          workspace_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          daily_cap?: number;
+          email: string;
+          from_name: string;
+          health?: Json | null;
+          hourly_cap?: number;
+          id?: string;
+          imap_host: string;
+          imap_ok?: boolean | null;
+          imap_port: number;
+          key_version: string;
+          last_error?: string | null;
+          last_test_at?: string | null;
+          password_enc: string;
+          send_window_end?: number;
+          send_window_start?: number;
+          site_id: string;
+          smtp_host: string;
+          smtp_ok?: boolean | null;
+          smtp_port: number;
+          status?: string;
+          timezone?: string;
+          updated_at?: string;
+          username: string;
+          workspace_id: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          daily_cap?: number;
+          email?: string;
+          from_name?: string;
+          health?: Json | null;
+          hourly_cap?: number;
+          id?: string;
+          imap_host?: string;
+          imap_ok?: boolean | null;
+          imap_port?: number;
+          key_version?: string;
+          last_error?: string | null;
+          last_test_at?: string | null;
+          password_enc?: string;
+          send_window_end?: number;
+          send_window_start?: number;
+          site_id?: string;
+          smtp_host?: string;
+          smtp_ok?: boolean | null;
+          smtp_port?: number;
+          status?: string;
+          timezone?: string;
+          updated_at?: string;
+          username?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "mailboxes_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "mailboxes_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       manual_tasks: {
         Row: {
           created_at: string;
@@ -1280,99 +1382,6 @@ export type Database = {
           },
           {
             foreignKeyName: "manual_tasks_workspace_id_fkey";
-            columns: ["workspace_id"];
-            isOneToOne: false;
-            referencedRelation: "workspaces";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      mailboxes: {
-        Row: {
-          created_at: string;
-          created_by: string | null;
-          daily_cap: number;
-          email: string;
-          from_name: string;
-          health: Json | null;
-          hourly_cap: number;
-          id: string;
-          imap_host: string;
-          imap_ok: boolean | null;
-          imap_port: number;
-          key_version: string;
-          last_error: string | null;
-          last_test_at: string | null;
-          password_enc: string;
-          site_id: string;
-          smtp_host: string;
-          smtp_ok: boolean | null;
-          smtp_port: number;
-          status: string;
-          updated_at: string;
-          username: string;
-          workspace_id: string;
-        };
-        Insert: {
-          created_at?: string;
-          created_by?: string | null;
-          daily_cap?: number;
-          email: string;
-          from_name: string;
-          health?: Json | null;
-          hourly_cap?: number;
-          id?: string;
-          imap_host: string;
-          imap_ok?: boolean | null;
-          imap_port: number;
-          key_version: string;
-          last_error?: string | null;
-          last_test_at?: string | null;
-          password_enc: string;
-          site_id: string;
-          smtp_host: string;
-          smtp_ok?: boolean | null;
-          smtp_port: number;
-          status?: string;
-          updated_at?: string;
-          username: string;
-          workspace_id: string;
-        };
-        Update: {
-          created_at?: string;
-          created_by?: string | null;
-          daily_cap?: number;
-          email?: string;
-          from_name?: string;
-          health?: Json | null;
-          hourly_cap?: number;
-          id?: string;
-          imap_host?: string;
-          imap_ok?: boolean | null;
-          imap_port?: number;
-          key_version?: string;
-          last_error?: string | null;
-          last_test_at?: string | null;
-          password_enc?: string;
-          site_id?: string;
-          smtp_host?: string;
-          smtp_ok?: boolean | null;
-          smtp_port?: number;
-          status?: string;
-          updated_at?: string;
-          username?: string;
-          workspace_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "mailboxes_site_id_fkey";
-            columns: ["site_id"];
-            isOneToOne: false;
-            referencedRelation: "sites";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "mailboxes_workspace_id_fkey";
             columns: ["workspace_id"];
             isOneToOne: false;
             referencedRelation: "workspaces";
@@ -1527,6 +1536,117 @@ export type Database = {
           key_hash?: string;
         };
         Relationships: [];
+      };
+      sent_messages: {
+        Row: {
+          attempts: number;
+          batch_id: string;
+          body: string;
+          claimed_at: string;
+          created_at: string;
+          draft_id: string;
+          dry_run: boolean;
+          error: string | null;
+          follow_up_due_at: string | null;
+          id: string;
+          in_reply_to: string | null;
+          mailbox_id: string | null;
+          message_id: string;
+          next_attempt_at: string | null;
+          plan_id: string;
+          sent_at: string | null;
+          skip_reason: string | null;
+          status: string;
+          step: string;
+          subject: string;
+          to_email: string;
+          workspace_id: string;
+        };
+        Insert: {
+          attempts?: number;
+          batch_id: string;
+          body: string;
+          claimed_at?: string;
+          created_at?: string;
+          draft_id: string;
+          dry_run: boolean;
+          error?: string | null;
+          follow_up_due_at?: string | null;
+          id?: string;
+          in_reply_to?: string | null;
+          mailbox_id?: string | null;
+          message_id: string;
+          next_attempt_at?: string | null;
+          plan_id: string;
+          sent_at?: string | null;
+          skip_reason?: string | null;
+          status: string;
+          step?: string;
+          subject: string;
+          to_email: string;
+          workspace_id: string;
+        };
+        Update: {
+          attempts?: number;
+          batch_id?: string;
+          body?: string;
+          claimed_at?: string;
+          created_at?: string;
+          draft_id?: string;
+          dry_run?: boolean;
+          error?: string | null;
+          follow_up_due_at?: string | null;
+          id?: string;
+          in_reply_to?: string | null;
+          mailbox_id?: string | null;
+          message_id?: string;
+          next_attempt_at?: string | null;
+          plan_id?: string;
+          sent_at?: string | null;
+          skip_reason?: string | null;
+          status?: string;
+          step?: string;
+          subject?: string;
+          to_email?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sent_messages_batch_id_fkey";
+            columns: ["batch_id"];
+            isOneToOne: false;
+            referencedRelation: "batches";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sent_messages_draft_id_fkey";
+            columns: ["draft_id"];
+            isOneToOne: false;
+            referencedRelation: "target_drafts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sent_messages_mailbox_id_fkey";
+            columns: ["mailbox_id"];
+            isOneToOne: false;
+            referencedRelation: "mailboxes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sent_messages_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "link_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sent_messages_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       sites: {
         Row: {

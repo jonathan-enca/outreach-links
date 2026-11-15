@@ -136,3 +136,66 @@ export async function sendSmtp(
     return { ok: false, error: safeError(e, cred.password) };
   }
 }
+
+export interface OutreachMail {
+  from: { name: string; address: string };
+  to: string;
+  subject: string;
+  text: string;
+  messageId: string;
+  inReplyTo?: string;
+  references?: string;
+  headers: Record<string, string>;
+}
+
+export type OutreachResult =
+  { ok: true } | { ok: false; error: string; kind: "auth" | "permanent" | "temporary" };
+
+/**
+ * Envoi d'un message d'outreach (garde d'envoi vérifiée par l'appelant : `realSendingAllowed`).
+ * Classe l'échec : `auth` (identifiants refusés, la boîte doit être mise en pause), `permanent`
+ * (5xx : adresse ou contenu refusé, inutile de réessayer), `temporary` (réseau, 4xx).
+ */
+export async function sendOutreachMail(
+  ep: Endpoint,
+  cred: Credentials,
+  mail: OutreachMail,
+  opts: TransportOptions = {},
+): Promise<OutreachResult> {
+  try {
+    const ip = await resolveSafeHost(ep.host, opts.allowPrivate);
+    const transport = nodemailer.createTransport({
+      host: ip,
+      port: ep.port,
+      secure: isImplicitTls(ep.port),
+      requireTLS: !isImplicitTls(ep.port) && !opts.insecureTlsForTests && !opts.plaintextForTests,
+      ignoreTLS: opts.plaintextForTests === true,
+      auth: { user: cred.username, pass: cred.password },
+      tls: { servername: ep.host, rejectUnauthorized: !opts.insecureTlsForTests },
+      connectionTimeout: opts.timeoutMs ?? 10000,
+    });
+    try {
+      await transport.sendMail({
+        from: mail.from,
+        to: mail.to,
+        subject: mail.subject,
+        text: mail.text,
+        messageId: mail.messageId,
+        inReplyTo: mail.inReplyTo,
+        references: mail.references,
+        headers: mail.headers,
+      });
+    } finally {
+      transport.close();
+    }
+    return { ok: true };
+  } catch (e) {
+    const err = e as { code?: string; responseCode?: number };
+    const error = safeError(e, cred.password);
+    if (err.code === "EAUTH" || err.responseCode === 535) return { ok: false, error, kind: "auth" };
+    if (typeof err.responseCode === "number" && err.responseCode >= 500) {
+      return { ok: false, error, kind: "permanent" };
+    }
+    return { ok: false, error, kind: "temporary" };
+  }
+}
