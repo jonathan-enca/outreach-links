@@ -1,20 +1,29 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { AuditForm } from "@/features/public-audit/audit-form";
+import type { Metadata } from "next";
+import { Hero } from "@/features/home/hero";
+import { HowItWorks } from "@/features/home/how-it-works";
+import { Problem } from "@/features/home/problem";
+import { SiteHeader } from "@/features/home/site-header";
+import { TrustStrip } from "@/features/home/trust-strip";
+import { WhatItIs } from "@/features/home/what-it-is";
 import { t } from "@/lib/messages";
 
+export const metadata: Metadata = {
+  title: `${t.app.name} : ${t.home.hero.title}`,
+  description: t.app.description,
+};
+
+/** Home publique (MH.2) : en-tête, hero, réassurance, c'est quoi, problème, comment ça marche. La suite : MH.3. */
 export default function Home() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-5 px-4 py-10">
-      <p className="font-display text-lg font-semibold text-primary">{t.app.name}</p>
-      <h1 className="font-display text-4xl font-semibold tracking-tight">{t.home.title}</h1>
-      <p className="text-lg text-muted-foreground">{t.home.subtitle}</p>
-      <AuditForm />
-      <div>
-        <Button asChild variant="outline">
-          <Link href="/connexion">{t.home.signIn}</Link>
-        </Button>
-      </div>
-    </main>
+    <>
+      <SiteHeader />
+      <main id="contenu">
+        <Hero />
+        <TrustStrip />
+        <WhatItIs />
+        <Problem />
+        <HowItWorks />
+      </main>
+    </>
   );
 }
