@@ -686,3 +686,7 @@ Prochain sous-jalon : MH.2 (construction de la home).
 - Parcours rejoué en production avec une adresse jetable `autotest-…@mega-coloring.com` (supprimée ensuite avec son espace) : inscription -> écran « Vérifiez votre boîte mail » -> mail (gabarit français, lien direct) -> connecté dans `/app` ; mot de passe oublié -> mail (le gabarit « recovery » est bien appliqué désormais) -> lien ouvert dans un **navigateur vierge** -> `/reinitialiser` -> nouveau mot de passe -> `/app` -> reconnexion OK.
 - Reste à faire côté auth : page intermédiaire avec bouton « Continuer » pour les liens de confirmation et de récupération (un analyseur de liens qui ouvre le lien avant l'utilisateur le consomme) ; compte de démo `demo-…@mega-coloring.com` à supprimer sur demande de Jonathan ; l'audit lancé par le compte de démo (v1, échoué à l'étape backlinks avant correctif) reste en base.
 - Règle retenue : suivre un déploiement par SHA ; regrouper les changements (une fusion = un déploiement de production, branches `claude/*` sans prévisualisation).
+
+## Plafond des sites de test : 5 USD (15/11/2026, décision de Jonathan)
+
+- `TEST_COST_CAP_USD` passe de 50 à **5 USD** (`src/features/sites/test-domains.ts`) : même plafond de sécurité que `AUDIT_BUDGET.safetyCapUsd` ; il s'applique aux audits connectés et à l'audit public des sites de test (`remove-me.io`, `mega-coloring.com`). Les budgets 1 / 2 / 5 / 25 USD (cible, plafond d'audit, sécurité, quotidien) sont donc confirmés pour la sécurité ; la cible de 1 USD par audit reste à valider par mesure.
