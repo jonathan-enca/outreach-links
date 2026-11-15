@@ -517,3 +517,13 @@ Prochain sous-jalon : M6.2 (garde-fous et niveaux d'autonomie).
 - Backlog : favicon et image de partage au nom définitif ; mode sombre de l'application non prévu ; `app-nav` et écrans existants à revoir visuellement après MH.2.
 
 Prochain sous-jalon : MH.2 (construction de la home).
+
+## MH.2 : home FR, en-tête, hero et premières sections (15/11/2026)
+
+- **Fait** : en-tête collant 68 px (panneau latéral sur mobile, Échap pour fermer), hero (champ « votre site » = `AuditForm variant="hero"`, qui lance l'audit gratuit existant ; requêtes et thème facultatifs repliés dans un `details`), fenêtre « visite du produit » 16:9, bande de réassurance, sections « C'est quoi » (6 couples), « Le problème » (12 pastilles) et « Comment ça marche » (bande `.surface-night`, méthode en 6 étapes, maquette de l'application avec données de démonstration en `.example`).
+- **Vidéo (demande de Jonathan)** : l'emplacement est réservé (cadre 16:9, aucun décalage de mise en page). Quand la vidéo existera : déposer le MP4 dans `public/` et renseigner `PRODUCT_TOUR_VIDEO` dans `src/features/home/sections.ts` (`{ src, poster? }`). Sans valeur, le cadre affiche « Démonstration vidéo bientôt disponible ».
+- Fichiers : `src/features/home/*` (sections, en-tête, menu mobile, maquette, test), `src/app/page.tsx`, `messages/fr.ts` (`home.*`), `audit-form.tsx` (variante hero). `Button` accepte désormais `ref` (`ComponentProps<"button">`).
+- Choix : textes réécrits, vouvoiement ; nom uniquement via `t.app.name` ; aucun chiffre de preuve ni prix ; pas de numérotation de section (les « preuves » viendront en MH.3, éviter un 01, 02, 04). Liens d'en-tête limités aux sections existantes (Tarifs et FAQ à ajouter en MH.3). Test `home.test.ts` : ancres, pas de « garanti », pas de chiffre ni prix, vouvoiement.
+- Vérifié : tests (651), lint, typecheck, build verts ; Playwright bureau 1440 px et mobile 390 px, aucun débordement horizontal, menu mobile ouvert et fermé.
+- Non fait (MH.3) : preuves (seulement si chiffres réels après MB.2), qualité/pitch/suivi, fonctions, comparatif sobre, tarifs (grille à trancher, voir MN.2), FAQ, appel final, pied de page, JSON-LD, Lighthouse. Backlog : revoir `app-nav` et écrans existants avec la nouvelle DA.
+- Prochain sous-jalon : MH.3.
