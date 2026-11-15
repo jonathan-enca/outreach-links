@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { inngest } from "@/inngest/client";
+import { advanceChain } from "@/features/audits/chain";
 import {
   beginDiscovery,
   discoverQuery,
@@ -62,6 +63,17 @@ export const auditDiscover = inngest.createFunction(
       finalizeDiscovery(createServiceClient(), audit),
     );
     log.info("découverte terminée", { ...result });
+
+    // MA.6 : parcours unique, lance l'étape suivante si l'audit est en enchaînement automatique.
+    // Un échec ici ne doit jamais faire échouer l'étape déjà payée et terminée.
+    await step.run("chain-next", async () => {
+      try {
+        return await advanceChain(createServiceClient(), auditId, (e) => inngest.send(e));
+      } catch (error) {
+        log.warn("enchaînement impossible", { error: (error as Error).message });
+        return { started: null };
+      }
+    });
     return { skipped: false, perQuery, ...result };
   },
 );

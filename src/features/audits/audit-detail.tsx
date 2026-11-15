@@ -9,7 +9,10 @@ import {
 } from "@/features/opportunities/opportunities-section";
 import { DeadlinksSection, type DeadlinksView } from "@/features/deadlinks/deadlinks-section";
 import { ProfileSection, type ProfileView } from "@/features/profile/profile-section";
+import { AutoRefresh } from "@/features/public-audit/auto-refresh";
 import { AuditStatusBadge } from "./audit-status-badge";
+import type { ChainEstimate } from "./chain";
+import { ChainProgress, type ChainProgressView } from "./chain-progress";
 import { ConfirmAuditPanel } from "./confirm-audit-panel";
 import { formatUsd } from "./format";
 import type { AuditActionState } from "./service";
@@ -23,6 +26,10 @@ export interface AuditView {
   actualCostUsd: number | null;
   costCapUsd: number;
   perQuery: { query: string; usd: number }[];
+  /** Coût de tout le parcours (MA.6), absent sur les anciens audits. */
+  chain?: ChainEstimate | null;
+  /** Progression du parcours unique, seulement si l'audit est en enchaînement automatique. */
+  chainProgress?: ChainProgressView | null;
   errorMessage: string | null;
   /** Étape backlinks (M1.4), seulement pour un audit terminé. */
   backlinks?: BacklinksView;
@@ -65,11 +72,17 @@ export function AuditDetail({
         <AuditStatusBadge status={audit.status} />
       </div>
 
+      {audit.chainProgress && audit.status !== "estime" ? (
+        <ChainProgress view={audit.chainProgress} />
+      ) : null}
+      {audit.chainProgress?.stages.some((s) => s.state === "en_cours") ? <AutoRefresh /> : null}
+
       {awaitingConfirm && audit.estimatedCostUsd !== null ? (
         <ConfirmAuditPanel
           estimatedUsd={audit.estimatedCostUsd}
           capUsd={audit.costCapUsd}
           perQuery={audit.perQuery}
+          chain={audit.chain}
           confirmed={audit.status === "confirme"}
           action={confirmAction}
         />

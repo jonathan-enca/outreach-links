@@ -153,6 +153,35 @@ export const fr = {
       confirming: "Lancement…",
       retrySend: "Relancer l'envoi du travail",
     },
+    chain: {
+      title: "Coût total du parcours",
+      body: "Une seule confirmation : après la découverte des concurrents, les backlinks, le profil de liens et les opportunités s'enchaînent seuls, sans autre clic. Aucun email n'est envoyé.",
+      discovery: "Concurrents (recherches Google)",
+      backlinks: "Backlinks des concurrents",
+      profile: "Profil de liens, pages à pousser, écart",
+      opportunities: "Opportunités de liens",
+      total: "Coût total estimé",
+      uncovered:
+        "Le plafond de cet audit ne couvre pas toutes les étapes : celles qui manquent (ci-dessous) resteront à lancer à la main, sans frais supplémentaire.",
+      progressTitle: "Progression de l'audit",
+      progressBody:
+        "Les étapes s'enchaînent seules. Vous pouvez quitter cette page : elle se met à jour toute seule.",
+      stage: {
+        discover: "Concurrents",
+        backlinks: "Backlinks",
+        profile: "Profil de liens",
+        opportunities: "Opportunités",
+      },
+      state: {
+        attente: "En attente",
+        en_cours: "En cours",
+        termine: "Terminé",
+        echoue: "Échoué",
+        manuel: "À lancer à la main",
+      },
+      stopped:
+        "L'enchaînement s'est arrêté : relancez l'étape concernée dans la section correspondante.",
+    },
     running: {
       title: "Audit en cours",
       body: "La découverte des concurrents est en cours. Vous pouvez quitter cette page : actualisez-la dans une minute.",

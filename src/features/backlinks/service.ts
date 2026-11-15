@@ -31,9 +31,10 @@ export async function startBacklinks(
   auditId: string,
   getServiceClient: () => Client,
   sendEvent: SendEvent,
+  /** MA.6 : enchaînement automatique, sans session (id de l'utilisateur qui a confirmé l'audit). */
+  actorId?: string,
 ): Promise<AuditActionState> {
-  const { data: auth } = await supabase.auth.getUser();
-  const userId = auth.user?.id ?? null;
+  const userId = actorId ?? (await supabase.auth.getUser()).data.user?.id ?? null;
   if (!userId) return { status: "error", message: M.unauthenticated };
 
   const { data: audit } = await supabase

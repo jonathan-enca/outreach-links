@@ -5,6 +5,8 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { confirmAuditAction } from "@/features/audits/actions";
 import { AuditDetail, type AuditView } from "@/features/audits/audit-detail";
+import type { ChainEstimate } from "@/features/audits/chain";
+import { chainProgressView } from "@/features/audits/chain-progress";
 import { isPlanKey } from "@/features/audits/plans";
 import { startBacklinksAction } from "@/features/backlinks/actions";
 import type { BacklinksView } from "@/features/backlinks/backlinks-section";
@@ -235,7 +237,20 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
     };
   }
 
-  const details = (audit.estimate_details ?? {}) as { perQuery?: { query: string; usd: number }[] };
+  const details = (audit.estimate_details ?? {}) as {
+    perQuery?: { query: string; usd: number }[];
+    chain?: ChainEstimate;
+  };
+  const chainProgress =
+    audit.auto_chain && audit.status !== "estime"
+      ? chainProgressView({
+          auditStatus: audit.status,
+          backlinks: audit.backlinks_status,
+          profile: audit.profile_status,
+          opportunities: audit.opportunities_status,
+          uncovered: details.chain?.uncovered ?? [],
+        })
+      : null;
   const site = audit.sites as unknown as { domain: string } | null;
   const view: AuditView = {
     id: audit.id,
@@ -246,6 +261,8 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
     actualCostUsd: audit.actual_cost_usd === null ? null : Number(audit.actual_cost_usd),
     costCapUsd: Number(audit.cost_cap_usd),
     perQuery: details.perQuery ?? [],
+    chain: details.chain ?? null,
+    chainProgress,
     errorMessage: audit.error_message,
     backlinks,
     profile,

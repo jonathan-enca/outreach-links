@@ -206,6 +206,7 @@ export type Database = {
       audits: {
         Row: {
           actual_cost_usd: number | null;
+          auto_chain: boolean;
           backlinks_cost_usd: number | null;
           backlinks_error: string | null;
           backlinks_estimated_cost_usd: number | null;
@@ -259,6 +260,7 @@ export type Database = {
         };
         Insert: {
           actual_cost_usd?: number | null;
+          auto_chain?: boolean;
           backlinks_cost_usd?: number | null;
           backlinks_error?: string | null;
           backlinks_estimated_cost_usd?: number | null;
@@ -312,6 +314,7 @@ export type Database = {
         };
         Update: {
           actual_cost_usd?: number | null;
+          auto_chain?: boolean;
           backlinks_cost_usd?: number | null;
           backlinks_error?: string | null;
           backlinks_estimated_cost_usd?: number | null;
