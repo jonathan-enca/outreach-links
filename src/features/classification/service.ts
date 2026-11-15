@@ -31,7 +31,13 @@ export interface ClassifyOutcome {
 export async function runClassifyTick(deps: ClassifyDeps): Promise<ClassifyOutcome> {
   const { db } = deps;
   const now = (deps.now ?? (() => new Date()))();
-  const out: ClassifyOutcome = { examined: 0, classified: 0, waiting: 0, byCategory: {}, costUsd: 0 };
+  const out: ClassifyOutcome = {
+    examined: 0,
+    classified: 0,
+    waiting: 0,
+    byCategory: {},
+    costUsd: 0,
+  };
 
   const { data: rows, error } = await db
     .from("inbound_messages")

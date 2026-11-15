@@ -12,7 +12,8 @@ const QUOTE_HEADERS = [
   /^\s*_{5,}\s*$/,
 ];
 
-const OWN_FOOTER = /si vous ne souhaitez plus recevoir de message de ma part,? répondez\s*[«"“]?\s*stop\s*[»"”]?\.?/gi;
+const OWN_FOOTER =
+  /si vous ne souhaitez plus recevoir de message de ma part,? répondez\s*[«"“]?\s*stop\s*[»"”]?\.?/gi;
 
 export function stripQuoted(raw: string): string {
   const lines = raw.replace(/\r\n?/g, "\n").split("\n");
@@ -57,8 +58,8 @@ const INJECTION_PATTERNS: RegExp[] = [
   /\b(reponds|repondez|respond|reply|output|renvoie|return)\b.{0,20}\b(uniquement|only|exactement|exactly|json)\b/,
   /donnees_non_fiables/,
   /\bjson\b.{0,30}\b(category|categorie|confidence)\b/,
-  /\b(assistant|claude|gpt|llm|language model|modele de langage)\b.{0,60}\b(doit|must|should|please|merci de)\b/,
-  /\b(envoie|send|transfere|forward)\b.{0,40}\b(mot de passe|password|identifiants|credentials|api key|cle api)\b/,
+  /\b(assistant|claude|gpt|llm|language model|modele de langage)\b.{0,60}\b(doit|dois|devez|must|should|please|merci de)\b/,
+  /\b(envoi\w*|envoy\w*|send|transf\w*|forward)\b.{0,40}\b(mot de passe|password|identifiants|credentials|api key|cle api)\b/,
 ];
 
 export function detectInjection(text: string): boolean {

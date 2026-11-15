@@ -69,7 +69,8 @@ export async function classifyReply(
     return {
       ...hit,
       source: "regle",
-      needsReview: false,
+      // Les règles protectrices s'appliquent même si le message contient des consignes ; l'humain relit.
+      needsReview: injection,
       injectionSuspected: injection,
       model: null,
       costUsd: 0,

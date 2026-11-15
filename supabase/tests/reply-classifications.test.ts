@@ -183,7 +183,6 @@ describe.skipIf(!adminUrl)("classification des réponses : contraintes en base",
       [workspaceId, mailboxId, sent, mid, kind],
     );
 
-
   const classify = (
     c: Client,
     inboundId: string,

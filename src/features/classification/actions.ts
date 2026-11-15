@@ -1,11 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
-import {
-  CLASSIFY_LIMITS,
-  type Category,
-  type Classification,
-  type ProposedAction,
-} from "./types";
+import { CLASSIFY_LIMITS, type Category, type Classification, type ProposedAction } from "./types";
 
 type Db = SupabaseClient<Database>;
 
@@ -103,7 +98,11 @@ export interface ApplyContext {
 const isDup = (e: { code?: string } | null) => e?.code === "23505";
 
 /** Effets de bord idempotents (rejouables sans doublon après un passage interrompu). */
-export async function applyEffects(db: Db, plan: ActionPlan, ctx: ApplyContext): Promise<Date | null> {
+export async function applyEffects(
+  db: Db,
+  plan: ActionPlan,
+  ctx: ApplyContext,
+): Promise<Date | null> {
   if (plan.suppress) {
     const emails = new Set(
       [ctx.toEmail, ctx.fromEmail].filter((e): e is string => !!e).map((e) => e.toLowerCase()),
@@ -124,7 +123,5 @@ export async function applyEffects(db: Db, plan: ActionPlan, ctx: ApplyContext):
     });
     if (r.error && !isDup(r.error)) throw new Error(r.error.message);
   }
-  return plan.postponeDays
-    ? new Date(ctx.now.getTime() + plan.postponeDays * 86_400_000)
-    : null;
+  return plan.postponeDays ? new Date(ctx.now.getTime() + plan.postponeDays * 86_400_000) : null;
 }

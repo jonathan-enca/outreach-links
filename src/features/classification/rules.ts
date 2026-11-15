@@ -36,7 +36,7 @@ const COMPLAINT: RegExp[] = [
 ];
 
 /** « ce n'est pas du spam » n'est pas une plainte. */
-const NEGATED_SPAM = /\b(?:pas|not|n't|jamais)\s+(?:du\s+|de\s+|a\s+|un\s+|d')?spam/;
+const NEGATED_SPAM = /(?:\bpas|\bnot|n't|\bjamais)\s+(?:du\s+|de\s+|a\s+|un\s+|d')?spam/;
 
 function matchAny(patterns: RegExp[], text: string): RegExp | undefined {
   return patterns.find((p) => p.test(text));
@@ -45,7 +45,11 @@ function matchAny(patterns: RegExp[], text: string): RegExp | undefined {
 export function ruleClassify(input: ClassifierInput, cleanBody: string): RuleHit | null {
   // Le type posé par la lecture IMAP (en-têtes, DSN) décide seul pour ces deux catégories.
   if (input.inboundKind === "rebond") {
-    return { category: "rebond", confidence: 1, justification: "Rapport d'échec de livraison (DSN)." };
+    return {
+      category: "rebond",
+      confidence: 1,
+      justification: "Rapport d'échec de livraison (DSN).",
+    };
   }
   if (input.inboundKind === "reponse_automatique") {
     return {
@@ -56,7 +60,9 @@ export function ruleClassify(input: ClassifierInput, cleanBody: string): RuleHit
   }
 
   const text = normalize(`${input.subject ?? ""}\n${cleanBody}`);
-  const words = normalize(cleanBody).split(/[^a-z0-9']+/).filter(Boolean);
+  const words = normalize(cleanBody)
+    .split(/[^a-z0-9']+/)
+    .filter(Boolean);
 
   const complaintText = NEGATED_SPAM.test(text) ? text.replace(NEGATED_SPAM, " ") : text;
   if (matchAny(COMPLAINT, complaintText)) {
