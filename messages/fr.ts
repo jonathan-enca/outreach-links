@@ -646,14 +646,24 @@ export const fr = {
     signOut: "Se déconnecter",
     errorCallback:
       "Le lien est invalide ou a expiré. Reconnectez-vous ou demandez un nouveau lien.",
-    signupConfirm:
-      "Si cette adresse n'a pas encore d'espace, un email de confirmation vient de lui être envoyé : cliquez sur le lien qu'il contient. Sinon, connectez-vous, ou utilisez « Mot de passe oublié ? » si vous n'avez pas encore de mot de passe.",
+    signupConfirm: "Vérifiez votre boîte mail.",
+    checkInbox: {
+      title: "Vérifiez votre boîte mail",
+      signup:
+        "Si un espace peut être créé pour {email}, un lien de confirmation vient d'y être envoyé. Cliquez dessus pour ouvrir votre espace.",
+      reset:
+        "Si un espace existe pour {email}, un lien pour choisir un nouveau mot de passe vient d'y être envoyé.",
+      spam: "Rien reçu après quelques minutes ? Regardez dans vos courriers indésirables.",
+      otherAddress: "Utiliser une autre adresse",
+      haveAccount: "Vous avez déjà un espace ?",
+      signIn: "Se connecter",
+    },
     forgot: {
       title: "Mot de passe oublié",
       intro:
         "Entrez votre email : nous vous envoyons un lien pour choisir un nouveau mot de passe.",
       submit: "Envoyer le lien",
-      sent: "Si un espace existe pour cette adresse, un lien de réinitialisation vient d'être envoyé.",
+      sent: "Lien envoyé.",
       back: "Retour à la connexion",
     },
     reset: {
