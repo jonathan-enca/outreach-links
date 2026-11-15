@@ -1,0 +1,37 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Piste F : Cartographie du réseau</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;800&display=swap">
+<style>
+:root{--bg:#eef3ef;--ink:#10241f;--mut:#51655e;--line:#cfdad3;--pri:#0f5c4d;--node:#ff6a47;--card:#fff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Manrope,sans-serif;font-variant-numeric:tabular-nums}
+.w{max-width:1140px;margin:0 auto;padding:0 28px}
+header{display:flex;justify-content:space-between;align-items:center;height:66px}
+.logo{font-weight:800;font-size:20px;display:flex;gap:9px;align-items:center}.logo svg{width:26px;height:26px}
+nav{display:flex;gap:26px;align-items:center;color:var(--mut);font-size:15px;font-weight:500}.btn{background:var(--pri);color:#fff;height:42px;padding:0 18px;border-radius:999px;display:inline-flex;align-items:center;font-weight:700;font-size:15px}
+.hero{display:grid;grid-template-columns:1fr 1.05fr;gap:40px;align-items:center;padding:40px 0 64px}
+h1{font-size:54px;line-height:1.04;letter-spacing:-.035em;font-weight:800;margin:0}.lead{font-size:18px;color:var(--mut);max-width:46ch;margin:18px 0 26px}
+.form{display:flex;gap:6px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px;max-width:480px}.form span{flex:1;padding:9px 16px;color:var(--mut)}.form .btn{color:#fff}
+.map{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:14px;box-shadow:0 20px 40px -24px rgb(16 36 31/.35)}
+.map svg{width:100%;height:auto;display:block}
+.leg{display:flex;gap:16px;font-size:13px;color:var(--mut);padding:6px 8px 2px;flex-wrap:wrap}.leg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.cols{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;padding-bottom:64px}
+.c{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px}.c h2{font-size:20px;margin:0 0 6px;font-weight:800;letter-spacing:-.02em}.c p{margin:0;color:var(--mut);font-size:15px}
+</style></head><body><div class="w">
+<header><div class="logo"><svg viewBox="0 0 26 26"><g stroke="#0f5c4d" stroke-width="2" fill="none"><path d="M5 19 13 7l8 12"/></g><circle cx="5" cy="19" r="3" fill="#0f5c4d"/><circle cx="21" cy="19" r="3" fill="#0f5c4d"/><circle cx="13" cy="7" r="3.4" fill="#ff6a47"/></svg>Autolink.ai</div><nav><span>Méthode</span><span>Tarifs</span><span>Questions</span><span class="btn">Audit gratuit</span></nav></header>
+<section class="hero"><div><h1>Voyez qui peut vous citer, avant d'écrire à personne.</h1>
+<p class="lead">L'audit cartographie votre secteur : concurrents réels, sites qui renvoient vers eux, cibles accessibles. Vous validez le plan, puis les demandes partent de votre boîte.</p>
+<div class="form"><span>votre-site.fr</span><span class="btn" style="flex:0;white-space:nowrap">Lancer l'audit gratuit</span></div></div>
+<div class="map"><svg viewBox="0 0 560 380" role="img" aria-label="Carte du réseau de liens">
+<g stroke="#cfdad3" stroke-width="1.4" fill="none"><path d="M280 190 130 90M280 190 120 250M280 190 430 80M280 190 450 260M280 190 300 330"/></g>
+<g stroke="#ff6a47" stroke-width="2.4" fill="none"><path d="M280 190 150 140"/><path d="M280 190 400 150"/><path d="M280 190 330 60"/></g>
+<g font-size="12" font-weight="600" fill="#10241f">
+<circle cx="280" cy="190" r="30" fill="#0f5c4d"/><text x="280" y="195" text-anchor="middle" fill="#fff">votre site</text>
+<circle cx="150" cy="140" r="12" fill="#ff6a47"/><text x="168" y="132">guide-photo.fr</text>
+<circle cx="400" cy="150" r="12" fill="#ff6a47"/><text x="418" y="142">mairie.fr</text>
+<circle cx="330" cy="60" r="12" fill="#ff6a47"/><text x="346" y="56">asso-photo.org</text>
+<circle cx="130" cy="90" r="9" fill="#fff" stroke="#51655e" stroke-width="2"/><text x="146" y="86" fill="#51655e">concurrent</text>
+<circle cx="120" cy="250" r="9" fill="#fff" stroke="#51655e" stroke-width="2"/><text x="136" y="254" fill="#51655e">vend des liens</text>
+<circle cx="450" cy="260" r="9" fill="#fff" stroke="#51655e" stroke-width="2"/><text x="300" y="285" fill="#51655e" x="" ></text>
+<circle cx="300" cy="330" r="9" fill="#fff" stroke="#51655e" stroke-width="2"/><text x="316" y="334" fill="#51655e">hors sujet</text></g></svg>
+<div class="leg"><span><i style="background:#ff6a47"></i>Cible retenue</span><span><i style="background:#fff;border:2px solid #51655e"></i>Écartée, avec motif</span><span><i style="background:#0f5c4d"></i>Votre site</span></div></div></section>
+<section class="cols"><div class="c"><h2>Un audit par page</h2><p>Concurrents réels de la SERP, écart de domaines référents.</p></div><div class="c"><h2>Des cibles triées</h2><p>Un motif lisible pour chaque site écarté.</p></div><div class="c"><h2>Un lot que vous validez</h2><p>Rien ne part sans votre accord. Une relance au plus.</p></div></section>
+</div></body></html>
