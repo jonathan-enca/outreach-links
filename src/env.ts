@@ -37,6 +37,8 @@ const schema = z.object({
   /** Finder et vérificateur d'emails (M3.2) : sans clé, rien n'est jamais « envoyable ». */
   EMAIL_FINDER_PROVIDER: z.enum(["hunter"]).default("hunter"),
   EMAIL_FINDER_API_KEY: z.string().min(1).optional(),
+  /** Vérification gratuite (DNS) des emails publiés par la cible sur son domaine ; `none` la coupe. */
+  EMAIL_FREE_VERIFY: z.enum(["mx", "none"]).default("mx"),
   /** LLM (optionnels : erreur claire à l'usage). Anthropic est la cible ; OpenAI sert au développement. */
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   OPENAI_API_KEY: z.string().min(1).optional(),

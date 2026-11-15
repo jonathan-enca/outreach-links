@@ -5,11 +5,16 @@ import {
 } from "@/features/triage/page-reader";
 import { contactCandidates, extractEmails, isOwnDomainEmail, rankEmails } from "./extract";
 import { CONTACT_LIMITS } from "./limits";
-import type { EmailProvider } from "./provider";
+import type { EmailProvider, FreeVerifier } from "./provider";
 import type { ContactItem, ContactResult, Verification } from "./types";
 
 export interface InvestigateDeps extends Omit<PageReaderDeps, "maxRequests"> {
   provider: EmailProvider | null;
+  /**
+   * Vérificateur GRATUIT (DNS) : n'est utilisé que pour un email publié par la cible elle-même,
+   * sur son propre domaine, quand aucun vérificateur payant n'a pu trancher.
+   */
+  freeVerifier?: FreeVerifier | null;
   /** Domaines et emails à ne jamais contacter (liste de suppression). */
   isSuppressed: (email: string | null, domain: string) => boolean;
   /** Appels payants encore autorisés pour l'exécution (décrémenté par l'appelant). */
@@ -87,14 +92,28 @@ export async function investigateItem(
   const contactUrl = contactPage?.url ?? formPage?.url ?? null;
   let paid = 0;
 
-  const verify = async (email: string): Promise<Verification> => {
-    if (!deps.provider || deps.paidCallsLeft - paid <= 0) return "non_verifie";
-    paid++;
-    try {
-      return await deps.provider.verify(email);
-    } catch {
-      return "non_verifie";
+  let verifiedBy: string | null = null;
+  const verify = async (email: string, source: "page" | "finder"): Promise<Verification> => {
+    if (deps.provider && deps.paidCallsLeft - paid > 0) {
+      paid++;
+      try {
+        const v = await deps.provider.verify(email);
+        verifiedBy = deps.provider.name;
+        return v;
+      } catch {
+        /* repli sur la vérification gratuite */
+      }
     }
+    if (deps.freeVerifier && source === "page" && isOwnDomainEmail(email, domain)) {
+      try {
+        const v = await deps.freeVerifier.verify(email);
+        if (v !== "non_verifie") verifiedBy = deps.freeVerifier.name;
+        return v;
+      } catch {
+        return "non_verifie";
+      }
+    }
+    return "non_verifie";
   };
 
   const finish = async (email: string, source: "page" | "finder"): Promise<ContactResult> => {
@@ -109,7 +128,7 @@ export async function investigateItem(
         paidCalls: paid,
       };
     }
-    const v = await verify(email);
+    const v = await verify(email, source);
     const common = {
       ...out,
       email,
@@ -118,7 +137,7 @@ export async function investigateItem(
       contactUrl,
       paidCalls: paid,
     };
-    const verifier = deps.provider && v !== "non_verifie" ? deps.provider.name : null;
+    const verifier = v !== "non_verifie" ? verifiedBy : null;
     if (v === "valide") {
       return {
         ...common,
@@ -126,9 +145,11 @@ export async function investigateItem(
         status: "email_verifie",
         sendable: true,
         reason:
-          source === "page"
-            ? "Email visible sur le site, vérifié valide."
-            : "Email trouvé par recherche, vérifié valide.",
+          verifier === "mx"
+            ? "Email publié par le site sur son propre domaine, domaine de messagerie vérifié (DNS). Vérification gratuite : un rebond éventuel arrêtera les envois."
+            : source === "page"
+              ? "Email visible sur le site, vérifié valide."
+              : "Email trouvé par recherche, vérifié valide.",
       };
     }
     if (v === "invalide") {
