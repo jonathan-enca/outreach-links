@@ -802,7 +802,7 @@ export const fr = {
       siteNotFound: "Site introuvable.",
       invalid: "Vérifiez les informations saisies.",
       themeInvalid: "Indiquez le thème de votre site en quelques mots (2 à 60 caractères).",
-      queriesMissing: "Indiquez au moins une recherche à surveiller.",
+      queriesMissing: "Indiquez le thème de votre site pour que nous puissions lancer l'audit.",
       costChanged:
         "Le coût ou les recherches ont changé depuis l'affichage. Rechargez la page pour revoir le total avant de lancer.",
     },
@@ -823,7 +823,11 @@ export const fr = {
       audienceHint: "Une personne ou un groupe par ligne.",
       resources: "Pages à faire citer",
       resourcesHint:
-        "Les pages de votre site qu'un éditeur aurait intérêt à citer. Une par ligne : adresse | titre court.",
+        "Cochez les pages de votre site qu'un éditeur aurait intérêt à citer, en plus de l'accueil. Décochée, une page n'est simplement pas proposée comme cible d'un lien.",
+      resourcesNone:
+        "Nous n'avons pas trouvé d'autre page à proposer : seule l'accueil sera citée. Vous pourrez affiner après l'audit.",
+      homePage: "Page d'accueil",
+      homeAlways: "Toujours incluse",
       names: "Façons d'écrire votre nom",
       namesHint:
         "Une par ligne. Elles servent à retrouver les sites qui parlent de vous sans vous lier.",
@@ -833,7 +837,7 @@ export const fr = {
       tone: "Ton",
       messages: {
         resourceInvalid:
-          "Chaque page à faire citer doit être une adresse complète de votre site, une par ligne : adresse | titre court.",
+          "Une page à faire citer n'est pas une adresse complète de votre site. Rechargez la page et réessayez.",
         personaInvalid:
           "Chaque profil tient sur une ligne en trois parties : qui | où on les trouve | pourquoi ils vous citeraient.",
         personasMissing: "Indiquez au moins deux profils de sites qui pourraient vous citer.",
@@ -845,15 +849,29 @@ export const fr = {
     },
     review: {
       pageDescription:
-        "Relisez ce que nous avons compris de votre site, vérifiez le thème et les recherches, puis confirmez le coût une seule fois. Rien n'est envoyé.",
+        "Relisez ce que nous avons compris de votre site, choisissez votre objectif, puis confirmez le coût une seule fois. Rien n'est envoyé.",
       title: "Voici ce que nous avons compris",
-      body: "Corrigez si besoin : ces recherches servent à trouver vos vrais concurrents dans Google, puis les sites qui peuvent vous citer.",
+      body: "Corrigez si besoin : le thème et le profil ci-dessous guident la recherche des sites qui peuvent vous citer.",
       domain: "Site",
       theme: "Thème",
       themeHint: "Quelques mots, sans le nom de votre marque.",
-      queries: "Recherches à surveiller",
-      queriesHint:
-        "Ce que vos clients tapent dans Google. Une à trois recherches ; plus il y en a, plus le coût augmente.",
+      queriesTitle: "Comment nous cherchons vos concurrents",
+      queriesNote:
+        "Pour repérer vos vrais concurrents, nous lançons quelques recherches Google déduites automatiquement de votre thème : vous n'avez rien à saisir. Elles ne servent qu'à établir la liste de vos concurrents ; les sites à contacter seront cherchés ensuite à partir des profils qui peuvent vous citer.",
+      goal: {
+        legend: "Votre objectif",
+        hint: "Vous pourrez le changer plus tard. Dans les deux cas, nous visons l'autorité et la visibilité de votre site, sans promesse de résultat.",
+        authority: {
+          label: "Gagner en autorité générale",
+          badge: "Par défaut",
+          body: "La page citée est votre accueil. Les ancres sont des noms de marque ou des adresses, ce qui reste naturel et sûr.",
+        },
+        keywords: {
+          label: "Faire monter des mots-clés précis",
+          body: "Les mots-clés ne se choisissent pas maintenant : après l'audit, dans le Plan de liens, parmi les mots-clés sur lesquels votre site apparaît réellement.",
+        },
+        invalid: "Choisissez un objectif parmi les deux propositions.",
+      },
       query: "Recherche",
       emptyDeduction:
         "Nous n'avons pas pu lire votre site pour en déduire le thème. Indiquez-le ci-dessous : une seule information suffit.",
@@ -1223,6 +1241,31 @@ export const fr = {
     },
   },
   plan: {
+    keywords: {
+      title: "Mots-clés à faire monter",
+      body: "Vous avez choisi de faire monter des mots-clés précis. Cochez jusqu'à {max} mots-clés parmi ceux sur lesquels votre site apparaît réellement : ils orienteront les pages citées et les ancres, pour gagner en autorité et en visibilité sur ces recherches.",
+      empty:
+        "L'audit n'a pas encore trouvé de mots-clés sur lesquels votre site apparaît. Ils s'afficheront ici dès que les pages de l'audit seront analysées ; votre objectif est déjà enregistré.",
+      position: "position {n}",
+      volume: "{n} recherches par mois",
+      save: "Enregistrer mes mots-clés",
+      saving: "Enregistrement...",
+      authority: {
+        title: "Objectif : gagner en autorité générale",
+        body: "La page citée est votre accueil et les ancres sont des noms de marque ou des adresses. Pour viser des mots-clés précis, changez d'objectif au prochain lancement d'un audit.",
+      },
+      messages: {
+        unauthenticated: "Votre session a expiré. Reconnectez-vous.",
+        notFound: "Audit introuvable.",
+        wrongGoal:
+          "Votre objectif actuel est l'autorité générale : il n'y a pas de mots-clés à choisir.",
+        unknown: "Un mot-clé choisi ne fait pas partie de ceux de votre site. Rechargez la page.",
+        tooMany: "Choisissez {max} mots-clés au plus.",
+        saveError: "Impossible d'enregistrer vos mots-clés. Réessayez dans un instant.",
+        saved: "{count} mot(s)-clé(s) enregistré(s).",
+        cleared: "Aucun mot-clé retenu.",
+      },
+    },
     title: "Plan de liens",
     description:
       "Choisissez les opportunités à travailler, ordonnez-les, puis validez le plan. Rien ne part sans cette validation.",

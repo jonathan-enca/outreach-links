@@ -18,6 +18,10 @@ export function profileToFields(p: BrandProfile | null) {
     offer: p?.offer ?? "",
     audience: (p?.audience ?? []).join("\n"),
     resources: (p?.linkable_resources ?? []).map((r) => `${r.url} | ${r.title}`).join("\n"),
+    cited: (p?.linkable_resources ?? [])
+      .filter((r) => r.selected !== false)
+      .map((r) => r.url)
+      .join("\n"),
     names: (p?.name_variants ?? []).join("\n"),
     personas: (p?.personas ?? []).map((x) => `${x.label} | ${x.sites} | ${x.reason}`).join("\n"),
     tone: p?.tone ?? "",
@@ -40,11 +44,17 @@ export function parseProfileForm(
   ctx: { domain: string; language: string },
 ): ProfileFormResult {
   const get = (k: string) => String(formData.get(`profile_${k}`) ?? "");
+  // MT.2a : les pages candidates arrivent une par champ caché `profile_res_all` (adresse | titre) ;
+  // les cases cochées arrivent dans `profile_res_on` (adresses). Sans champ caché, on lit l'ancienne
+  // zone de texte `profile_resources` (toutes les pages sont alors cochées).
+  const allRes = formData.getAll("profile_res_all").map(String);
+  const onRes = new Set(formData.getAll("profile_res_on").map((v) => String(v).trim()));
   const raw = {
     activity: get("activity").trim(),
     offer: get("offer").trim(),
     audience: lines(get("audience")),
-    resources: lines(get("resources")),
+    resources:
+      allRes.length > 0 ? allRes.map((l) => l.trim()).filter(Boolean) : lines(get("resources")),
     names: lines(get("names")),
     personas: lines(get("personas")),
     tone: get("tone").trim(),
@@ -60,7 +70,7 @@ export function parseProfileForm(
   }
   const domain = ctx.domain.replace(/^www\./, "");
 
-  const resources: { url: string; title: string }[] = [];
+  const resources: { url: string; title: string; selected: boolean }[] = [];
   for (const l of raw.resources) {
     const [url = "", ...rest] = l.split("|").map((x) => x.trim());
     const title = rest.join(" | ");
@@ -72,7 +82,11 @@ export function parseProfileForm(
       ok = false;
     }
     if (!ok) return { status: "error", message: M.resourceInvalid };
-    resources.push({ url, title: title || url });
+    resources.push({
+      url,
+      title: title || url,
+      selected: allRes.length > 0 ? onRes.has(url) : true,
+    });
   }
 
   const personas: { label: string; sites: string; reason: string }[] = [];

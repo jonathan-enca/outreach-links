@@ -4,9 +4,12 @@ import { notFound, redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import {
   moveOpportunityAction,
+  saveTargetKeywordsAction,
   selectOpportunityAction,
   validatePlanAction,
 } from "@/features/plan/actions";
+import { loadKeywordChoice } from "@/features/plan/keywords";
+import { KeywordsSection } from "@/features/plan/keywords-section";
 import { PlanEditor } from "@/features/plan/plan-editor";
 import { loadPlan } from "@/features/plan/service";
 import { ContactsSection } from "@/features/contacts/contacts-section";
@@ -35,6 +38,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   if (!auth.user) redirect("/connexion");
   const view = await loadPlan(supabase, id);
   if (!view) notFound();
+  const keywordChoice = await loadKeywordChoice(supabase, id);
   const triage = await loadTriage(supabase, id);
   const contacts = await loadContacts(supabase, id);
   const drafts = await loadDrafts(supabase, id);
@@ -47,6 +51,11 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
           {t.plan.back}
         </Link>
       </p>
+      {keywordChoice ? (
+        <div className="mb-6">
+          <KeywordsSection view={keywordChoice} save={saveTargetKeywordsAction.bind(null, id)} />
+        </div>
+      ) : null}
       <PlanEditor
         view={view}
         select={selectOpportunityAction.bind(null, id)}

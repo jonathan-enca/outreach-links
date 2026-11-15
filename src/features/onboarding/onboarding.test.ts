@@ -220,78 +220,129 @@ describe("aperçu et lancement", () => {
     expect(service.tables.audits![0]).toMatchObject({ status: "estime" });
   });
 
-  it("les corrections du thème et des requêtes sont enregistrées et suivies par l'audit estimé", async () => {
+  it("la correction du thème est enregistrée ; les recherches internes restent celles déduites", async () => {
     const { user, service, getService } = setup({ sites: [SITE] });
     const sendEvent = vi.fn<(...a: unknown[]) => Promise<unknown>>(async () => ({}));
-    // 1er essai : coût refusé, l'audit reste « estimé » avec les anciennes requêtes.
-    await launchJourney(
-      user.client,
-      "site-1",
-      form({
-        theme: "coloriages",
-        query1: "coloriage licorne",
-        query2: "coloriage chat",
-        query3: "coloriage dinosaure",
-        acceptedUsd: "0.001",
-      }),
-      getService,
-      sendEvent,
-    );
-    // 2e essai : la personne corrige à une seule requête et accepte le nouveau total.
     const res = await launchJourney(
       user.client,
       "site-1",
-      form({ theme: "Coloriages Enfants", query1: "Coloriage  licorne", acceptedUsd: "5" }),
+      form({ theme: "Coloriages  Enfants", acceptedUsd: "5" }),
       getService,
       sendEvent,
     );
     expect(res.status).toBe("ok");
     expect(user.tables.sites![0]).toMatchObject({
       niche: "coloriages enfants",
-      priority_queries: ["coloriage licorne"],
+      priority_queries: SITE.priority_queries,
     });
     expect(service.tables.audits![0]).toMatchObject({
       status: "confirme",
-      queries: ["coloriage licorne"],
+      queries: SITE.priority_queries,
     });
     expect(sendEvent).toHaveBeenCalledTimes(1);
   });
 
-  it("exige thème et au moins une recherche", async () => {
+  it("exige un thème ; le formulaire ne contient plus de recherches à saisir", async () => {
     const { user, getService } = setup({ sites: [SITE] });
     const sendEvent = vi.fn();
     const noTheme = await launchJourney(
       user.client,
       "site-1",
-      form({ theme: "", query1: "coloriage", acceptedUsd: "1" }),
-      getService,
-      sendEvent,
-    );
-    const noQuery = await launchJourney(
-      user.client,
-      "site-1",
-      form({ theme: "coloriages", acceptedUsd: "1" }),
+      form({ theme: "", acceptedUsd: "1" }),
       getService,
       sendEvent,
     );
     expect(noTheme.status).toBe("error");
-    expect(noQuery.status).toBe("error");
     expect(sendEvent).not.toHaveBeenCalled();
   });
 
-  it("saveCorrections enregistre thème et requêtes sans rien lancer", async () => {
+  it("saveCorrections enregistre le thème et tire les recherches internes du thème (repli MA.4)", async () => {
     const { user, service } = setup({ sites: [{ ...SITE, niche: null, priority_queries: [] }] });
-    const res = await saveCorrections(
-      user.client,
-      "site-1",
-      form({ theme: "Coloriages", query1: "coloriage licorne" }),
-    );
+    const res = await saveCorrections(user.client, "site-1", form({ theme: "Coloriages" }));
     expect(res.status).toBe("ok");
     expect(user.tables.sites![0]).toMatchObject({
       niche: "coloriages",
-      priority_queries: ["coloriage licorne"],
+      priority_queries: ["coloriages", "coloriages en ligne", "coloriages guide"],
     });
     expect(service.tables.audits ?? []).toHaveLength(0);
+  });
+
+  describe("objectif (MT.2a)", () => {
+    it("par défaut l'objectif est l'autorité générale ; sans objectif envoyé, on garde l'actuel", async () => {
+      const { user, getService } = setup({
+        sites: [{ ...SITE, goal: "mots_cles" }],
+      });
+      expect((await getLaunchPreview(setup({ sites: [SITE] }).user.client, "site-1"))!.goal).toBe(
+        "autorite_generale",
+      );
+      await launchJourney(
+        user.client,
+        "site-1",
+        form({ theme: "coloriages", acceptedUsd: "5" }),
+        getService,
+        vi.fn(async () => ({})),
+      );
+      expect(user.tables.sites![0]).toMatchObject({ goal: "mots_cles" });
+    });
+
+    it("choisir l'autorité générale vide les mots-clés retenus", async () => {
+      const { user, getService } = setup({
+        sites: [{ ...SITE, goal: "mots_cles", target_keywords: ["a"] }],
+      });
+      const preview = (await getLaunchPreview(user.client, "site-1"))!;
+      expect(preview.goal).toBe("mots_cles");
+      const res = await launchJourney(
+        user.client,
+        "site-1",
+        form({
+          theme: "coloriages",
+          goal: "autorite_generale",
+          acceptedUsd: String(preview.totalUsd),
+        }),
+        getService,
+        vi.fn(async () => ({})),
+      );
+      expect(res.status).toBe("ok");
+      expect(user.tables.sites![0]).toMatchObject({
+        goal: "autorite_generale",
+        target_keywords: [],
+      });
+    });
+
+    it("« mots-clés » est enregistré sans choisir de mot-clé maintenant", async () => {
+      const { user, getService } = setup({ sites: [SITE] });
+      const preview = (await getLaunchPreview(user.client, "site-1"))!;
+      const res = await launchJourney(
+        user.client,
+        "site-1",
+        form({ theme: "coloriages", goal: "mots_cles", acceptedUsd: String(preview.totalUsd) }),
+        getService,
+        vi.fn(async () => ({})),
+      );
+      expect(res.status).toBe("ok");
+      expect(user.tables.sites![0]).toMatchObject({ goal: "mots_cles" });
+      expect(user.tables.sites![0]!.target_keywords ?? []).toEqual([]);
+      expect(
+        user.tables.events!.find((e) => e.type === "onboarding.launched")!.payload,
+      ).toMatchObject({
+        goal: "mots_cles",
+      });
+    });
+
+    it("un objectif inconnu est refusé avant tout audit", async () => {
+      const { user, service, getService } = setup({ sites: [SITE] });
+      const sendEvent = vi.fn();
+      const res = await launchJourney(
+        user.client,
+        "site-1",
+        form({ theme: "coloriages", goal: "garanti", acceptedUsd: "5" }),
+        getService,
+        sendEvent,
+      );
+      expect(res.status).toBe("error");
+      expect(service.tables.audits ?? []).toHaveLength(0);
+      expect(sendEvent).not.toHaveBeenCalled();
+    });
   });
 });
 
