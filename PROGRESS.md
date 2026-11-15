@@ -678,3 +678,11 @@ Prochain sous-jalon : MH.2 (construction de la home).
 - Tests : `beta.test.ts` (6 cas), service existant mis à jour.
 - **Pas fait / à noter** : le plafond de sécurité de 5 USD par audit n'est pas imposé aux sites de test (`TEST_COST_CAP_USD` = 50 USD, décision antérieure de Jonathan, MA.8) ; les quotas d'opportunités par type de MT.3 viendront avec la collecte ; le tableau de bord de coût reste MT.7. Valeurs de budget (1, 2, 5 et 25 USD) proposées, à confirmer.
 - Prochain sous-jalon : **MT.1 (profil de marque)**.
+
+## Production rétablie et auth validée de bout en bout (15/11/2026, 21:00 UTC)
+
+- La limite Vercel s'est libérée plus tôt que prévu (fenêtre glissante) : la fusion #76 est **en production** (vérifié par SHA, `canonical` = `https://outreach-links.vercel.app`, section Tactiques présente, `BETA_MODE` actif). Rappels programmés supprimés.
+- `site_url` Supabase remis à `https://outreach-links.vercel.app` (le contournement `/auth/recuperation` n'est plus nécessaire).
+- Parcours rejoué en production avec une adresse jetable `autotest-…@mega-coloring.com` (supprimée ensuite avec son espace) : inscription -> écran « Vérifiez votre boîte mail » -> mail (gabarit français, lien direct) -> connecté dans `/app` ; mot de passe oublié -> mail (le gabarit « recovery » est bien appliqué désormais) -> lien ouvert dans un **navigateur vierge** -> `/reinitialiser` -> nouveau mot de passe -> `/app` -> reconnexion OK.
+- Reste à faire côté auth : page intermédiaire avec bouton « Continuer » pour les liens de confirmation et de récupération (un analyseur de liens qui ouvre le lien avant l'utilisateur le consomme) ; compte de démo `demo-…@mega-coloring.com` à supprimer sur demande de Jonathan ; l'audit lancé par le compte de démo (v1, échoué à l'étape backlinks avant correctif) reste en base.
+- Règle retenue : suivre un déploiement par SHA ; regrouper les changements (une fusion = un déploiement de production, branches `claude/*` sans prévisualisation).
