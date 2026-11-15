@@ -1,3 +1,4 @@
+import { promises as dns } from "node:dns";
 import type { Verification } from "./types";
 
 /** Candidat renvoyé par un finder d'emails (recherche par domaine). */
@@ -85,4 +86,50 @@ export function createProviderFromEnv(
     return createHunterProvider(e.EMAIL_FINDER_API_KEY, fetchImpl);
   }
   return null;
+}
+
+/** Vérificateur gratuit : sans appel payant. */
+export interface FreeVerifier {
+  name: string;
+  verify(email: string): Promise<Verification>;
+}
+
+/** Domaines jetables courants : jamais un contact éditorial. */
+const DISPOSABLE = new Set([
+  "mailinator.com",
+  "yopmail.com",
+  "yopmail.fr",
+  "guerrillamail.com",
+  "10minutemail.com",
+  "tempmail.com",
+  "trashmail.com",
+  "sharklasers.com",
+]);
+
+type MxResolver = (domain: string) => Promise<{ exchange: string }[]>;
+
+/**
+ * Vérification DNS gratuite : le domaine doit exister, ne pas être jetable et publier au moins
+ * un serveur de messagerie réel (MX ; le « null MX » `.` signifie « aucun mail »). Elle ne prouve
+ * PAS que la boîte existe : on ne l'applique qu'à un email que le site publie lui-même sur son
+ * propre domaine, et les rebonds (M4) restent le filet de sécurité.
+ */
+export function createMxVerifier(resolveMx: MxResolver = (d) => dns.resolveMx(d)): FreeVerifier {
+  return {
+    name: "mx",
+    async verify(email) {
+      const domain = email.split("@")[1]?.toLowerCase();
+      if (!domain || !/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) return "invalide";
+      if (DISPOSABLE.has(domain)) return "invalide";
+      try {
+        const records = await resolveMx(domain);
+        const real = records.filter((r) => r.exchange && r.exchange !== ".");
+        return real.length > 0 ? "valide" : "invalide";
+      } catch (e) {
+        const code = (e as { code?: string }).code;
+        if (code === "ENOTFOUND" || code === "ENODATA") return "invalide";
+        return "inconnu"; // panne DNS, délai : jamais « valide » par défaut
+      }
+    },
+  };
 }

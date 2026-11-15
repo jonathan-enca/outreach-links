@@ -15,6 +15,7 @@ import {
 import { investigateItem, type InvestigateDeps } from "./investigate";
 import {
   createHunterProvider,
+  createMxVerifier,
   createProviderFromEnv,
   mapHunterStatus,
   type EmailProvider,
@@ -331,6 +332,87 @@ describe("investigateItem", () => {
     const r = await investigateItem(item("blog.fr", "https://blog.fr/p"), deps(robots));
     expect(r.status).toBe("introuvable");
     expect(w.hits).toHaveLength(0);
+  });
+});
+
+describe("vérification gratuite (DNS)", () => {
+  const mx = (records: string[]) =>
+    createMxVerifier(async () => records.map((exchange) => ({ exchange })));
+  const err = (code: string) =>
+    createMxVerifier(async () => {
+      throw Object.assign(new Error(code), { code });
+    });
+
+  it("valide un domaine avec MX ; invalide sans MX, null MX, inexistant ou jetable ; inconnu si panne DNS", async () => {
+    expect(await mx(["mx.blog.fr"]).verify("a@blog.fr")).toBe("valide");
+    expect(await mx([]).verify("a@blog.fr")).toBe("invalide");
+    expect(await mx(["."]).verify("a@blog.fr")).toBe("invalide");
+    expect(await err("ENOTFOUND").verify("a@blog.fr")).toBe("invalide");
+    expect(await err("ENODATA").verify("a@blog.fr")).toBe("invalide");
+    expect(await err("ETIMEOUT").verify("a@blog.fr")).toBe("inconnu");
+    expect(await mx(["mx.yopmail.com"]).verify("a@yopmail.com")).toBe("invalide");
+  });
+
+  const page = html("<p>contact@blog.fr</p>");
+  it("email publié sur le domaine de la cible + MX : envoyable, vérificateur « mx »", async () => {
+    const w = web({ "https://blog.fr/p": page });
+    const r = await investigateItem(
+      item("blog.fr", "https://blog.fr/p"),
+      deps(w.fetch, { freeVerifier: mx(["mx.blog.fr"]) }),
+    );
+    expect(r).toMatchObject({
+      status: "email_verifie",
+      sendable: true,
+      verifier: "mx",
+      paidCalls: 0,
+    });
+  });
+
+  it("sans MX : invalide, jamais envoyable ; panne DNS : à vérifier", async () => {
+    const w = web({ "https://blog.fr/p": page });
+    const none = await investigateItem(
+      item("blog.fr", "https://blog.fr/p"),
+      deps(w.fetch, { freeVerifier: mx([]) }),
+    );
+    expect(none).toMatchObject({ status: "email_invalide", sendable: false });
+    const down = await investigateItem(
+      item("blog.fr", "https://blog.fr/p"),
+      deps(w.fetch, { freeVerifier: err("ETIMEOUT") }),
+    );
+    expect(down).toMatchObject({ status: "email_a_verifier", sendable: false });
+  });
+
+  it("n'est jamais appliquée à un email trouvé par le finder ni à une adresse d'un autre domaine", async () => {
+    const w = web({ "https://blog.fr/p": html("<p>Rien</p>") });
+    const found = await investigateItem(
+      item("blog.fr", "https://blog.fr/p"),
+      deps(w.fetch, {
+        freeVerifier: mx(["mx.blog.fr"]),
+        provider: {
+          name: "fake",
+          findByDomain: async () => [{ email: "info@blog.fr", confidence: 90 }],
+          verify: async () => {
+            throw new Error("down");
+          },
+        },
+      }),
+    );
+    expect(found).toMatchObject({ emailSource: "finder", sendable: false });
+    const w2 = web({ "https://blog.fr/p": html("<p>Site par agence@webagency.com</p>") });
+    const other = await investigateItem(
+      item("blog.fr", "https://blog.fr/p"),
+      deps(w2.fetch, { freeVerifier: mx(["mx.webagency.com"]) }),
+    );
+    expect(other.sendable).toBe(false);
+  });
+
+  it("le vérificateur payant prime ; son refus (invalide) n'est pas contourné par le DNS", async () => {
+    const w = web({ "https://blog.fr/p": page });
+    const r = await investigateItem(
+      item("blog.fr", "https://blog.fr/p"),
+      deps(w.fetch, { freeVerifier: mx(["mx.blog.fr"]), provider: provider("invalide") }),
+    );
+    expect(r).toMatchObject({ status: "email_invalide", sendable: false });
   });
 });
 

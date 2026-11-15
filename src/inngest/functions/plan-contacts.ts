@@ -3,7 +3,7 @@ import { inngest } from "@/inngest/client";
 import { BOT_USER_AGENT } from "@/features/deadlinks/hunt";
 import { investigateItem } from "@/features/contacts/investigate";
 import { CONTACT_LIMITS } from "@/features/contacts/limits";
-import { createProviderFromEnv } from "@/features/contacts/provider";
+import { createMxVerifier, createProviderFromEnv } from "@/features/contacts/provider";
 import {
   beginContacts,
   CONTACTS_EVENT,
@@ -75,6 +75,7 @@ export const planContacts = inngest.createFunction(
           now: () => Date.now(),
           fallback: env.PAGE_READER_FALLBACK === "jina" ? createJinaFallback() : null,
           provider,
+          freeVerifier: env.EMAIL_FREE_VERIFY === "mx" ? createMxVerifier() : null,
           isSuppressed,
           paidCallsLeft: Math.max(0, CONTACT_LIMITS.maxPaidCallsPerRun - used),
         });
