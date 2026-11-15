@@ -806,9 +806,46 @@ export const fr = {
       costChanged:
         "Le coût ou les recherches ont changé depuis l'affichage. Rechargez la page pour revoir le total avant de lancer.",
     },
+    brand: {
+      title: "Ce que nous avons compris de votre site",
+      body: "Ce profil guide toute la suite : les recherches, les sites à contacter et les messages. Relisez-le et corrigez ce qui est faux, c'est ce qui compte le plus.",
+      empty:
+        "Nous n'avons pas pu lire assez de votre site pour établir ce profil. Remplissez-le à la main, ou laissez vide : vous pourrez le compléter plus tard.",
+      readSummary: (pages: number, version: number) =>
+        `Établi à partir de ${pages} page${pages > 1 ? "s" : ""} de votre site (version ${version}).`,
+      editedSummary: (version: number) => `Version ${version}, corrigée par vous.`,
+      pagesRead: "Pages lues",
+      activity: "Activité",
+      activityHint: "Ce qu'est votre site, en une phrase.",
+      offer: "Ce que vous proposez",
+      offerHint: "Contenus, outils, produits ou services concrets.",
+      audience: "Public visé",
+      audienceHint: "Une personne ou un groupe par ligne.",
+      resources: "Pages à faire citer",
+      resourcesHint:
+        "Les pages de votre site qu'un éditeur aurait intérêt à citer. Une par ligne : adresse | titre court.",
+      names: "Façons d'écrire votre nom",
+      namesHint:
+        "Une par ligne. Elles servent à retrouver les sites qui parlent de vous sans vous lier.",
+      personas: "Qui aurait une raison de vous citer",
+      personasHint:
+        "Les sites que personne ne sollicite et qui servent le même public que vous. Une ligne par profil : qui | où on les trouve | pourquoi ils vous citeraient.",
+      tone: "Ton",
+      messages: {
+        resourceInvalid:
+          "Chaque page à faire citer doit être une adresse complète de votre site, une par ligne : adresse | titre court.",
+        personaInvalid:
+          "Chaque profil tient sur une ligne en trois parties : qui | où on les trouve | pourquoi ils vous citeraient.",
+        personasMissing: "Indiquez au moins deux profils de sites qui pourraient vous citer.",
+        audienceMissing: "Indiquez au moins un public visé.",
+        activityMissing: "Renseignez l'activité et ce que vous proposez.",
+        invalid: "Le profil de votre site est incomplet ou trop long. Vérifiez les champs.",
+        saveError: "Impossible d'enregistrer le profil de votre site. Réessayez dans un instant.",
+      },
+    },
     review: {
       pageDescription:
-        "Vérifiez le thème et les recherches, puis confirmez le coût une seule fois. Rien n'est envoyé.",
+        "Relisez ce que nous avons compris de votre site, vérifiez le thème et les recherches, puis confirmez le coût une seule fois. Rien n'est envoyé.",
       title: "Voici ce que nous avons compris",
       body: "Corrigez si besoin : ces recherches servent à trouver vos vrais concurrents dans Google, puis les sites qui peuvent vous citer.",
       domain: "Site",

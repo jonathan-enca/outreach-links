@@ -2,6 +2,9 @@ import { env } from "@/env";
 import { safeFetchPage } from "@/features/sites/verify";
 import { createPageReader, type PageRead } from "@/features/triage/page-reader";
 import { createLlmClientFromEnv, type LlmClient } from "@/lib/llm/client";
+import { BRAND_LIMITS } from "@/features/brand/limits";
+import { readSite } from "@/features/brand/read-site";
+import type { BrandDeps } from "@/features/brand/service";
 import { DEDUCE_LIMITS } from "./deduce";
 import type { StartDeps } from "./service";
 
@@ -25,4 +28,24 @@ function makeLlm(): LlmClient | null {
   });
 }
 
-export const startDeps: StartDeps = { readHomepage, makeLlm };
+/** Client LLM plafonné pour le profil de marque (MT.1) ; null sans clé. */
+function makeBrandLlm(): LlmClient | null {
+  if (!env.ANTHROPIC_API_KEY && !env.OPENAI_API_KEY && !env.LLM_PROXY_AUTH) return null;
+  return createLlmClientFromEnv({
+    budgetUsd: BRAND_LIMITS.llmBudgetUsd,
+    maxCostPerCallUsd: BRAND_LIMITS.llmMaxCostPerCallUsd,
+  });
+}
+
+const brand: BrandDeps = {
+  readSite: (domain, home) =>
+    readSite(domain, {
+      fetch: safeFetchPage,
+      sleep: (ms) => new Promise<void>((r) => setTimeout(r, ms)),
+      now: () => Date.now(),
+      home,
+    }),
+  makeLlm: makeBrandLlm,
+};
+
+export const startDeps: StartDeps = { readHomepage, makeLlm, brand };

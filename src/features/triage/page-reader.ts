@@ -201,6 +201,7 @@ export function createPageReader(deps: PageReaderDeps) {
   const maxRequests = deps.maxRequests ?? 60;
   const cache = new Map<string, PageRead>();
   const robots = new Map<string, RobotsRules>();
+  const declaredSitemaps = new Map<string, string[]>();
   const lastHit = new Map<string, number>();
   let requests = 0;
 
@@ -221,9 +222,26 @@ export function createPageReader(deps: PageReaderDeps) {
     const cached = robots.get(key);
     if (cached) return cached;
     if (requests >= maxRequests) return null;
-    const rules = robotsFromResponse(await polite(`${key}/robots.txt`), BOT_TOKEN);
+    const res = await polite(`${key}/robots.txt`);
+    const rules = robotsFromResponse(res, BOT_TOKEN);
     robots.set(key, rules);
+    if (res && res.status >= 200 && res.status < 300) {
+      const found = [...res.text.matchAll(/^\s*sitemap\s*:\s*(\S+)/gim)].map((m) => m[1]!);
+      if (found.length > 0) declaredSitemaps.set(key, found.slice(0, 5));
+    }
     return rules;
+  }
+
+  /** Sitemaps déclarés par `Sitemap:` dans le robots.txt de l'hôte (lu une seule fois, en cache). */
+  async function sitemaps(origin: string): Promise<string[]> {
+    let u: URL;
+    try {
+      u = new URL(origin);
+    } catch {
+      return [];
+    }
+    await rulesFor(u);
+    return declaredSitemaps.get(`${u.protocol}//${u.host}`) ?? [];
   }
 
   async function read(url: string): Promise<PageRead> {
@@ -259,7 +277,25 @@ export function createPageReader(deps: PageReaderDeps) {
     return { ...parsed, status: res.status, viaFallback: false };
   }
 
-  return { read, requestCount: () => requests };
+  /**
+   * Lit un fichier texte brut (sitemap XML) avec les mêmes règles que les pages : robots.txt,
+   * délai par hôte, plafond de requêtes. Renvoie null si interdit, injoignable ou plafond atteint.
+   */
+  async function fetchText(url: string): Promise<{ status: number; text: string } | null> {
+    let u: URL;
+    try {
+      u = new URL(url);
+    } catch {
+      return null;
+    }
+    const rules = await rulesFor(u);
+    if (!rules || requests >= maxRequests) return null;
+    if (!rules.allowed(u.pathname + u.search)) return null;
+    const res = await polite(url);
+    return res ? { status: res.status, text: res.text } : null;
+  }
+
+  return { read, fetchText, sitemaps, requestCount: () => requests };
 }
 
 export type PageReader = ReturnType<typeof createPageReader>;
