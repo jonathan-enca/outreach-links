@@ -3,6 +3,7 @@ import { env, EnvError, requireEnv } from "@/env";
 import { logger } from "@/lib/logger";
 import { recordCost, type CostClient } from "@/lib/costs";
 import { createServiceClient } from "@/lib/supabase/service";
+import { isTestDomain } from "@/features/sites/test-domains";
 import { cacheKey, SupabaseCache, type CacheStore } from "./cache";
 import {
   endpoints,
@@ -51,6 +52,8 @@ export type DataForSeoClientOptions = {
   /** Identifiants ; "proxy" = aucun identifiant envoyé (un proxy injecte l'authentification). */
   auth: DataForSeoAuth | (() => DataForSeoAuth);
   cache?: CacheStore;
+  /** Décide, appel par appel, d'ignorer le cache en lecture (ex. sites de test). */
+  shouldBypassCache?: (opts: CallOptions) => Promise<boolean>;
   baseUrl?: string;
   fetchImpl?: typeof fetch;
   sleep?: (ms: number) => Promise<void>;
@@ -172,7 +175,16 @@ export function createDataForSeoClient(options: DataForSeoClientOptions) {
     let envelope: unknown = null;
     let cacheHit = false;
 
-    if (useCache && !opts.bypassCache) {
+    let bypass = opts.bypassCache === true;
+    if (useCache && !bypass && options.shouldBypassCache) {
+      try {
+        bypass = await options.shouldBypassCache(opts);
+      } catch (e) {
+        logger.warn("dataforseo : politique de cache non lue", { error: String(e) });
+      }
+    }
+
+    if (useCache && !bypass) {
       let hit: Awaited<ReturnType<CacheStore["get"]>> = null;
       try {
         hit = await options.cache!.get(key64);
@@ -327,6 +339,7 @@ export function createDataForSeoClientFromEnv(
   return createDataForSeoClient({
     costClient,
     cache: new SupabaseCache(costClient),
+    shouldBypassCache: testDomainCachePolicy(),
     auth: () => {
       if (env.DATAFORSEO_PROXY_AUTH) {
         if (env.NODE_ENV === "production") {
@@ -340,4 +353,43 @@ export function createDataForSeoClientFromEnv(
     },
     ...overrides,
   });
+}
+
+/**
+ * Sites de test : le cache n'est jamais lu (chaque audit repart de zéro, la réponse fraîche est
+ * tout de même stockée). Résolution du domaine par audit, mémorisée pour la durée du client.
+ */
+function testDomainCachePolicy(): (opts: CallOptions) => Promise<boolean> {
+  const memo = new Map<string, boolean>();
+  return async (opts) => {
+    const ref = opts.auditId
+      ? ({ table: "audits", id: opts.auditId, col: "site_id" } as const)
+      : opts.publicAuditId
+        ? ({ table: "public_audits", id: opts.publicAuditId, col: "domain" } as const)
+        : null;
+    if (!ref) return false;
+    const k = `${ref.table}:${ref.id}`;
+    const known = memo.get(k);
+    if (known !== undefined) return known;
+    const db = createServiceClient();
+    let domain: string | null = null;
+    if (ref.table === "public_audits") {
+      const { data } = await db
+        .from("public_audits")
+        .select("domain")
+        .eq("id", ref.id)
+        .maybeSingle();
+      domain = data?.domain ?? null;
+    } else {
+      const { data } = await db
+        .from("audits")
+        .select("sites(domain)")
+        .eq("id", ref.id)
+        .maybeSingle();
+      domain = (data?.sites as { domain: string } | null)?.domain ?? null;
+    }
+    const result = isTestDomain(domain);
+    memo.set(k, result);
+    return result;
+  };
 }

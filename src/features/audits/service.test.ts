@@ -5,7 +5,7 @@ import { confirmAudit, createAudit, DISCOVER_EVENT, transitionAudit } from "./se
 const SITE = {
   id: "site-1",
   workspace_id: "ws-1",
-  domain: "mega-coloring.com",
+  domain: "exemple-coloriage.fr",
   priority_queries: ["coloriage licorne", "coloriage chat", "coloriage dinosaure"],
 };
 
@@ -63,6 +63,18 @@ describe("createAudit", () => {
       plan: "payant",
       max_competitors: 20,
       cost_cap_usd: 1.5,
+    });
+  });
+
+  it("lève les plafonds pour un site de test, même en plan gratuit", async () => {
+    const { user, service, getService } = setup({
+      sites: [{ ...SITE, domain: "mega-coloring.com" }],
+    });
+    await createAudit(user.client, "site-1", getService);
+    expect(service.tables.audits![0]).toMatchObject({
+      plan: "payant",
+      max_competitors: 20,
+      cost_cap_usd: 50,
     });
   });
 

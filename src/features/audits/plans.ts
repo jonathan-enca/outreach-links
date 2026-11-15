@@ -3,6 +3,8 @@
  * Les plans réels (Stripe) arrivent en M6.1 : en attendant, `workspaces.plan` vaut
  * "gratuit" par défaut et seul service_role peut le changer.
  */
+import { isTestDomain, TEST_COST_CAP_USD } from "@/features/sites/test-domains";
+
 export const PLANS = ["gratuit", "payant"] as const;
 export type PlanKey = (typeof PLANS)[number];
 
@@ -22,6 +24,15 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
   gratuit: { maxCompetitors: 3, minCompetitors: 3, maxQueries: 3, serpDepth: 30, costCapUsd: 0.25 },
   payant: { maxCompetitors: 20, minCompetitors: 10, maxQueries: 3, serpDepth: 30, costCapUsd: 1.5 },
 };
+
+/**
+ * Limites effectives d'un audit : les sites de test (voir test-domains.ts) prennent les limites
+ * du plan payant avec un plafond de coût très haut ; les autres suivent leur plan.
+ */
+export function limitsFor(plan: PlanKey, domain: string | null | undefined): PlanLimits {
+  if (isTestDomain(domain)) return { ...PLAN_LIMITS.payant, costCapUsd: TEST_COST_CAP_USD };
+  return PLAN_LIMITS[plan];
+}
 
 export function isPlanKey(v: unknown): v is PlanKey {
   return typeof v === "string" && (PLANS as readonly string[]).includes(v);

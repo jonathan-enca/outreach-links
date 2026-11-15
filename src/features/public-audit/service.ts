@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { isExcludedDomain } from "@/features/audits/excluded-domains";
+import { isTestDomain } from "@/features/sites/test-domains";
 import { normalizeDomain } from "@/features/sites/domain";
 import { logger } from "@/lib/logger";
 import { t } from "@/lib/messages";
@@ -94,23 +95,32 @@ export async function startPublicAudit(deps: StartDeps, input: StartInput): Prom
   const queriesSource = typed.length ? "visiteur" : "auto";
 
   const requester = hashKey(deps.ip, deps.salt);
-  const submit = await rateLimit(service, "pa_submit", requester, RATE_LIMITS.submit);
-  if (!submit.allowed) return fail("trop_de_demandes", submit.retryAfterSeconds);
+  // Sites de test : aucune limite de débit ni d'essais ; chaque soumission crée une nouvelle
+  // exécution (période suffixée), jamais une reprise de la précédente.
+  const testSite = isTestDomain(domain);
+  if (!testSite) {
+    const submit = await rateLimit(service, "pa_submit", requester, RATE_LIMITS.submit);
+    if (!submit.allowed) return fail("trop_de_demandes", submit.retryAfterSeconds);
+  }
 
-  const period = periodKey(deps.now);
-  const existing = await findExisting(service, domain, period);
+  const period = testSite
+    ? `${periodKey(deps.now)}~${(deps.now ?? new Date()).getTime()}`
+    : periodKey(deps.now);
+  const existing = testSite ? null : await findExisting(service, domain, period);
   if (existing && existing.status !== "echoue") {
     return { status: "ok", id: existing.id, cached: true };
   }
   if (existing && existing.attempts >= FREE_LIMITS.maxAttempts) return fail("domaine_epuise");
 
   const estimate = estimatePublicAudit(queries.length || FREE_LIMITS.queries);
-  const breaker = await checkCircuitBreaker(service, {
-    enabled: deps.enabled,
-    dailyCapUsd: deps.dailyCapUsd,
-    estimateUsd: estimate.totalUsd,
-    now: deps.now,
-  });
+  const breaker = testSite
+    ? { open: false as const }
+    : await checkCircuitBreaker(service, {
+        enabled: deps.enabled,
+        dailyCapUsd: deps.dailyCapUsd,
+        estimateUsd: estimate.totalUsd,
+        now: deps.now,
+      });
   if (breaker.open) {
     logger.warn("audit gratuit refusé par le coupe-circuit", {
       reason: breaker.reason,
@@ -119,15 +129,17 @@ export async function startPublicAudit(deps: StartDeps, input: StartInput): Prom
     return fail(breaker.reason === "desactive" ? "ferme" : "capacite_atteinte");
   }
 
-  const perRequester = await rateLimit(
-    service,
-    "pa_create",
-    requester,
-    RATE_LIMITS.createPerRequester,
-  );
-  if (!perRequester.allowed) return fail("limite_quotidienne", perRequester.retryAfterSeconds);
-  const global = await rateLimit(service, "pa_create_all", "all", RATE_LIMITS.createGlobal);
-  if (!global.allowed) return fail("capacite_atteinte", global.retryAfterSeconds);
+  if (!testSite) {
+    const perRequester = await rateLimit(
+      service,
+      "pa_create",
+      requester,
+      RATE_LIMITS.createPerRequester,
+    );
+    if (!perRequester.allowed) return fail("limite_quotidienne", perRequester.retryAfterSeconds);
+    const global = await rateLimit(service, "pa_create_all", "all", RATE_LIMITS.createGlobal);
+    if (!global.allowed) return fail("capacite_atteinte", global.retryAfterSeconds);
+  }
 
   let id: string;
   let attempts: number;
