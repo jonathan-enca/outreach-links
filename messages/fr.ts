@@ -863,6 +863,76 @@ export const fr = {
       mustFix: "Corrigez d'abord :",
     },
   },
+  tasks: {
+    intro:
+      "Certains sites n'ont qu'un formulaire de contact. Ils ne sont jamais remplis automatiquement : copiez le message, ouvrez la page, envoyez-le vous-même, puis marquez la tâche comme faite. Une relance vous est proposée 10 jours plus tard.",
+    sections: {
+      toDo: "À faire",
+      followUp: "À relancer",
+      waiting: "Envoyées, en attente de réponse",
+      closed: "Terminées",
+    },
+    empty: "Rien dans cette liste.",
+    summary: {
+      toDo: "{n} tâche(s) à faire",
+      followUp: "{n} relance(s) à faire",
+      none: "Aucune tâche en attente.",
+    },
+    status: {
+      a_faire: "À faire",
+      relance_due: "Relance due",
+      attente_relance: "Relance prévue",
+      relance_faite: "Relancée",
+      relance_annulee: "Relance annulée",
+      ignoree: "Ignorée",
+    },
+    cancelReason: {
+      reponse: "Réponse reçue",
+      refus: "Refus",
+      abandon: "Abandonnée",
+    },
+    fields: {
+      message: "Message à coller dans le formulaire",
+      followUpMessage: "Message de relance",
+      page: "Page de contact",
+      target: "Page de votre site proposée",
+      doneOn: "Envoyé le {date}",
+      followUpOn: "Relance à partir du {date}",
+    },
+    actions: {
+      open: "Ouvrir le formulaire",
+      done: "J'ai envoyé le message",
+      followUpDone: "J'ai envoyé la relance",
+      gotReply: "Ils ont répondu",
+      refused: "Refus",
+      skip: "Ignorer cette cible",
+      abandon: "Ne pas relancer",
+      copy: "Copier",
+      copied: "Copié",
+    },
+    messages: {
+      unauthenticated: "Vous devez être connecté.",
+      notFound: "Tâche introuvable.",
+      notPending: "Cette tâche n'est plus à faire.",
+      batchNotValidated: "Le lot de ce message n'est pas encore validé.",
+      noFollowUp: "Cette tâche n'a pas de relance en attente.",
+      tooEarly: "La relance n'est pas encore due.",
+      unavailable: "Le service est momentanément indisponible. Réessayez dans un instant.",
+      saveError: "Impossible d'enregistrer. Réessayez.",
+      done: "Tâche marquée comme faite. Relance prévue dans 10 jours.",
+      followUpDone: "Relance marquée comme faite.",
+      followUpCancelled: "Relance annulée.",
+      skipped: "Cible ignorée.",
+    },
+    followUpMessage: {
+      line1: "Bonjour,",
+      line2:
+        "Je me permets de revenir vers vous au sujet de mon message envoyé il y a quelques jours par le formulaire de contact de votre site, à propos de cette page : {url}",
+      line3:
+        "Si ce n'est pas le bon moment ou si je ne m'adresse pas à la bonne personne, aucun souci : un simple mot me suffira.",
+      line4: "Bonne journée,",
+    },
+  },
   links: {
     intro:
       "Les liens posés vers vos pages, vérifiés automatiquement à J+7, J+14 et J+30 : le lien est-il toujours en ligne, dofollow ou nofollow, dans un vrai texte, sur une page indexable ? Une alerte apparaît si un lien disparaît.",
@@ -935,6 +1005,7 @@ export const fr = {
     lots: "Lots",
     inbox: "Inbox",
     liens: "Liens",
+    taches: "Tâches",
     garde_fous: "Garde-fous",
   },
   pages: {
@@ -954,6 +1025,15 @@ export const fr = {
       emptyTitle: "Aucun plan à valider",
       emptyBody: "Le plan de liens apparaîtra ici une fois l'audit terminé.",
       emptyHint: "Disponible après l'audit.",
+    },
+    taches: {
+      title: "Tâches manuelles",
+      description:
+        "Les formulaires de contact à remplir vous-même : message prêt à copier, lien vers la page, relance à J+10.",
+      emptyTitle: "Aucune tâche pour le moment",
+      emptyBody:
+        "Quand un lot contient des cibles sans email (formulaire de contact), leurs tâches apparaissent ici après la validation du lot.",
+      emptyHint: "Disponible après la validation d'un lot.",
     },
     lots: {
       title: "Lots",

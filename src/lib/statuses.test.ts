@@ -26,13 +26,14 @@ describe("système de statuts", () => {
 });
 
 describe("navigation", () => {
-  it("expose les six écrans, chacun avec une page existante et ses textes", () => {
+  it("expose les sept écrans, chacun avec une page existante et ses textes", () => {
     expect(NAV_ITEMS.map((i) => i.label)).toEqual([
       "Audit",
       "Plan",
       "Lots",
       "Inbox",
       "Liens",
+      "Tâches",
       "Garde-fous",
     ]);
     for (const item of NAV_ITEMS) {
