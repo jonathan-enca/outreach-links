@@ -206,6 +206,12 @@ Ordre : chaque sous-jalon est livrable seul, sans appel payant en CI, et réduit
 - **Tâches** : vues Chaud, Tiède, Offres payantes, Froid, En négociation, Gagné, Archivé ; fiche prospect avec fil ; génération de brouillon de réponse à valider ; réponse **« prête à insérer »** (page, ancre, phrase à ajouter, phrase « après ») ; **politique « c'est payant »** : décliner / échanger / achat plafonné (défaut : décliner), libellé honnête de la nature du lien ; niveaux d'autonomie (manuel, assisté ; autopilot en 6.2).
 - **Acceptation** : aucune réponse envoyée sans validation en mode assisté ; test Playwright du traitement d'une réponse.
 
+### 5.2b Envoi des réponses validées (scindé de 5.2)
+
+- **Prérequis** : 5.2.
+- **Tâches** : envoyer les brouillons `reply_drafts` au statut `validee` (dry run par défaut, faux serveur SMTP en test) dans le fil d'origine (`In-Reply-To`), avec les garde-fous d'envoi de 4.2 (suppression, plafonds, boîte vérifiée, `OUTREACH_SENDING_ENABLED` faux) ; enregistrement de l'envoi ; aucun envoi d'un brouillon non validé.
+- **Acceptation** : un brouillon non validé ne part jamais (garde-fou en base) ; une adresse supprimée refuse l'envoi ; test sur faux serveur SMTP.
+
 ### 5.3 Vérification des liens
 
 - **Prérequis** : 5.2.

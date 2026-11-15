@@ -942,6 +942,45 @@ export type Database = {
           },
         ];
       };
+      inbox_states: {
+        Row: {
+          sent_message_id: string;
+          state: string;
+          updated_at: string;
+          updated_by: string | null;
+          workspace_id: string;
+        };
+        Insert: {
+          sent_message_id: string;
+          state: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          workspace_id: string;
+        };
+        Update: {
+          sent_message_id?: string;
+          state?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inbox_states_sent_message_id_fkey";
+            columns: ["sent_message_id"];
+            isOneToOne: true;
+            referencedRelation: "sent_messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inbox_states_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       link_opportunities: {
         Row: {
           audit_id: string;
@@ -1707,6 +1746,91 @@ export type Database = {
           },
         ];
       };
+      reply_drafts: {
+        Row: {
+          body: string;
+          budget_cap_eur: number | null;
+          cost_usd: number;
+          created_at: string;
+          edited: boolean;
+          id: string;
+          inbound_message_id: string;
+          insertion: Json | null;
+          kind: string;
+          link_nature: string | null;
+          payment_option: string | null;
+          sent_message_id: string;
+          source: string;
+          status: string;
+          subject: string | null;
+          validated_at: string | null;
+          validated_by: string | null;
+          workspace_id: string;
+        };
+        Insert: {
+          body: string;
+          budget_cap_eur?: number | null;
+          cost_usd?: number;
+          created_at?: string;
+          edited?: boolean;
+          id?: string;
+          inbound_message_id: string;
+          insertion?: Json | null;
+          kind: string;
+          link_nature?: string | null;
+          payment_option?: string | null;
+          sent_message_id: string;
+          source: string;
+          status?: string;
+          subject?: string | null;
+          validated_at?: string | null;
+          validated_by?: string | null;
+          workspace_id: string;
+        };
+        Update: {
+          body?: string;
+          budget_cap_eur?: number | null;
+          cost_usd?: number;
+          created_at?: string;
+          edited?: boolean;
+          id?: string;
+          inbound_message_id?: string;
+          insertion?: Json | null;
+          kind?: string;
+          link_nature?: string | null;
+          payment_option?: string | null;
+          sent_message_id?: string;
+          source?: string;
+          status?: string;
+          subject?: string | null;
+          validated_at?: string | null;
+          validated_by?: string | null;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reply_drafts_inbound_message_id_fkey";
+            columns: ["inbound_message_id"];
+            isOneToOne: false;
+            referencedRelation: "inbound_messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reply_drafts_sent_message_id_fkey";
+            columns: ["sent_message_id"];
+            isOneToOne: false;
+            referencedRelation: "sent_messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reply_drafts_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       reply_signals: {
         Row: {
           created_at: string;
@@ -2126,6 +2250,7 @@ export type Database = {
       };
       workspaces: {
         Row: {
+          autonomy_level: string;
           created_at: string;
           created_by: string | null;
           id: string;
@@ -2133,6 +2258,7 @@ export type Database = {
           plan: string;
         };
         Insert: {
+          autonomy_level?: string;
           created_at?: string;
           created_by?: string | null;
           id?: string;
@@ -2140,6 +2266,7 @@ export type Database = {
           plan?: string;
         };
         Update: {
+          autonomy_level?: string;
           created_at?: string;
           created_by?: string | null;
           id?: string;
