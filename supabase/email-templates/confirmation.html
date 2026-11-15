@@ -67,7 +67,7 @@
             <tr>
               <td style="padding: 24px 32px 0 32px">
                 <a
-                  href="{{ .ConfirmationURL }}"
+                  href="https://outreach-links.vercel.app/auth/callback?token_hash={{ .TokenHash }}&type=signup"
                   style="
                     display: inline-block;
                     background: #047857;
@@ -97,7 +97,8 @@
               >
                 Si le bouton ne fonctionne pas, copiez cette adresse dans votre navigateur :<br /><span
                   style="word-break: break-all; color: #0e1a2b"
-                  >{{ .ConfirmationURL }}</span
+                  >https://outreach-links.vercel.app/auth/callback?token_hash={{ .TokenHash
+                  }}&type=signup</span
                 >
               </td>
             </tr>
