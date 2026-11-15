@@ -1,8 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
+import { destinationAfterCode } from "@/features/auth/destination";
 import { createClient } from "@/lib/supabase/server";
 
-/** Reçoit le lien magique (code PKCE ou token_hash), ouvre la session puis redirige vers /app. */
+/**
+ * Reçoit le lien d'un email (confirmation d'inscription ou réinitialisation du mot de passe, code
+ * PKCE ou token_hash), ouvre la session, puis mène à /reinitialiser (récupération) ou /app.
+ */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
@@ -16,5 +20,10 @@ export async function GET(request: NextRequest) {
   } else if (tokenHash && type) {
     ok = !(await supabase.auth.verifyOtp({ type, token_hash: tokenHash })).error;
   }
-  return NextResponse.redirect(new URL(ok ? "/app" : "/connexion?erreur=1", origin));
+  if (!ok) return NextResponse.redirect(new URL("/connexion?erreur=1", origin));
+  const recovery = type === "recovery";
+  const { data } = await supabase.auth.getUser();
+  return NextResponse.redirect(
+    new URL(recovery ? "/reinitialiser" : destinationAfterCode(data.user), origin),
+  );
 }

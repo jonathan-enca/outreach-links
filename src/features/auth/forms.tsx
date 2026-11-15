@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/messages";
 import { forgotPasswordAction, resetPasswordAction, signInAction, signUpAction } from "./actions";
+import { CheckInbox } from "./check-inbox";
 import { Field, inputClass, PasswordField } from "./fields";
 import { PASSWORD_MIN_LENGTH, type AuthState } from "./service";
 
@@ -25,7 +26,13 @@ const submitClass = "h-12 w-full text-base";
 
 export function SignupForm() {
   const [state, action, pending] = useActionState(signUpAction, idle);
+  const [dismissed, setDismissed] = useState<AuthState | null>(null);
   const f = t.signup.fields;
+  if (state.status === "confirm" && state.email && dismissed !== state) {
+    return (
+      <CheckInbox email={state.email} kind="signup" onOtherAddress={() => setDismissed(state)} />
+    );
+  }
   return (
     <form action={action} className="flex flex-col gap-5">
       <Field id="name" label={f.name}>
@@ -97,6 +104,12 @@ export function LoginForm({ initialError }: { initialError?: string }) {
 
 export function ForgotForm() {
   const [state, action, pending] = useActionState(forgotPasswordAction, idle);
+  const [dismissed, setDismissed] = useState<AuthState | null>(null);
+  if (state.status === "ok" && state.email && dismissed !== state) {
+    return (
+      <CheckInbox email={state.email} kind="reset" onOtherAddress={() => setDismissed(state)} />
+    );
+  }
   return (
     <form action={action} className="flex flex-col gap-5">
       <Field id="email" label={t.auth.email}>

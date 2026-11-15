@@ -14,6 +14,8 @@ const A = t.auth;
 export interface AuthState {
   status: "idle" | "error" | "ok" | "confirm";
   message?: string;
+  /** Adresse saisie (pour l'écran « vérifiez votre boîte mail »). */
+  email?: string;
   /** Page où aller après un succès (déjà connecté). */
   redirectTo?: string;
 }
@@ -56,7 +58,7 @@ export async function signUp(
   // Session immédiate (confirmation d'email désactivée) : on entre dans l'espace.
   if (data.session) return { status: "ok", redirectTo: "/app/demarrer" };
   // Sinon un email de confirmation part ; même message si l'adresse existe déjà.
-  return { status: "confirm", message: A.signupConfirm };
+  return { status: "confirm", message: A.signupConfirm, email: parsed.data.email };
 }
 
 export async function signIn(
@@ -90,7 +92,7 @@ export async function requestPasswordReset(
   });
   if (error?.status === 429) return { status: "error", message: A.errors.rateLimit };
   // Même réponse que l'adresse existe ou non.
-  return { status: "ok", message: A.forgot.sent };
+  return { status: "ok", message: A.forgot.sent, email: parsed.data };
 }
 
 export async function setNewPassword(
