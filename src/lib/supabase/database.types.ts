@@ -1287,6 +1287,99 @@ export type Database = {
           },
         ];
       };
+      mailboxes: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          daily_cap: number;
+          email: string;
+          from_name: string;
+          health: Json | null;
+          hourly_cap: number;
+          id: string;
+          imap_host: string;
+          imap_ok: boolean | null;
+          imap_port: number;
+          key_version: string;
+          last_error: string | null;
+          last_test_at: string | null;
+          password_enc: string;
+          site_id: string;
+          smtp_host: string;
+          smtp_ok: boolean | null;
+          smtp_port: number;
+          status: string;
+          updated_at: string;
+          username: string;
+          workspace_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          daily_cap?: number;
+          email: string;
+          from_name: string;
+          health?: Json | null;
+          hourly_cap?: number;
+          id?: string;
+          imap_host: string;
+          imap_ok?: boolean | null;
+          imap_port: number;
+          key_version: string;
+          last_error?: string | null;
+          last_test_at?: string | null;
+          password_enc: string;
+          site_id: string;
+          smtp_host: string;
+          smtp_ok?: boolean | null;
+          smtp_port: number;
+          status?: string;
+          updated_at?: string;
+          username: string;
+          workspace_id: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          daily_cap?: number;
+          email?: string;
+          from_name?: string;
+          health?: Json | null;
+          hourly_cap?: number;
+          id?: string;
+          imap_host?: string;
+          imap_ok?: boolean | null;
+          imap_port?: number;
+          key_version?: string;
+          last_error?: string | null;
+          last_test_at?: string | null;
+          password_enc?: string;
+          site_id?: string;
+          smtp_host?: string;
+          smtp_ok?: boolean | null;
+          smtp_port?: number;
+          status?: string;
+          updated_at?: string;
+          username?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "mailboxes_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "mailboxes_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       memberships: {
         Row: {
           created_at: string;
