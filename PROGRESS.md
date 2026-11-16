@@ -1092,3 +1092,9 @@ Mesurer les pages hors langue au tri avec le marché choisi ; réglage du nom du
 ### Prochain sous-jalon recommandé
 
 Relancer un run réel pour constater l'email de fin (lire `analysis.email_error`), puis **MU.8** (contacts : 7 cibles sur 27 jugées pertinentes n'ont pas de contact), puis MU.5, MU.6, MU.9 à MU.11.
+
+## Retours de Jonathan, 17/11 (soir) et prompt maître n° 2
+
+- **15 cibles, c'est peu** (audit `37a97992…`) : 677 candidats, 150 pages lues (plafond fixe), 524 jamais lues, 112 des 150 lues inutilisables (hors langue 55, robots 23, injoignables 17, concurrents 13). → lecture adaptative et filtre avant lecture (chantier G de `docs/master-prompt-2.md`) ; objectif 40 à 50 cibles.
+- **Écoles, maîtresses, centres de loisirs, scouts non cherchés** alors que les personas les identifient (sauf les scouts) : les requêtes par type d'éditeur ne sont pas garanties (MU.6). → chantier H.
+- **Autonomie totale** : `docs/master-prompt-2.md` demande de valider soi-même toutes les requêtes SQL et confirmations (contournement par l'API de gestion Supabase quand le serveur demande une confirmation).
