@@ -3,7 +3,7 @@ import type { Database } from "@/lib/supabase/database.types";
 
 type Client = SupabaseClient<Database>;
 
-export const BILLING_PLANS = ["gratuit", "starter", "pro"] as const;
+export const BILLING_PLANS = ["gratuit", "starter", "pro", "business"] as const;
 export type BillingPlanKey = (typeof BILLING_PLANS)[number];
 export type PaidPlanKey = Exclude<BillingPlanKey, "gratuit">;
 
@@ -11,7 +11,7 @@ export function isBillingPlan(v: unknown): v is BillingPlanKey {
   return typeof v === "string" && (BILLING_PLANS as readonly string[]).includes(v);
 }
 export function isPaidPlan(v: unknown): v is PaidPlanKey {
-  return v === "starter" || v === "pro";
+  return v === "starter" || v === "pro" || v === "business";
 }
 
 /** Statuts Stripe qui donnent accès au plan payant. `past_due` garde l'accès (relance de paiement). */

@@ -103,10 +103,43 @@ describe("home FR", () => {
     expect(hero).toContain("HOME_SECTIONS.features");
   });
 
-  it("tactiques : trois tactiques, étapes présentes, boutons conformes, aucune promesse", () => {
+  it("la section « Le problème » n'existe plus : Tactiques la remplace, juste après « C'est quoi »", async () => {
+    const { readFileSync } = await import("node:fs");
+    expect(Object.keys(HOME_SECTIONS)).not.toContain("problem");
+    expect(Object.keys(fr.home)).not.toContain("problem");
+    const page = readFileSync(new URL("../../app/page.tsx", import.meta.url), "utf8");
+    expect(page).not.toMatch(/Problem/);
+    expect(page.indexOf("<WhatItIs />")).toBeLessThan(page.indexOf("<Tactics />"));
+    expect(page.indexOf("<Tactics />")).toBeLessThan(page.indexOf("<Proofs />"));
+  });
+
+  it("cible : sites, blogs, SaaS et e-commerces", () => {
+    for (const text of [fr.home.hero.audience, fr.home.whatItIs.intro]) {
+      expect(text).toMatch(/sites, blogs, SaaS et e-commerces/);
+    }
+  });
+
+  it("tarifs : trois offres payantes, un bandeau gratuit, aucune preuve sociale inventée", () => {
+    const p = fr.home.pricing;
+    expect(Object.keys(p.plans)).toEqual(["starter", "pro", "business"]);
+    expect(p.free.cta).toBe("Essai gratuit");
+    // Les trois tactiques sont dans toutes les offres : la grille n'en parle pas. Prix affichés TTC.
+    expect(texts(p).join(" ")).not.toMatch(/tactique/i);
+    expect(p.perMonth).toMatch(/TTC/);
+    // Aucun client pour l'instant : pas de « le plus choisi ».
+    expect(texts(p).join(" ")).not.toMatch(/plus choisi|populaire/i);
+  });
+
+  it("tactiques : trois tactiques détaillées (étapes, cibles, exemple), boutons conformes, aucune promesse", () => {
     const tac = fr.home.tactics;
     expect(tac.items).toHaveLength(3);
-    for (const it of tac.items) expect(it.steps.length).toBeGreaterThanOrEqual(3);
+    for (const it of tac.items) {
+      expect(it.steps.length).toBeGreaterThanOrEqual(3);
+      expect(it.where.length).toBeGreaterThanOrEqual(3);
+      // L'exemple de demande suit les règles des vrais messages : court, adresse d'exemple, pas d'IA.
+      expect(it.example.body.length).toBeLessThan(320);
+      expect(it.example.body).not.toMatch(/\bIA\b|intelligence artificielle/i);
+    }
     expect([tac.primary, tac.secondary]).toEqual(["Essai gratuit", "Fonctionnement"]);
     expect(texts(tac).join(" ")).not.toMatch(/garanti|digest/i);
   });
