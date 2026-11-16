@@ -139,15 +139,15 @@ Réponse de la cible demandant de l'argent : trois options présentées à l'uti
 
 ### 4.6 Pricing
 
-**Décision de Jonathan (16/11/2026)** : trois offres payantes, **19,90 € / 39,90 € / 99,90 € par mois**, plus un accès gratuit sans carte (audit réduit, aperçu de cibles, aucun envoi). Source de vérité : table `plans` (`starter`, `pro`, `business`).
+**Décision de Jonathan (16/11/2026)** : trois offres payantes, **19,90 € / 39,90 € / 99,90 € TTC par mois**, plus un accès gratuit sans carte (audit réduit, aperçu de cibles, aucun envoi). Source de vérité : table `plans` (`starter`, `pro`, `business`). **Les trois tactiques sont incluses dans toutes les offres** (c'est la base : la grille de tarifs ne les mentionne pas).
 
 Répartition des accès [HYPOTHÈSE proposée, à confirmer] :
 
-- **Starter 19,90 €** : 1 site, 1 audit complet par mois, 100 envois par mois, 1 boîte, une tactique (sites jamais sollicités).
-- **Pro 39,90 €** (recommandé) : 3 sites, 3 audits, 300 envois, 2 boîtes, les trois tactiques, réponses prêtes à insérer.
+- **Starter 19,90 €** : 1 site, 1 audit complet par mois, 100 envois par mois, 1 boîte.
+- **Pro 39,90 €** (recommandé) : 3 sites, 3 audits, 300 envois, 2 boîtes, réponses prêtes à insérer.
 - **Business 99,90 €** : 10 sites, 10 audits, 1 000 envois, 5 boîtes, tout Pro.
 
-Carte demandée au premier envoi réel (comme Outlink). Paliers différenciés par valeur (sites, audits, tactiques), pas seulement par volume d'emails. Marque blanche et offre agence : plus tard. Remboursement à définir. HT ou TTC : à trancher.
+Carte demandée au premier envoi réel (comme Outlink). Paliers différenciés par valeur (sites, audits, réponses prêtes à insérer), pas seulement par volume d'emails. Marque blanche et offre agence : plus tard. Remboursement à définir.
 
 ## 5. Pitch et qualité des messages
 
