@@ -236,6 +236,8 @@ export async function generatePublisherTypes(input: {
   language: string;
   llm: LlmClient | null;
   workspaceId: string | null;
+  /** Appelé en cas d'échec, avec sa cause. */
+  onError?: (message: string) => void;
 }): Promise<GeneratedPublishers | null> {
   if (!input.llm) return null;
   try {
@@ -254,9 +256,13 @@ export async function generatePublisherTypes(input: {
       input.domain.replace(/^www\./, "").split(".")[0] ?? "",
     ].map((v) => typeKey(v).replace(/ /g, ""));
     const clean = normalizePublishers(out.data, brandKeys);
-    if (clean.types.length < 2 || clean.themeTerms.length === 0) return null;
+    if (clean.types.length < 2 || clean.themeTerms.length === 0) {
+      input.onError?.("types d'éditeurs inutilisables après nettoyage");
+      return null;
+    }
     return { ...clean, costUsd: out.costUsd };
-  } catch {
+  } catch (e) {
+    input.onError?.((e as Error).message.slice(0, 400));
     return null;
   }
 }
