@@ -1,7 +1,8 @@
 import type { LlmClient } from "@/lib/llm/client";
 import { BRAND_LIMITS } from "./limits";
 import type { SiteRead } from "./read-site";
-import { brandProfileSchema, type BrandProfile, type PageRef } from "./schema";
+import { z } from "zod";
+import { BRAND_LANGUAGES, brandProfileSchema, type BrandProfile, type PageRef } from "./schema";
 
 export const brandSystem = (
   language: string = "fr",
@@ -20,8 +21,54 @@ Produis :
 
 export const BRAND_SYSTEM = brandSystem("fr");
 
-/** Sortie demandée au modèle : le profil seul (les types d'éditeurs viennent d'un second appel court). */
-const brandGenerationSchema = brandProfileSchema.omit({ publisher_types: true, theme_terms: true });
+/**
+ * Sortie demandée au modèle : le profil seul (les types d'éditeurs viennent d'un second appel court),
+ * SANS longueur maximale. Un modèle dépasse parfois une limite de quelques caractères (run réel du
+ * 17/11 : « offer » de plus de 300 caractères, puis « tone » de plus de 120, et le profil entier était
+ * rejeté deux fois de suite) : on raccourcit (`fitProfile`) au lieu de rejeter.
+ */
+const text = z.string().trim().min(1);
+const brandGenerationSchema = z.object({
+  activity: text,
+  offer: text,
+  language: z.enum(BRAND_LANGUAGES),
+  audience: z.array(text).min(1),
+  linkable_resources: z.array(z.object({ url: z.string().trim(), title: text })),
+  name_variants: z.array(text),
+  tone: z.string().trim(),
+  personas: z.array(z.object({ label: text, sites: text, reason: text })).min(2),
+});
+
+/** Coupe un texte trop long à la limite, sur un mot entier. */
+export function clipTo(s: string, max: number): string {
+  const t = s.trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max - 1);
+  const at = cut.lastIndexOf(" ");
+  return `${(at > max * 0.6 ? cut.slice(0, at) : cut).replace(/[\s,;:.]+$/, "")}…`;
+}
+
+/** Ramène la sortie du modèle aux limites du profil enregistré (textes raccourcis, listes bornées). */
+export function fitProfile(raw: z.infer<typeof brandGenerationSchema>): BrandProfile | null {
+  const parsed = brandProfileSchema.safeParse({
+    activity: clipTo(raw.activity, 300),
+    offer: clipTo(raw.offer, 300),
+    language: raw.language,
+    audience: raw.audience.slice(0, 6).map((a) => clipTo(a, 120)),
+    linkable_resources: raw.linkable_resources
+      .filter((r) => r.url.length <= 300)
+      .slice(0, 8)
+      .map((r) => ({ url: r.url, title: clipTo(r.title, 120) })),
+    name_variants: raw.name_variants.filter((n) => n.length <= 60).slice(0, 10),
+    tone: clipTo(raw.tone, 120),
+    personas: raw.personas.slice(0, 8).map((p) => ({
+      label: clipTo(p.label, 80),
+      sites: clipTo(p.sites, 200),
+      reason: clipTo(p.reason, 240),
+    })),
+  });
+  return parsed.success ? parsed.data : null;
+}
 
 const squash = (s: string) =>
   s
@@ -168,8 +215,10 @@ export async function generateBrandProfile(input: {
         temperature: attempt === 1 ? 0.2 : 0.4,
         workspaceId,
       });
+      const fitted = fitProfile(out.data);
+      if (!fitted) throw new Error("profil inutilisable après mise aux limites");
       return {
-        profile: normalizeProfile(out.data, site),
+        profile: normalizeProfile(fitted, site),
         pagesRead: [h, ...site.pages].map((p) => ({ url: p.url, title: p.title.slice(0, 160) })),
         costUsd: costUsd + out.costUsd,
       };

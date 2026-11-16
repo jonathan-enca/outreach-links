@@ -609,3 +609,85 @@ describe("profil : jamais d'échec muet, une seconde tentative", () => {
     expect(errors[2]).toBe("aucun modèle configuré");
   });
 });
+
+describe("profil : un champ trop long est raccourci, jamais rejeté", () => {
+  it("textes coupés sur un mot entier, listes bornées, profil valide", async () => {
+    const { clipTo, fitProfile } = await import("./generate");
+    const { brandProfileSchema } = await import("./schema");
+    const long = (n: number) => Array.from({ length: n }, (_, i) => `mot${i}`).join(" ");
+    const fitted = fitProfile({
+      activity: long(80),
+      offer: long(90),
+      language: "fr",
+      audience: Array.from({ length: 9 }, (_, i) => `public ${i}`),
+      linkable_resources: [],
+      name_variants: ["Atelier Exemple", "x".repeat(80)],
+      tone: long(40),
+      personas: Array.from({ length: 10 }, (_, i) => ({
+        label: `Famille ${i} ${long(20)}`,
+        sites: long(60),
+        reason: long(70),
+      })),
+    });
+    expect(fitted).not.toBeNull();
+    expect(brandProfileSchema.safeParse(fitted).success).toBe(true);
+    expect(fitted!.offer.length).toBeLessThanOrEqual(300);
+    expect(fitted!.offer.endsWith("…")).toBe(true);
+    expect(fitted!.tone.length).toBeLessThanOrEqual(120);
+    expect(fitted!.audience).toHaveLength(6);
+    expect(fitted!.personas).toHaveLength(8);
+    expect(fitted!.name_variants).toEqual(["Atelier Exemple"]);
+    expect(clipTo("court", 10)).toBe("court");
+    expect(clipTo("alpha beta gamma delta", 18)).toBe("alpha beta gamma…");
+  });
+
+  it("le modèle qui dépasse une limite donne quand même un profil (cas réel du 17/11)", async () => {
+    const { generateBrandProfile } = await import("./generate");
+    const home = {
+      url: "https://exemple-atelier.fr/",
+      status: 200,
+      title: "Atelier Exemple",
+      description: "",
+      headings: [],
+      text: "Un atelier qui publie des guides pratiques.",
+      lang: "fr",
+    };
+    const site = {
+      domain: "exemple-atelier.fr",
+      home,
+      pages: [],
+      knownUrls: [],
+      requests: 1,
+      sitemapUsed: false,
+    };
+    const llm = {
+      spentUsd: 0,
+      generate: async ({ schema }: { schema: { parse: (v: unknown) => unknown } }) => ({
+        data: schema.parse({
+          activity: "Atelier qui publie des guides pratiques.",
+          offer: "o".repeat(40) + " " + "guides ".repeat(60),
+          language: "fr",
+          audience: ["bricoleurs"],
+          linkable_resources: [],
+          name_variants: ["Atelier Exemple"],
+          tone: "t ".repeat(100),
+          personas: [
+            { label: "Clubs", sites: "sites de clubs", reason: "Ils partagent des guides." },
+            { label: "Blogs", sites: "blogs thématiques", reason: "Ils citent des fiches." },
+          ],
+        }),
+        costUsd: 0.01,
+      }),
+    };
+    const errors: string[] = [];
+    const out = await generateBrandProfile({
+      site: site as never,
+      llm: llm as never,
+      workspaceId: null,
+      onError: (m) => errors.push(m),
+    });
+    expect(errors).toEqual([]);
+    expect(out?.profile.offer.length).toBeLessThanOrEqual(300);
+    expect(out?.profile.tone.length).toBeLessThanOrEqual(120);
+  });
+});

@@ -140,19 +140,19 @@ export function resolvePublishers(
   };
 }
 
+/** Sortie du modèle, sans longueurs maximales : `normalizePublishers` raccourcit et borne (jamais de rejet pour un mot de trop). */
 const outputSchema = z.object({
-  theme_terms: z.array(z.string().trim().min(2).max(40)).min(1).max(4),
+  theme_terms: z.array(z.string().trim().min(1)).min(1),
   types: z
     .array(
       z.object({
-        label: z.string().trim().min(2).max(80),
+        label: z.string().trim().min(2),
         category: z.enum(PUBLISHER_CATEGORIES),
-        terms: z.array(z.string().trim().min(2).max(40)).min(1).max(4),
+        terms: z.array(z.string().trim().min(1)).min(1),
         origin: z.enum(["persona", "voisin"]),
       }),
     )
-    .min(2)
-    .max(MAX_PUBLISHER_TYPES),
+    .min(2),
 });
 
 export const publishersSystem = (language: string = "fr") =>
@@ -198,7 +198,7 @@ export function normalizePublishers(
   const themeTerms: string[] = [];
   for (const t of raw.theme_terms) {
     const s = sanitizeTerm(t);
-    if (s && !hasBrand(s) && !themeTerms.includes(s)) themeTerms.push(s);
+    if (s && !hasBrand(s) && !themeTerms.includes(s) && themeTerms.length < 5) themeTerms.push(s);
   }
   const types: PublisherType[] = [];
   const seen = new Set<string>();
@@ -209,12 +209,17 @@ export function normalizePublishers(
     const terms: string[] = [];
     for (const x of t.terms) {
       const s = sanitizeTerm(x);
-      if (s && !hasBrand(s) && !terms.includes(s)) terms.push(s);
+      if (s && !hasBrand(s) && !terms.includes(s) && terms.length < 4) terms.push(s);
     }
     if (terms.length === 0) continue;
     if (t.origin === "voisin" && ++neighbours > PUBLISHERS_LIMITS.maxNeighbours) continue;
     seen.add(key);
-    types.push({ label: clean(t.label), category: t.category, terms, origin: t.origin });
+    types.push({
+      label: clean(t.label).slice(0, 80),
+      category: t.category,
+      terms,
+      origin: t.origin,
+    });
   }
   return { types: types.slice(0, MAX_PUBLISHER_TYPES), themeTerms };
 }
