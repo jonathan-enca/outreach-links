@@ -33,7 +33,7 @@ const location = {
 };
 
 /** Filtres DataForSEO : tableau imbriqué libre (ex. ["rank_group", "<=", 10]). */
-const filters = z.array(z.unknown()).max(8).optional();
+const filters = z.array(z.unknown()).max(24).optional();
 const orderBy = z.array(z.string()).max(3).optional();
 
 // ----- Paramètres -----------------------------------------------------------
@@ -287,6 +287,7 @@ export const backlinksListResult = z.looseObject({
 });
 
 export const domainIntersectionResult = z.looseObject({
+  targets: z.record(z.string(), z.string()).nullish(),
   total_count: num,
   items_count: num,
   items: z
@@ -294,7 +295,8 @@ export const domainIntersectionResult = z.looseObject({
       z.looseObject({
         /** Clés "1", "2"... = position de la cible dans la requête. */
         domain_intersection: z.record(z.string(), z.looseObject({}).nullish()),
-        summary: z.record(z.string(), z.looseObject({}).nullish()).nullish(),
+        /** Réel (MT.3) : { intersections_count: n } (des nombres), pas un objet par cible. */
+        summary: z.record(z.string(), z.unknown()).nullish(),
       }),
     )
     .nullish(),

@@ -24,9 +24,17 @@ export function acceptDomain(
   if (!isValidHost(host)) return null;
   if (isOwnDomain(host, ctx.ownDomain)) return null;
   if (isExcludedDomain(host)) return null;
+  if (FREE_HOSTING_FARMS.some((f) => host === f || host.endsWith(`.${f}`))) return null;
   if (ctx.competitorDomains.some((c) => host === c || host.endsWith(`.${c}`))) return null;
   return host;
 }
+
+/**
+ * Hébergements gratuits où prolifèrent des réseaux de pages-liens (constaté au run réel du 16/11/2026 :
+ * coloriage*.web.app, *.firebaseapp.com). Écartés dès la collecte. Les plateformes de blogs (blogspot...)
+ * sont déjà exclues par la liste de M1.3 : à rouvrir en MT.4, ce sont parfois de vraies petites cibles.
+ */
+const FREE_HOSTING_FARMS = ["web.app", "firebaseapp.com", "pages.dev"];
 
 const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
 const nb = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -66,6 +74,8 @@ export interface IntersectionDomain {
   url: string | null;
   anchor: string | null;
   rank: number | null;
+  /** Pire score de spam des liens vers ce domaine (backlinks_spam_score, 0-100). */
+  spam: number | null;
 }
 
 /**
@@ -89,12 +99,15 @@ export function readIntersection(
         url: null,
         anchor: null,
         rank: null,
+        spam: null,
       };
       cur.set.add(key);
       cur.url ??= str(row.url_from);
       cur.anchor ??= str(row.anchor);
       const rank = nb(row.domain_from_rank) ?? nb(row.rank);
       if (rank !== null && (cur.rank === null || rank > cur.rank)) cur.rank = rank;
+      const spam = nb(row.backlinks_spam_score);
+      if (spam !== null && (cur.spam === null || spam > cur.spam)) cur.spam = spam;
       byDomain.set(domain, cur);
     }
   }
@@ -113,6 +126,7 @@ export function mergeIntersection(
       cur.url ??= d.url;
       cur.anchor ??= d.anchor;
       if (d.rank !== null && (cur.rank === null || d.rank > cur.rank)) cur.rank = d.rank;
+      if (d.spam !== null && (cur.spam === null || d.spam > cur.spam)) cur.spam = d.spam;
       map.set(d.domain, cur);
     }
   }
@@ -126,6 +140,7 @@ export function intersectionCandidates(
 ): RawCandidate[] {
   return domains
     .filter((d) => d.keys.length >= min)
+    .filter((d) => d.spam === null || d.spam < COLLECTION_LIMITS.intersection.spamMax)
     .map((d) => ({
       domain: d.domain,
       url: d.url,
@@ -138,7 +153,7 @@ export function intersectionCandidates(
       pageType: null,
       competitorsCount: d.keys.length,
       domainRank: d.rank,
-      spamScore: null,
+      spamScore: d.spam,
     }));
 }
 

@@ -5,6 +5,7 @@ import { getLatestBrandProfile } from "@/features/brand/service";
 import { PLANNED_QUERY_LIST } from "./plan-schema";
 import {
   BudgetExceededError,
+  DataForSeoError,
   estimateCost,
   type ContentPageType,
   type DataForSeoClient,
@@ -151,7 +152,32 @@ export interface StepOutcome {
   rows: number;
   /** Vrai si un plafond dur a empêché l'appel (rien n'a été facturé). */
   blocked: boolean;
+  /** Vrai si le fournisseur a refusé l'appel deux fois (erreur de tâche) : la requête est sautée. */
+  failed?: boolean;
 }
+
+/**
+ * Erreur de TÂCHE du fournisseur (ex. 40101 « Internal SE Server Error », constaté au run réel du
+ * 16/11/2026, transitoire) : une nouvelle tentative, puis la requête est sautée et comptée ; elle ne
+ * fait jamais échouer toute la collecte. Les autres erreurs (réseau, authentification) remontent.
+ */
+async function withTaskRetry<T>(fn: () => Promise<T>): Promise<T | null> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (!(e instanceof DataForSeoError) || e.kind !== "task") throw e;
+      logger.warn("collecte : erreur de tâche du fournisseur", { code: e.code, attempt });
+      if (attempt >= 1) return null;
+    }
+  }
+}
+
+const failedOutcome = (phase: CollectionPhase, label: string): StepOutcome => ({
+  ...blockedOutcome(phase, label),
+  blocked: false,
+  failed: true,
+});
 
 const blockedOutcome = (phase: CollectionPhase, label: string): StepOutcome => ({
   phase,
@@ -192,16 +218,23 @@ export async function runIntersectionPage(
   const label = `intersection-${page + 1}`;
   const est = intersectionPageUsd(L.rowsPerPage);
   if (!(await guarded(deps.service, run, est))) return blockedOutcome("intersection", label);
-  const out = await deps.dfs.backlinksDomainIntersection(
-    {
-      targets: run.plan.intersectionTargets,
-      exclude_targets: [run.ctx.ownDomain],
-      intersection_mode: "partial",
-      limit: L.rowsPerPage,
-      offset: page * L.rowsPerPage,
-    },
-    callOpts(run),
+  const out = await withTaskRetry(() =>
+    deps.dfs.backlinksDomainIntersection(
+      {
+        targets: run.plan.intersectionTargets,
+        exclude_targets: [run.ctx.ownDomain],
+        intersection_mode: "partial",
+        limit: L.rowsPerPage,
+        offset: page * L.rowsPerPage,
+        // Mesuré au run réel : sans filtre, 85 % des lignes sont à autorité nulle (1 299 lignes, dont ~16
+        // utiles). « autorité > 0 » sur au moins une cible et tri décroissant ramènent l'utile en tête.
+        filters: intersectionFilters(run.plan.intersectionTargets.length),
+        order_by: ["1.rank,desc"],
+      },
+      callOpts(run),
+    ),
   );
+  if (!out) return failedOutcome("intersection", label);
   return {
     phase: "intersection",
     label,
@@ -226,7 +259,10 @@ export async function runSerpQuery(
   const label = `${phase}-serp-${index + 1}`;
   const est = estimateCost("serpOrganicLive", { keyword: query.q, depth });
   if (!(await guarded(deps.service, run, est))) return blockedOutcome(phase, label);
-  const out = await deps.dfs.serpOrganicLive({ keyword: query.q, depth }, callOpts(run));
+  const out = await withTaskRetry(() =>
+    deps.dfs.serpOrganicLive({ keyword: query.q, depth }, callOpts(run)),
+  );
+  if (!out) return failedOutcome(phase, label);
   const entries = serpEntries(out.result, depth);
   return {
     phase,
@@ -255,15 +291,24 @@ export async function runContentCall(
   const label = `${phase}-content-${index + 1}`;
   if (!(await guarded(deps.service, run, contentCallUsd(rows))))
     return blockedOutcome(phase, label);
-  const out = await deps.dfs.contentAnalysisSearch(
-    {
-      keyword: call.keyword,
-      ...(call.pageType ? { page_type: [call.pageType] } : {}),
-      search_mode: "one_per_domain",
-      limit: rows,
-    },
-    callOpts(run),
+  const out = await withTaskRetry(() =>
+    deps.dfs.contentAnalysisSearch(
+      {
+        keyword: call.keyword,
+        ...(call.pageType ? { page_type: [call.pageType] } : {}),
+        search_mode: "one_per_domain",
+        limit: rows,
+        // Filtre serveur confirmé au run réel (100 % de pages françaises contre ~58 % sans filtre).
+        filters: [
+          ["language", "=", run.ctx.language],
+          "and",
+          ["spam_score", "<", COLLECTION_LIMITS.content.spamMax],
+        ],
+      },
+      callOpts(run),
+    ),
   );
+  if (!out) return failedOutcome(phase, label);
   return {
     phase,
     label,
@@ -280,6 +325,16 @@ export async function runContentCall(
   };
 }
 
+/** Filtre serveur du recoupement : au moins une cible avec une autorité > 0 (une condition par cible). */
+export function intersectionFilters(targets: number): unknown[] {
+  const out: unknown[] = [];
+  for (let i = 1; i <= targets; i++) {
+    if (i > 1) out.push("or");
+    out.push([`${i}.rank`, ">", 0]);
+  }
+  return out;
+}
+
 export type StopReason = "termine" | "rendement" | "budget_phase" | "plafond";
 
 export interface PhaseStats {
@@ -288,6 +343,8 @@ export interface PhaseStats {
   costUsd: number;
   rows: number;
   newDomains: number;
+  /** Appels refusés par le fournisseur deux fois (erreur de tâche), sautés. */
+  failures: number;
   stoppedBy: StopReason;
 }
 
@@ -297,6 +354,7 @@ export const emptyPhaseStats = (): PhaseStats => ({
   costUsd: 0,
   rows: 0,
   newDomains: 0,
+  failures: 0,
   stoppedBy: "termine",
 });
 
@@ -342,6 +400,7 @@ export class CollectionProgress {
     s.costUsd = r6(s.costUsd + o.costUsd);
     s.rows += o.rows;
     if (o.blocked) s.stoppedBy = "plafond";
+    if (o.failed) s.failures++;
     if (o.intersection.length > 0) this.intersectionPages.push(o.intersection);
     const fresh = newDomains(o.raws, this.seen);
     for (const d of fresh) this.seen.add(d);

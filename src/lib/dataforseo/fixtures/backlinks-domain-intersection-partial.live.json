@@ -1,0 +1,191 @@
+{
+  "version": "0.1.20261103",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "0.9534 sec.",
+  "cost": 0.02418,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "11160900-0000-0000-0000-redacted00000",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "0.4827 sec.",
+      "cost": 0.02418,
+      "result_count": 1,
+      "path": ["v3", "backlinks", "domain_intersection", "live"],
+      "data": {
+        "api": "backlinks",
+        "function": "domain_intersection",
+        "targets": {
+          "1": "coloriez.com",
+          "2": "hugolescargot.com",
+          "3": "tete-a-modeler.com"
+        },
+        "exclude_targets": ["mega-coloring.com"],
+        "intersection_mode": "partial",
+        "limit": 5
+      },
+      "result": [
+        {
+          "targets": {
+            "1": "coloriez.com",
+            "2": "hugolescargot.com",
+            "3": "tete-a-modeler.com"
+          },
+          "total_count": 333,
+          "items_count": 2,
+          "items": [
+            {
+              "domain_intersection": {
+                "1": {
+                  "type": "backlinks_domain_intersection",
+                  "target": "coloriageonly.web.app",
+                  "rank": 147,
+                  "backlinks": 98,
+                  "first_seen": "2024-08-14 12:14:13 +00:00",
+                  "lost_date": null,
+                  "backlinks_spam_score": 5,
+                  "broken_backlinks": 0,
+                  "broken_pages": 0,
+                  "referring_domains": 1,
+                  "referring_domains_nofollow": 0,
+                  "referring_main_domains": 1,
+                  "referring_main_domains_nofollow": 0,
+                  "referring_ips": 1,
+                  "referring_subnets": 1,
+                  "referring_pages": 98,
+                  "referring_pages_nofollow": 0,
+                  "referring_links_tld": {
+                    "web.app": 98
+                  },
+                  "referring_links_types": {
+                    "image": 98
+                  },
+                  "referring_links_attributes": null,
+                  "referring_links_platform_types": {
+                    "organization": 98
+                  },
+                  "referring_links_semantic_locations": {
+                    "": 98
+                  },
+                  "referring_links_countries": null
+                },
+                "2": {
+                  "type": "backlinks_domain_intersection",
+                  "target": "coloriageonly.web.app",
+                  "rank": 164,
+                  "backlinks": 148,
+                  "first_seen": "2024-08-14 12:12:01 +00:00",
+                  "lost_date": null,
+                  "backlinks_spam_score": 5,
+                  "broken_backlinks": 0,
+                  "broken_pages": 0,
+                  "referring_domains": 1,
+                  "referring_domains_nofollow": 0,
+                  "referring_main_domains": 1,
+                  "referring_main_domains_nofollow": 0,
+                  "referring_ips": 1,
+                  "referring_subnets": 1,
+                  "referring_pages": 148,
+                  "referring_pages_nofollow": 0,
+                  "referring_links_tld": {
+                    "web.app": 148
+                  },
+                  "referring_links_types": {
+                    "image": 148
+                  },
+                  "referring_links_attributes": null,
+                  "referring_links_platform_types": {
+                    "organization": 148
+                  },
+                  "referring_links_semantic_locations": {
+                    "": 148
+                  },
+                  "referring_links_countries": null
+                }
+              },
+              "summary": {
+                "intersections_count": 2
+              }
+            },
+            {
+              "domain_intersection": {
+                "1": {
+                  "type": "backlinks_domain_intersection",
+                  "target": "coloriageastro.web.app",
+                  "rank": 146,
+                  "backlinks": 95,
+                  "first_seen": "2026-05-24 08:23:41 +00:00",
+                  "lost_date": null,
+                  "backlinks_spam_score": 5,
+                  "broken_backlinks": 0,
+                  "broken_pages": 0,
+                  "referring_domains": 1,
+                  "referring_domains_nofollow": 0,
+                  "referring_main_domains": 1,
+                  "referring_main_domains_nofollow": 0,
+                  "referring_ips": 1,
+                  "referring_subnets": 1,
+                  "referring_pages": 95,
+                  "referring_pages_nofollow": 0,
+                  "referring_links_tld": {
+                    "web.app": 95
+                  },
+                  "referring_links_types": {
+                    "image": 95
+                  },
+                  "referring_links_attributes": null,
+                  "referring_links_platform_types": {
+                    "organization": 95
+                  },
+                  "referring_links_semantic_locations": {
+                    "": 95
+                  },
+                  "referring_links_countries": null
+                },
+                "2": {
+                  "type": "backlinks_domain_intersection",
+                  "target": "coloriageastro.web.app",
+                  "rank": 162,
+                  "backlinks": 140,
+                  "first_seen": "2026-05-24 08:30:00 +00:00",
+                  "lost_date": null,
+                  "backlinks_spam_score": 6,
+                  "broken_backlinks": 0,
+                  "broken_pages": 0,
+                  "referring_domains": 1,
+                  "referring_domains_nofollow": 0,
+                  "referring_main_domains": 1,
+                  "referring_main_domains_nofollow": 0,
+                  "referring_ips": 1,
+                  "referring_subnets": 1,
+                  "referring_pages": 140,
+                  "referring_pages_nofollow": 0,
+                  "referring_links_tld": {
+                    "web.app": 140
+                  },
+                  "referring_links_types": {
+                    "image": 140
+                  },
+                  "referring_links_attributes": null,
+                  "referring_links_platform_types": {
+                    "organization": 140
+                  },
+                  "referring_links_semantic_locations": {
+                    "": 140
+                  },
+                  "referring_links_countries": null
+                }
+              },
+              "summary": {
+                "intersections_count": 2
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
