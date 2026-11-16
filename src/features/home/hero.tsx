@@ -8,7 +8,7 @@ import { HOME_SECTIONS } from "./sections";
 
 /**
  * Hero sombre : titre centré, cartes d'exemple de chaque côté (bureau), deux boutons. « Essai gratuit »
- * mène à l'inscription ; « Fonctionnement » mène à la section Fonctionnalités (`#fonctions`).
+ * mène à l'inscription ; « Fonctionnement » mène à « Comment ça marche » (`#comment-ca-marche`).
  */
 export function Hero() {
   const h = t.home.hero;
@@ -39,7 +39,7 @@ export function Hero() {
               </Link>
             </Button>
             <Button asChild variant="outline" className="h-12 px-6 text-base">
-              <a href={`#${HOME_SECTIONS.features}`}>{h.cta.secondary}</a>
+              <a href={`#${HOME_SECTIONS.howItWorks}`}>{h.cta.secondary}</a>
             </Button>
           </div>
           <ul className="mt-7 flex flex-col items-center gap-1.5 text-sm text-muted-foreground sm:flex-row sm:gap-x-6 xl:flex-col 2xl:flex-row">
