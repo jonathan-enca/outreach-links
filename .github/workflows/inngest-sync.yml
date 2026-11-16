@@ -1,0 +1,20 @@
+# Après chaque déploiement de production réussi, réenregistre les fonctions Inngest.
+# Sans cela, une fonction ajoutée (ex. l'analyse) n'existe pas côté Inngest et ses événements
+# ne déclenchent rien : l'écran d'analyse reste figé à 0 %.
+name: Inngest sync
+
+on:
+  deployment_status:
+
+jobs:
+  sync:
+    if: github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Production'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resynchroniser l'application Inngest
+        run: |
+          for i in 1 2 3; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "https://outreach-links.vercel.app/api/inngest") && [ "$code" = "200" ] && exit 0
+            sleep 10
+          done
+          echo "Synchronisation Inngest échouée" && exit 1

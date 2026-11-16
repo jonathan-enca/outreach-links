@@ -986,3 +986,11 @@ Essai fait avec un compte neuf (l'ancien compte de Jonathan et son espace ont é
 4. **Pages à faire citer** : l'accueil est normal en « autorité générale » mais doit pouvoir se décocher ; ajout manuel d'adresses. → **MU.5** (plan modifié).
 5. **Objectif (général ou pages précises) à poser à l'étape 1**, avant la fiche « ce que nous avons compris », qui en dépend. → **MU.4** ; **la décision D3 est inversée** (le choix revient).
 6. **Texte « Prêt à lancer l'analyse »** jugé faux → **réécrit** (« une quinzaine de minutes », rien ne part sans validation, « nous vous écrivons » seulement si l'email peut vraiment partir). **Email de fin d'analyse** avec lien : **déjà codé en MU.3**, mais **il ne part pas tant que `RESEND_API_KEY` n'est pas posée sur Vercel** (action à fournir). L'écran ne promet l'email que si la clé existe.
+
+## Incident : analyse figée à 0 % en production (16/11/2026)
+
+- **Constat** (essai de Jonathan) : l'écran d'analyse ne bouge pas. **Cause** : la production Inngest n'avait pas été resynchronisée depuis le 16/11 à 15:00, donc les fonctions `analysis-run` et `analysis-links-state` (MU.1) n'existaient pas côté Inngest (32 fonctions au lieu de 36) : l'événement `analysis/run.requested` était reçu mais ne déclenchait rien. L'écran affichait fidèlement l'état de la base (rien n'avait démarré).
+- **Réparé** : resynchronisation (`sync_app`, 36 fonctions) ; analyse de Jonathan relancée (nouvel événement, nouvelle date de confirmation) : elle tourne en production.
+- **Prévention** : workflow GitHub `.github/workflows/inngest-sync.yml` (après chaque déploiement de production réussi, `PUT /api/inngest`). **Règle : toute nouvelle fonction Inngest exige une resynchronisation de la production** (automatique désormais ; à vérifier avec `get_apps` : `functionCount`).
+- **Piège** : l'outil MCP Inngest refuse la lecture des événements (`list_events`) faute de permissions ; `get_apps`, `list_functions`, `sync_app`, `send_event`, `get_event_runs` fonctionnent.
+- **Backlog** : un écran d'analyse qui détecte « confirmée depuis plus de 2 minutes sans aucune étape » et le dit (aujourd'hui il reste muet sur « L'analyse démarre… ») ; le chien de garde ne couvre pas ce cas (`confirme` sans étape).
