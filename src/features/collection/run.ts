@@ -152,23 +152,51 @@ export interface StepOutcome {
   rows: number;
   /** Vrai si un plafond dur a empêché l'appel (rien n'a été facturé). */
   blocked: boolean;
-  /** Vrai si le fournisseur a refusé l'appel deux fois (erreur de tâche) : la requête est sautée. */
+  /** Vrai si le fournisseur a refusé l'appel après toutes les tentatives : la requête est « manquée ». */
   failed?: boolean;
+  /** Durée de l'appel, tentatives comprises (ms) : mesure de la durée par chemin. */
+  ms?: number;
+}
+
+/** Mesure la durée d'un appel (tentatives et attentes comprises) et la range dans son résultat. */
+async function timed(fn: () => Promise<StepOutcome>): Promise<StepOutcome> {
+  const t0 = Date.now();
+  const out = await fn();
+  return { ...out, ms: Date.now() - t0 };
+}
+
+/** Attentes entre les tentatives d'un appel fournisseur (croissantes) ; réglables dans les tests. */
+export const PROVIDER_RETRY = {
+  delaysMs: [1500, 5000] as number[],
+  /** Durée maximale d'un appel et de ses tentatives : au-delà, l'appel est manqué (un step Inngest tient en 300 s). */
+  budgetMs: 200_000,
+};
+const sleepMs = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/** Panne qui peut passer en attendant : erreur de tâche, HTTP 5xx / 408 / 429, réseau ou délai dépassé. */
+function isTransient(e: DataForSeoError): boolean {
+  if (e.kind === "task") return true;
+  if (e.kind !== "http") return false;
+  return e.code === undefined || e.code >= 500 || e.code === 408 || e.code === 429;
 }
 
 /**
- * Erreur de TÂCHE du fournisseur (ex. 40101 « Internal SE Server Error », constaté au run réel du
- * 16/11/2026, transitoire) : une nouvelle tentative, puis la requête est sautée et comptée ; elle ne
- * fait jamais échouer toute la collecte. Les autres erreurs (réseau, authentification) remontent.
+ * Erreur du FOURNISSEUR (erreur de tâche, HTTP 500, délai dépassé, réseau ; constatés au run réel du
+ * 16/11/2026) : nouvelles tentatives avec attente croissante, puis l'appel est « manqué » (null) :
+ * il est compté et la collecte continue avec ce qu'elle a. Les erreurs d'authentification, de
+ * paramètres ou de solde (type « api ») et les bogues remontent : elles ne se règlent pas en attendant.
  */
-async function withTaskRetry<T>(fn: () => Promise<T>): Promise<T | null> {
+export async function withProviderRetry<T>(fn: () => Promise<T>): Promise<T | null> {
+  const delays = PROVIDER_RETRY.delaysMs;
+  const t0 = Date.now();
   for (let attempt = 0; ; attempt++) {
     try {
       return await fn();
     } catch (e) {
-      if (!(e instanceof DataForSeoError) || e.kind !== "task") throw e;
-      logger.warn("collecte : erreur de tâche du fournisseur", { code: e.code, attempt });
-      if (attempt >= 1) return null;
+      if (!(e instanceof DataForSeoError) || !isTransient(e)) throw e;
+      logger.warn("collecte : erreur du fournisseur", { kind: e.kind, code: e.code, attempt });
+      if (attempt >= delays.length || Date.now() - t0 > PROVIDER_RETRY.budgetMs) return null;
+      await sleepMs(delays[attempt]!);
     }
   }
 }
@@ -218,7 +246,7 @@ export async function runIntersectionPage(
   const label = `intersection-${page + 1}`;
   const est = intersectionPageUsd(L.rowsPerPage);
   if (!(await guarded(deps.service, run, est))) return blockedOutcome("intersection", label);
-  const out = await withTaskRetry(() =>
+  const out = await withProviderRetry(() =>
     deps.dfs.backlinksDomainIntersection(
       {
         targets: run.plan.intersectionTargets,
@@ -259,7 +287,7 @@ export async function runSerpQuery(
   const label = `${phase}-serp-${index + 1}`;
   const est = estimateCost("serpOrganicLive", { keyword: query.q, depth });
   if (!(await guarded(deps.service, run, est))) return blockedOutcome(phase, label);
-  const out = await withTaskRetry(() =>
+  const out = await withProviderRetry(() =>
     deps.dfs.serpOrganicLive({ keyword: query.q, depth }, callOpts(run)),
   );
   if (!out) return failedOutcome(phase, label);
@@ -291,7 +319,7 @@ export async function runContentCall(
   const label = `${phase}-content-${index + 1}`;
   if (!(await guarded(deps.service, run, contentCallUsd(rows))))
     return blockedOutcome(phase, label);
-  const out = await withTaskRetry(() =>
+  const out = await withProviderRetry(() =>
     deps.dfs.contentAnalysisSearch(
       {
         keyword: call.keyword,
@@ -343,8 +371,11 @@ export interface PhaseStats {
   costUsd: number;
   rows: number;
   newDomains: number;
-  /** Appels refusés par le fournisseur deux fois (erreur de tâche), sautés. */
+  /** Appels « manqués » : refusés par le fournisseur après toutes les tentatives, sautés. */
   failures: number;
+  /** Durée cumulée des appels (ms) et durée réelle de la phase (somme des lots, plus long appel de chacun). */
+  callMs: number;
+  wallMs: number;
   stoppedBy: StopReason;
 }
 
@@ -355,6 +386,8 @@ export const emptyPhaseStats = (): PhaseStats => ({
   rows: 0,
   newDomains: 0,
   failures: 0,
+  callMs: 0,
+  wallMs: 0,
   stoppedBy: "termine",
 });
 
@@ -401,6 +434,7 @@ export class CollectionProgress {
     s.rows += o.rows;
     if (o.blocked) s.stoppedBy = "plafond";
     if (o.failed) s.failures++;
+    s.callMs += o.ms ?? 0;
     if (o.intersection.length > 0) this.intersectionPages.push(o.intersection);
     const fresh = newDomains(o.raws, this.seen);
     for (const d of fresh) this.seen.add(d);
@@ -419,6 +453,20 @@ export class CollectionProgress {
     this.raws.push(...cands);
     this.stats.intersection.newDomains = fresh.length;
     return fresh.length;
+  }
+
+  /** Durée réelle d'un lot d'appels parallèles : celle du plus long. */
+  addWall(phase: CollectionPhase, outcomes: readonly StepOutcome[]): void {
+    this.stats[phase].wallMs += Math.max(0, ...outcomes.map((o) => o.ms ?? 0));
+  }
+
+  /** Appels manqués, toutes phases confondues. */
+  get missed(): number {
+    return Object.values(this.stats).reduce((n, p) => n + p.failures, 0);
+  }
+
+  get calls(): number {
+    return Object.values(this.stats).reduce((n, p) => n + p.calls, 0);
   }
 
   stop(phase: CollectionPhase, reason: StopReason): void {
@@ -443,25 +491,133 @@ export function wantsSecondIntersectionPage(first: StepOutcome, hits: number): b
 
 export type StepRunner = <T>(id: string, fn: () => Promise<T>) => Promise<T>;
 
+/** Nombre d'appels exécutés en parallèle (docs : chantier A.3, lots de 5). */
+export const COLLECTION_BATCH = 5;
+
+/** Ce que la collecte raconte à l'écran après chaque lot (écrit une seule fois, dans un step). */
+export interface CollectionReport {
+  phase: CollectionPhase;
+  /** Appels terminés, toutes phases (manqués compris). */
+  done: number;
+  /** Domaines distincts trouvés jusqu'ici. */
+  found: number;
+  /** Appels manqués jusqu'ici. */
+  missed: number;
+  /** Dernier exemple lisible du lot. */
+  example: string | null;
+}
+
+export interface ExecuteOptions {
+  batchSize?: number;
+  /** Appelé dans un step mémorisé après chaque lot : jamais rejoué, jamais bloquant. */
+  report?: (r: CollectionReport) => Promise<void>;
+  /** Exemple lisible d'un résultat (requête cherchée, premier site). */
+  example?: (o: StepOutcome) => string | null;
+}
+
 /**
  * Déroule le plan de collecte. `runStep` = `step.run` d'Inngest (un appel payant = un step, mémorisé,
- * donc rejouable sans repayer) ou une simple exécution directe dans les tests. Ordre : recoupement des
- * concurrents, marque, SERP des requêtes de l'univers (arrêt par rendement décroissant), Content
- * Analysis par type de page. Chaque phase a un budget souple ; les plafonds durs sont contrôlés avant
- * chaque appel (guard.ts). Aucun envoi, aucun achat, aucun appel LLM.
+ * donc rejouable sans repayer) ou une simple exécution directe dans les tests. Les appels d'une phase
+ * sont indépendants : ils partent par lots de 5 en parallèle ; le budget de la phase et l'arrêt par
+ * rendement décroissant sont évalués AVANT chaque lot ; les résultats sont ajoutés dans l'ordre du
+ * plan (jamais dans l'ordre d'arrivée), donc un rejeu prend les mêmes décisions. Ordre des phases :
+ * recoupement des concurrents, marque, SERP des requêtes de l'univers, Content Analysis par type de
+ * page. Plafonds durs contrôlés avant chaque appel (guard.ts). Un appel que le fournisseur refuse
+ * après toutes les tentatives est « manqué » : compté, jamais fatal. Aucun envoi, aucun achat.
  */
 export async function executeCollection(
   deps: () => { dfs: Dfs; service: Client },
   run: CollectionRun,
   runStep: StepRunner,
+  opts: ExecuteOptions = {},
 ): Promise<CollectionProgress> {
   const progress = new CollectionProgress(run.targetUsd);
   const L = COLLECTION_LIMITS;
+  const size = Math.max(1, opts.batchSize ?? COLLECTION_BATCH);
+  const exampleOf = opts.example ?? (() => null);
+  let batchNo = 0;
+
+  const report = async (phase: CollectionPhase, outcomes: readonly StepOutcome[]) => {
+    if (!opts.report) return;
+    const example = outcomes
+      .map((o) => (o.blocked || o.failed ? null : exampleOf(o)))
+      .find(Boolean);
+    const snapshot: CollectionReport = {
+      phase,
+      done: progress.calls,
+      found: progress.seen.size,
+      missed: progress.missed,
+      example: example ?? null,
+    };
+    await runStep(`lot-${++batchNo}`, async () => {
+      try {
+        await opts.report!(snapshot);
+      } catch (e) {
+        logger.warn("collecte : progression non écrite", { error: (e as Error).message });
+      }
+      return { ok: true };
+    });
+  };
+
+  /**
+   * Une phase = une liste d'appels exécutés par lots. `estimate` sert au budget souple de la phase ;
+   * `stopBefore` (rendement) est évalué avant chaque lot. Retourne les résultats dans l'ordre du plan.
+   */
+  async function phaseInBatches<I>(
+    phase: CollectionPhase,
+    items: readonly I[],
+    spec: {
+      estimate: (item: I) => number;
+      stepId: (index: number) => string;
+      call: (item: I, index: number) => Promise<StepOutcome>;
+      stopBefore?: () => StopReason | null;
+    },
+  ): Promise<void> {
+    for (let from = 0; from < items.length;) {
+      const why = spec.stopBefore?.();
+      if (why) {
+        progress.stop(phase, why);
+        return;
+      }
+      // Combien d'appels de ce lot tiennent dans le budget souple de la phase ?
+      let planned = 0;
+      let spent = 0;
+      const wanted = Math.min(size, items.length - from);
+      for (const item of items.slice(from, from + size)) {
+        const est = spec.estimate(item);
+        if (progress.phaseOver(phase, spent + est)) break;
+        spent += est;
+        planned++;
+      }
+      if (planned === 0) {
+        progress.stop(phase, "budget_phase");
+        return;
+      }
+      const batch = items.slice(from, from + planned);
+      const outcomes = await Promise.all(
+        batch.map((item, j) =>
+          runStep(spec.stepId(from + j), () => timed(() => spec.call(item, from + j))),
+        ),
+      );
+      for (const o of outcomes) progress.add(o);
+      progress.addWall(phase, outcomes);
+      await report(phase, outcomes);
+      if (outcomes.some((o) => o.blocked)) return;
+      from += planned;
+      if (planned < wanted) {
+        progress.stop(phase, "budget_phase");
+        return;
+      }
+    }
+  }
 
   // 1. Recoupement des concurrents : les domaines qui citent déjà plusieurs d'entre eux.
   if (run.plan.intersectionTargets.length >= 2) {
-    const first = await runStep("intersection-1", () => runIntersectionPage(deps(), run, 0));
+    const first = await runStep("intersection-1", () =>
+      timed(() => runIntersectionPage(deps(), run, 0)),
+    );
     progress.add(first);
+    progress.addWall("intersection", [first]);
     const hits = progress.intersectionPages
       .flat()
       .filter((d) => d.keys.length >= L.intersection.minCompetitors).length;
@@ -470,67 +626,45 @@ export async function executeCollection(
         L.intersection.maxPages > 1 &&
         !progress.phaseOver("intersection", intersectionPageUsd(L.intersection.rowsPerPage))
       ) {
-        progress.add(await runStep("intersection-2", () => runIntersectionPage(deps(), run, 1)));
+        const second = await runStep("intersection-2", () =>
+          timed(() => runIntersectionPage(deps(), run, 1)),
+        );
+        progress.add(second);
+        progress.addWall("intersection", [second]);
       } else {
         progress.stop("intersection", "budget_phase");
       }
     }
     progress.finishIntersection();
+    await report("intersection", [first]);
   }
 
   // 2. Tactique « mentions de marque » : SERP de marque, puis Content Analysis sur chaque variante.
-  for (const [i, q] of run.plan.mentionSerp.entries()) {
-    const est = estimateCost("serpOrganicLive", { keyword: q.q, depth: L.serp.depth });
-    if (progress.phaseOver("mentions", est)) {
-      progress.stop("mentions", "budget_phase");
-      break;
-    }
-    const out = await runStep(`mentions-serp-${i + 1}`, () =>
-      runSerpQuery(deps(), run, q, "mentions", i),
-    );
-    progress.add(out);
-    if (out.blocked) break;
-  }
-  for (const [i, keyword] of run.plan.mentionKeywords.entries()) {
-    if (progress.phaseOver("mentions", contentCallUsd(L.mentions.rowsPerCall))) {
-      progress.stop("mentions", "budget_phase");
-      break;
-    }
-    const out = await runStep(`mentions-content-${i + 1}`, () =>
-      runContentCall(deps(), run, { keyword, pageType: null }, "mentions", i),
-    );
-    progress.add(out);
-    if (out.blocked) break;
-  }
+  await phaseInBatches("mentions", run.plan.mentionSerp, {
+    estimate: (q) => estimateCost("serpOrganicLive", { keyword: q.q, depth: L.serp.depth }),
+    stepId: (i) => `mentions-serp-${i + 1}`,
+    call: (q, i) => runSerpQuery(deps(), run, q, "mentions", i),
+  });
+  await phaseInBatches("mentions", run.plan.mentionKeywords, {
+    estimate: () => contentCallUsd(L.mentions.rowsPerCall),
+    stepId: (i) => `mentions-content-${i + 1}`,
+    call: (keyword, i) => runContentCall(deps(), run, { keyword, pageType: null }, "mentions", i),
+  });
 
   // 3. SERP top 30 des requêtes de l'univers, dans l'ordre de rendement ; arrêt par rendement décroissant.
-  for (const [i, q] of run.plan.serp.entries()) {
-    const est = estimateCost("serpOrganicLive", { keyword: q.q, depth: L.serp.depth });
-    if (progress.phaseOver("serp", est)) {
-      progress.stop("serp", "budget_phase");
-      break;
-    }
-    if (progress.serpShouldStop()) {
-      progress.stop("serp", "rendement");
-      break;
-    }
-    const out = await runStep(`serp-${i + 1}`, () => runSerpQuery(deps(), run, q, "serp", i));
-    progress.add(out);
-    if (out.blocked) break;
-  }
+  await phaseInBatches("serp", run.plan.serp, {
+    estimate: (q) => estimateCost("serpOrganicLive", { keyword: q.q, depth: L.serp.depth }),
+    stepId: (i) => `serp-${i + 1}`,
+    call: (q, i) => runSerpQuery(deps(), run, q, "serp", i),
+    stopBefore: () => (progress.serpShouldStop() ? "rendement" : null),
+  });
 
   // 4. Content Analysis par type de page (blogs, organisations, forums, e-commerce).
-  for (const [i, call] of run.plan.content.entries()) {
-    if (progress.phaseOver("content", contentCallUsd(L.content.rowsPerCall))) {
-      progress.stop("content", "budget_phase");
-      break;
-    }
-    const out = await runStep(`content-${i + 1}`, () =>
-      runContentCall(deps(), run, call, "content", i),
-    );
-    progress.add(out);
-    if (out.blocked) break;
-  }
+  await phaseInBatches("content", run.plan.content, {
+    estimate: () => contentCallUsd(L.content.rowsPerCall),
+    stepId: (i) => `content-${i + 1}`,
+    call: (call, i) => runContentCall(deps(), run, call, "content", i),
+  });
   return progress;
 }
 

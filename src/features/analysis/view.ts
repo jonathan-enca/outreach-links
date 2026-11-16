@@ -36,6 +36,8 @@ export interface AnalysisSnapshot {
   error: string | null;
   startedAt: string | null;
   finishedAt: string | null;
+  /** Date du dernier lancement (ou de la dernière reprise) : sert à repérer un démarrage bloqué. */
+  confirmedAt?: string | null;
   steps: StepRow[];
   /** Cibles de la liste courte déjà prêtes (les premières, dans l'ordre du classement). */
   targets: TargetRow[];
@@ -82,7 +84,14 @@ export interface StepView {
   counter: string | null;
   example: string | null;
   error: string | null;
+  /** « 1 recherche n'a pas abouti » : appels manqués du fournisseur, l'analyse a continué. */
+  missed: string | null;
+  /** Le bouton « Reprendre à partir d'ici » a un sens ici (étape commencée, analyse à l'arrêt). */
+  canRestart: boolean;
 }
+
+/** Délai au-delà duquel une analyse confirmée sans aucune étape est dite « lente à démarrer ». */
+export const SLOW_START_MS = 2 * 60_000;
 
 export interface FunnelView {
   examined: number;
@@ -102,6 +111,8 @@ export interface AnalysisView {
   targets: TargetRow[];
   targetsCount: number;
   failedStep: StepView | null;
+  /** Confirmée depuis plus de 2 minutes sans aucune étape commencée. */
+  slowStart: boolean;
   /** Étapes qui ont abouti (pour dire « ce qui a marché » en cas d'échec). */
   doneLabels: string[];
 }
@@ -141,8 +152,18 @@ export function buildAnalysisView(s: AnalysisSnapshot, now: Date = new Date()): 
       counter: r && status !== "attente" ? counterText(key, r.counters) : null,
       example: r && status !== "attente" ? r.example : null,
       error: status === "echoue" ? r?.error || null : null,
+      missed:
+        r && status !== "attente" && (r.counters.missed ?? 0) > 0
+          ? t.analysis.screen.missed(r.counters.missed!)
+          : null,
+      canRestart: false,
     };
   });
+  const stopped = s.status === "echoue" || s.status === "termine";
+  for (const step of steps) {
+    // Reprendre à partir d'une étape : analyse à l'arrêt, étape commencée, hors étape parallèle.
+    step.canRestart = stopped && step.status !== "attente" && step.key !== PARALLEL_STEP;
+  }
 
   const finished = s.status === "termine";
   const sequential = ANALYSIS_STEP_KEYS.filter((k) => k !== PARALLEL_STEP);
@@ -182,6 +203,13 @@ export function buildAnalysisView(s: AnalysisSnapshot, now: Date = new Date()): 
         }
       : null;
 
+  const confirmedMs = s.confirmedAt ? Date.parse(s.confirmedAt) : NaN;
+  const slowStart =
+    s.status === "confirme" &&
+    s.steps.every((r) => r.status === "attente") &&
+    Number.isFinite(confirmedMs) &&
+    now.getTime() - confirmedMs > SLOW_START_MS;
+
   const failedStep = steps.find((x) => x.status === "echoue") ?? null;
   return {
     status: s.status,
@@ -193,6 +221,7 @@ export function buildAnalysisView(s: AnalysisSnapshot, now: Date = new Date()): 
     targets: s.targets,
     targetsCount: s.targetsCount,
     failedStep,
+    slowStart,
     doneLabels: steps.filter((x) => x.status === "termine").map((x) => x.label),
   };
 }

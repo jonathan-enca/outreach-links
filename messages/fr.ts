@@ -2588,6 +2588,22 @@ export const fr = {
       resume: "Reprendre l'analyse",
       resuming: "Reprise en cours…",
       offline: "Connexion perdue : nouvelle tentative dans quelques secondes.",
+      /** Appels que le fournisseur n'a pas pu servir : l'analyse continue avec le reste. */
+      missed: (n: number) =>
+        n === 1
+          ? "1 recherche n'a pas abouti : l'analyse continue avec le reste."
+          : `${n} recherches n'ont pas abouti : l'analyse continue avec le reste.`,
+      /** Confirmée, mais aucune étape n'a démarré depuis plus de 2 minutes. */
+      slowStart: "Le démarrage prend plus de temps que prévu.",
+      slowStartBody:
+        "L'analyse n'a pas encore commencé. Vous pouvez la relancer : rien n'est facturé tant qu'elle n'a pas démarré.",
+      slowStartCta: "Relancer le démarrage",
+      /** Reprise à partir d'une étape. */
+      restartFrom: "Reprendre à partir d'ici",
+      restartConfirm:
+        "Cette étape et les suivantes seront refaites. Ce qui précède est conservé et rien n'est repayé.",
+      restarting: "Reprise en cours…",
+      restartCancel: "Annuler",
     },
     messages: {
       unauthenticated: "Connectez-vous pour lancer l'analyse.",
@@ -2603,6 +2619,9 @@ export const fr = {
       sendFailed: "L'analyse est enregistrée mais n'a pas pu démarrer. Réessayez.",
       started: "Analyse lancée. Rien n'est contacté à cette étape.",
       resumed: "Analyse reprise là où elle s'était arrêtée. Rien de déjà fait n'est refait.",
+      restarted: "Analyse relancée à partir de cette étape. Ce qui précède est conservé.",
+      restartRunning: "L'analyse est en cours : attendez qu'elle s'arrête pour la reprendre.",
+      restartUnknownStep: "Cette étape ne peut pas être reprise.",
     },
     /** Email « vos cibles sont prêtes » (D7) : transactionnel, aucun montant. */
     email: {
@@ -2629,6 +2648,10 @@ export const fr = {
         "Les recherches d'éditeurs n'ont pas pu être préparées. Reprenez l'analyse dans quelques minutes.",
       interrupted:
         "L'analyse s'est interrompue avant la fin. Vous pouvez la reprendre : rien de déjà fait n'est refait.",
+      noCandidates:
+        "La recherche n'a trouvé aucun site utile. Vérifiez le thème et le pays de votre site, puis reprenez à partir de cette étape.",
+      searchMissedAll:
+        "Aucune de nos recherches n'a abouti : le service de recherche ne répond pas. Reprenez à partir de cette étape dans quelques minutes.",
     },
     /** Lignes du fil d'événements (`analysis_feed`). */
     feed: {

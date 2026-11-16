@@ -5,7 +5,11 @@ import { loadAnalysisSnapshot } from "@/features/analysis/status";
 import { siteHref } from "@/features/shell/next-step";
 import { JourneySteps } from "@/features/shell/journey-steps";
 import { PageHeader } from "@/components/page-header";
-import { confirmAuditAction } from "@/features/audits/actions";
+import {
+  confirmAuditAction,
+  relaunchStalledAction,
+  restartFromStepAction,
+} from "@/features/audits/actions";
 import { AuditDetail, type AuditView } from "@/features/audits/audit-detail";
 import { legacyChainEnabled, type ChainEstimate } from "@/features/audits/chain";
 import { chainProgressView } from "@/features/audits/chain-progress";
@@ -54,6 +58,8 @@ export async function AuditContent({ id }: { id: string }) {
         <AnalysisProgress
           initial={snapshot}
           resumeAction={confirmAuditAction.bind(null, audit.id)}
+          restartAction={restartFromStepAction.bind(null, audit.id)}
+          relaunchAction={relaunchStalledAction.bind(null, audit.id)}
           emailEnabled={Boolean(env.RESEND_API_KEY)}
         />
       </>

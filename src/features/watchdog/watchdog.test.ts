@@ -239,6 +239,23 @@ describe("chien de garde : analyse unique (MU.1)", () => {
     });
   });
 
+  it("une analyse confirmée dont le job n'a jamais démarré est traitée au bout de 5 minutes (pas 30)", async () => {
+    const stuck = fakeSupabase({
+      analysis_steps: [],
+      audits: [audit({ analysis_status: "confirme", analysis_confirmed_at: ago(6) })],
+      events: [],
+    });
+    const report = await runWatchdog(stuck.client, { now });
+    expect(report.actions.map((a) => `${a.step}:${a.action}`)).toEqual(["audit.analysis:echoue"]);
+    expect(stuck.tables.audits![0]!.analysis_status).toBe("echoue");
+    const fresh = fakeSupabase({
+      analysis_steps: [],
+      audits: [audit({ analysis_status: "confirme", analysis_confirmed_at: ago(4) })],
+      events: [],
+    });
+    expect((await runWatchdog(fresh.client, { now })).actions).toEqual([]);
+  });
+
   it("une étape qui écrit régulièrement n'est jamais touchée", async () => {
     const db = fakeSupabase({
       analysis_steps: [step({ updated_at: ago(3) })],

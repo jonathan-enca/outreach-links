@@ -28,8 +28,17 @@ function StepIcon({ status }: { status: StepStatus }) {
   return <Circle aria-hidden className={cn(base, "text-muted-foreground/50")} />;
 }
 
-function StepRowView({ step }: { step: StepView }) {
+function StepRowView({
+  step,
+  onRestart,
+  busy,
+}: {
+  step: StepView;
+  onRestart: (key: string) => void;
+  busy: boolean;
+}) {
   const active = step.status === "en_cours";
+  const [armed, setArmed] = useState(false);
   return (
     <li
       data-step={step.key}
@@ -60,7 +69,46 @@ function StepRowView({ step }: { step: StepView }) {
         {step.example && step.status !== "echoue" ? (
           <p className="mt-0.5 truncate text-sm text-muted-foreground">{step.example}</p>
         ) : null}
+        {step.missed ? (
+          <p className="mt-1 text-sm text-warning" data-missed>
+            {step.missed}
+          </p>
+        ) : null}
         {step.error ? <p className="mt-1 text-sm text-danger">{step.error}</p> : null}
+        {step.canRestart ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {armed ? (
+              <>
+                <p className="w-full text-sm text-muted-foreground">{S.restartConfirm}</p>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => {
+                    setArmed(false);
+                    onRestart(step.key);
+                  }}
+                >
+                  {busy ? S.restarting : S.restartFrom}
+                </Button>
+                <Button type="button" size="sm" variant="ghost" onClick={() => setArmed(false)}>
+                  {S.restartCancel}
+                </Button>
+              </>
+            ) : (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                data-restart={step.key}
+                onClick={() => setArmed(true)}
+              >
+                {S.restartFrom}
+              </Button>
+            )}
+          </div>
+        ) : null}
       </div>
     </li>
   );
@@ -75,10 +123,16 @@ function StepRowView({ step }: { step: StepView }) {
 export function AnalysisProgress({
   initial,
   resumeAction,
+  restartAction,
+  relaunchAction,
   emailEnabled,
 }: {
   initial: AnalysisSnapshot;
   resumeAction: (prev: AuditActionState) => Promise<AuditActionState>;
+  /** « Reprendre à partir d'ici » (chantier A.2). */
+  restartAction: (stepKey: string) => Promise<AuditActionState>;
+  /** Démarrage bloqué : relance l'événement (chantier A.4). */
+  relaunchAction: () => Promise<AuditActionState>;
   emailEnabled: boolean;
 }) {
   const router = useRouter();
@@ -127,6 +181,27 @@ export function AnalysisProgress({
     return next;
   };
   const [resumeState, resumeForm, resuming] = useActionState(resume, { status: "idle" });
+
+  const [restartNote, setRestartNote] = useState<AuditActionState | null>(null);
+  const [restarting, setRestarting] = useState(false);
+  const restart = async (key: string) => {
+    setRestarting(true);
+    try {
+      setRestartNote(await restartAction(key));
+      void refresh();
+    } finally {
+      setRestarting(false);
+    }
+  };
+  const relaunch = async () => {
+    setRestarting(true);
+    try {
+      setRestartNote(await relaunchAction());
+      void refresh();
+    } finally {
+      setRestarting(false);
+    }
+  };
 
   const failed = snap.status === "echoue";
   const finished = snap.status === "termine";
@@ -216,6 +291,28 @@ export function AnalysisProgress({
         </Card>
       )}
 
+      {view.slowStart ? (
+        <Card
+          className="flex flex-col gap-2 border-warning/40 bg-warning/5 p-5"
+          data-block="slow-start"
+        >
+          <h3 className="font-medium">{S.slowStart}</h3>
+          <p className="text-sm text-muted-foreground">{S.slowStartBody}</p>
+          <Button type="button" disabled={restarting} onClick={relaunch} className="self-start">
+            {restarting ? S.restarting : S.slowStartCta}
+          </Button>
+        </Card>
+      ) : null}
+
+      {restartNote?.message ? (
+        <p
+          role="status"
+          className={restartNote.status === "error" ? "text-danger" : "text-success"}
+        >
+          {restartNote.message}
+        </p>
+      ) : null}
+
       {offline ? (
         <p role="status" className="text-sm text-muted-foreground">
           {S.offline}
@@ -225,7 +322,7 @@ export function AnalysisProgress({
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <ol className="flex flex-col gap-1" aria-label={t.analysis.screen.intro}>
           {view.steps.map((step) => (
-            <StepRowView key={step.key} step={step} />
+            <StepRowView key={step.key} step={step} onRestart={restart} busy={restarting} />
           ))}
         </ol>
 

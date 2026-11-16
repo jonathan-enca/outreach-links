@@ -182,3 +182,51 @@ describe("buildAnalysisView", () => {
     expect(Number.isFinite(v.percent)).toBe(true);
   });
 });
+
+describe("chantier A : appels manqués, reprise par étape, démarrage lent", () => {
+  it("affiche « 1 recherche n'a pas abouti » quand des appels ont été manqués", () => {
+    const v = buildAnalysisView(
+      withSteps([row("recherche", "en_cours", { done: 20, total: 35, found: 300, missed: 1 })]),
+    );
+    expect(v.steps.find((s) => s.key === "recherche")!.missed).toBe(
+      "1 recherche n'a pas abouti : l'analyse continue avec le reste.",
+    );
+    const two = buildAnalysisView(withSteps([row("recherche", "termine", { missed: 2 })]));
+    expect(two.steps.find((s) => s.key === "recherche")!.missed).toMatch(/^2 recherches n'ont pas/);
+    const none = buildAnalysisView(withSteps([row("recherche", "termine", { missed: 0 })]));
+    expect(none.steps.find((s) => s.key === "recherche")!.missed).toBeNull();
+  });
+
+  it("« Reprendre à partir d'ici » : seulement quand l'analyse est à l'arrêt, sur les étapes commencées", () => {
+    const rows = [
+      row("comprendre", "termine"),
+      row("concurrents", "termine"),
+      row("recherche", "echoue"),
+    ];
+    const failed = buildAnalysisView(withSteps(rows, { status: "echoue" }));
+    expect(failed.steps.filter((s) => s.canRestart).map((s) => s.key)).toEqual([
+      "comprendre",
+      "concurrents",
+      "recherche",
+    ]);
+    const running = buildAnalysisView(withSteps(rows, { status: "en_cours" }));
+    expect(running.steps.some((s) => s.canRestart)).toBe(false);
+    const etat = buildAnalysisView(
+      withSteps([row("etat_des_lieux", "termine")], { status: "echoue" }),
+    );
+    expect(etat.steps.find((s) => s.key === "etat_des_lieux")!.canRestart).toBe(false);
+  });
+
+  it("démarrage lent : confirmée depuis plus de 2 minutes sans aucune étape commencée", () => {
+    const now = new Date("2026-11-17T10:03:00Z");
+    const base = { status: "confirme" as const, confirmedAt: "2026-11-17T10:00:00Z" };
+    expect(buildAnalysisView(snap(base), now).slowStart).toBe(true);
+    expect(
+      buildAnalysisView(snap({ ...base, confirmedAt: "2026-11-17T10:01:30Z" }), now).slowStart,
+    ).toBe(false);
+    expect(buildAnalysisView(withSteps([row("comprendre", "en_cours")], base), now).slowStart).toBe(
+      false,
+    );
+    expect(buildAnalysisView(snap({ ...base, status: "en_cours" }), now).slowStart).toBe(false);
+  });
+});

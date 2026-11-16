@@ -27,6 +27,8 @@ export interface StepDef {
   restore?: Record<string, string>;
   /** Délai propre à l'étape pour le statut « en cours » (défaut : `WATCHDOG_LIMITS.runningMinutes`). */
   runningMinutes?: number;
+  /** Délai propre à l'étape pour le statut « confirmé » (défaut : `WATCHDOG_LIMITS.confirmedMinutes`). */
+  confirmedMinutes?: number;
   /**
    * MU.1 : ligne parente à passer en échec avec l'étape (l'analyse d'un audit, quand une de ses
    * étapes est bloquée), pour que « Reprendre » redevienne possible. `unless` : lignes qui ne
@@ -89,6 +91,9 @@ export const WATCHED_STEPS: readonly StepDef[] = [
   {
     ...auditStep("audit.analysis", "analysis_", "analysis.completed"),
     startedCol: "analysis_confirmed_at",
+    // Chantier A.4 : une analyse confirmée dont le job ne démarre pas (événement perdu, Inngest non
+    // synchronisé) est traitée vite ; l'écran, lui, le dit dès 2 minutes.
+    confirmedMinutes: 5,
   },
   // Une étape de l'analyse écrit sa progression à chaque step : « en cours » sans écriture depuis
   // 15 minutes = job mort (docs/jalon-mu.md 3.3). L'étape et l'analyse passent en échec.
@@ -146,7 +151,7 @@ export function isStuck(def: StepDef, row: Row, nowMs: number): boolean {
   if (ref === null) return false; // sans date fiable, on ne touche à rien
   const minutes =
     status === "confirme"
-      ? WATCHDOG_LIMITS.confirmedMinutes
+      ? (def.confirmedMinutes ?? WATCHDOG_LIMITS.confirmedMinutes)
       : (def.runningMinutes ?? WATCHDOG_LIMITS.runningMinutes);
   return nowMs - ref > minutes * 60_000;
 }

@@ -11,6 +11,7 @@ import {
   beginCollection,
   executeCollection,
   finalizeCollection,
+  withProviderRetry,
   type StepOutcome,
 } from "@/features/collection/run";
 import { prepareCollection } from "@/features/collection/service";
@@ -47,7 +48,6 @@ import { logger } from "@/lib/logger";
 import { t } from "@/lib/messages";
 import type { Database } from "@/lib/supabase/database.types";
 import {
-  trackedRunner,
   type AnalysisRun,
   type AnalysisSummary,
   type Orchestration,
@@ -260,7 +260,17 @@ function understandStage(deps: AnalysisDeps): Stage {
       runStep("comprendre", async (): Promise<StageResult> => {
         const service = deps.service();
         await progress.update("comprendre", { status: "en_cours" });
-        const existing = await getLatestBrandProfile(service, run.siteId);
+        const latest = await getLatestBrandProfile(service, run.siteId);
+        // « Reprendre à partir d'ici » sur cette étape : relire le site (nouvelle version du profil).
+        // Un profil corrigé par l'utilisateur n'est jamais écrasé.
+        const { data: own } = await service
+          .from("analysis_steps")
+          .select("counters")
+          .eq("audit_id", run.auditId)
+          .eq("key", "comprendre")
+          .maybeSingle();
+        const redo = (own?.counters as Record<string, unknown> | null)?.redo === 1;
+        const existing = redo && latest?.source === "llm" ? null : latest;
         const profile =
           existing ??
           (await buildAndStoreBrandProfile(
@@ -278,7 +288,12 @@ function understandStage(deps: AnalysisDeps): Stage {
         const pages = profile.pagesRead.length;
         await progress.update("comprendre", {
           status: "termine",
-          counters: { done: pages, total: pages, found: profile.profile.linkable_resources.length },
+          counters: {
+            done: pages,
+            total: pages,
+            found: profile.profile.linkable_resources.length,
+            redo: 0,
+          },
           example: profile.profile.name_variants[0] ?? run.domain,
         });
         if (!existing) await progress.feed(done("comprendre"));
@@ -310,17 +325,29 @@ function competitorsStage(deps: AnalysisDeps): Stage {
       });
       if (begin.state === "impossible") return { status: "arret", message: E.interrupted };
 
+      let missedSearches = 0;
       if (begin.state === "pret" && begin.audit) {
         const audit = begin.audit;
         for (const [i, query] of audit.queries.entries()) {
-          await runStep(`concurrents:recherche-${i + 1}`, async () => {
-            const out = await discoverQuery(deps.service(), deps.dfs(), audit, query);
+          const res = await runStep(`concurrents:recherche-${i + 1}`, async () => {
+            // Une recherche que le fournisseur ne sert pas (500, délai) est « manquée », jamais fatale.
+            const out = await withProviderRetry(() =>
+              discoverQuery(deps.service(), deps.dfs(), audit, query),
+            );
             await progress.update("concurrents", {
               counters: { done: i + 1, total: audit.queries.length + 1 },
-              example: query,
+              example: out ? query : null,
             });
-            return { entries: out.entries, costUsd: out.actualCostUsd, cacheHit: out.cacheHit };
+            return out
+              ? {
+                  entries: out.entries,
+                  costUsd: out.actualCostUsd,
+                  cacheHit: out.cacheHit,
+                  missed: false,
+                }
+              : { entries: 0, costUsd: 0, cacheHit: false, missed: true };
           });
+          if (res.missed) missedSearches++;
         }
         await runStep("concurrents:selection", async () => {
           const out = await finalizeDiscovery(deps.service(), audit);
@@ -367,7 +394,7 @@ function competitorsStage(deps: AnalysisDeps): Stage {
         const total = begin.audit ? begin.audit.queries.length + 1 : 1;
         await progress.update("concurrents", {
           status: "termine",
-          counters: { done: total, total, found: kept.length },
+          counters: { done: total, total, found: kept.length, missed: missedSearches },
           example: kept[0] ?? null,
         });
         if (begin.state === "pret") await progress.feed(done("concurrents"));
@@ -382,8 +409,6 @@ function competitorsStage(deps: AnalysisDeps): Stage {
 /** Exemple lisible d'un appel de collecte : la requête cherchée, sinon le premier site trouvé (jamais l'id technique du step). */
 const exampleOf = (o: StepOutcome): string | null =>
   o.raws.find((r) => r.query)?.query ?? o.raws[0]?.domain ?? null;
-
-const collectedIn = (o: StepOutcome) => new Set(o.raws.map((r) => r.domain)).size;
 
 /** 4. Chercher les sites qui peuvent vous citer : requêtes par type d'éditeur, puis collecte. */
 function searchStage(deps: AnalysisDeps): Stage {
@@ -436,22 +461,38 @@ function searchStage(deps: AnalysisDeps): Stage {
       const collected = await executeCollection(
         () => ({ dfs: deps.dfs(), service: deps.service() }),
         col,
-        trackedRunner<StepOutcome>(tools, "recherche", {
-          prefix: "recherche",
-          total: begin.total,
-          found: collectedIn,
-          example: (o) => (o.blocked || o.failed ? null : exampleOf(o)),
-        }),
+        runStep,
+        {
+          example: exampleOf,
+          report: (r) =>
+            progress.update("recherche", {
+              counters: {
+                done: r.done,
+                total: Math.max(begin.total, r.done),
+                found: r.found,
+                missed: r.missed,
+              },
+              example: r.example,
+            }),
+        },
       );
-      await runStep("recherche:fin", async () => {
+      const finished = await runStep("recherche:fin", async () => {
         const out = await finalizeCollection(deps.service(), col, collected);
         await progress.update("recherche", {
-          status: "termine",
-          counters: { found: out.candidates },
+          ...(out.candidates > 0 ? { status: "termine" as const } : {}),
+          counters: { found: out.candidates, missed: collected.missed },
         });
-        await progress.feed(done("recherche"));
+        if (out.candidates > 0) await progress.feed(done("recherche"));
         return out;
       });
+      // Une panne partielle ne coûte que les appels manqués ; la recherche n'échoue que si elle n'a
+      // rien trouvé du tout (tous les appels manqués, ou aucun site utile).
+      if (finished.candidates === 0) {
+        return {
+          status: "arret",
+          message: collected.missed > 0 ? E.searchMissedAll : E.noCandidates,
+        };
+      }
       return { status: "fait" };
     },
   };
