@@ -4,7 +4,7 @@ import { createLlmClient, DEFAULT_MODELS } from "@/lib/llm/client";
 import { evalDeps, metrics } from "./eval";
 import { FINDING_EVAL_CASES, FINDING_EVAL_CONTEXT } from "./eval-set";
 import { judgePage } from "./llm";
-import { scanTarget } from "./funnel";
+import { confirmForeign, scanTarget } from "./funnel";
 
 /**
  * Évaluation RÉELLE du jugement LLM des constats (mentions : parle-t-on bien du site ? liens :
@@ -40,7 +40,7 @@ describe.skipIf(!live)("constats par page : jugement LLM réel", () => {
         rank: 1,
         resource: 0,
       });
-      const { judgement } = await judgePage(
+      const { judgement: raw } = await judgePage(
         llm,
         {
           mentions: scan.mentions,
@@ -50,6 +50,11 @@ describe.skipIf(!live)("constats par page : jugement LLM réel", () => {
         },
         FINDING_EVAL_CONTEXT,
         { workspaceId: null, auditId: null },
+      );
+      const judgement = await confirmForeign(
+        evalDeps(c).readPage,
+        raw,
+        FINDING_EVAL_CONTEXT.language,
       );
       const want = c.llm!;
       if (want.mentionAboutSite !== null) {

@@ -148,8 +148,17 @@ const ORIGIN_ORDER: Record<LinkOrigin, number> = { etranger: 0, ambigu: 1, local
  * concurrents, ni une référence neutre (encyclopédie, institution, réseau social), ni un lien
  * sponsorisé, ni une image seule. Les étrangers puis les ambigus d'abord. Le jugement vient après.
  */
+const SECOND_LEVEL = new Set(["co", "com", "org", "net", "ac", "gouv", "gov", "edu"]);
+
+/** Domaine de l'éditeur (approximation : deux dernières étiquettes, trois pour co.uk, ac-lyon.fr non fusionné). */
+export function publisherDomain(host: string): string {
+  const parts = hostOf(host).split(".");
+  const n = parts.length >= 3 && SECOND_LEVEL.has(parts[parts.length - 2]!) ? 3 : 2;
+  return parts.slice(-n).join(".");
+}
+
 export function linkCandidates(
-  read: Pick<PageRead, "outbound">,
+  read: Pick<PageRead, "outbound"> & Partial<Pick<PageRead, "url">>,
   ctx: Pick<FindingContext, "ownDomain" | "competitorDomains" | "language"> &
     Partial<Pick<FindingContext, "nameVariants" | "brandName">>,
   max: number = FINDINGS_LIMITS.maxLinkCandidates,
@@ -158,6 +167,7 @@ export function linkCandidates(
   const names = nameVariantsOf({ nameVariants: [], brandName: "", ...ctx }).map((v) =>
     nameRegex(v),
   );
+  const pagePublisher = read.url ? publisherDomain(read.url) : null;
   const seenHosts = new Set<string>();
   const kept: Omit<LinkCandidate, "index">[] = [];
   for (const l of read.outbound) {
@@ -166,7 +176,10 @@ export function linkCandidates(
     const host = hostOf(l.url);
     if (isOwnDomain(host, ctx.ownDomain)) continue;
     if (competitors.some((c) => host === c || host.endsWith(`.${c}`))) continue;
-    if (isExcludedDomain(host)) continue;
+    if (isExcludedDomain(host) || UTILITY_HOSTS.some((u) => host === u || host.endsWith(`.${u}`)))
+      continue;
+    // Même éditeur (sous-domaine, PDF hébergé ailleurs sur son domaine) : pas un lien à remplacer.
+    if (pagePublisher && publisherDomain(host) === pagePublisher) continue;
     if (seenHosts.has(host)) continue;
     // Un lien dont l'ancre est notre nom (fiche d'annuaire, présentation) parle de nous : pas un lien à remplacer.
     if (names.some((n) => n.test(l.anchor))) continue;
@@ -329,4 +342,29 @@ export function sentenceWith(context: string, anchor: string): string {
   const parts = context.split(/(?<=[.!?])\s+/);
   const a = anchor.toLowerCase();
   return (a && parts.find((p) => p.toLowerCase().includes(a))) || context;
+}
+
+/** Boutons d'impression, de partage ou d'ajout : des outils de la page, pas des ressources citées. */
+export const UTILITY_HOSTS = [
+  "printfriendly.com",
+  "addtoany.com",
+  "sharethis.com",
+  "addthis.com",
+  "feedburner.com",
+  "gstatic.com",
+  "doubleclick.net",
+];
+
+/**
+ * Preuve factuelle (gratuite) qu'un lien est bien « étranger » pour le lecteur : la page de
+ * destination déclare une autre langue que celle du site ; sans langue déclarée, seul un domaine
+ * clairement étranger suffit. Un site dans la langue du lecteur sert le lecteur : jamais inadapté.
+ */
+export function destinationIsForeign(
+  destLang: string | null,
+  origin: LinkOrigin,
+  language: string,
+): boolean {
+  if (destLang) return !destLang.toLowerCase().startsWith(language.toLowerCase());
+  return origin === "etranger";
 }

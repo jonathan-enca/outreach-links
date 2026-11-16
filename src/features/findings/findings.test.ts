@@ -22,7 +22,9 @@ import {
 } from "./limits";
 import { buildFinding, proposedSentence } from "./request";
 import {
+  destinationIsForeign,
   findMentions,
+  publisherDomain,
   linkCandidates,
   nameRegex,
   ownLinkState,
@@ -110,6 +112,19 @@ describe("mentions de marque", () => {
   });
 });
 
+describe("éditeur, outils et langue de destination", () => {
+  it("reconnaît le domaine de l'éditeur, même sous un sous-domaine ou en co.uk", () => {
+    expect(publisherDomain("https://ed1.cottonbird.fr/pdf/a.pdf")).toBe("cottonbird.fr");
+    expect(publisherDomain("https://www.exemple.co.uk/x")).toBe("exemple.co.uk");
+  });
+  it("un lien est étranger si la langue de destination diffère, sinon seulement si le domaine l'est", () => {
+    expect(destinationIsForeign("en-US", "ambigu", "fr")).toBe(true);
+    expect(destinationIsForeign("fr-FR", "etranger", "fr")).toBe(false);
+    expect(destinationIsForeign(null, "ambigu", "fr")).toBe(false);
+    expect(destinationIsForeign(null, "etranger", "fr")).toBe(true);
+  });
+});
+
 describe("liens candidats à « inadapté »", () => {
   const o = (url: string, anchor: string, extra = {}) => ({
     url,
@@ -192,7 +207,7 @@ describe("page de remplacement et garde-fou de sujet", () => {
   });
 });
 
-describe("jeu d'évaluation annoté des règles (34 pages, français)", () => {
+describe("jeu d'évaluation annoté des règles (36 pages, français)", () => {
   it("mentions, lien déjà présent, liens morts et pool de candidats : précision et rappel de 1", async () => {
     const r = await evaluateRules();
     expect(r.misses).toEqual([]);
@@ -203,7 +218,7 @@ describe("jeu d'évaluation annoté des règles (34 pages, français)", () => {
     expect(r.dead.tp).toBeGreaterThanOrEqual(5);
   });
   it("le jeu est équilibré : mentions, morts, liens, positifs et négatifs", () => {
-    expect(FINDING_EVAL_CASES.length).toBeGreaterThanOrEqual(34);
+    expect(FINDING_EVAL_CASES.length).toBeGreaterThanOrEqual(36);
     const n = (f: (c: FindingEvalCase) => boolean) => FINDING_EVAL_CASES.filter(f).length;
     expect(n((c) => c.expect.mention)).toBeGreaterThanOrEqual(7);
     expect(n((c) => c.expect.alreadyLinked)).toBeGreaterThanOrEqual(4);
@@ -450,11 +465,13 @@ interface FakeOpts {
 function fakeDeps(o: FakeOpts = {}) {
   const calls = { llm: 0, guard: 0, read: 0 };
   const cases = o.cases ?? FINDING_EVAL_CASES;
-  const caseOf = (url: string) => cases.find((c) => url.endsWith(`/${c.id}`))!;
   const deps = (): FindDeps => ({
     readPage: async (url) => {
       calls.read++;
-      return { ...evalRead(caseOf(url)), url };
+      const own = cases.find((c) => url.endsWith(`/${c.id}`));
+      if (own) return { ...evalRead(own), url };
+      const c = cases.find((x) => x.destLangs && url in x.destLangs)!;
+      return { ...evalRead(c), url, lang: c.destLangs![url]! };
     },
     checkStatuses: async (urls) => {
       const c = cases.find((x) => urls.every((u) => x.body.includes(u)));
@@ -558,6 +575,16 @@ describe("entonnoir des constats", () => {
       resourceUrl: CTX.resources[1]!.url,
     });
     expect(findings[0]!.quote).toContain("free printable coloring pages");
+  });
+  it("lien inadapté abandonné si la page de destination est dans la langue du lecteur", async () => {
+    const d = fakeDeps({
+      judge: () => ({
+        mention: null,
+        unsuited: { index: 0, replaceable: true, reason: "Site jugé peu utile ici.", resource: 2 },
+      }),
+    });
+    const { findings } = await run(d, ["u15"]);
+    expect(findings).toEqual([]);
   });
   it("sans clé LLM, les liens morts restent trouvés et le reste n'est pas deviné", async () => {
     const d = fakeDeps({ noLlm: true });

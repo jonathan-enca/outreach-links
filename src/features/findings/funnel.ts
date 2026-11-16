@@ -10,6 +10,7 @@ import {
   linkCandidates,
   linksToCheck,
   ownLinkState,
+  destinationIsForeign,
   pickReplacement,
   toDeadHit,
 } from "./rules";
@@ -107,7 +108,7 @@ export async function scanTarget(
   const deadUrls = new Set(dead.map((d) => d.url));
   const own = ownLinkState(read, ctx.ownDomain);
   const candidates = linkCandidates(
-    { outbound: read.outbound.filter((l) => !deadUrls.has(l.url)) },
+    { url: read.url, outbound: read.outbound.filter((l) => !deadUrls.has(l.url)) },
     ctx,
   );
   return {
@@ -120,6 +121,23 @@ export async function scanTarget(
     dead,
     requests,
   };
+}
+
+/**
+ * Garde-fou factuel du lien inadapté : lit la page de destination (lecteur sûr, gratuit) et abandonne
+ * le lien si elle est dans la langue du lecteur (ou si rien ne prouve qu'elle est étrangère).
+ */
+export async function confirmForeign(
+  readPage: FindDeps["readPage"],
+  j: VerifiedJudgement,
+  language: string,
+): Promise<VerifiedJudgement> {
+  if (!j.unsuited) return j;
+  const dest = await readPage(j.unsuited.link.url);
+  const lang = dest.status === 200 ? dest.lang : null;
+  return destinationIsForeign(lang, j.unsuited.link.origin, language)
+    ? j
+    : { ...j, unsuited: null };
 }
 
 /** Constats issus d'un balayage et d'un jugement (éventuel) : au plus un par sorte. */
@@ -268,7 +286,8 @@ export async function executeFindings(
           input.ctx,
           { workspaceId: input.workspaceId, auditId: input.auditId },
         );
-        return { blocked: false, failed: false, costUsd: out.costUsd, j: out.judgement };
+        const j = await confirmForeign(d.readPage, out.judgement, input.ctx.language);
+        return { blocked: false, failed: false, costUsd: out.costUsd, j };
       } catch (e) {
         if (e instanceof LlmBudgetExceededError)
           return { blocked: true, failed: false, costUsd: llm.spentUsd, j: null };

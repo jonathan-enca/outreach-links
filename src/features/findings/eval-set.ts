@@ -31,6 +31,8 @@ export interface FindingEvalCase {
     /** Règles : URL présentes dans la page qui ne doivent PAS être candidates. */
     notCandidates: string[];
   };
+  /** Langue déclarée par la page de destination de certains liens (absent = non déclarée). */
+  destLangs?: Record<string, string>;
   /** Jugement attendu du LLM (cas jugés seulement). */
   llm?: {
     mentionAboutSite: boolean | null;
@@ -194,6 +196,7 @@ export const FINDING_EVAL_CASES: FindingEvalCase[] = [
   // ---------- Liens inadaptés : candidats (règles) et jugement (LLM) (13) ----------
   {
     id: "u01",
+    destLangs: { [US]: "en" },
     title: "Activités pour un mercredi de pluie",
     body: `<article><h1>Activités pour un mercredi de pluie</h1><p>Pour occuper les enfants, imprimez des feuilles à colorier, par exemple sur <a href="${US}">free printable coloring pages</a> (site américain, en anglais).</p></article>`,
     expect: { ...none, candidates: [US] },
@@ -231,6 +234,7 @@ export const FINDING_EVAL_CASES: FindingEvalCase[] = [
   },
   {
     id: "u08",
+    destLangs: { "https://www.printables-uk.co.uk/animals": "en" },
     title: "Ressources pour la classe",
     body: `<article><h1>Ressources pour la classe</h1><p>Nous utilisons <a href="https://www.printables-uk.co.uk/animals">animal colouring sheets</a> pour les ateliers de lecture.</p></article>`,
     expect: { ...none, candidates: ["https://www.printables-uk.co.uk/animals"] },
@@ -238,6 +242,7 @@ export const FINDING_EVAL_CASES: FindingEvalCase[] = [
   },
   {
     id: "u09",
+    destLangs: { [FR_BLOG]: "fr" },
     title: "Idées pour les jours de pluie",
     body: `<article><p>Pour d'autres idées, lisez <a href="${FR_BLOG}">les idées de Maman Organisée</a>.</p></article>`,
     expect: { ...none, candidates: [FR_BLOG] },
@@ -250,6 +255,7 @@ export const FINDING_EVAL_CASES: FindingEvalCase[] = [
   },
   {
     id: "u11",
+    destLangs: { "https://www.easter-kids-printables.com/bunny": "en" },
     title: "Coloriages de Pâques",
     body: `<article><h1>Coloriages de Pâques</h1><p>Pour les lapins et les œufs à colorier, rendez-vous <a href="https://www.easter-kids-printables.com/bunny">ici</a>.</p></article>`,
     expect: { ...none, candidates: ["https://www.easter-kids-printables.com/bunny"] },
@@ -257,6 +263,7 @@ export const FINDING_EVAL_CASES: FindingEvalCase[] = [
   },
   {
     id: "u12",
+    destLangs: { "https://www.us-baking-blog.com/eggless-cake": "en" },
     title: "Gâteau d'anniversaire sans œufs",
     body: `<article><h1>Gâteau d'anniversaire sans œufs</h1><p>La recette vient de <a href="https://www.us-baking-blog.com/eggless-cake">ce blog de pâtisserie américain</a>, très bien expliquée.</p></article>`,
     expect: { ...none, candidates: ["https://www.us-baking-blog.com/eggless-cake"] },
@@ -264,10 +271,25 @@ export const FINDING_EVAL_CASES: FindingEvalCase[] = [
   },
   {
     id: "u13",
+    destLangs: { "https://www.sante-enfance.fr/etude-ecrans": "fr" },
     title: "Mon avis sur les écrans",
     body: `<article><h1>Mon avis sur les écrans</h1><p>Selon <a href="https://www.sante-enfance.fr/etude-ecrans">une étude d'un institut de santé</a>, deux heures par jour suffisent. Sinon, imprimez des coloriages (Mega Coloring en propose beaucoup).</p></article>`,
     expect: { ...none, mention: true, candidates: ["https://www.sante-enfance.fr/etude-ecrans"] },
     llm: { mentionAboutSite: true, unsuitedUrl: null },
+  },
+  {
+    id: "u14",
+    title: "Coloriage de printemps",
+    body: `<article><h1>Coloriage de printemps</h1><p>Téléchargez le modèle : <a href="https://ed1.exemple-cible.fr/pdf/coloriage-1.pdf">coloriage 1 (PDF)</a>.</p></article>`,
+    expect: { ...none, notCandidates: ["https://ed1.exemple-cible.fr/pdf/coloriage-1.pdf"] },
+  },
+  {
+    id: "u15",
+    destLangs: { "https://www.coloriages-des-petits.fr/": "fr" },
+    title: "Blogs de coloriages que j'aime",
+    body: `<article><h1>Blogs de coloriages que j'aime</h1><p>Pour d'autres dessins à colorier, il y a aussi <a href="https://www.coloriages-des-petits.fr/">un site français de coloriages</a> très complet pour les enfants.</p></article>`,
+    expect: { ...none, candidates: ["https://www.coloriages-des-petits.fr/"] },
+    llm: { mentionAboutSite: null, unsuitedUrl: null },
   },
 ];
 

@@ -26,7 +26,10 @@ export const metrics = (tp: number, fp: number, fn: number): Metrics => ({
 /** Faux dépendances : la page du cas, les statuts annotés (200 par défaut), aucun réseau. */
 export function evalDeps(c: FindingEvalCase): FindDeps {
   return {
-    readPage: async () => evalRead(c),
+    readPage: async (url) => {
+      const lang = c.destLangs?.[url];
+      return lang ? { ...evalRead(c), url, lang } : evalRead(c);
+    },
     checkStatuses: async (urls) => ({
       statuses: new Map(urls.map((u) => [u, c.statuses && u in c.statuses ? c.statuses[u]! : 200])),
       requests: urls.length,
