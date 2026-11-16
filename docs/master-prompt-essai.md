@@ -45,6 +45,9 @@ Des pages de **sites concurrents** sont en 404 / 410 mais reçoivent encore des 
 ### E. Contrôle de qualité de la recherche
 Sur le dernier run réel (audit 3edd59a0-0429-43bd-b7b1-e9fbb620d824 : 741 candidats, 150 pages lues, 17 cibles dont la plupart sont des blogs) : mesure candidats et cibles par source (recoupement, SERP, contenu, mentions) et par type de site, note-le dans PROGRESS.md, et prépare dans le dépôt un fichier d'évaluation (17 cibles retenues + 20 sites écartés pris au hasard, avec leur motif) que Jonathan pourra juger plus tard. Ne modifie pas les règles de tri sans rejouer le jeu annoté (précision et rappel avant / après).
 
+### E bis. Dimensionner le stock de cibles (décision de Jonathan : stock dès le départ)
+Voir PROGRESS.md « Réflexion produit : récurrence et stock de cibles ». Avec 0,5 USD au plus (inclus dans le budget de 2 USD), fais UN run de collecte borné sur le site de test avec des limites relevées (plus de requêtes, arrêt par rendement assoupli) et mesure : candidats uniques en fonction du coût (courbe), part de sites hors langue, part de sites déjà vus. Note la courbe et ta conclusion (combien de milliers de candidats par dollar, à partir de quand le rendement s'effondre) dans PROGRESS.md. Ne change pas encore l'architecture.
+
 ### F. Run réel de bout en bout (production)
 Quand A à D sont en production : vérifie `get_apps` (fonctions à jour), crée avec le compte de test une campagne mega-coloring.com (France, français, autorité générale), lance l'analyse par l'interface en production (pas en local), regarde l'écran évoluer sans recharger (captures début / milieu / fin, bureau et mobile), vérifie que l'email de fin arrive, note durée, coût, nombre de cibles et de liens morts de concurrents. Si ça échoue, corrige et recommence dans la limite du budget.
 
