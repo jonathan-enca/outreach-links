@@ -1325,7 +1325,18 @@ export const fr = {
     },
     steps: {
       collectMissing:
-        "Les sites candidats ne sont pas encore collectés pour cet audit : la qualification sera disponible ensuite.",
+        "Les sites candidats ne sont pas encore collectés pour cet audit : lancez d'abord la collecte ci-dessus.",
+      collect: {
+        title: "Collecter les sites candidats",
+        body: "On cherche les sites qui lient déjà vos concurrents, ceux qui ressortent sur les recherches de votre public et ceux qui parlent de votre marque. Rien n'est contacté.",
+        detail: "{n} recherches payantes sont prévues.",
+        button: "Collecter",
+        confirm: "Lancer la collecte",
+        running: "Collecte en cours (quelques minutes). Actualisez cette page plus tard.",
+        failed: "La collecte a échoué : relancez-la (les réponses déjà payées sont gardées).",
+        done: "Collecte terminée, coût réel {cost}.",
+        redo: "Relancer la collecte",
+      },
       cost: {
         expected: "Coût attendu",
         worst: "Pire cas",

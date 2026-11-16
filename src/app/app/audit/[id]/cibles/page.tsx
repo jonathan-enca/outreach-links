@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import {
   setFounderRoleAction,
+  startCollectionAction,
   startFindingsAction,
   startQualificationAction,
   validateRequestsAction,
@@ -38,6 +39,7 @@ export default async function TargetsPage({ params }: { params: Promise<{ id: st
         view={view}
         auditId={id}
         actions={{
+          startCollection: startCollectionAction.bind(null, id),
           startQualification: startQualificationAction.bind(null, id),
           startFindings: startFindingsAction.bind(null, id),
           saveFounder: setFounderRoleAction.bind(null, id),

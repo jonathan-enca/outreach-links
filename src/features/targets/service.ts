@@ -6,6 +6,7 @@ import { startDrafts } from "@/features/drafting/service";
 import { previewFindings, type FindingsPreview } from "@/features/findings/service";
 import { siteResources } from "@/features/findings/run";
 import { FINDING_KINDS } from "@/features/findings/types";
+import { previewCollection, type CollectionPreview } from "@/features/collection/service";
 import { previewQualification, type QualificationPreview } from "@/features/qualification/service";
 import { SITE_TYPES } from "@/features/qualification/types";
 import { TACTICS } from "@/features/queries/schema";
@@ -122,6 +123,7 @@ export interface TargetsView {
   founderRole: FounderRole | null;
   hasSignature: boolean;
   collectionDone: boolean;
+  collection: TargetsRunView & { preview: CollectionPreview | null };
   qualification: TargetsRunView & { preview: QualificationPreview | null };
   findings: TargetsRunView & { preview: FindingsPreview | null; count: number };
   /** Liste courte, dans l'ordre du rang. */
@@ -156,7 +158,11 @@ export async function loadTargets(
   if (!site) return null;
 
   const [col, qrunRes, frunRes, comps] = await Promise.all([
-    supabase.from("candidate_collections").select("status").eq("audit_id", auditId).maybeSingle(),
+    supabase
+      .from("candidate_collections")
+      .select("status, actual_cost_usd, stop_reason, error_message")
+      .eq("audit_id", auditId)
+      .maybeSingle(),
     supabase
       .from("qualification_runs")
       .select("id, status, actual_cost_usd, stop_reason, error_message")
@@ -220,11 +226,16 @@ export async function loadTargets(
   }
 
   // Coûts annoncés : seulement quand l'étape est possible et pas déjà en cours.
+  let cPreview: CollectionPreview | null = null;
   let qPreview: QualificationPreview | null = null;
   let fPreview: FindingsPreview | null = null;
   try {
     if (opts.previews === false) throw new Error("sans aperçu");
     const service = getServiceClient();
+    if (!collectionDone && col.data?.status !== "en_cours") {
+      const p = await previewCollection(service, auditId);
+      if (p.ok) cPreview = p.preview;
+    }
     if (collectionDone && (!qrun || qrun.status !== "en_cours")) {
       const p = await previewQualification(service, auditId);
       if (p.ok) qPreview = p.preview;
@@ -244,6 +255,7 @@ export async function loadTargets(
     founderRole: isFounderRole(site.founder_role) ? site.founder_role : null,
     hasSignature: Boolean(site.signature_first_name?.trim()),
     collectionDone,
+    collection: { ...runView(col.data), preview: cPreview },
     qualification: { ...runView(qrun), preview: qPreview },
     findings: { ...runView(frunRes.data), preview: fPreview, count: findingsCount },
     cards,
