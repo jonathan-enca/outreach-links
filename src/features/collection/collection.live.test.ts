@@ -1,11 +1,11 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { fakeSupabase } from "@/features/audits/fake-supabase";
-import type { PlannedQuery } from "@/features/queries/schema";
-import { createDataForSeoClient, type CacheStore } from "@/lib/dataforseo";
+import { createDataForSeoClient } from "@/lib/dataforseo";
 import { buildCollectionPlan, estimateCollection } from "./plan";
 import { executeCollection, type CollectionRun, type StepOutcome } from "./run";
 import { mergeCandidates } from "./normalize";
+import { DEMO_COMPETITORS, DEMO_QUERIES as QUERIES, fileCache } from "./demo-input";
 
 /**
  * Run RÉEL borné de la collecte (MT.3) sur mega-coloring.com : confirme le français, les tarifs et les
@@ -19,51 +19,6 @@ import { mergeCandidates } from "./normalize";
  * endpoint : à reporter dans PROGRESS.md (« Mesures ») et à confronter aux tarifs de `PRICING`.
  */
 const live = process.env.COLLECT_LIVE_DEMO === "1";
-
-/** Cache sur fichier (COLLECT_LIVE_CACHE) : une relance du run ne repaie pas les appels déjà réussis. */
-function fileCache(file: string | undefined): CacheStore {
-  const map: Record<string, { response: unknown; costUsd: number }> =
-    file && existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {};
-  return {
-    async get(key) {
-      return map[key] ?? null;
-    },
-    async set(key, entry) {
-      map[key] = { response: entry.response, costUsd: entry.costUsd };
-      if (file) writeFileSync(file, JSON.stringify(map));
-    },
-  };
-}
-
-const q = (
-  i: number,
-  text: string,
-  persona: string,
-  tactic: PlannedQuery["tactic"] = "inconnus",
-): PlannedQuery => ({
-  q: text,
-  tactic,
-  persona,
-  target: "home",
-  keyword: null,
-  score: 1 - i / 100,
-  rank: i,
-  estUsd: 0.006,
-  origin: "regle",
-});
-
-const QUERIES: PlannedQuery[] = [
-  q(1, '"Mega Coloring" -site:mega-coloring.com', "", "mentions"),
-  q(2, '"megacoloring" -site:mega-coloring.com', "", "mentions"),
-  q(3, "coloriages à imprimer blog de classe", "Enseignants"),
-  q(4, "coloriages à imprimer ressources maternelle", "Enseignants", "ressources"),
-  q(5, "activités enfants coloriages blog maman", "Parents blogueurs"),
-  q(6, "coloriages à imprimer médiathèque", "Médiathèques"),
-  q(7, "coloriages à imprimer centre de loisirs", "Associations"),
-  q(8, "coloriages à imprimer liens utiles", "Enseignants", "ressources"),
-  q(9, "forum parents activités coloriage", "Parents blogueurs"),
-  q(10, "coloriages à imprimer association", "Associations"),
-].map((x, i) => ({ ...x, rank: i + 1 }));
 
 describe.skipIf(!live)("run réel borné de la collecte (mega-coloring.com)", () => {
   it("mesure les coûts, le français et les formats", async () => {
@@ -132,7 +87,7 @@ describe.skipIf(!live)("run réel borné de la collecte (mega-coloring.com)", ()
 
     const plan = buildCollectionPlan({
       queries: QUERIES,
-      competitorDomains: ["coloriez.com", "hugolescargot.com", "tete-a-modeler.com", "momes.net"],
+      competitorDomains: DEMO_COMPETITORS,
       theme: "coloriages à imprimer",
       nameVariants: ["Mega Coloring", "megacoloring"],
       domain: "mega-coloring.com",

@@ -1,0 +1,118 @@
+import { isLoginWall, isParked, looksHacked, sellsLinks } from "@/features/triage/rules";
+import type { PageRead, PageReader } from "@/features/triage/page-reader";
+import { stageTwoReason } from "./free";
+import { QUALIFY_LIMITS } from "./limits";
+import type { ExclusionReason, PageSnapshot, QualCandidate, QualContext } from "./types";
+
+const LINK_SIGNALS: [RegExp, string][] = [
+  [/contact|nous-ecrire|ecrivez-nous/i, "page contact"],
+  [/mentions?[-_ ]?l[eé]gales|legal|impressum/i, "mentions légales"],
+  [/a-propos|about|qui-(?:sommes|suis)|presentation|notre-histoire/i, "page à propos"],
+  [/equipe|team|auteurs?|author|redaction/i, "auteurs"],
+];
+
+const TEXT_SIGNALS: [RegExp, string][] = [
+  [/mentions\s+l[ée]gales/i, "mentions légales"],
+  [/directeur\s+(?:de\s+(?:la\s+)?)?publication|[ée]diteur\s+du\s+site/i, "éditeur déclaré"],
+  [/(?:©|copyright)\s*(?:\d{4})?\s*[A-ZÀ-Ý]/i, "copyright nominatif"],
+  [/(?:r[ée]dig[ée]|[ée]crit|publi[ée])\s+par\s+[A-ZÀ-Ý]/i, "auteur nommé"],
+  [/qui\s+(?:suis-je|sommes-nous)|[àa]\s+propos\s+de\s+(?:moi|nous)/i, "présentation"],
+];
+
+/** Signaux d'un éditeur identifiable (quelqu'un à qui écrire), lus dans la page déjà téléchargée. */
+export function publisherSignals(
+  page: Pick<PageRead, "links" | "mailtos" | "hasContactForm" | "text">,
+): string[] {
+  const out = new Set<string>();
+  for (const l of page.links) {
+    for (const [re, label] of LINK_SIGNALS) if (re.test(`${l.href} ${l.text}`)) out.add(label);
+  }
+  if (page.mailtos.length > 0) out.add("email publié");
+  if (page.hasContactForm) out.add("formulaire");
+  for (const [re, label] of TEXT_SIGNALS) if (re.test(page.text)) out.add(label);
+  return [...out];
+}
+
+/** Programme de contribution sans tarif (« devenir contributeur ») : signe d'un site déjà sollicité. */
+export function hasContributorProgram(text: string): boolean {
+  return /devenir\s+(?:contributeur|r[ée]dacteur|auteur\s+invit[ée])|proposer\s+un\s+article|write\s+for\s+us|guest\s+post/i.test(
+    text,
+  );
+}
+
+export function snapshotOf(read: PageRead): PageSnapshot {
+  return {
+    url: read.url,
+    status: read.status,
+    lang: read.lang,
+    title: read.title.slice(0, 200),
+    description: read.description.slice(0, 300),
+    headings: read.headings.slice(0, 8).map((h) => h.slice(0, 120)),
+    excerpt: read.text.slice(0, QUALIFY_LIMITS.excerptChars),
+    publisherSignals: publisherSignals(read),
+    contributorProgram: hasContributorProgram(read.text),
+  };
+}
+
+export interface PageVerdict {
+  page: PageSnapshot | null;
+  reason: ExclusionReason | null;
+  detail: string | null;
+}
+
+/**
+ * Étage 3 (gratuit) : décision sur une page lue. Mêmes preuves nettes que le tri M3.1 (HTTP, parqué,
+ * piraté, vente de liens, mur de connexion) + langue de la page + éditeur identifiable. Une page
+ * ambiguë n'est jamais exclue ici : c'est au LLM de juger.
+ */
+export function pageVerdict(read: PageRead, c: QualCandidate, ctx: QualContext): PageVerdict {
+  if (read.blockedByRobots) {
+    return { page: null, reason: "robots", detail: "le robots.txt interdit la lecture" };
+  }
+  if (read.status === 404 || read.status === 410) {
+    return { page: null, reason: "page_morte", detail: `HTTP ${read.status}` };
+  }
+  if (read.unreachable || read.status !== 200) {
+    return {
+      page: null,
+      reason: "injoignable",
+      detail: read.status ? `HTTP ${read.status}` : "pas de réponse",
+    };
+  }
+  const page = snapshotOf(read);
+  const all = `${read.title} ${read.description} ${read.text}`;
+  if (isParked(all)) return { page, reason: "parque", detail: "site parqué, suspendu ou à vendre" };
+  if (looksHacked(all)) return { page, reason: "pirate", detail: "contenu de spam injecté" };
+  if (sellsLinks(all)) {
+    return { page, reason: "vend_des_liens", detail: "articles ou liens sponsorisés proposés" };
+  }
+  if (isLoginWall(read)) return { page, reason: "mur_connexion", detail: "connexion obligatoire" };
+  const lang = stageTwoReason({ ...c, spamScore: null, domainRank: null }, ctx, read.lang);
+  if (lang) return { page, reason: lang.reason, detail: lang.detail };
+  if (page.publisherSignals.length === 0) {
+    return { page, reason: "editeur_introuvable", detail: "ni contact, ni mentions, ni auteur" };
+  }
+  return { page, reason: null, detail: null };
+}
+
+/**
+ * Lit la page d'un candidat (sinon son accueil) avec le lecteur sûr (robots.txt, SSRF, délai par
+ * hôte). Une page trouvée par la collecte peut avoir disparu alors que le site vit : l'accueil la
+ * remplace dans ce cas (la cible reste le site).
+ */
+export async function readCandidate(
+  reader: Pick<PageReader, "read">,
+  c: QualCandidate,
+): Promise<PageRead> {
+  const home = `https://${c.domain}/`;
+  const first = await reader.read(c.url ?? home);
+  if (
+    c.url &&
+    c.url !== home &&
+    (first.status === 404 || first.status === 410 || first.unreachable)
+  ) {
+    const h = await reader.read(home);
+    if (h.status === 200) return h;
+  }
+  return first;
+}
