@@ -523,12 +523,19 @@
 - Tests : `home.test.ts` (sections retirées, en-tête, six étapes et écrans d'exemple). 1 098 tests verts, lint, typecheck, format, build ; Playwright 1440 et 390 px : aucun débordement, aucun message d'erreur dans la console, clic sur les étapes vérifié.
 - **À confirmer par Jonathan** : plafonds par offre et nom « Business » (inchangés) ; les chiffres des écrans d'exemple (552 candidats, 300 pages lues, 30 retenus) viennent du run réel de MT.4 bis mais restent des données de démonstration.
 
+## Home : 7 jours d'essai à la place de l'audit gratuit (16/11/2026, demande de Jonathan)
+
+- **Plus aucune référence à l'audit gratuit sur la home** (test) : pastille du hero, repères, bandeau des tarifs, FAQ, appel final disent « 7 jours d'essai offerts ». Titre des tarifs : « Essayez 7 jours. Payez seulement si vous continuez. ». Phrase d'introduction de la FAQ supprimée (`SectionHeading` accepte un en-tête sans texte).
+- **Non codé** : l'essai de 7 jours n'existe pas encore dans la facturation (pas de fin d'essai, pas de blocage au 8e jour ; Stripe en mode test, `BETA_MODE` ouvre tout). **Décision de Jonathan** : le verrouillage des fonctionnalités par offre et l'essai se feront une fois le produit terminé. « Sans carte bancaire » est écrit parce que l'inscription n'en demande pas aujourd'hui : à confirmer quand l'essai sera codé.
+- Non touchés (hors home) : la page d'inscription (« La carte n'est demandée qu'au premier envoi réel »), les conditions d'utilisation et la route `/audit-gratuit/[id]`, qui parlent encore de l'audit gratuit. À aligner si l'audit gratuit public est abandonné.
+
 ## Vidéo de visite ajoutée à la home (15/11/2026, demande de Jonathan)
 
 - `PRODUCT_TOUR_VIDEO` (`src/features/home/sections.ts`) renseigné : `public/visite-produit.mp4` (1920x1080, 61 s, ~5 Mo, fournie par Jonathan) et sa vignette `public/visite-produit-poster.jpg` (image à 3 s). Lecture manuelle, sans son au départ, chargement différé (`preload="none"`). Vérifié avec Playwright (bureau 1440 et mobile 390) : vidéo chargée (61,5 s), vignette affichée, aucun débordement horizontal. Le fichier est servi par Vercel depuis `public/` (pas de stockage externe).
 
 ## Backlog (idées hors périmètre)
 
+- Essai de 7 jours (16/11) : le coder dans la facturation (début, fin, blocage ou passage à l'offre), avec ou sans carte ; aligner la page d'inscription, les conditions et le sort de l'audit gratuit public (`/audit-gratuit`).
 - Tarifs (16/11) : imposer par offre le nombre de sites, de boîtes, d'audits par mois et les réponses prêtes à insérer (aujourd'hui seul le plafond d'envois l'est) ; TVA incluse côté Stripe (prix TTC) ; facturation annuelle ; faire correspondre `workspaces.plan` (gratuit/payant) aux trois offres.
 - **Contexte à garder pour MT.5 (16/11/2026, retour de Jonathan)** : Jonathan a obtenu un **backlink réel** avec un mail personnalisé qui **cite un point précis de l'article cible** (un lien vers un service américain peu utile à un lecteur français) et **propose la ressource la plus pertinente de son site**, en se présentant **honnêtement comme le fondateur**. À reprendre dans MT.5 (liens inadaptés : repérer dans la page un lien sortant étranger ou peu utile au lecteur, le citer, proposer la ressource du site qui le remplace) et dans le rédacteur (M3.3) : ouverture par le point précis, la ressource choisie (champ `resource` du jugement MT.4), signature « fondateur de ». Rien de codé en MT.4.
 - MT.4 : bouton « Qualifier » et écran (MT.6) ; requalifier automatiquement après une nouvelle collecte ; finder d'emails payant derrière une ligne de budget ; résoudre les racines de plateformes du recoupement (quels blogs hébergés lient) ; cache partagé des qualifications de domaines entre clients (docs/audit-v2.md section 5) ; recaler les facteurs du score sur les réponses réelles (phase 5).

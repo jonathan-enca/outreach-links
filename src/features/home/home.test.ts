@@ -136,6 +136,14 @@ describe("home FR", () => {
     expect(domains).toBeNull();
   });
 
+  it("offre d'entrée : 7 jours d'essai, plus aucune référence à un audit gratuit sur la home", () => {
+    const all = texts(fr.home).join("\n");
+    expect(all).not.toMatch(/audit (gratuit|réduit)/i);
+    expect(fr.home.hero.pill).toMatch(/7 jours d'essai/);
+    expect(fr.home.pricing.free.title).toMatch(/7 jours d'essai/);
+    expect(Object.keys(fr.home.faq)).not.toContain("intro");
+  });
+
   it("cible : sites, blogs, SaaS et e-commerces", () => {
     for (const text of [fr.home.hero.audience, fr.home.whatItIs.intro]) {
       expect(text).toMatch(/sites, blogs, SaaS et e-commerces/);
