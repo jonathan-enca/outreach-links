@@ -1,4 +1,4 @@
-/** En-tête de section : libellé numéroté, titre, texte (deux colonnes dès le bureau). */
+/** En-tête de section : libellé, titre et, s'il y en a un, texte à droite (deux colonnes dès le bureau). */
 export function SectionHeading({
   id,
   label,
@@ -8,7 +8,7 @@ export function SectionHeading({
   id: string;
   label: string;
   title: string;
-  intro: string;
+  intro?: string;
 }) {
   return (
     <div className="mb-10">
@@ -17,7 +17,7 @@ export function SectionHeading({
         <h2 id={id} className="text-3xl font-bold leading-tight sm:text-4xl">
           {title}
         </h2>
-        <p className="text-lg text-muted-foreground">{intro}</p>
+        {intro ? <p className="text-lg text-muted-foreground">{intro}</p> : null}
       </div>
     </div>
   );

@@ -14,7 +14,7 @@ export function Faq() {
       className="scroll-mt-20 bg-muted px-4 py-16 sm:px-7 sm:py-20"
     >
       <div className="mx-auto max-w-6xl">
-        <SectionHeading id={headingId} label={s.label} title={s.title} intro={s.intro} />
+        <SectionHeading id={headingId} label={s.label} title={s.title} />
         <div className="mx-auto max-w-3xl divide-y divide-border rounded-panel border border-border bg-card">
           {s.items.map((item) => (
             <details key={item.q} className="group px-5 py-4">

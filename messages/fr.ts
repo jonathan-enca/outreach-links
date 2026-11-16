@@ -9,7 +9,7 @@ export const fr = {
   home: {
     title: "Des backlinks éditoriaux, à partir d'un vrai audit",
     subtitle:
-      "Entrez votre site : on regarde qui se classe devant vous, d'où viennent leurs liens et quelles pages méritent d'être poussées. Gratuit, sans carte.",
+      "Entrez votre site : on regarde qui se classe devant vous, d'où viennent leurs liens et quelles pages méritent d'être poussées. 7 jours d'essai offerts.",
     signIn: "Se connecter",
     nav: {
       label: "Navigation principale",
@@ -25,7 +25,7 @@ export const fr = {
       cta: "Essai gratuit",
     },
     hero: {
-      pill: "Audit gratuit, sans carte bancaire",
+      pill: "7 jours d'essai offerts, sans carte bancaire",
       audience: "Pour les sites, blogs, SaaS et e-commerces",
       title: "Des backlinks gratuits, demandés aux bons sites",
       titleAccent: "Des backlinks gratuits,",
@@ -33,9 +33,9 @@ export const fr = {
       lead: "Nous trouvons les sites qui méritent de vous citer, rédigeons pour chacun une demande personnalisée et l'envoyons depuis votre propre boîte mail. Puis nous relançons, classons les réponses et vérifions que le lien est bien en ligne. Vous fixez les règles et validez chaque lot : le reste tourne tout seul.",
       cta: { primary: "Essai gratuit", secondary: "Fonctionnement" },
       hints: [
-        "Résultat en une à deux minutes",
+        "7 jours d'essai offerts",
         "Aucun lien acheté",
-        "Aucun email envoyé pendant l'audit",
+        "Rien n'est envoyé sans votre accord",
       ],
       refine: "Préciser mes requêtes et mon thème",
       cardsLabel: "Exemples de ce que le service prépare pour vous",
@@ -126,7 +126,7 @@ export const fr = {
         "Le cadre est le même pour les trois : vous validez chaque lot avant l'envoi, dix emails par heure au plus, une seule relance.",
       primary: "Essai gratuit",
       secondary: "Fonctionnement",
-      hint: "Vos premières cibles s'affichent gratuitement. La carte bancaire n'est demandée qu'au premier envoi réel.",
+      hint: "7 jours d'essai offerts, sans carte bancaire : le temps de voir vos premières cibles.",
       closing:
         "Ce que nous ne faisons pas : acheter des liens, publier des articles sponsorisés déguisés, monter des réseaux de sites.",
       items: [
@@ -428,7 +428,7 @@ export const fr = {
         },
       },
       cta: "Essai gratuit",
-      ctaHint: "Sans carte bancaire. Elle n'est demandée qu'au premier envoi réel.",
+      ctaHint: "7 jours d'essai offerts, sans carte bancaire.",
     },
     compare: {
       label: "Comparatif",
@@ -470,18 +470,18 @@ export const fr = {
     },
     pricing: {
       label: "Tarifs",
-      title: "Vous payez quand le premier message part. Pas avant.",
+      title: "Essayez 7 jours. Payez seulement si vous continuez.",
       intro:
-        "L'audit et votre liste de cibles sont gratuits, sans carte. Ensuite, un abonnement fixe : le prix ne bouge pas, que vous obteniez deux liens ou vingt.",
+        "Sept jours pour voir vos cibles et lire les messages préparés pour vous. Ensuite, un abonnement fixe : le prix ne bouge pas, que vous obteniez deux liens ou vingt.",
       free: {
-        title: "Commencez sans carte",
-        text: "L'audit de votre site et un aperçu de vos premières cibles. Vous voyez ce que l'outil trouve avant de payer quoi que ce soit.",
+        title: "7 jours d'essai offerts",
+        text: "Sans carte bancaire. Vous voyez ce que l'outil trouve pour votre site avant de payer quoi que ce soit.",
         cta: "Essai gratuit",
       },
       perMonth: "TTC par mois",
       popular: "Recommandé",
       unavailable:
-        "Les tarifs ne sont pas affichables pour le moment. Lancez l'audit gratuit, ils seront disponibles à la création de votre compte.",
+        "Les tarifs ne sont pas affichables pour le moment. Ils seront disponibles à la création de votre compte.",
       note: "Prix TTC, abonnement mensuel. Un email envoyé est un message parti de votre boîte : la relance et vos réponses comptent chacune pour un. Grille de lancement, susceptible d'évoluer.",
       limits: {
         sends: "emails envoyés par mois",
@@ -526,7 +526,6 @@ export const fr = {
     faq: {
       label: "Questions fréquentes",
       title: "Les questions qu'on se pose avant d'essayer",
-      intro: "Des réponses directes. Quand la réponse est non, c'est écrit non.",
       items: [
         {
           q: "C'est quoi, exactement ?",
@@ -566,7 +565,7 @@ export const fr = {
         },
         {
           q: "Combien ça coûte ? Puis-je essayer sans carte ?",
-          a: "Oui. L'audit et l'aperçu de vos cibles sont gratuits, sans carte bancaire. Vous choisissez une offre au moment d'envoyer votre premier message. Les trois offres sont dans la section Tarifs, plus haut.",
+          a: "Oui. Les sept premiers jours sont offerts, sans carte bancaire. Si vous continuez, vous choisissez l'une des trois offres de la section Tarifs, plus haut.",
         },
         {
           q: "Est-ce légal ? Et mes données ?",
@@ -576,11 +575,15 @@ export const fr = {
     },
     finalCta: {
       label: "Pour commencer",
-      title: "Regardez d'abord ce que l'audit trouve chez vous",
-      text: "En quelques minutes : vos concurrents, vos pages à pousser, un aperçu des sites à contacter. Aucun email ne part pendant l'audit.",
+      title: "Regardez d'abord ce que l'outil trouve pour votre site",
+      text: "En quelques minutes : vos concurrents, vos pages à pousser, les sites à contacter. Sept jours d'essai offerts, et aucun email ne part sans votre accord.",
       primary: "Essai gratuit",
       secondary: "Voir les tarifs",
-      hints: ["Sans carte bancaire", "Aucun lien acheté", "Rien n'est envoyé sans votre accord"],
+      hints: [
+        "7 jours d'essai offerts",
+        "Aucun lien acheté",
+        "Rien n'est envoyé sans votre accord",
+      ],
     },
     footer: {
       label: "Pied de page",
