@@ -54,16 +54,27 @@ export function ConfirmAuditPanel({
       {chain ? (
         <div className="flex flex-col gap-2">
           <h3 className="font-medium">{t.audits.chain.title}</h3>
-          <p className="text-sm text-muted-foreground">{t.audits.chain.body}</p>
+          <p className="text-sm text-muted-foreground">
+            {chain.analysisUsd === undefined ? t.audits.chain.body : t.audits.chain.bodyAnalysis}
+          </p>
           <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:max-w-md">
             <dt className="text-muted-foreground">{t.audits.chain.discovery}</dt>
             <dd>{formatUsd(chain.discoveryUsd)}</dd>
-            <dt className="text-muted-foreground">{t.audits.chain.backlinks}</dt>
-            <dd>{formatUsd(chain.backlinksUsd)}</dd>
-            <dt className="text-muted-foreground">{t.audits.chain.profile}</dt>
-            <dd>{formatUsd(chain.profileUsd)}</dd>
-            <dt className="text-muted-foreground">{t.audits.chain.opportunities}</dt>
-            <dd>{formatUsd(chain.opportunitiesUsd)}</dd>
+            {chain.analysisUsd === undefined ? (
+              <>
+                <dt className="text-muted-foreground">{t.audits.chain.backlinks}</dt>
+                <dd>{formatUsd(chain.backlinksUsd)}</dd>
+                <dt className="text-muted-foreground">{t.audits.chain.profile}</dt>
+                <dd>{formatUsd(chain.profileUsd)}</dd>
+                <dt className="text-muted-foreground">{t.audits.chain.opportunities}</dt>
+                <dd>{formatUsd(chain.opportunitiesUsd)}</dd>
+              </>
+            ) : (
+              <>
+                <dt className="text-muted-foreground">{t.audits.chain.analysis}</dt>
+                <dd>{formatUsd(chain.analysisUsd)}</dd>
+              </>
+            )}
             <dt className="font-medium">{t.audits.chain.total}</dt>
             <dd className="font-semibold">{formatUsd(chain.totalUsd)}</dd>
           </dl>

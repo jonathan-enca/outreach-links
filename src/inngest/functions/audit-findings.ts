@@ -1,10 +1,7 @@
 import { z } from "zod";
-import { env } from "@/env";
 import { inngest } from "@/inngest/client";
-import { assertCanSpend, spendLimitsFor } from "@/features/collection/guard";
-import { realFindDeps } from "@/features/findings/deps";
+import { productionFindDeps } from "@/features/findings/deps";
 import { executeFindings, type StepRunner } from "@/features/findings/funnel";
-import { callWorstUsd } from "@/features/findings/limits";
 import {
   beginFindings,
   failFindings,
@@ -14,7 +11,6 @@ import {
   toInput,
 } from "@/features/findings/run";
 import { logger } from "@/lib/logger";
-import { createLlmClientFromEnv } from "@/lib/llm/client";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export const findingsEventSchema = z.object({ auditId: z.uuid() });
@@ -52,23 +48,7 @@ export const auditFindings = inngest.createFunction(
       return { ctx: l.ctx, targets: l.targets };
     });
     const runStep: StepRunner = (id, fn) => step.run(id, fn) as never;
-    const deps = () =>
-      realFindDeps({
-        llm: (remainingUsd) => {
-          if (!env.ANTHROPIC_API_KEY && !env.OPENAI_API_KEY && !env.LLM_PROXY_AUTH) return null;
-          if (remainingUsd <= 0) return null;
-          return createLlmClientFromEnv({
-            budgetUsd: remainingUsd,
-            maxCostPerCallUsd: callWorstUsd(run.model) * 1.5,
-          });
-        },
-        guard: (estimateUsd) =>
-          assertCanSpend(
-            createServiceClient(),
-            spendLimitsFor(run.auditId, run.auditCapUsd),
-            estimateUsd,
-          ),
-      });
+    const deps = () => productionFindDeps(run);
     const { findings, stats } = await executeFindings(deps, toInput(run, loaded), runStep);
     const out = await step.run("finalize", async () =>
       finalizeFindings(createServiceClient(), run, findings, stats),

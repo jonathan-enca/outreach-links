@@ -85,11 +85,75 @@ export async function previewCollection(service: Client, auditId: string): Promi
   };
 }
 
+/** Résultat de la préparation d'une étape : prête à démarrer (jeton de lancement), déjà faite, ou refusée. */
+export type PrepareResult =
+  { status: "ready"; nonce: string } | { status: "already" } | { status: "error"; message: string };
+
 /**
- * Lance la collecte (après la confirmation du coût annoncé par `previewCollection`). Fige le plan et
- * le coût dans `candidate_collections`, puis envoie l'événement Inngest. Refuse sans rien facturer si
- * le coût attendu dépasse ce qui reste du plafond d'audit ou si le plafond du jour est atteint.
- * Aucun envoi d'email, aucun achat de lien.
+ * Fige le plan et le coût de la collecte dans `candidate_collections` (statut « confirme »), sans rien
+ * lancer. Refuse sans rien facturer si le coût attendu dépasse ce qui reste du plafond d'audit ou si
+ * le plafond du jour est atteint. Une collecte « en cours » ou « confirmée » est reprise telle quelle.
+ * `resume` (analyse unique, MU.1) : une collecte restée « en cours » après un job mort est reprise au
+ * lieu d'être considérée comme lancée ailleurs.
+ */
+export async function prepareCollection(
+  service: Client,
+  auditId: string,
+  actorId: string,
+  opts: { resume?: boolean } = {},
+): Promise<PrepareResult> {
+  const existing = await service
+    .from("candidate_collections")
+    .select("id, status, created_at")
+    .eq("audit_id", auditId)
+    .maybeSingle();
+  if (existing.data?.status === "termine") return { status: "already" };
+  if (existing.data?.status === "en_cours") {
+    return opts.resume
+      ? { status: "ready", nonce: existing.data.created_at }
+      : { status: "already" };
+  }
+  if (existing.data?.status === "confirme") {
+    return { status: "ready", nonce: existing.data.created_at };
+  }
+
+  const prev = await previewCollection(service, auditId);
+  if (!prev.ok) return { status: "error", message: prev.message };
+  const { plan, estimate, remainingUsd } = prev.preview;
+  if (estimate.expectedUsd > remainingUsd + 1e-9) return { status: "error", message: M.overCap };
+  if (await dailyCapReached(service, env.DAILY_COST_CAP_USD)) {
+    return { status: "error", message: M.dailyCap };
+  }
+  const nonce = new Date().toISOString();
+  const row = {
+    audit_id: auditId,
+    workspace_id: prev.workspaceId,
+    site_id: prev.siteId,
+    status: "confirme",
+    plan: plan as unknown as Json,
+    expected_cost_usd: estimate.expectedUsd,
+    worst_case_usd: estimate.worstUsd,
+    target_usd: estimate.targetUsd,
+    actual_cost_usd: null,
+    stats: {} as Json,
+    stop_reason: null,
+    error_message: null,
+    confirmed_by: actorId,
+    created_at: nonce,
+    started_at: null,
+    finished_at: null,
+  };
+  // Relance après échec : la ligne repart de zéro (les réponses déjà payées sont en cache).
+  const { error } = await service
+    .from("candidate_collections")
+    .upsert(row, { onConflict: "audit_id" });
+  if (error) return { status: "error", message: M.saveError };
+  return { status: "ready", nonce };
+}
+
+/**
+ * Lance la collecte (après la confirmation du coût annoncé par `previewCollection`) : prépare la ligne
+ * (`prepareCollection`), puis envoie l'événement Inngest. Aucun envoi d'email, aucun achat de lien.
  */
 export async function startCollection(
   service: Client,
@@ -98,54 +162,12 @@ export async function startCollection(
   actorId: string | null,
 ): Promise<AuditActionState> {
   if (!actorId) return { status: "error", message: M.unauthenticated };
-
-  const existing = await service
-    .from("candidate_collections")
-    .select("id, status, created_at")
-    .eq("audit_id", auditId)
-    .maybeSingle();
-  if (existing.data && ["en_cours", "termine"].includes(existing.data.status)) {
-    return { status: "ok", auditId, message: M.alreadyStarted };
-  }
-
-  let nonce = existing.data?.status === "confirme" ? existing.data.created_at : null;
-  if (!nonce) {
-    const prev = await previewCollection(service, auditId);
-    if (!prev.ok) return { status: "error", message: prev.message };
-    const { plan, estimate, remainingUsd } = prev.preview;
-    if (estimate.expectedUsd > remainingUsd + 1e-9) return { status: "error", message: M.overCap };
-    if (await dailyCapReached(service, env.DAILY_COST_CAP_USD)) {
-      return { status: "error", message: M.dailyCap };
-    }
-    nonce = new Date().toISOString();
-    const row = {
-      audit_id: auditId,
-      workspace_id: prev.workspaceId,
-      site_id: prev.siteId,
-      status: "confirme",
-      plan: plan as unknown as Json,
-      expected_cost_usd: estimate.expectedUsd,
-      worst_case_usd: estimate.worstUsd,
-      target_usd: estimate.targetUsd,
-      actual_cost_usd: null,
-      stats: {} as Json,
-      stop_reason: null,
-      error_message: null,
-      confirmed_by: actorId,
-      created_at: nonce,
-      started_at: null,
-      finished_at: null,
-    };
-    // Relance après échec : la ligne repart de zéro (les réponses déjà payées sont en cache).
-    const { error } = await service
-      .from("candidate_collections")
-      .upsert(row, { onConflict: "audit_id" });
-    if (error) return { status: "error", message: M.saveError };
-  }
-
+  const prep = await prepareCollection(service, auditId, actorId);
+  if (prep.status === "already") return { status: "ok", auditId, message: M.alreadyStarted };
+  if (prep.status === "error") return { status: "error", message: prep.message };
   try {
     await sendEvent({
-      id: `audit-collection-${auditId}-${nonce}`,
+      id: `audit-collection-${auditId}-${prep.nonce}`,
       name: COLLECTION_EVENT,
       data: { auditId },
     });

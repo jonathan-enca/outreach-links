@@ -1,5 +1,6 @@
 import type { ContactItem, ContactResult } from "@/features/contacts/types";
 import type { PageRead } from "@/features/triage/page-reader";
+import { mapByHost } from "@/lib/concurrency";
 import { BudgetExceededError } from "@/lib/dataforseo";
 import { LlmBudgetExceededError, type LlmClient } from "@/lib/llm/client";
 import { authorityImpact, runFreeStages, type AuthorityImpact, type FreeVerdict } from "./free";
@@ -28,6 +29,8 @@ export interface QualDeps {
   /** Plafonds durs (audit, sécurité, jour) contrôlés AVANT chaque appel payant ; lève si dépassé. */
   guard: (estimateUsd: number) => Promise<void>;
   investigate: (item: ContactItem) => Promise<ContactResult>;
+  /** Attente entre deux sites d'un même hôte (défaut : minuterie réelle). */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 export interface QualInput {
@@ -47,6 +50,22 @@ export interface QualInput {
 }
 
 export type QualStop = "termine" | "budget" | "plafond";
+
+/** Avancement d'une phase de l'entonnoir, émis DANS le step qui vient de travailler (MU.1). */
+export interface QualProgressEvent {
+  phase: "lecture" | "jugement" | "contact";
+  done: number;
+  total: number;
+  /** Lecture : pages retenues ; jugement : cibles pertinentes ; contact : cibles avec un contact. */
+  found: number;
+  /** Dernier site retenu dans ce step, s'il y en a un. */
+  example: string | null;
+}
+
+export interface QualHooks {
+  /** Ne doit pas lever ; appelé une fois par step réellement exécuté (jamais au rejeu d'un step mémorisé). */
+  onProgress?: (e: QualProgressEvent) => Promise<void>;
+}
 
 export interface FunnelStats {
   candidates: number;
@@ -110,8 +129,16 @@ export async function executeQualification(
   deps: () => QualDeps,
   input: QualInput,
   runStep: StepRunner,
+  hooks: QualHooks = {},
 ): Promise<{ results: QualResult[]; stats: FunnelStats }> {
   const L = { ...QUALIFY_LIMITS, ...input.tuning };
+  const emit = async (e: QualProgressEvent) => {
+    if (hooks.onProgress) await hooks.onProgress(e);
+  };
+  const lastOk = <T>(xs: readonly T[], ok: (x: T) => boolean, name: (i: number) => string) => {
+    for (let i = xs.length - 1; i >= 0; i--) if (ok(xs[i]!)) return name(i);
+    return null;
+  };
   const tracks: Track[] = runFreeStages(input.candidates, input.ctx).map((free) => ({
     free,
     stage: free.stage,
@@ -132,18 +159,39 @@ export async function executeQualification(
     Object.assign(t, { stage: 3, reason: "hors_budget_lecture", detail: "au-delà des pages lues" });
   }
   const reading = toRead.slice(0, L.maxPagesRead);
+  let readDone = 0;
+  let readKept = 0;
   for (const [k, chunk] of chunks(reading, L.pagesPerStep).entries()) {
+    const doneBefore = readDone;
+    const keptBefore = readKept;
     const verdicts = await runStep(`read-${k + 1}`, async () => {
       const d = deps();
-      const out: PageVerdict[] = [];
-      for (const t of chunk)
-        out.push(pageVerdict(await d.readPage(t.free.candidate), t.free.candidate, input.ctx));
+      // MU.1 : sites différents lus de front ; un même hôte reste en série, avec son délai.
+      const out = await mapByHost(
+        chunk,
+        (t) => t.free.candidate.domain,
+        async (t) => pageVerdict(await d.readPage(t.free.candidate), t.free.candidate, input.ctx),
+        { concurrency: L.readConcurrency, sameHostDelayMs: L.hostDelayMs, sleep: d.sleep },
+      );
+      await emit({
+        phase: "lecture",
+        done: doneBefore + chunk.length,
+        total: reading.length,
+        found: keptBefore + out.filter((v) => v.reason === null).length,
+        example: lastOk(
+          out,
+          (v) => v.reason === null,
+          (i) => chunk[i]!.free.candidate.domain,
+        ),
+      });
       return out;
     });
     chunk.forEach((t, i) => {
       const v = verdicts[i]!;
       Object.assign(t, { stage: 3, page: v.page, reason: v.reason, detail: v.detail });
     });
+    readDone += chunk.length;
+    readKept += verdicts.filter((v) => v.reason === null).length;
   }
   const aliveAfterRead = alive().length;
 
@@ -157,7 +205,12 @@ export async function executeQualification(
     Object.assign(t, { stage: 4, reason: "hors_budget_llm", detail: "au-delà des cibles jugées" });
   }
   const judging = toJudge.slice(0, L.maxLlmTargets);
+  let judgeDone = 0;
+  let judgeKept = 0;
   for (const [k, batch] of chunks(judging, L.batchSize).entries()) {
+    const judgedBefore = judgeDone;
+    const keptBefore = judgeKept;
+    judgeDone += batch.length;
     const worst = batchWorstUsd(batch.length, input.model);
     if (stop !== "termine" || costUsd + worst > input.budgetUsd + 1e-9) {
       if (stop === "termine") stop = "budget";
@@ -190,6 +243,21 @@ export async function executeQualification(
         const out = await judgeBatch(llm, items, input.ctx, {
           workspaceId: input.workspaceId,
           auditId: input.auditId,
+        });
+        const kept = batch.map((_, i) => {
+          const j = new Map(out.judgements).get(`c${i + 1}`);
+          return Boolean(j) && judgementExclusion(j!, L.minFit) === null;
+        });
+        await emit({
+          phase: "jugement",
+          done: judgedBefore + batch.length,
+          total: judging.length,
+          found: keptBefore + kept.filter(Boolean).length,
+          example: lastOk(
+            kept,
+            (x) => x,
+            (i) => batch[i]!.free.candidate.domain,
+          ),
         });
         return {
           blocked: false,
@@ -230,6 +298,7 @@ export async function executeQualification(
       }
       const ex = judgementExclusion(j, L.minFit);
       if (ex) Object.assign(t, { reason: ex.reason, detail: ex.detail });
+      else judgeKept++;
     });
   }
   const relevant = alive();
@@ -248,29 +317,48 @@ export async function executeQualification(
     });
   }
   const searching = contactQueue.slice(0, L.maxContactTargets);
+  const hasContact = (c: ContactOutcome) =>
+    ["email_verifie", "email_a_verifier", "formulaire"].includes(c.status);
+  let contactDone = 0;
+  let contactKept = 0;
   for (const [k, chunk] of chunks(searching, L.contactsPerStep).entries()) {
+    const doneBefore = contactDone;
+    const keptBefore = contactKept;
     const found = await runStep(`contact-${k + 1}`, async () => {
       const d = deps();
-      const out: ContactOutcome[] = [];
-      for (const t of chunk) {
-        const r = await d.investigate({
-          id: t.free.candidate.domain,
-          domain: t.free.candidate.domain,
-          resolvedUrl: t.page!.url,
-        });
-        out.push(toContact(r));
-      }
+      const out = await mapByHost(
+        chunk,
+        (t) => t.free.candidate.domain,
+        async (t) =>
+          toContact(
+            await d.investigate({
+              id: t.free.candidate.domain,
+              domain: t.free.candidate.domain,
+              resolvedUrl: t.page!.url,
+            }),
+          ),
+        { concurrency: L.contactConcurrency, sameHostDelayMs: L.hostDelayMs, sleep: d.sleep },
+      );
+      await emit({
+        phase: "contact",
+        done: doneBefore + chunk.length,
+        total: searching.length,
+        found: keptBefore + out.filter(hasContact).length,
+        example: lastOk(out, hasContact, (i) => chunk[i]!.free.candidate.domain),
+      });
       return out;
     });
     chunk.forEach((t, i) => {
       const c = found[i]!;
       t.stage = 5;
       t.contact = c;
-      if (!["email_verifie", "email_a_verifier", "formulaire"].includes(c.status)) {
+      if (!hasContact(c)) {
         t.reason = "sans_contact";
         t.detail = c.reason || "aucun email ni formulaire trouvé";
       }
     });
+    contactDone += chunk.length;
+    contactKept += found.filter(hasContact).length;
   }
 
   // 6. Score final et liste courte classée.

@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { env } from "@/env";
 import { fakeSupabase } from "@/features/audits/fake-supabase";
 import { DISCOVER_EVENT } from "@/features/audits/service";
 import type { PageRead } from "@/features/triage/page-reader";
@@ -7,6 +8,17 @@ import { profileToFields } from "@/features/brand/form";
 import type { BrandProfile } from "@/features/brand/schema";
 import type { SiteRead } from "@/features/brand/read-site";
 import { getLaunchPreview, launchJourney, saveCorrections, startFromUrl } from "./service";
+
+// MU.1 : ces tests décrivent l'ANCIENNE chaîne (backlinks, profil, opportunités), conservée derrière
+// le réglage `LEGACY_CHAIN`. Le comportement par défaut (analyse unique) est testé dans
+// `src/features/analysis/analysis.test.ts`.
+const legacyEnv = env as { LEGACY_CHAIN: boolean };
+beforeAll(() => {
+  legacyEnv.LEGACY_CHAIN = true;
+});
+afterAll(() => {
+  legacyEnv.LEGACY_CHAIN = false;
+});
 
 const PAGE: PageRead = {
   url: "https://exemple-coloriage.fr/",

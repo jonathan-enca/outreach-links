@@ -40,7 +40,8 @@ function makeBrandLlm(): LlmClient | null {
   });
 }
 
-const brand: BrandDeps = {
+/** Lecture du site et LLM plafonné du profil de marque (onboarding et analyse unique MU.1). */
+export const brandDeps: BrandDeps = {
   readSite: (domain, home) =>
     readSite(domain, {
       fetch: safeFetchPage,
@@ -51,7 +52,7 @@ const brand: BrandDeps = {
   makeLlm: makeBrandLlm,
 };
 
-export const startDeps: StartDeps = { readHomepage, makeLlm, brand };
+export const startDeps: StartDeps = { readHomepage, makeLlm, brand: brandDeps };
 
 /** Client LLM plafonné pour l'univers de requêtes (MT.2b) : un seul appel court ; null sans clé. */
 function makeQueriesLlm(): LlmClient | null {

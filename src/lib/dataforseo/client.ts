@@ -52,8 +52,12 @@ export type DataForSeoClientOptions = {
   /** Identifiants ; "proxy" = aucun identifiant envoyé (un proxy injecte l'authentification). */
   auth: DataForSeoAuth | (() => DataForSeoAuth);
   cache?: CacheStore;
-  /** Décide, appel par appel, d'ignorer le cache en lecture (ex. sites de test). */
-  shouldBypassCache?: (opts: CallOptions) => Promise<boolean>;
+  /**
+   * Décide, appel par appel, d'ignorer le cache en lecture (ex. sites de test). `{ notBefore }` :
+   * seules les réponses mises en cache APRÈS cette date sont relues (reprise d'un même audit sans
+   * repayer, alors qu'un nouvel audit repart de zéro).
+   */
+  shouldBypassCache?: (opts: CallOptions) => Promise<CachePolicy>;
   baseUrl?: string;
   fetchImpl?: typeof fetch;
   sleep?: (ms: number) => Promise<void>;
@@ -64,6 +68,8 @@ export type DataForSeoClientOptions = {
   /** Plafond par appel (estimation, USD). */
   maxCostPerCallUsd?: number;
 };
+
+export type CachePolicy = boolean | { notBefore: string };
 
 export type CallOptions = {
   workspaceId?: string | null;
@@ -176,9 +182,17 @@ export function createDataForSeoClient(options: DataForSeoClientOptions) {
     let cacheHit = false;
 
     let bypass = opts.bypassCache === true;
+    let notBefore: number | null = null;
     if (useCache && !bypass && options.shouldBypassCache) {
       try {
-        bypass = await options.shouldBypassCache(opts);
+        const policy = await options.shouldBypassCache(opts);
+        if (typeof policy === "boolean") bypass = policy;
+        else {
+          const ms = Date.parse(policy.notBefore);
+          // Une date illisible ne doit jamais ouvrir le cache : on repart de zéro.
+          if (Number.isFinite(ms)) notBefore = ms;
+          else bypass = true;
+        }
       } catch (e) {
         logger.warn("dataforseo : politique de cache non lue", { error: String(e) });
       }
@@ -191,6 +205,10 @@ export function createDataForSeoClient(options: DataForSeoClientOptions) {
       } catch (e) {
         // Un cache en panne ne doit pas bloquer l'audit : on appelle l'API.
         logger.warn("dataforseo : cache non lu", { endpoint: spec.name, error: String(e) });
+      }
+      if (hit && notBefore !== null) {
+        const at = hit.createdAt ? Date.parse(hit.createdAt) : NaN;
+        if (!Number.isFinite(at) || at < notBefore) hit = null;
       }
       if (hit) {
         envelope = hit.response;
@@ -359,11 +377,13 @@ export function createDataForSeoClientFromEnv(
 }
 
 /**
- * Sites de test : le cache n'est jamais lu (chaque audit repart de zéro, la réponse fraîche est
- * tout de même stockée). Résolution du domaine par audit, mémorisée pour la durée du client.
+ * Sites de test : chaque audit repart de zéro (la réponse fraîche est tout de même stockée). MU.1 :
+ * un audit relit seulement ce qu'il a lui-même payé, c'est-à-dire les réponses mises en cache depuis
+ * sa création : reprendre une analyse interrompue ne repaie rien, lancer un nouvel audit repaie tout.
+ * Résolution du domaine par audit, mémorisée pour la durée du client.
  */
-function testDomainCachePolicy(): (opts: CallOptions) => Promise<boolean> {
-  const memo = new Map<string, boolean>();
+function testDomainCachePolicy(): (opts: CallOptions) => Promise<CachePolicy> {
+  const memo = new Map<string, CachePolicy>();
   return async (opts) => {
     const ref = opts.auditId
       ? ({ table: "audits", id: opts.auditId, col: "site_id" } as const)
@@ -376,6 +396,7 @@ function testDomainCachePolicy(): (opts: CallOptions) => Promise<boolean> {
     if (known !== undefined) return known;
     const db = createServiceClient();
     let domain: string | null = null;
+    let createdAt: string | null = null;
     if (ref.table === "public_audits") {
       const { data } = await db
         .from("public_audits")
@@ -386,12 +407,17 @@ function testDomainCachePolicy(): (opts: CallOptions) => Promise<boolean> {
     } else {
       const { data } = await db
         .from("audits")
-        .select("sites(domain)")
+        .select("created_at, sites(domain)")
         .eq("id", ref.id)
         .maybeSingle();
       domain = (data?.sites as { domain: string } | null)?.domain ?? null;
+      createdAt = data?.created_at ?? null;
     }
-    const result = isTestDomain(domain);
+    const result: CachePolicy = !isTestDomain(domain)
+      ? false
+      : createdAt
+        ? { notBefore: createdAt }
+        : true;
     memo.set(k, result);
     return result;
   };

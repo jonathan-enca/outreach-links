@@ -24,6 +24,7 @@
     "demo:findings": "FINDINGS_LIVE_DEMO=1 vitest run src/features/findings/findings.live.test.ts",
     "demo:queries": "QUERIES_LIVE_DEMO=1 vitest run src/features/queries/queries.live.test.ts",
     "demo:queries-ensure": "VITEST_REAL_ENV=1 QUERIES_ENSURE_LIVE=1 vitest run src/features/queries/ensure.live.test.ts",
+    "demo:analysis": "VITEST_REAL_ENV=1 ANALYSIS_LIVE=1 vitest run src/features/analysis/analysis.live.test.ts",
     "demo:watchdog": "VITEST_REAL_ENV=1 WATCHDOG_LIVE=1 vitest run src/features/watchdog/watchdog.live.test.ts",
     "demo:llm": "LLM_LIVE_DEMO=1 vitest run src/features/profile/summary.live.test.ts",
     "inngest:dev": "npx --yes --ignore-scripts=false inngest-cli@1.53.0 dev -u http://localhost:3000/api/inngest --no-discovery",

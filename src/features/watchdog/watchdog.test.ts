@@ -196,6 +196,8 @@ describe("chien de garde", () => {
       "audit.profile",
       "audit.opportunities",
       "audit.deadlinks",
+      "audit.analysis",
+      "analysis.step",
       "collection",
       "qualification",
       "findings",
@@ -204,5 +206,77 @@ describe("chien de garde", () => {
       "plan.drafts",
       "public_audit",
     ]);
+  });
+});
+
+describe("chien de garde : analyse unique (MU.1)", () => {
+  const step = (over: Record<string, unknown>) => ({
+    id: "s1",
+    audit_id: "a1",
+    workspace_id: "w1",
+    key: "recherche",
+    status: "en_cours",
+    started_at: ago(40),
+    updated_at: ago(20),
+    ...over,
+  });
+
+  it("une étape d'analyse sans écriture depuis 15 minutes échoue, et son analyse avec elle", async () => {
+    const db = fakeSupabase({
+      analysis_steps: [step({})],
+      audits: [audit({ analysis_status: "en_cours", analysis_confirmed_at: ago(5) })],
+      events: [],
+    });
+    const report = await runWatchdog(db.client, { now });
+    expect(report.actions.map((a) => `${a.step}:${a.action}`)).toEqual(["analysis.step:echoue"]);
+    expect(db.tables.analysis_steps![0]).toMatchObject({
+      status: "echoue",
+      error_message: t.watchdog.stuck,
+    });
+    expect(db.tables.audits![0]).toMatchObject({
+      analysis_status: "echoue",
+      analysis_error: t.watchdog.stuck,
+    });
+  });
+
+  it("une étape qui écrit régulièrement n'est jamais touchée", async () => {
+    const db = fakeSupabase({
+      analysis_steps: [step({ updated_at: ago(3) })],
+      audits: [audit({ analysis_status: "en_cours", analysis_confirmed_at: ago(5) })],
+      events: [],
+    });
+    expect((await runWatchdog(db.client, { now })).actions).toEqual([]);
+    expect(db.tables.audits![0]!.analysis_status).toBe("en_cours");
+  });
+
+  it("l'état des lieux (étape parallèle) bloqué n'emporte pas l'analyse", async () => {
+    const db = fakeSupabase({
+      analysis_steps: [step({ key: "etat_des_lieux" })],
+      audits: [audit({ analysis_status: "en_cours", analysis_confirmed_at: ago(5) })],
+      events: [],
+    });
+    const report = await runWatchdog(db.client, { now });
+    expect(report.actions).toHaveLength(1);
+    expect(db.tables.analysis_steps![0]!.status).toBe("echoue");
+    expect(db.tables.audits![0]!.analysis_status).toBe("en_cours");
+  });
+
+  it("une analyse « en cours » dont le job est mort depuis une heure échoue avec un message clair", async () => {
+    const db = fakeSupabase({
+      audits: [
+        audit({
+          analysis_status: "en_cours",
+          analysis_confirmed_at: ago(90),
+          analysis_started_at: ago(90),
+        }),
+      ],
+      events: [],
+    });
+    const report = await runWatchdog(db.client, { now });
+    expect(report.actions.map((a) => a.step)).toEqual(["audit.analysis"]);
+    expect(db.tables.audits![0]).toMatchObject({
+      analysis_status: "echoue",
+      analysis_error: t.watchdog.stuck,
+    });
   });
 });

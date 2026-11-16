@@ -8,6 +8,87 @@ export type Database = {
   };
   public: {
     Tables: {
+      analysis_feed: {
+        Row: {
+          audit_id: string;
+          created_at: string;
+          id: number;
+          kind: string;
+          message: string;
+          payload: Json;
+          step_key: string | null;
+          workspace_id: string;
+        };
+        Insert: {
+          audit_id: string;
+          created_at?: string;
+          id?: never;
+          kind: string;
+          message: string;
+          payload?: Json;
+          step_key?: string | null;
+          workspace_id: string;
+        };
+        Update: {
+          audit_id?: string;
+          created_at?: string;
+          id?: never;
+          kind?: string;
+          message?: string;
+          payload?: Json;
+          step_key?: string | null;
+          workspace_id?: string;
+        };
+        Relationships: [];
+      };
+      analysis_steps: {
+        Row: {
+          audit_id: string;
+          counters: Json;
+          created_at: string;
+          error_message: string | null;
+          finished_at: string | null;
+          id: string;
+          key: string;
+          last_example: string | null;
+          position: number;
+          started_at: string | null;
+          status: string;
+          updated_at: string;
+          workspace_id: string;
+        };
+        Insert: {
+          audit_id: string;
+          counters?: Json;
+          created_at?: string;
+          error_message?: string | null;
+          finished_at?: string | null;
+          id?: string;
+          key: string;
+          last_example?: string | null;
+          position: number;
+          started_at?: string | null;
+          status?: string;
+          updated_at?: string;
+          workspace_id: string;
+        };
+        Update: {
+          audit_id?: string;
+          counters?: Json;
+          created_at?: string;
+          error_message?: string | null;
+          finished_at?: string | null;
+          id?: string;
+          key?: string;
+          last_example?: string | null;
+          position?: number;
+          started_at?: string | null;
+          status?: string;
+          updated_at?: string;
+          workspace_id?: string;
+        };
+        Relationships: [];
+      };
       audit_gap_domains: {
         Row: {
           audit_id: string;
@@ -205,6 +286,12 @@ export type Database = {
       };
       audits: {
         Row: {
+          analysis_confirmed_at: string | null;
+          analysis_cost_usd: number | null;
+          analysis_error: string | null;
+          analysis_finished_at: string | null;
+          analysis_started_at: string | null;
+          analysis_status: string;
           actual_cost_usd: number | null;
           auto_chain: boolean;
           backlinks_cost_usd: number | null;
@@ -230,6 +317,7 @@ export type Database = {
           estimated_cost_usd: number | null;
           finished_at: string | null;
           id: string;
+          links_state: Json;
           max_competitors: number;
           opportunities_cost_usd: number | null;
           opportunities_error: string | null;
@@ -259,6 +347,12 @@ export type Database = {
           workspace_id: string;
         };
         Insert: {
+          analysis_confirmed_at?: string | null;
+          analysis_cost_usd?: number | null;
+          analysis_error?: string | null;
+          analysis_finished_at?: string | null;
+          analysis_started_at?: string | null;
+          analysis_status?: string;
           actual_cost_usd?: number | null;
           auto_chain?: boolean;
           backlinks_cost_usd?: number | null;
@@ -284,6 +378,7 @@ export type Database = {
           estimated_cost_usd?: number | null;
           finished_at?: string | null;
           id?: string;
+          links_state?: Json;
           max_competitors: number;
           opportunities_cost_usd?: number | null;
           opportunities_error?: string | null;
@@ -313,6 +408,12 @@ export type Database = {
           workspace_id: string;
         };
         Update: {
+          analysis_confirmed_at?: string | null;
+          analysis_cost_usd?: number | null;
+          analysis_error?: string | null;
+          analysis_finished_at?: string | null;
+          analysis_started_at?: string | null;
+          analysis_status?: string;
           actual_cost_usd?: number | null;
           auto_chain?: boolean;
           backlinks_cost_usd?: number | null;
@@ -338,6 +439,7 @@ export type Database = {
           estimated_cost_usd?: number | null;
           finished_at?: string | null;
           id?: string;
+          links_state?: Json;
           max_competitors?: number;
           opportunities_cost_usd?: number | null;
           opportunities_error?: string | null;
@@ -3368,6 +3470,17 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      analysis_step_update: {
+        Args: {
+          p_audit: string;
+          p_counters?: Json | null;
+          p_error?: string | null;
+          p_example?: string | null;
+          p_key: string;
+          p_status?: string | null;
+        };
+        Returns: boolean;
+      };
       create_link_plan: {
         Args: { p_audit_id: string; p_items: Json; p_user_id: string };
         Returns: {

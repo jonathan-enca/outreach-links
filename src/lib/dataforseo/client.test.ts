@@ -137,6 +137,37 @@ describe("SERP organic live", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
+  it("politique « depuis telle date » : relit ce qui a été payé après, repaie ce qui date d'avant", async () => {
+    let now = Date.parse("2026-11-16T10:00:00Z");
+    const cache = new MemoryCache(() => now);
+    const auditCreatedAt = "2026-11-16T10:05:00Z";
+    const { client, fetchImpl } = setup(
+      [fixture("serp-organic-live"), fixture("serp-organic-live")],
+      { cache, shouldBypassCache: async () => ({ notBefore: auditCreatedAt }) },
+    );
+    // Réponse d'un audit précédent (10:00) : jamais relue par le nouvel audit.
+    await client.serpOrganicLive({ keyword: "x y" }, { bypassCache: true });
+    now = Date.parse("2026-11-16T10:06:00Z");
+    const first = await client.serpOrganicLive({ keyword: "x y" });
+    expect(first.cacheHit).toBe(false);
+    // Reprise du même audit : la réponse payée à 10:06 est relue, rien n'est repayé.
+    now = Date.parse("2026-11-16T10:20:00Z");
+    const again = await client.serpOrganicLive({ keyword: "x y" });
+    expect(again.cacheHit).toBe(true);
+    expect(again.actualCostUsd).toBe(0);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("politique « depuis telle date » illisible : le cache reste fermé", async () => {
+    const { client, fetchImpl } = setup(
+      [fixture("serp-organic-live"), fixture("serp-organic-live")],
+      { shouldBypassCache: async () => ({ notBefore: "pas une date" }) },
+    );
+    await client.serpOrganicLive({ keyword: "x y" });
+    await client.serpOrganicLive({ keyword: "x y" });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
   it("n'utilise plus une entrée expirée", async () => {
     let now = 1_000_000;
     const cache = new MemoryCache(() => now);

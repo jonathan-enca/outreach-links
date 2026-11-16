@@ -467,6 +467,7 @@ function fakeDeps(o: FakeOpts = {}) {
   const calls = { llm: 0, guard: 0, read: 0 };
   const cases = o.cases ?? FINDING_EVAL_CASES;
   const deps = (): FindDeps => ({
+    sleep: async () => {},
     readPage: async (url) => {
       calls.read++;
       const own = cases.find((c) => url.endsWith(`/${c.id}`));

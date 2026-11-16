@@ -1,7 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { t } from "@/lib/messages";
 import type { Database, Json } from "@/lib/supabase/database.types";
-import { estimateChain } from "./chain";
+import { startAnalysis } from "@/features/analysis/service";
+import { analysisChain, estimateChain, legacyChainEnabled } from "./chain";
 import { env } from "@/env";
 import { dailyCapReached } from "@/lib/costs";
 import { betaEnabled, effectivePlan } from "./beta";
@@ -72,6 +73,8 @@ export function computeAuditEstimate(input: {
   workspacePlan: unknown;
   /** Mode bêta (MT.0) : niveau « payant » pour tous. Par défaut, le réglage d'environnement. */
   beta?: boolean;
+  /** Ancienne chaîne dans le parcours (MU.1). Par défaut, le réglage d'environnement `LEGACY_CHAIN`. */
+  legacyChain?: boolean;
 }) {
   const basePlan: PlanKey = isPlanKey(input.workspacePlan) ? input.workspacePlan : "gratuit";
   const plan: PlanKey = isTestDomain(input.domain)
@@ -80,17 +83,22 @@ export function computeAuditEstimate(input: {
   const limits = limitsFor(plan, input.domain);
   const queries = input.priorityQueries.slice(0, limits.maxQueries);
   const estimate = estimateDiscovery(queries, limits);
-  const chain = estimateChain({
-    plan,
-    discoveryUsd: estimate.totalUsd,
-    capUsd: limits.costCapUsd,
-    site: {
-      domain: input.domain,
-      niche: input.niche,
-      priorityQueries: queries,
-      offeredAsset: input.offeredAsset,
-    },
-  });
+  // MU.1 : par défaut, le coût annoncé est celui de l'analyse unique ; l'ancienne chaîne (backlinks
+  // des concurrents, profil, opportunités) n'est chiffrée que si le réglage la remet dans le parcours.
+  const chain =
+    (input.legacyChain ?? legacyChainEnabled())
+      ? estimateChain({
+          plan,
+          discoveryUsd: estimate.totalUsd,
+          capUsd: limits.costCapUsd,
+          site: {
+            domain: input.domain,
+            niche: input.niche,
+            priorityQueries: queries,
+            offeredAsset: input.offeredAsset,
+          },
+        })
+      : analysisChain(estimate.totalUsd);
   return { plan, limits, queries, estimate, chain };
 }
 
@@ -136,7 +144,10 @@ export async function createAudit(
     workspacePlan: ws?.plan,
   });
   if (queries.length === 0) return { status: "error", message: AUDIT_MESSAGES.noQueries };
-  if (estimate.totalUsd > limits.costCapUsd) {
+  // Nouveau moteur : le coût attendu de TOUTE l'analyse doit tenir dans le plafond (un palier trop
+  // bas ne lance rien, au lieu de payer une découverte sans suite).
+  const launchUsd = chain.analysisUsd === undefined ? estimate.totalUsd : chain.totalUsd;
+  if (launchUsd > limits.costCapUsd) {
     return { status: "error", message: AUDIT_MESSAGES.overCap };
   }
 
@@ -284,6 +295,22 @@ export async function confirmAudit(
       type: "audit.confirmed",
       payload: { audit_id: audit.id, estimated_cost_usd: audit.estimated_cost_usd },
     });
+  }
+
+  // MU.1 : une seule analyse, de bout en bout. La découverte des concurrents en est la deuxième
+  // étape : un seul événement part, l'ancienne chaîne (backlinks, profil, opportunités) ne suit plus.
+  if (!legacyChainEnabled()) {
+    let service: Client;
+    try {
+      service = getServiceClient();
+    } catch {
+      return { status: "error", message: AUDIT_MESSAGES.unavailable };
+    }
+    const started = await startAnalysis(service, audit.id, sendEvent, userId);
+    if (started.status === "error") {
+      return { status: "error", auditId, message: started.message ?? AUDIT_MESSAGES.sendFailed };
+    }
+    return { status: "ok", auditId, message: AUDIT_MESSAGES.started };
   }
 
   try {

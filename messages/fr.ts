@@ -1060,6 +1060,10 @@ export const fr = {
       profile: "Profil de liens, pages à pousser, écart",
       opportunities: "Opportunités de liens",
       total: "Coût total estimé",
+      /** MU.1 : une seule analyse (remplace backlinks, profil de liens et opportunités). */
+      analysis: "Recherche, tri et préparation de vos cibles",
+      bodyAnalysis:
+        "Une seule confirmation : après la découverte des concurrents, la recherche des sites, le tri, les contacts et la préparation des demandes s'enchaînent seuls, sans autre clic. Aucun email n'est envoyé.",
       uncovered:
         "Le plafond de cet audit ne couvre pas toutes les étapes : celles qui manquent (ci-dessous) resteront à lancer à la main, sans frais supplémentaire.",
       progressTitle: "Progression de l'audit",
@@ -2438,6 +2442,63 @@ export const fr = {
     errorBody: "Réessayez dans un instant. Si le problème persiste, notez la référence ci-dessous.",
     retry: "Réessayer",
     reference: "Référence",
+  },
+  analysis: {
+    /** Noms affichés des huit étapes de l'analyse unique (docs/jalon-mu.md section 2.2). */
+    steps: {
+      comprendre: "Comprendre votre site",
+      concurrents: "Repérer vos concurrents",
+      etat_des_lieux: "État des lieux de vos liens",
+      recherche: "Chercher les sites qui peuvent vous citer",
+      tri: "Trier",
+      contacts: "Trouver un contact",
+      constats: "Chercher liens morts et mentions",
+      demandes: "Préparer vos demandes",
+    },
+    messages: {
+      unauthenticated: "Connectez-vous pour lancer l'analyse.",
+      notFound: "Analyse introuvable.",
+      alreadyStarted: "L'analyse est déjà lancée.",
+      alreadyDone: "Cette analyse est terminée.",
+      notConfirmed: "Cette analyse n'a pas encore été confirmée.",
+      overCap:
+        "Le coût attendu de l'analyse dépasse ce qui reste du plafond prévu : rien n'est lancé.",
+      dailyCap:
+        "Le plafond de sécurité du jour est atteint : l'analyse est reportée, rien n'est facturé.",
+      saveError: "Impossible d'enregistrer l'analyse. Réessayez.",
+      sendFailed: "L'analyse est enregistrée mais n'a pas pu démarrer. Réessayez.",
+      started: "Analyse lancée. Rien n'est contacté à cette étape.",
+      resumed: "Analyse reprise là où elle s'était arrêtée. Rien de déjà fait n'est refait.",
+    },
+    /** Motifs d'arrêt écrits dans l'étape en échec (lisibles tels quels). */
+    errors: {
+      siteUnreadable:
+        "Nous n'avons pas réussi à lire votre site. Vérifiez qu'il est en ligne, puis reprenez l'analyse.",
+      noCompetitors:
+        "Aucun concurrent n'a été trouvé pour vos recherches. Corrigez le thème de votre site, puis reprenez l'analyse.",
+      noQueries:
+        "Les recherches d'éditeurs n'ont pas pu être préparées. Reprenez l'analyse dans quelques minutes.",
+      interrupted:
+        "L'analyse s'est interrompue avant la fin. Vous pouvez la reprendre : rien de déjà fait n'est refait.",
+    },
+    /** Lignes du fil d'événements (`analysis_feed`). */
+    feed: {
+      stepDone: (step: string) => `Étape terminée : ${step}`,
+      stepSkipped: (step: string) => `Étape sans objet : ${step}`,
+      targetReady: (domain: string) => `Cible prête : ${domain}`,
+      finding: {
+        lien_mort: (domain: string) => `Lien mort repéré sur ${domain}`,
+        lien_inadapte: (domain: string) => `Lien à remplacer repéré sur ${domain}`,
+        mention_sans_lien: (domain: string) => `Mention sans lien repérée sur ${domain}`,
+      },
+      done: (count: number) =>
+        count === 0
+          ? "Analyse terminée : aucune cible retenue cette fois."
+          : count === 1
+            ? "Analyse terminée : 1 cible prête."
+            : `Analyse terminée : ${count} cibles prêtes.`,
+      linksStateFailed: "L'état des lieux de vos liens n'a pas pu être établi. Le reste continue.",
+    },
   },
   watchdog: {
     /** Écrit dans le message d'erreur d'une étape restée bloquée (MU.0). */

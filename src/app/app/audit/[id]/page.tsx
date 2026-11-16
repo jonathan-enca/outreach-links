@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { confirmAuditAction } from "@/features/audits/actions";
 import { AuditDetail, type AuditView } from "@/features/audits/audit-detail";
-import type { ChainEstimate } from "@/features/audits/chain";
+import { legacyChainEnabled, type ChainEstimate } from "@/features/audits/chain";
 import { chainProgressView } from "@/features/audits/chain-progress";
 import { isPlanKey } from "@/features/audits/plans";
 import { startBacklinksAction } from "@/features/backlinks/actions";
@@ -241,8 +241,12 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
     perQuery?: { query: string; usd: number }[];
     chain?: ChainEstimate;
   };
+  // MU.1 (décision D2) : l'ancienne chaîne sort du parcours. Ses blocs (backlinks des concurrents,
+  // profil de liens, opportunités, chasseur 404) ne s'affichent plus que si le réglage `LEGACY_CHAIN`
+  // la remet, ou pour un ancien audit qui l'a réellement utilisée.
+  const showLegacy = legacyChainEnabled() || audit.backlinks_status !== "aucun";
   const chainProgress =
-    audit.auto_chain && audit.status !== "estime"
+    showLegacy && audit.auto_chain && audit.status !== "estime"
       ? chainProgressView({
           auditStatus: audit.status,
           backlinks: audit.backlinks_status,
@@ -264,10 +268,10 @@ async function Audit({ params }: { params: Promise<{ id: string }> }) {
     chain: details.chain ?? null,
     chainProgress,
     errorMessage: audit.error_message,
-    backlinks,
-    profile,
-    opportunities,
-    deadlinks,
+    backlinks: showLegacy ? backlinks : undefined,
+    profile: showLegacy ? profile : undefined,
+    opportunities: showLegacy ? opportunities : undefined,
+    deadlinks: showLegacy ? deadlinks : undefined,
     competitors: (competitors ?? []).map((c) => ({
       domain: c.domain,
       queriesCount: c.queries_count,

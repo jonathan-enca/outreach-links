@@ -119,12 +119,21 @@ export function LaunchPanel({
           <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:max-w-md">
             <dt className="text-muted-foreground">{t.audits.chain.discovery}</dt>
             <dd>{formatUsd(preview.chain.discoveryUsd)}</dd>
-            <dt className="text-muted-foreground">{t.audits.chain.backlinks}</dt>
-            <dd>{formatUsd(preview.chain.backlinksUsd)}</dd>
-            <dt className="text-muted-foreground">{t.audits.chain.profile}</dt>
-            <dd>{formatUsd(preview.chain.profileUsd)}</dd>
-            <dt className="text-muted-foreground">{t.audits.chain.opportunities}</dt>
-            <dd>{formatUsd(preview.chain.opportunitiesUsd)}</dd>
+            {preview.chain.analysisUsd === undefined ? (
+              <>
+                <dt className="text-muted-foreground">{t.audits.chain.backlinks}</dt>
+                <dd>{formatUsd(preview.chain.backlinksUsd)}</dd>
+                <dt className="text-muted-foreground">{t.audits.chain.profile}</dt>
+                <dd>{formatUsd(preview.chain.profileUsd)}</dd>
+                <dt className="text-muted-foreground">{t.audits.chain.opportunities}</dt>
+                <dd>{formatUsd(preview.chain.opportunitiesUsd)}</dd>
+              </>
+            ) : (
+              <>
+                <dt className="text-muted-foreground">{t.audits.chain.analysis}</dt>
+                <dd>{formatUsd(preview.chain.analysisUsd)}</dd>
+              </>
+            )}
             <dt className="font-medium">{r.cost.total}</dt>
             <dd className="font-semibold">{formatUsd(preview.totalUsd)}</dd>
             <dt className="text-muted-foreground">{r.cost.capNote}</dt>
