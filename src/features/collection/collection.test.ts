@@ -16,6 +16,7 @@ import {
 import { buildCollectionPlan, distinctVariants, estimateCollection } from "./plan";
 import {
   beginCollection,
+  intersectionFilters,
   CollectionProgress,
   executeCollection,
   finalizeCollection,
@@ -183,6 +184,61 @@ describe("sources : SERP, recoupement, Content Analysis", () => {
       tactic: "mentions",
       pageType: "organization",
     });
+  });
+});
+
+describe("constats du run réel (16/11/2026)", () => {
+  it("filtre du recoupement : une condition « autorité > 0 » par cible, reliées par « or »", () => {
+    expect(intersectionFilters(1)).toEqual([["1.rank", ">", 0]]);
+    expect(intersectionFilters(2)).toEqual([["1.rank", ">", 0], "or", ["2.rank", ">", 0]]);
+    expect(intersectionFilters(8)).toHaveLength(15); // 8 conditions, la limite du fournisseur
+  });
+
+  it("recoupement : domaines à spam élevé et fermes d'hébergement gratuit écartés, spam conservé", () => {
+    const row = (d: string, spam: number, rank = 100) => ({
+      domain_intersection: {
+        "1": { target: d, rank, backlinks_spam_score: spam },
+        "2": { target: d, rank, backlinks_spam_score: spam },
+      },
+      summary: { intersections_count: 2 },
+    });
+    const read = readIntersection(
+      {
+        items: [
+          row("bon-blog.fr", 5),
+          row("casino-spam.com", 60),
+          row("coloriageonly.web.app", 5),
+          row("x.firebaseapp.com", 5),
+        ],
+      } as never,
+      ctx,
+    );
+    expect(read.map((d) => d.domain).sort()).toEqual(["bon-blog.fr", "casino-spam.com"]);
+    const cands = intersectionCandidates(read);
+    expect(cands.map((c) => c.domain).sort()).toEqual(["bon-blog.fr"]);
+    expect(cands.find((c) => c.domain === "bon-blog.fr")).toMatchObject({
+      spamScore: 5,
+      domainRank: 100,
+    });
+  });
+
+  it("Content Analysis : filtre serveur de langue et de spam transmis", async () => {
+    const { client } = fakeSupabase();
+    const { dfs, mocks } = fakeDfs();
+    await runContentCall(
+      { dfs, service: client },
+      makeRun(),
+      { keyword: "coloriages", pageType: "blogs" },
+      "content",
+      0,
+    );
+    expect(mocks.contentAnalysisSearch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        page_type: ["blogs"],
+        filters: [["language", "=", "fr"], "and", ["spam_score", "<", 50]],
+      }),
+      expect.anything(),
+    );
   });
 });
 
@@ -466,11 +522,79 @@ describe("exécution : plafonds avant chaque appel payant", () => {
         exclude_targets: ["mega-coloring.com"],
         limit: 500,
         offset: 500,
+        order_by: ["1.rank,desc"],
+        filters: [["1.rank", ">", 0], "or", ["2.rank", ">", 0], "or", ["3.rank", ">", 0]],
       }),
       { workspaceId: WS, auditId: AUDIT },
     );
     expect(out.rows).toBe(500);
     expect(out.intersection.length).toBe(500);
+  });
+});
+
+describe("erreurs de tâche du fournisseur", () => {
+  it("une erreur de tâche transitoire (40101) est retentée une fois ; deux échecs = requête sautée, pas d'échec global", async () => {
+    const { client } = fakeSupabase();
+    const { DataForSeoError } = await import("@/lib/dataforseo");
+    const err = () =>
+      new DataForSeoError("serp : Internal SE Server Error. (40101)", "task", 40101);
+    const ok = {
+      result: {
+        keyword: "k",
+        items_count: 1,
+        items: [
+          {
+            type: "organic",
+            rank_group: 1,
+            rank_absolute: 1,
+            domain: "asso.fr",
+            url: "https://asso.fr/",
+            title: "t",
+          },
+        ],
+      },
+      actualCostUsd: 0.006,
+      cacheHit: false,
+    };
+    const flaky = vi.fn().mockRejectedValueOnce(err()).mockResolvedValueOnce(ok);
+    const a = await runSerpQuery(
+      { dfs: { serpOrganicLive: flaky } as never, service: client },
+      makeRun(),
+      query(3),
+      "serp",
+      0,
+    );
+    expect(flaky).toHaveBeenCalledTimes(2);
+    expect(a.failed).toBeUndefined();
+    expect(a.raws.map((r) => r.domain)).toEqual(["asso.fr"]);
+    const dead = vi.fn().mockRejectedValue(err());
+    const b = await runSerpQuery(
+      { dfs: { serpOrganicLive: dead } as never, service: client },
+      makeRun(),
+      query(4),
+      "serp",
+      1,
+    );
+    expect(dead).toHaveBeenCalledTimes(2);
+    expect(b).toMatchObject({ failed: true, blocked: false, costUsd: 0 });
+    const p = new CollectionProgress(0.55);
+    p.add(b);
+    expect(p.stats.serp.failures).toBe(1);
+  });
+
+  it("une erreur d'authentification remonte (rien n'est avalé)", async () => {
+    const { client } = fakeSupabase();
+    const { DataForSeoError } = await import("@/lib/dataforseo");
+    const auth = vi.fn().mockRejectedValue(new DataForSeoError("401", "http", 401));
+    await expect(
+      runSerpQuery(
+        { dfs: { serpOrganicLive: auth } as never, service: client },
+        makeRun(),
+        query(3),
+        "serp",
+        0,
+      ),
+    ).rejects.toThrow("401");
   });
 });
 

@@ -253,6 +253,34 @@ describe("autres endpoints", () => {
     expect(body.limit).toBe(500);
   });
 
+  it("domain_intersection : format RÉEL du mode partiel (summary numérique, domaine dans `target`)", async () => {
+    const { client } = setup([fixture("backlinks-domain-intersection-partial.live")]);
+    const out = await client.backlinksDomainIntersection({
+      targets: ["coloriez.com", "hugolescargot.com", "tete-a-modeler.com"],
+      intersection_mode: "partial",
+      limit: 5,
+    });
+    expect(out.result?.items?.[0]?.domain_intersection["1"]).toMatchObject({
+      target: "coloriageonly.web.app",
+    });
+    expect(out.result?.items?.[0]?.summary).toEqual({ intersections_count: 2 });
+  });
+
+  it("Content Analysis search : format RÉEL (langue, pays, rang, spam, types de page)", async () => {
+    const { client } = setup([fixture("content-analysis-search.live")]);
+    const out = await client.contentAnalysisSearch({
+      keyword: "coloriages à imprimer",
+      page_type: ["blogs"],
+      limit: 2,
+    });
+    const first = out.result?.items?.[0];
+    expect(first).toMatchObject({ type: "content_analysis_search" });
+    expect(typeof first?.main_domain).toBe("string");
+    expect(first?.language).toBe("fr");
+    expect(typeof first?.domain_rank).toBe("number");
+    expect(typeof first?.spam_score).toBe("number");
+  });
+
   it("Content Analysis search : corps, résultat, coût journalisé", async () => {
     const { client, fetchImpl, rows } = setup([fixture("content-analysis-search")]);
     const out = await client.contentAnalysisSearch(

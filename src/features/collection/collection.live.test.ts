@@ -1,8 +1,8 @@
-import { writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { fakeSupabase } from "@/features/audits/fake-supabase";
 import type { PlannedQuery } from "@/features/queries/schema";
-import { createDataForSeoClient, MemoryCache } from "@/lib/dataforseo";
+import { createDataForSeoClient, type CacheStore } from "@/lib/dataforseo";
 import { buildCollectionPlan, estimateCollection } from "./plan";
 import { executeCollection, type CollectionRun, type StepOutcome } from "./run";
 import { mergeCandidates } from "./normalize";
@@ -12,12 +12,28 @@ import { mergeCandidates } from "./normalize";
  * formats de Domain Intersection, de la SERP et de Content Analysis. Payant (plafond dur 1 USD pour tout
  * le run, 0,10 USD par appel), ignoré sauf COLLECT_LIVE_DEMO=1. Aucune écriture en base : journal des
  * coûts et cache en mémoire ; aucun envoi, aucun achat. Lancer :
- *   NODE_USE_ENV_PROXY=1 DATAFORSEO_PROXY_AUTH=true COLLECT_LIVE_OUT=/chemin/rapport.json pnpm demo:collect
+ *   NODE_USE_ENV_PROXY=1 DATAFORSEO_PROXY_AUTH=true COLLECT_LIVE_OUT=/chemin/rapport.json \
+ *     COLLECT_LIVE_CACHE=/chemin/cache.json pnpm demo:collect
  * (ou avec DATAFORSEO_LOGIN / DATAFORSEO_PASSWORD). Le rapport donne, par phase, appels, coût estimé et
  * réel, lignes, nouveaux domaines, la répartition des langues et la FORME d'un premier élément de chaque
  * endpoint : à reporter dans PROGRESS.md (« Mesures ») et à confronter aux tarifs de `PRICING`.
  */
 const live = process.env.COLLECT_LIVE_DEMO === "1";
+
+/** Cache sur fichier (COLLECT_LIVE_CACHE) : une relance du run ne repaie pas les appels déjà réussis. */
+function fileCache(file: string | undefined): CacheStore {
+  const map: Record<string, { response: unknown; costUsd: number }> =
+    file && existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {};
+  return {
+    async get(key) {
+      return map[key] ?? null;
+    },
+    async set(key, entry) {
+      map[key] = { response: entry.response, costUsd: entry.costUsd };
+      if (file) writeFileSync(file, JSON.stringify(map));
+    },
+  };
+}
 
 const q = (
   i: number,
@@ -54,7 +70,7 @@ describe.skipIf(!live)("run réel borné de la collecte (mega-coloring.com)", ()
     const ledger = fakeSupabase();
     const dfsReal = createDataForSeoClient({
       costClient: ledger.client,
-      cache: new MemoryCache(),
+      cache: fileCache(process.env.COLLECT_LIVE_CACHE),
       auth:
         process.env.DATAFORSEO_PROXY_AUTH === "true"
           ? "proxy"

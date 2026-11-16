@@ -14,7 +14,10 @@ export const COLLECTION_LIMITS = {
   /** Part de ce budget par phase (somme = 1) : le pire cas annoncé est donc le budget cible. */
   phaseShare: { intersection: 0.17, mentions: 0.16, serp: 0.36, content: 0.31 },
   intersection: {
-    maxTargets: 20,
+    /** 8 au plus : le filtre serveur « autorité > 0 » compte une condition par cible (8 conditions maximum). */
+    maxTargets: 8,
+    /** Un domaine dont le score de spam des liens atteint ce seuil est écarté (0-100, mesuré au run réel). */
+    spamMax: 30,
     /** Un domaine n'est candidat que s'il lie au moins 2 concurrents (« recoupement »). */
     minCompetitors: 2,
     rowsPerPage: 500,
@@ -45,7 +48,7 @@ export const COLLECTION_LIMITS = {
     keywordPageTypes: ["blogs", "organization"] as const,
     maxKeywords: 2,
     typicalFill: 0.75,
-    /** Pages dont le score de spam atteint ce seuil sont écartées (échelle 0-100 supposée). */
+    /** Pages dont le score de spam atteint ce seuil sont écartées (filtre serveur ET client). */
     spamMax: 50,
   },
   mentions: {

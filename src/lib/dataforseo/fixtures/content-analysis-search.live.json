@@ -1,0 +1,137 @@
+{
+  "version": "0.1.20261103",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "21.1849 sec.",
+  "cost": 0.0294,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "redacted",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "21.1722 sec.",
+      "cost": 0.0294,
+      "result_count": 1,
+      "path": ["v3", "content_analysis", "search", "live"],
+      "data": {
+        "api": "content_analysis",
+        "function": "search",
+        "keyword": "coloriages à imprimer",
+        "page_type": ["blogs"],
+        "search_mode": "one_per_domain",
+        "limit": 150,
+        "offset": 0,
+        "filters": [["language", "=", "fr"], "and", ["spam_score", "<", 50]]
+      },
+      "result": [
+        {
+          "offset_token": "eyJDdXJyZW50T2Zmc2V0IjoxNTAsIlJhd1JlcXVlc3QiOnsia2V5d29yZCI6ImNvbG9yaWFnZXMgw6AgaW1wcmltZXIiLCJwYWdlX3R5cGUiOnsidHlwZXMiOlsiYmxvZ3MiXSwibWVyZ2UiOiJvciJ9LCJzZWFyY2hfbW9kZSI6Im9uZV9wZXJfZG9tYWluIiwicXVlcnkiOnsidHlwZSI6ImFuZCIsImxlZnQiOnsiZmllbGQiOiJsYW5ndWFnZSIsInR5cGUiOiJlcSIsInZhbHVlIjoiZnIifSwicmlnaHQiOnsiZmllbGQiOiJzcGFtX3Njb3JlIiwidHlwZSI6Imx0IiwidmFsdWUiOjUwfX0sImxpbWl0IjoxNTAsInJhbmtfc2NhbGUiOiJvbmVfdGhvdXNhbmQiLCJhaWQiOjMxMTQ1NywidGFza19pZCI6IjExMTYwODUxLTMxMTQtMDQ2My0wMDAwLWViZmYzZDc0ZjhmOCJ9LCJTZWFyY2hBZnRlckRhdGEiOnsiVmVyc2lvbiI6MSwiU2VhcmNoQWZ0ZXJWYWx1ZXMiOnsiX3Njb3JlIjoxODcxMDkuMjgsInVybF9oYXNoIjoiMjEzNTI2MTc4ODk0ODA1NDM5In0sIlRva2VuUmVhbE9mZnNldCI6MH19",
+          "total_count": 1625,
+          "items_count": 2,
+          "items": [
+            {
+              "type": "content_analysis_search",
+              "url": "https://www.astucesdefilles.com/dessins-halloween/",
+              "domain": "www.astucesdefilles.com",
+              "main_domain": "astucesdefilles.com",
+              "url_rank": 195,
+              "spam_score": 0,
+              "domain_rank": 310,
+              "fetch_time": "2025-06-21 03:27:58 +00:00",
+              "country": "FR",
+              "language": "fr",
+              "score": 1428478.2,
+              "page_category": [10013, 13425, 10015, 10131, 10125, 10672, 13794],
+              "page_types": ["cms", "blogs"],
+              "ratings": null,
+              "social_metrics": null,
+              "content_info": {
+                "content_type": "page_content",
+                "title": "35 Dessins & Coloriages D’Halloween à Copier ou à Imprimer",
+                "main_title": "35 Dessins & Coloriages D’Halloween à Copier ou à Imprimer",
+                "previous_title": null,
+                "level": 1,
+                "author": "Astuces de filles",
+                "snippet": "Voici des idées de dessins d’halloween que vous pouvez recopier ou imprimer selon votre envie. Si vous l’imprimez vous n",
+                "snippet_length": 724,
+                "social_metrics": null,
+                "highlighted_text": null,
+                "language": "fr",
+                "sentiment_connotations": {
+                  "anger": 0.08745460212230682,
+                  "happiness": 0.20418478548526764,
+                  "love": 0.19573506712913513,
+                  "sadness": 0.08489838242530823,
+                  "share": 0.11119739711284637,
+                  "fun": 0.31658971309661865
+                },
+                "connotation_types": {
+                  "positive": 0.6399707794189453,
+                  "negative": 0.19617025554180145,
+                  "neutral": 0.16388899087905884
+                },
+                "text_category": [10013, 13425, 10015, 10125, 10672, 13794, 10131],
+                "date_published": "2020-05-26 06:43:00 +00:00",
+                "content_quality_score": 89,
+                "semantic_location": "header",
+                "rating": null,
+                "group_date": "2020-05-26 06:43:00 +00:00"
+              }
+            },
+            {
+              "type": "content_analysis_search",
+              "url": "https://allomamandodo.com/coloriages-merci-a-imprimer/",
+              "domain": "allomamandodo.com",
+              "main_domain": "allomamandodo.com",
+              "url_rank": 0,
+              "spam_score": 0,
+              "domain_rank": 290,
+              "fetch_time": "2026-10-19 15:43:13 +00:00",
+              "country": "FR",
+              "language": "fr",
+              "score": 1180583.8,
+              "page_category": [10015, 10125, 10672, 13794, 10013, 13425, 10131],
+              "page_types": ["cms", "blogs"],
+              "ratings": null,
+              "social_metrics": null,
+              "content_info": {
+                "content_type": "page_content",
+                "title": "Coloriages “Merci” à imprimer!",
+                "main_title": "Coloriages “Merci” à imprimer!",
+                "previous_title": null,
+                "level": 1,
+                "author": "allomamandodo",
+                "snippet": "En ce moment, on essaie d’occuper les enfants. Pourquoi ne pas conjuguer amusement et bienveillance, en coloriant des de",
+                "snippet_length": 1930,
+                "social_metrics": null,
+                "highlighted_text": null,
+                "language": "fr",
+                "sentiment_connotations": {
+                  "anger": 0.0596192367374897,
+                  "happiness": 0.2059023678302765,
+                  "love": 0.5002783536911011,
+                  "sadness": 0.07050488144159317,
+                  "share": 0.0319252572953701,
+                  "fun": 0.13182984292507172
+                },
+                "connotation_types": {
+                  "positive": 0.47143152356147766,
+                  "negative": 0.38843390345573425,
+                  "neutral": 0.1401645690202713
+                },
+                "text_category": [10108, 10002, 10030, 10236, 10016, 10141, 10757],
+                "date_published": "2020-03-15 00:00:00 +00:00",
+                "content_quality_score": 94,
+                "semantic_location": "header",
+                "rating": null,
+                "group_date": "2020-03-15 00:00:00 +00:00"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
