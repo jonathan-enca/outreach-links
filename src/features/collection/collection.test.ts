@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeSupabase } from "@/features/audits/fake-supabase";
 import type { PlannedQuery } from "@/features/queries/schema";
 import type { DataForSeoClient } from "@/lib/dataforseo";
@@ -25,6 +25,7 @@ import {
   runSerpQuery,
   type CollectionRun,
   type StepOutcome,
+  PROVIDER_RETRY,
 } from "./run";
 import { previewCollection, startCollection } from "./service";
 import type { CollectionContext, RawCandidate } from "./types";
@@ -533,7 +534,10 @@ describe("exécution : plafonds avant chaque appel payant", () => {
 });
 
 describe("erreurs de tâche du fournisseur", () => {
-  it("une erreur de tâche transitoire (40101) est retentée une fois ; deux échecs = requête sautée, pas d'échec global", async () => {
+  beforeEach(() => {
+    PROVIDER_RETRY.delaysMs = [0, 0];
+  });
+  it("une erreur de tâche transitoire (40101) est retentée ; trois échecs = requête manquée, pas d'échec global", async () => {
     const { client } = fakeSupabase();
     const { DataForSeoError } = await import("@/lib/dataforseo");
     const err = () =>
@@ -566,6 +570,7 @@ describe("erreurs de tâche du fournisseur", () => {
     );
     expect(flaky).toHaveBeenCalledTimes(2);
     expect(a.failed).toBeUndefined();
+    expect(a.failed).toBeUndefined();
     expect(a.raws.map((r) => r.domain)).toEqual(["asso.fr"]);
     const dead = vi.fn().mockRejectedValue(err());
     const b = await runSerpQuery(
@@ -575,7 +580,7 @@ describe("erreurs de tâche du fournisseur", () => {
       "serp",
       1,
     );
-    expect(dead).toHaveBeenCalledTimes(2);
+    expect(dead).toHaveBeenCalledTimes(3);
     expect(b).toMatchObject({ failed: true, blocked: false, costUsd: 0 });
     const p = new CollectionProgress(0.55);
     p.add(b);
@@ -882,5 +887,129 @@ describe("service : coût annoncé puis lancement", () => {
       error_message: null,
     });
     expect(sendEvent).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("chantier A : erreurs du fournisseur et lots parallèles", () => {
+  const direct = <T>(_id: string, fn: () => Promise<T>) => fn();
+  beforeEach(() => {
+    PROVIDER_RETRY.delaysMs = [0, 0];
+  });
+
+  it("un HTTP 500 est retenté avec attente croissante, puis l'appel est manqué (jamais fatal)", async () => {
+    const { client } = fakeSupabase();
+    const { DataForSeoError } = await import("@/lib/dataforseo");
+    const waits: number[] = [];
+    PROVIDER_RETRY.delaysMs = [1, 2];
+    const spy = vi.spyOn(globalThis, "setTimeout").mockImplementation(((
+      fn: () => void,
+      ms?: number,
+    ) => {
+      waits.push(ms ?? 0);
+      fn();
+      return 0 as never;
+    }) as never);
+    try {
+      const dead = vi
+        .fn()
+        .mockRejectedValue(new DataForSeoError("content : HTTP 500", "http", 500));
+      const out = await runContentCall(
+        { dfs: { contentAnalysisSearch: dead } as never, service: client },
+        makeRun(),
+        { keyword: "coloriages", pageType: "blogs" },
+        "content",
+        0,
+      );
+      expect(dead).toHaveBeenCalledTimes(3);
+      expect(out).toMatchObject({ failed: true, blocked: false, costUsd: 0 });
+      expect(waits).toEqual([1, 2]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("un délai dépassé (réseau, sans code) est retenté ; une erreur 401 ou 400 remonte tout de suite", async () => {
+    const { client } = fakeSupabase();
+    const { DataForSeoError } = await import("@/lib/dataforseo");
+    const net = vi.fn().mockRejectedValue(new DataForSeoError("réseau (timeout)", "http"));
+    const out = await runSerpQuery(
+      { dfs: { serpOrganicLive: net } as never, service: client },
+      makeRun(),
+      query(1),
+      "serp",
+      0,
+    );
+    expect(net).toHaveBeenCalledTimes(3);
+    expect(out.failed).toBe(true);
+    for (const code of [400, 401, 403]) {
+      const bad = vi.fn().mockRejectedValue(new DataForSeoError(`HTTP ${code}`, "http", code));
+      await expect(
+        runSerpQuery(
+          { dfs: { serpOrganicLive: bad } as never, service: client },
+          makeRun(),
+          query(1),
+          "serp",
+          0,
+        ),
+      ).rejects.toThrow();
+      expect(bad).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it("une collecte dont des appels sont manqués continue avec le reste et les compte", async () => {
+    const { client } = fakeSupabase();
+    const { DataForSeoError } = await import("@/lib/dataforseo");
+    const { dfs } = fakeDfs();
+    // Tous les appels Content Analysis tombent en panne : la collecte garde le reste.
+    dfs.contentAnalysisSearch = vi
+      .fn()
+      .mockRejectedValue(new DataForSeoError("content : HTTP 500", "http", 500)) as never;
+    const progress = await executeCollection(() => ({ dfs, service: client }), makeRun(), direct);
+    expect(progress.stats.content.failures).toBe(progress.stats.content.calls);
+    expect(progress.missed).toBeGreaterThan(0);
+    expect(progress.seen.size).toBeGreaterThan(0);
+    expect(progress.stats.serp.failures).toBe(0);
+  });
+
+  it("les appels d'une phase partent par lots de 5 en parallèle, résultats dans l'ordre du plan", async () => {
+    const { client } = fakeSupabase();
+    let inFlight = 0;
+    let peak = 0;
+    const { dfs } = fakeDfs();
+    const base = dfs.serpOrganicLive;
+    dfs.serpOrganicLive = vi.fn(async (p: { keyword: string }) => {
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      await new Promise((r) => setTimeout(r, 5));
+      inFlight--;
+      return base(p as never);
+    }) as never;
+    const reports: number[] = [];
+    const run = makeRun();
+    const progress = await executeCollection(() => ({ dfs, service: client }), run, direct, {
+      report: async (r) => {
+        reports.push(r.done);
+      },
+    });
+    expect(peak).toBe(5);
+    expect(progress.stats.serp.calls).toBeGreaterThan(5);
+    // Une écriture de progression par lot, jamais décroissante.
+    expect(reports.length).toBeGreaterThan(2);
+    expect([...reports].sort((a, b) => a - b)).toEqual(reports);
+    // La durée de la phase est celle des lots (plus long appel de chacun), pas la somme des appels.
+    expect(progress.stats.serp.wallMs).toBeLessThanOrEqual(progress.stats.serp.callMs);
+    expect(progress.stats.serp.callMs).toBeGreaterThan(0);
+  });
+
+  it("le budget de phase est évalué avant chaque lot : jamais plus d'appels que ce qui tient", async () => {
+    const { client } = fakeSupabase();
+    const { dfs } = fakeDfs();
+    const progress = await executeCollection(
+      () => ({ dfs, service: client }),
+      makeRun({ targetUsd: 0.05 }),
+      direct,
+    );
+    expect(progress.stats.serp.calls).toBeLessThanOrEqual(3);
+    expect(progress.stats.serp.stoppedBy).toBe("budget_phase");
   });
 });

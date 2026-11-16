@@ -63,6 +63,12 @@ export type DataForSeoClientOptions = {
   sleep?: (ms: number) => Promise<void>;
   /** Nouvelles tentatives sur 429 / 5xx (défaut 2). */
   maxRetries?: number;
+  /**
+   * Délai maximal d'UN appel HTTP (défaut 60 s) : le même appel Content Analysis a duré 46 s pour 3
+   * résultats en production ; sans limite, un appel bloqué figerait l'analyse. Un dépassement est une
+   * erreur réseau (nouvelle tentative, puis `DataForSeoError` de type « http »).
+   */
+  timeoutMs?: number;
   /** Plafond de dépense cumulée de CE client (estimations, USD). */
   budgetUsd?: number;
   /** Plafond par appel (estimation, USD). */
@@ -104,6 +110,7 @@ export function createDataForSeoClient(options: DataForSeoClientOptions) {
   const sleep = options.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/$/, "");
   const maxRetries = options.maxRetries ?? 2;
+  const timeoutMs = options.timeoutMs ?? 60_000;
   let spentEstimateUsd = 0;
 
   async function http(spec: EndpointSpec<z.ZodType, z.ZodType>, params: unknown): Promise<unknown> {
@@ -120,8 +127,13 @@ export function createDataForSeoClient(options: DataForSeoClientOptions) {
     for (let attempt = 0; ; attempt++) {
       let res: Response | null = null;
       try {
-        res = await fetchImpl(url, init);
+        res = await fetchImpl(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
       } catch (e) {
+        // Délai dépassé : pas de nouvelle tentative ici (trois fois 60 s = trois minutes dans UN step) ;
+        // l'appelant décide (nouvelles tentatives espacées, puis appel « manqué »).
+        if ((e as Error).name === "TimeoutError" || (e as Error).name === "AbortError") {
+          throw new DataForSeoError(`${spec.name} : délai dépassé (${timeoutMs / 1000} s)`, "http");
+        }
         if (attempt >= maxRetries) {
           throw new DataForSeoError(`${spec.name} : réseau (${(e as Error).message})`, "http");
         }

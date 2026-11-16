@@ -263,6 +263,21 @@ export async function confirmAudit(
     .maybeSingle();
   if (!audit) return { status: "error", message: AUDIT_MESSAGES.notFound };
   if (audit.status === "en_cours" || audit.status === "termine" || audit.status === "echoue") {
+    // MU.1 : l'analyse unique reprend d'elle-même (« Reprendre »), même si la découverte des
+    // concurrents (audits.status) avait échoué : startAnalysis remet cette étape en route.
+    if (!legacyChainEnabled()) {
+      let service: Client;
+      try {
+        service = getServiceClient();
+      } catch {
+        return { status: "error", message: AUDIT_MESSAGES.unavailable };
+      }
+      const resumed = await startAnalysis(service, audit.id, sendEvent, userId);
+      if (resumed.status === "error") {
+        return { status: "error", auditId, message: resumed.message ?? AUDIT_MESSAGES.sendFailed };
+      }
+      return { status: "ok", auditId, message: resumed.message ?? AUDIT_MESSAGES.started };
+    }
     return { status: "ok", auditId, message: AUDIT_MESSAGES.alreadyStarted };
   }
   if (audit.status !== "estime" && audit.status !== "confirme") {

@@ -3481,6 +3481,10 @@ export type Database = {
         };
         Returns: boolean;
       };
+      analysis_reset_steps: {
+        Args: { p_audit: string; p_steps: string[] };
+        Returns: undefined;
+      };
       create_link_plan: {
         Args: { p_audit_id: string; p_items: Json; p_user_id: string };
         Returns: {

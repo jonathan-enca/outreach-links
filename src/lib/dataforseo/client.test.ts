@@ -481,3 +481,22 @@ describe("clé de cache et domaines", () => {
     expect(normalizeDomain("mega-coloring.com")).toBe("mega-coloring.com");
   });
 });
+
+describe("délai maximal d'un appel (chantier A)", () => {
+  it("un appel qui dépasse le délai est une erreur « http » SANS nouvelle tentative interne", async () => {
+    const { client, fetchImpl } = setup([], { timeoutMs: 5 });
+    fetchImpl.mockImplementation(
+      (_url, init) =>
+        new Promise((_resolve, reject) => {
+          init!.signal!.addEventListener("abort", () => reject(init!.signal!.reason));
+        }),
+    );
+    await expect(client.serpOrganicLive({ keyword: "coloriage" })).rejects.toMatchObject({
+      name: "DataForSeoError",
+      kind: "http",
+      code: undefined,
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl.mock.calls[0]![1]!.signal).toBeInstanceOf(AbortSignal);
+  });
+});

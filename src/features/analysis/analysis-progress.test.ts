@@ -32,6 +32,8 @@ const html = (s: AnalysisSnapshot, emailEnabled = true) =>
     createElement(AnalysisProgress, {
       initial: s,
       resumeAction: async () => ({ status: "idle" as const }),
+      restartAction: async () => ({ status: "idle" as const }),
+      relaunchAction: async () => ({ status: "idle" as const }),
       emailEnabled,
     }),
   );

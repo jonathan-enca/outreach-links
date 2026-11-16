@@ -29,7 +29,7 @@ export async function loadAnalysisSnapshot(
     supabase
       .from("audits")
       .select(
-        "id, site_id, analysis_status, analysis_error, analysis_started_at, analysis_finished_at, sites(domain)",
+        "id, site_id, analysis_status, analysis_error, analysis_started_at, analysis_confirmed_at, analysis_finished_at, sites(domain)",
       )
       .eq("id", auditId)
       .maybeSingle(),
@@ -70,6 +70,7 @@ export async function loadAnalysisSnapshot(
     error: a.analysis_error,
     startedAt: a.analysis_started_at,
     finishedAt: a.analysis_finished_at,
+    confirmedAt: a.analysis_confirmed_at,
     steps: rows,
     targets: (targets.data ?? []).map((r) => ({
       domain: r.domain,
