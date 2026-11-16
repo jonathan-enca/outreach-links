@@ -18,6 +18,7 @@ import {
 import {
   buildAndStoreQueryUniverse,
   buildUniverse,
+  ensureQueryUniverse,
   getLatestQueryUniverse,
   type QueryDeps,
 } from "./service";
@@ -467,6 +468,66 @@ describe("univers enregistré", () => {
       ),
     ).toBeNull();
     expect(llm.calls).toHaveLength(0);
+  });
+
+  // MU.0 : en production, `query_universes` était vide : l'univers n'était écrit que par l'écran de
+  // relecture. Le job de découverte le garantit désormais pour tout audit, d'où qu'il soit lancé.
+  it("garantit l'univers d'un site qui n'en a pas (audit lancé hors de l'écran de relecture)", async () => {
+    const db = fakeSupabase({
+      sites: [site],
+      brand_profiles: [profileRow],
+      query_recipes: [],
+      query_universes: [],
+      events: [],
+    });
+    const { llm, calls } = fakeLlm(() => llmOut(LABELS));
+    const out = await ensureQueryUniverse(db.client, { siteId: "s1", userId: "u1" }, deps(llm, db));
+    expect(out.status).toBe("cree");
+    expect(db.tables.query_universes).toHaveLength(1);
+    expect(calls).toHaveLength(1);
+
+    // Rejouable (reprise Inngest) : un univers à jour est réutilisé, sans nouvel appel payant.
+    const again = await ensureQueryUniverse(
+      db.client,
+      { siteId: "s1", userId: "u1" },
+      deps(llm, db),
+    );
+    expect(again.status).toBe("existant");
+    expect(db.tables.query_universes).toHaveLength(1);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("régénère l'univers quand le profil de marque a changé de version", async () => {
+    const db = fakeSupabase({
+      sites: [site],
+      brand_profiles: [profileRow],
+      query_recipes: [],
+      query_universes: [],
+      events: [],
+    });
+    const { llm } = fakeLlm(() => llmOut(LABELS));
+    await ensureQueryUniverse(db.client, { siteId: "s1", userId: null }, deps(llm, db));
+    db.tables.brand_profiles!.push({ ...profileRow, version: 4 });
+    const out = await ensureQueryUniverse(db.client, { siteId: "s1", userId: null }, deps(llm, db));
+    expect(out.status).toBe("cree");
+    expect(db.tables.query_universes).toHaveLength(2);
+  });
+
+  it("dit pourquoi l'univers est impossible au lieu d'échouer en silence", async () => {
+    const noProfile = fakeSupabase({ sites: [site], brand_profiles: [], query_universes: [] });
+    const { llm, calls } = fakeLlm(() => llmOut(LABELS));
+    expect(
+      await ensureQueryUniverse(
+        noProfile.client,
+        { siteId: "s1", userId: null },
+        deps(llm, noProfile),
+      ),
+    ).toEqual({ status: "impossible", reason: "profil_absent" });
+    const noSite = fakeSupabase({ sites: [], brand_profiles: [], query_universes: [] });
+    expect(
+      await ensureQueryUniverse(noSite.client, { siteId: "s1", userId: null }, deps(llm, noSite)),
+    ).toEqual({ status: "impossible", reason: "site_introuvable" });
+    expect(calls).toHaveLength(0);
   });
 
   it("l'objectif autorité n'utilise pas les mots-clés restés sur le site", async () => {
