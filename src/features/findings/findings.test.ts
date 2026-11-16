@@ -439,9 +439,9 @@ describe("demande en trois lignes et brief du rédacteur", () => {
 
 // ---------- Coût annoncé et plafonds ----------
 
-describe("coût annoncé et budget (0,05 USD)", () => {
-  it("le budget est 5 % du budget cible, attendu <= pire cas <= budget", () => {
-    expect(findingsBudgetUsd()).toBeCloseTo(0.05, 6);
+describe("coût annoncé et budget (0,10 USD)", () => {
+  it("le budget est 10 % du budget cible, attendu <= pire cas <= budget", () => {
+    expect(findingsBudgetUsd()).toBeCloseTo(0.1, 6);
     for (const n of [0, 1, 20, 40, 60, 500]) {
       for (const model of ["claude-haiku-4-5", "gpt-4o-mini"]) {
         const e = estimateFindings(n, { model });
@@ -634,12 +634,21 @@ describe("entonnoir des constats", () => {
     expect(stats.unjudged).toBeGreaterThanOrEqual(2);
     expect(stats.costUsd).toBeLessThanOrEqual(worst * 2.2);
   });
-  it("le plafond de sécurité est contrôlé avant chaque appel payant et arrête proprement", async () => {
-    const d = fakeDeps({ guardThrowsAfter: 1 });
+  it("le plafond de sécurité est contrôlé avant chaque groupe d'appels payants et arrête proprement", async () => {
+    const d = fakeDeps({ guardThrowsAfter: 0 });
     const { stats } = await run(d, ["m01", "m05", "m06"]);
-    expect(d.calls.guard).toBeGreaterThanOrEqual(2);
-    expect(d.calls.llm).toBe(1);
+    expect(d.calls.guard).toBe(1);
+    expect(d.calls.llm).toBe(0);
     expect(stats.stop).toBe("plafond");
+    expect(stats.unjudged).toBeGreaterThanOrEqual(1);
+  });
+  it("les jugements d'un groupe partent de front ; le résultat ne dépend pas de l'ordre d'arrivée", async () => {
+    const a = await run(fakeDeps(), ["m01", "m05", "m06"]);
+    const b = await run(fakeDeps(), ["m01", "m05", "m06"]);
+    expect(a.stats.llmCalls).toBe(b.stats.llmCalls);
+    expect(a.findings.map((f) => [f.domain, f.kind])).toEqual(
+      b.findings.map((f) => [f.domain, f.kind]),
+    );
   });
   it("classe les cibles par rang et respecte le nombre maximal de cibles", async () => {
     const ids = FINDING_EVAL_CASES.map((c) => c.id);

@@ -4,19 +4,19 @@ import { estimateCostUsd } from "@/lib/llm/pricing";
 
 /**
  * Plafonds des constats par page (MT.5). Seul le jugement LLM est payant : un appel par cible qui a
- * au moins un passage ou un lien à juger, sous 5 % du budget cible d'audit (0,05 USD, pris sur la
- * marge de docs/audit-v2.md section 6). Les lectures et contrôles de liens sont gratuits mais bornés.
+ * au moins un passage ou un lien à juger, sous 10 % du budget cible d'audit (0,10 USD ; mesuré le
+ * 17/11/2026 : 0,048 USD pour 20 cibles jugées sur 48, le budget de 0,05 était atteint). Les lectures et contrôles de liens sont gratuits mais bornés.
  */
 export const FINDINGS_LIMITS = {
-  shareOfTarget: 0.05,
+  shareOfTarget: 0.1,
   /** Cibles examinées au plus (la liste courte, dans l'ordre du rang). */
   maxTargets: 60,
   /** Cibles « mentions » sans contact examinées en plus de la liste courte (mention seulement). */
   maxMentionOnly: 20,
   /** Cibles lues par step Inngest. */
-  targetsPerStep: 6,
+  targetsPerStep: 12,
   /** MU.1 : pages de sites DIFFÉRENTS examinées de front dans un step. */
-  scanConcurrency: 6,
+  scanConcurrency: 12,
   /** Requêtes HTTP au plus par cible (robots.txt, page, liens). */
   requestsPerTarget: 70,
   /** Liens vérifiés (404/410) au plus par page. */
@@ -25,6 +25,8 @@ export const FINDINGS_LIMITS = {
   /** Passages de mention et liens candidats montrés au modèle. */
   maxMentions: 3,
   maxLinkCandidates: 8,
+  /** Appels de jugement lancés de front dans un step. */
+  judgeConcurrency: 5,
   /** Jetons de sortie d'un appel (borne du coût). */
   outputTokens: 420,
   /** Part des cibles qui ont quelque chose à juger, pour le coût ATTENDU (le pire cas = toutes). */

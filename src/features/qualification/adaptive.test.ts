@@ -81,11 +81,12 @@ describe("filtre avant lecture : la langue visible sans télécharger la page", 
 
 describe("robots.txt vérifié avant lecture", () => {
   const c = cand("ecole.fr", { url: "https://www.ecole.fr/classe/page" });
-  it("interdit, injoignable, ouvert", async () => {
+  it("interdit, sans réponse, ouvert", async () => {
     const disallow = async () => ({ status: 200, text: "User-agent: *\nDisallow: /" });
     expect(await checkRobotsFor(disallow, c)).toBe("interdit");
-    expect(await checkRobotsFor(async () => null, c)).toBe("injoignable");
-    expect(await checkRobotsFor(async () => ({ status: 503, text: "" }), c)).toBe("injoignable");
+    // Pas de réponse dans le délai court : rien n'est conclu, la lecture tranchera.
+    expect(await checkRobotsFor(async () => null, c)).toBe("inconnu");
+    expect(await checkRobotsFor(async () => ({ status: 503, text: "" }), c)).toBe("inconnu");
     expect(await checkRobotsFor(async () => ({ status: 404, text: "" }), c)).toBe("ok");
     const partial = async () => ({ status: 200, text: "User-agent: *\nDisallow: /prive/" });
     expect(await checkRobotsFor(partial, c)).toBe("ok");
@@ -309,19 +310,21 @@ describe("lecture adaptative par lots", () => {
   it("robots.txt avant lecture : les sites fermés ne prennent aucune place de lecture, et sont comptés", async () => {
     const { deps, calls } = fakeDeps({
       robots: (d) =>
-        d.startsWith("ferme-") ? "interdit" : d.startsWith("mort-") ? "injoignable" : "ok",
+        d.startsWith("ferme-") ? "interdit" : d.startsWith("lent-") ? "inconnu" : "ok",
     });
     const cands = [
       ...many(10, "content", "ferme"),
-      ...many(5, "content", "mort"),
+      ...many(5, "content", "lent"),
       ...many(20, "content", "ok"),
     ];
     const { results, stats } = await executeQualification(deps, input(cands), step);
     expect(calls.robots).toBe(35);
-    expect(calls.read).toBe(20);
+    // Un site qui n'a pas répondu à temps n'est PAS écarté : il est lu, avec son robots.txt relu.
+    expect(calls.read).toBe(25);
     expect(calls.robotsOk).toBe(20);
-    expect(stats.preRead).toMatchObject({ robots: 10, injoignable: 5 });
-    expect(stats.afterPreRead).toBe(20);
+    expect(stats.preRead).toMatchObject({ robots: 10 });
+    expect(stats.preRead!.injoignable).toBeUndefined();
+    expect(stats.afterPreRead).toBe(25);
     const closed = results.find((r) => r.domain === "ferme-0.fr")!;
     expect(closed).toMatchObject({ status: "exclu", exclusionReason: "robots", stageReached: 2 });
   });
