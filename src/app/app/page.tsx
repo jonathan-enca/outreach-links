@@ -4,55 +4,61 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  homeDestination,
+  loadSiteSnapshots,
+  nextStep,
+  START_HREF,
+} from "@/features/shell/next-step";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
-import { signOut } from "./actions";
 
-async function Workspace() {
+/**
+ * Accueil = prochaine étape (MU.2). Pas de site : étape 1. Un seul site : on va à son écran. Plusieurs
+ * sites : la liste, chacun avec son état et son unique bouton.
+ */
+async function Home() {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/connexion");
-  // La RLS limite le résultat aux workspaces dont l'utilisateur est membre.
-  const { data: workspaces } = await supabase.from("workspaces").select("id, name");
+  const sites = await loadSiteSnapshots(supabase);
+  const destination = homeDestination(sites);
+  if (destination) redirect(destination);
+  const h = t.shell.home;
   return (
-    <Card className="flex flex-col gap-4 p-6">
-      <p>
-        {t.workspace.signedInAs} <strong>{auth.user.email}</strong>
+    <>
+      <PageHeader title={h.title} description={h.description} />
+      <ul className="flex flex-col gap-3">
+        {sites.map((s) => {
+          const step = nextStep(s);
+          return (
+            <li key={s.id}>
+              <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
+                <div className="flex flex-col gap-1">
+                  <strong>{s.domain}</strong>
+                  <span className="text-sm text-muted-foreground">{h.state[step.kind]}</span>
+                </div>
+                <Button asChild>
+                  <Link href={step.href}>{h.action[step.kind]}</Link>
+                </Button>
+              </Card>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="mt-4">
+        <Link href={START_HREF} className="text-primary underline underline-offset-4">
+          {h.add}
+        </Link>
       </p>
-      <p>
-        {t.workspace.workspace} : <strong>{workspaces?.[0]?.name ?? "—"}</strong>
-      </p>
-      <p className="text-muted-foreground">{t.workspace.intro}</p>
-      <div className="flex flex-wrap gap-3">
-        <Button asChild>
-          <Link href="/app/demarrer">{t.workspace.analyzeSite}</Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link href="/app/site">{t.workspace.setupSite}</Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link href="/app/audit">{t.workspace.startAudit}</Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link href="/app/facturation">{t.billing.link}</Link>
-        </Button>
-        <form action={signOut}>
-          <Button type="submit" variant="outline">
-            {t.auth.signOut}
-          </Button>
-        </form>
-      </div>
-    </Card>
+    </>
   );
 }
 
 export default function AppPage() {
   return (
-    <>
-      <PageHeader title={t.workspace.title} description={t.app.description} />
-      <Suspense>
-        <Workspace />
-      </Suspense>
-    </>
+    <Suspense>
+      <Home />
+    </Suspense>
   );
 }

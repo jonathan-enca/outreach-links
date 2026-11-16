@@ -818,7 +818,7 @@ export const fr = {
   onboarding: {
     title: "Analyser votre site",
     description:
-      "Collez l'adresse de votre site. Nous en déduisons le thème et les recherches à surveiller, puis vous confirmez le coût une seule fois.",
+      "Collez l'adresse de votre site. Nous en déduisons le thème et les recherches à surveiller, puis vous relisez et lancez l'analyse.",
     urlLabel: "Adresse de votre site",
     urlPlaceholder: "monsite.fr",
     urlHint: "Rien d'autre à renseigner pour commencer.",
@@ -881,7 +881,7 @@ export const fr = {
     },
     review: {
       pageDescription:
-        "Relisez ce que nous avons compris de votre site, choisissez votre objectif, puis confirmez le coût une seule fois. Rien n'est envoyé.",
+        "Relisez ce que nous avons compris de votre site, puis lancez l'analyse. Rien n'est envoyé.",
       title: "Voici ce que nous avons compris",
       body: "Corrigez si besoin : le thème et le profil ci-dessous guident la recherche des sites qui peuvent vous citer.",
       domain: "Site",
@@ -911,20 +911,12 @@ export const fr = {
         title: "Ce que nous vous demanderons plus tard",
         body: "Rien de tout cela n'est nécessaire pour voir les résultats : la vérification que le site est bien le vôtre, votre prénom de signature, ce que vous offrez en échange et votre boîte d'envoi. Nous les demandons juste avant le premier lot de messages. Aucun message n'est envoyé avant que vous ayez validé un lot.",
       },
-      cost: {
-        title: "Coût du parcours",
-        total: "Coût total estimé",
-        body: "Une seule confirmation : concurrents, backlinks, profil de liens et opportunités s'enchaînent ensuite seuls. Vous validerez le plan de liens avant toute action. Aucun email n'est envoyé.",
-        capNote: "Plafond de sécurité de cet audit",
+      launchCard: {
+        title: "Prêt à lancer l'analyse",
+        body: "Une analyse, environ 15 minutes. Vous pouvez fermer la page : l'analyse continue sans vous. Rien n'est envoyé à qui que ce soit.",
       },
-      queryPlan: {
-        title: "Recherches d'éditeurs prévues",
-        body: "Pour trouver les sites qui peuvent vous citer, nous préparerons jusqu'à {count} recherches Google : une par profil d'éditeur et par type de page, classées de la plus prometteuse à la moins prometteuse, plus quelques recherches sur le nom de votre marque. Elles ne sont pas lancées ici et ne sont pas comprises dans le total ci-dessus.",
-        max: "Coût maximal de cette étape",
-        budget: "Budget réservé",
-      },
-      seeCost: "Enregistrer et voir le coût",
-      launch: "Confirmer et lancer l'analyse",
+      seeCost: "Enregistrer et continuer",
+      launch: "Lancer l'analyse",
       launching: "Lancement…",
       alreadyTitle: "Une analyse existe déjà pour ce site",
       alreadyOpen: "Voir l'analyse",
@@ -1019,6 +1011,21 @@ export const fr = {
     title: "Audit",
     description:
       "Concurrents réels de la SERP, écart de liens, pages à pousser. Le coût estimé est annoncé avant tout lancement.",
+    analysisTitle: "Votre analyse de",
+    analysisDescription: "Nous cherchons les sites qui peuvent vous citer. Rien n'est envoyé.",
+    analysisRunning: {
+      title: "Analyse en cours",
+      body: "Environ 15 minutes. Vous pouvez fermer cette page : l'analyse continue sans vous, et cette page se met à jour toute seule.",
+    },
+    analysisFailed: {
+      title: "L'analyse s'est arrêtée",
+      body: "Rien n'est perdu : reprendre l'analyse repart de là où elle s'était arrêtée.",
+    },
+    analysisDone: {
+      title: "Analyse terminée",
+      body: "Vos cibles sont prêtes : pour chacune, la demande à faire et pourquoi.",
+      cta: "Voir vos cibles",
+    },
     noSitesTitle: "Ajoutez d'abord votre site",
     noSitesBody:
       "L'audit part de votre site et de vos requêtes prioritaires. Ajoutez-les pour préparer un audit.",
@@ -1041,16 +1048,14 @@ export const fr = {
       echoue: "Échoué",
     },
     estimate: {
-      title: "Coût estimé avant lancement",
-      body: "L'audit interroge Google pour chacune de vos requêtes prioritaires (les 30 premiers résultats) et en déduit vos vrais concurrents. Rien n'est lancé sans votre confirmation.",
-      total: "Coût estimé",
-      cap: "Plafond de cet audit",
-      calls: "Recherches Google",
-      perQuery: "Détail par requête",
-      note: "Estimation basée sur la grille publique du fournisseur ; le coût réel est mesuré et affiché à la fin.",
-      confirm: "Confirmer et lancer l'audit",
+      title: "Lancer l'analyse",
+      body: "L'analyse cherche les sites qui peuvent vous citer, les trie, trouve un contact et prépare une demande pour chacun. Elle dure environ 15 minutes et vous pouvez fermer la page. Rien n'est envoyé.",
+      confirm: "Lancer l'analyse",
       confirming: "Lancement…",
-      retrySend: "Relancer l'envoi du travail",
+      retrySend: "Relancer le démarrage de l'analyse",
+      resumeTitle: "Reprendre là où elle s'est arrêtée",
+      resumeBody: "Ce qui est déjà fait est conservé : reprendre ne refait rien.",
+      resume: "Reprendre l'analyse",
     },
     chain: {
       title: "Coût total du parcours",
@@ -1322,7 +1327,13 @@ export const fr = {
     title: "Vos cibles",
     description:
       "La liste courte, classée : pour chaque site, la demande à faire et pourquoi. Rien n'est envoyé avant que vous ayez validé un lot de messages.",
-    back: "Retour à l'audit",
+    back: "Retour à l'analyse",
+    notReady: {
+      title: "Vos cibles arrivent",
+      running: "L'analyse est en cours. Les cibles s'afficheront ici dès qu'elle sera terminée.",
+      failed: "L'analyse s'est arrêtée avant la fin. Reprenez-la pour obtenir vos cibles.",
+      cta: "Voir l'analyse",
+    },
     toPlan: "Voir les messages et le lot",
     messages: {
       unauthenticated: "Connectez-vous pour continuer.",
@@ -1441,7 +1452,7 @@ export const fr = {
       form: "Formulaire de contact : une tâche pour vous (message à copier)",
       none: "Aucun contact trouvé",
       request: "La demande en trois lignes",
-      findings: "Ce qu'on a constaté sur sa page",
+      findings: "Ce que nous avons vu sur sa page",
       quote: "Citation de sa page",
       page: "Page lue",
       linkCited: "Lien concerné",
@@ -1453,7 +1464,7 @@ export const fr = {
       alreadyValidated: "Déjà validée",
       hosted: "Blog hébergé",
       authority: "Autorité {n}",
-      moreFindings: "Autres constats sur cette page",
+      moreFindings: "Autres points relevés sur cette page",
     },
     kinds: {
       lien_mort: "Lien mort à remplacer",
@@ -1463,7 +1474,7 @@ export const fr = {
     list: {
       title: "Liste courte",
       empty:
-        "La liste courte apparaît ici une fois la qualification terminée. Rien n'est contacté à cette étape.",
+        "Vos cibles apparaissent ici quand l'analyse est terminée. Rien n'est contacté à cette étape.",
       emptyFiltered: "Aucune cible pour cette tactique.",
       selectAll: "Tout retenir",
       selectNone: "Tout écarter",
@@ -2194,6 +2205,67 @@ export const fr = {
       failed: "Impossible d'enregistrer le lien. Réessayez.",
       declared: "Lien enregistré : première vérification dans 7 jours.",
     },
+  },
+  journey: {
+    label: "Étapes",
+    steps: {
+      site: "Votre site",
+      verification: "Vérification",
+      vous: "Vous",
+      analyse: "Analyse",
+      cibles: "Vos cibles",
+    },
+    stepOf: (i: number, n: number) => `Étape ${i} sur ${n}`,
+    done: "terminée",
+    current: "en cours",
+  },
+  shell: {
+    nav: {
+      home: "Accueil",
+      targets: "Cibles",
+      overview: "État des lieux",
+      account: "Compte",
+      messages: "Messages",
+      replies: "Réponses",
+      links: "Liens obtenus",
+      lockedHint: "Après votre premier lot",
+      needSite: "Disponible après l'ajout de votre site",
+    },
+    home: {
+      title: "Vos sites",
+      description: "Chaque site a une seule prochaine étape.",
+      add: "Ajouter un site",
+      state: {
+        onboarding: "À vérifier avant l'analyse",
+        analyse: "Analyse en cours",
+        reprise: "Analyse arrêtée",
+        cibles: "Cibles prêtes",
+      },
+      action: {
+        onboarding: "Continuer",
+        analyse: "Voir l'analyse",
+        reprise: "Reprendre l'analyse",
+        cibles: "Voir vos cibles",
+      },
+    },
+    account: {
+      title: "Compte",
+      description: "Vos réglages, votre abonnement et la sécurité de vos envois.",
+      sites: "Vos sites et leurs réglages",
+      safeguards: "Garde-fous d'envoi",
+      tasks: "Tâches à faire à la main",
+      billing: "Abonnement",
+    },
+  },
+  overview: {
+    title: "État des lieux",
+    description: "Les liens de votre site, ceux de vos concurrents et les pages à pousser.",
+    waitingTitle: "L'état des lieux arrive avec l'analyse",
+    waitingBody: "Il s'affichera ici quand l'analyse de votre site sera terminée.",
+    soonTitle: "L'état des lieux arrive bientôt",
+    soonBody: "Cet écran est en préparation : il ne bloque rien, vos cibles sont déjà prêtes.",
+    toTargets: "Voir vos cibles",
+    toAnalysis: "Voir l'analyse",
   },
   nav: {
     label: "Navigation principale",

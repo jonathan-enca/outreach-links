@@ -3,7 +3,6 @@
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { formatUsd } from "@/features/audits/format";
 import { BrandFields } from "@/features/brand/brand-fields";
 import { t } from "@/lib/messages";
 import type { LaunchPreview, LaunchState } from "./service";
@@ -114,49 +113,8 @@ export function LaunchPanel({
         </div>
       ) : (
         <Card className="flex flex-col gap-3 p-6">
-          <h2 className="text-xl font-semibold">{r.cost.title}</h2>
-          <p className="text-muted-foreground">{r.cost.body}</p>
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:max-w-md">
-            <dt className="text-muted-foreground">{t.audits.chain.discovery}</dt>
-            <dd>{formatUsd(preview.chain.discoveryUsd)}</dd>
-            {preview.chain.analysisUsd === undefined ? (
-              <>
-                <dt className="text-muted-foreground">{t.audits.chain.backlinks}</dt>
-                <dd>{formatUsd(preview.chain.backlinksUsd)}</dd>
-                <dt className="text-muted-foreground">{t.audits.chain.profile}</dt>
-                <dd>{formatUsd(preview.chain.profileUsd)}</dd>
-                <dt className="text-muted-foreground">{t.audits.chain.opportunities}</dt>
-                <dd>{formatUsd(preview.chain.opportunitiesUsd)}</dd>
-              </>
-            ) : (
-              <>
-                <dt className="text-muted-foreground">{t.audits.chain.analysis}</dt>
-                <dd>{formatUsd(preview.chain.analysisUsd)}</dd>
-              </>
-            )}
-            <dt className="font-medium">{r.cost.total}</dt>
-            <dd className="font-semibold">{formatUsd(preview.totalUsd)}</dd>
-            <dt className="text-muted-foreground">{r.cost.capNote}</dt>
-            <dd>{formatUsd(preview.capUsd)}</dd>
-          </dl>
-          {preview.chain.uncovered.length > 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {t.audits.chain.uncovered} (
-              {preview.chain.uncovered.map((k) => t.audits.chain.stage[k]).join(", ")})
-            </p>
-          ) : null}
-          <div className="flex flex-col gap-1 rounded-control border border-border p-3">
-            <h3 className="text-sm font-medium">{r.queryPlan.title}</h3>
-            <p className="text-sm text-muted-foreground">
-              {r.queryPlan.body.replace("{count}", String(preview.queryPhase.maxQueries))}
-            </p>
-            <dl className="mt-1 grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:max-w-md">
-              <dt className="text-muted-foreground">{r.queryPlan.max}</dt>
-              <dd>{formatUsd(preview.queryPhase.totalUsd)}</dd>
-              <dt className="text-muted-foreground">{r.queryPlan.budget}</dt>
-              <dd>{formatUsd(preview.queryPhase.budgetUsd)}</dd>
-            </dl>
-          </div>
+          <h2 className="text-xl font-semibold">{r.launchCard.title}</h2>
+          <p className="text-muted-foreground">{r.launchCard.body}</p>
           <input type="hidden" name="acceptedUsd" value={preview.totalUsd} />
           <Button type="submit" disabled={pending} className="mt-1 h-12 self-start px-6 text-base">
             {pending ? r.launching : r.launch}

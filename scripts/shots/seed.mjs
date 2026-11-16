@@ -442,6 +442,8 @@ const running = await addSite(workspaceId, userId, {
   priority_queries: ["randonnée en famille", "balade avec enfants", "sentier facile"],
 });
 await addAudit(workspaceId, running, userId, {
+  analysis_status: "en_cours",
+  analysis_started_at: minutesAgo(3),
   status: "termine",
   finished_at: minutesAgo(10),
   backlinks_status: "en_cours",
@@ -456,6 +458,9 @@ const done = await addSite(workspaceId, userId, {
   signature_first_name: "Camille",
 });
 const doneAudit = await addAudit(workspaceId, done, userId, {
+  analysis_status: "termine",
+  analysis_started_at: minutesAgo(30),
+  analysis_finished_at: minutesAgo(12),
   status: "termine",
   finished_at: minutesAgo(11),
   backlinks_status: "termine",
@@ -502,6 +507,20 @@ await must(
   ),
 );
 await addTargets(workspaceId, done, doneAudit, userId);
+
+// MU.2 : un seul des trois états (`SEED_ONLY` = poterie | rando | coloriages), pour voir où `/app` mène
+// à une personne qui n'a qu'un site ; `sans-site` ne garde rien.
+const only = process.env.SEED_ONLY;
+if (only) {
+  const keep = {
+    poterie: "poterie-demo.example",
+    rando: "rando-demo.example",
+    coloriages: "coloriages-demo.example",
+  }[only];
+  let q = db.from("sites").delete().eq("workspace_id", workspaceId);
+  if (keep) q = q.neq("domain", keep);
+  await must("un seul état", q);
+}
 
 console.log(
   JSON.stringify({
