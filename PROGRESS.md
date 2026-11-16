@@ -1002,3 +1002,16 @@ Essai fait avec un compte neuf (l'ancien compte de Jonathan et son espace ont é
 - **Liens morts des concurrents** : tactique **principale** de MU.7 (voir `docs/jalon-mu.md`), à placer avant MU.6.
 - **Ordre proposé** : étape 1 + robustesse (MU.4), puis MU.7, puis contrôle de qualité de la recherche et MU.6.
 - **Prompt maître** : `docs/master-prompt-essai.md` (tout ce qui manque avant le test grandeur nature, en autonomie complète). **Autorisations Supabase** : `.claude/settings.json` autorise déjà tous les outils MCP Supabase ; la question posée sur `delete from auth.users` vient du serveur Supabase lui-même (confirmation des requêtes destructrices) et ne se désactive pas côté Claude Code : pour les écritures SQL, utiliser l'API de gestion (`curl` sur `/v1/projects/{ref}/database/query`, déjà autorisée).
+
+## Réflexion produit : récurrence et stock de cibles (17/11/2026)
+
+Constat : une analyse livre 17 à 22 cibles, le forfait Pro annonce 300 envois par mois : la ressource rare est la **cible qualifiée**, pas l'email. Intuition de Jonathan (retenue comme direction) :
+
+- **Dès le départ, lister plusieurs centaines ou milliers de cibles potentielles et les garder en stock.** Le stock existe déjà en partie (741 candidats au dernier run, 150 lus, 575 jamais lus faute de budget de lecture) : le passage à un modèle « pipeline » demande de le conserver au-delà de l'audit et de le qualifier **progressivement** (les N suivants chaque semaine ou mois), avec revérification (site mort, contact changé). L'utilisateur ne voit jamais le stock brut : il voit la **liste courte classée** de la semaine.
+- **L'analyse différentielle seule est jugée trop petite** (avis de Jonathan, d'après son expérience) : on la garde comme bonus (les liens morts de concurrents récents sont les meilleures cibles), pas comme moteur.
+- **Nouveau contenu du client = nouvelle campagne** : retenu. Une nouvelle page se rapproche du stock **existant** (peu de nouvelle recherche).
+- **Une campagne = un site × un thème ou mot-clé × un pays / une langue** (généralise « site × pays » de MU.4) : chaque campagne a son stock.
+- **Tarification à revoir** : facturer les campagnes actives, le flux de cibles qualifiées par mois et le suivi des liens ; les envois restent un plafond technique (délivrabilité).
+- **À mesurer avant de figer les prix** : (1) courbe de croissance du stock selon le coût (candidats uniques par dollar, arrêt par rendement relevé) ; (2) nombre de cibles utiles réellement lues et qualifiées par mois ; (3) taux de réponse et de liens obtenus (références de Jonathan).
+- **Risques** : un stock de milliers de domaines médiocres n'a pas de valeur (principe de la liste courte, `CLAUDE.md` 3.3) ; la qualité du stock se dégrade (sites morts, contacts) ; une niche peut se tarir : le dire à l'écran. Piste à évaluer : un stock partagé entre clients d'une même niche amortit la découverte, mais entre en conflit avec la règle « jamais deux utilisateurs sur le même destinataire » (`CLAUDE.md` 4.4).
+- **Jalon proposé « MS : stock continu »** (après MU.11, avant MB.2) : conservation du stock par campagne, qualification progressive planifiée, revérification, livraison hebdomadaire, nouveau contenu qui réutilise le stock, quotas par plan. À détailler dans `docs/jalon-mu.md` ou un nouveau fichier avant de le démarrer.
