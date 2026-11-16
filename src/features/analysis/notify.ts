@@ -36,6 +36,20 @@ export function buildReadyEmail(input: {
 
 export type SendTransactional = (email: ReadyEmail) => Promise<void>;
 
+/**
+ * Nom de l'erreur renvoyé par Resend (« missing_api_key », « restricted_api_key », « validation_error »...),
+ * pour savoir quoi corriger sans deviner (essai du 17/11 : « Resend 401 » seul ne disait pas si la clé
+ * était absente, révoquée ou restreinte). Jamais le message complet : il peut contenir une adresse.
+ */
+export async function resendErrorName(res: { text: () => Promise<string> }): Promise<string> {
+  try {
+    const body = JSON.parse(await res.text()) as { name?: unknown };
+    return typeof body.name === "string" && /^[a-z_]{3,60}$/.test(body.name) ? ` ${body.name}` : "";
+  } catch {
+    return "";
+  }
+}
+
 /** Resend (emails transactionnels uniquement, jamais d'outreach). Sans clé : null, rien n'est envoyé. */
 export function resendSender(): SendTransactional | null {
   const key = env.RESEND_API_KEY;
@@ -53,7 +67,7 @@ export function resendSender(): SendTransactional | null {
       }),
       signal: AbortSignal.timeout(15_000),
     });
-    if (!res.ok) throw new Error(`Resend ${res.status}`);
+    if (!res.ok) throw new Error(`Resend ${res.status}${await resendErrorName(res)}`);
   };
 }
 

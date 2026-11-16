@@ -648,13 +648,15 @@ describe("executeCollection : orchestration complète", () => {
     const { dfs, calls } = fakeDfs();
     const progress = await executeCollection(() => ({ dfs, service: client }), makeRun(), direct);
     expect(calls[0]).toBe("inter:0");
-    expect(calls.some((c) => c === "inter:500")).toBe(true); // 1re page pleine et riche (20 recoupements)
+    // Chantier H : le budget du recoupement tient en UNE page (la 2e n'est plus demandée).
+    expect(calls.some((c) => c === "inter:500")).toBe(false);
+    expect(progress.stats.intersection.stoppedBy).toBe("budget_phase");
     const firstSerp = calls.findIndex((c) => c.startsWith("serp:"));
     const firstContentMention = calls.findIndex((c) => c.startsWith('content:"Mega Coloring"'));
     expect(firstSerp).toBeGreaterThan(-1);
-    expect(calls.at(-1)).toMatch(
-      /^content:coloriages à imprimer:ecommerce$|^content:coloriages à imprimer:/,
-    );
+    // Content Analysis part en même temps que les recherches Google ; ses résultats entrent après.
+    expect(calls.some((c) => /^content:coloriages à imprimer:/.test(c))).toBe(true);
+    expect(progress.raws.at(-1)?.source).toBe("content");
     expect(firstContentMention).toBeGreaterThan(-1);
     expect(progress.stats.intersection.newDomains).toBeGreaterThan(0);
     expect(progress.stats.content.calls).toBe(4);
@@ -665,12 +667,13 @@ describe("executeCollection : orchestration complète", () => {
     const { client } = fakeSupabase();
     const { dfs, mocks } = fakeDfs({ freshUntil: 8 }); // 8 requêtes fructueuses, puis plus rien de nouveau
     const run = makeRun();
-    const progress = await executeCollection(() => ({ dfs, service: client }), run, direct);
+    const progress = await executeCollection(() => ({ dfs, service: client }), run, direct, {
+      batchSize: 5,
+    });
     const serpCalls = progress.stats.serp.calls;
     expect(serpCalls).toBeLessThan(run.plan.serp.length);
     expect(serpCalls).toBeGreaterThanOrEqual(COLLECTION_LIMITS.yieldStop.minQueries);
     expect(progress.stats.serp.stoppedBy).toBe("rendement");
-    expect(progress.overallStop()).toBe("rendement");
     expect(mocks.serpOrganicLive.mock.calls.length).toBe(serpCalls + 1); // + la requête de marque
   });
 
@@ -1024,6 +1027,7 @@ describe("chantier A : erreurs du fournisseur et lots parallèles", () => {
     const reports: number[] = [];
     const run = makeRun();
     const progress = await executeCollection(() => ({ dfs, service: client }), run, direct, {
+      batchSize: 5,
       report: async (r) => {
         reports.push(r.done);
       },
@@ -1140,5 +1144,62 @@ describe("chantier D : liens morts des concurrents", () => {
     const down = await executeCollection(() => ({ dfs, service: client }), makeRun(), direct);
     expect(down.stats.morts.failures).toBe(3);
     expect(down.stats.serp.calls).toBeGreaterThan(0);
+  });
+});
+
+describe("chantier H : requêtes garanties et recherche en parallèle", () => {
+  const direct = async <T>(_id: string, fn: () => Promise<T>) => fn();
+  it("les requêtes garanties d'un type d'éditeur passent toutes, même sans nouveaux domaines", async () => {
+    const { client } = fakeSupabase();
+    const { dfs } = fakeDfs({ freshUntil: 2 }); // presque rien de nouveau dès la 3e requête
+    const base = makeRun();
+    const run = {
+      ...base,
+      plan: {
+        ...base.plan,
+        serp: base.plan.serp.map((q, i) => (i < 10 ? { ...q, guaranteed: true } : q)),
+      },
+    };
+    const progress = await executeCollection(() => ({ dfs, service: client }), run, direct, {
+      batchSize: 5,
+    });
+    // Sans garantie, l'arrêt par rendement couperait dès 8 requêtes ; ici les 10 garanties partent.
+    expect(progress.stats.serp.calls).toBe(10);
+    expect(progress.stats.serp.stoppedBy).toBe("rendement");
+  });
+
+  it("par défaut les recherches Google partent par lots de 14", async () => {
+    const { client } = fakeSupabase();
+    const { dfs } = fakeDfs();
+    let inFlight = 0;
+    let peak = 0;
+    const base = dfs.serpOrganicLive;
+    dfs.serpOrganicLive = vi.fn(async (p: { keyword: string }) => {
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      await new Promise((r) => setTimeout(r, 5));
+      inFlight--;
+      return base(p as never);
+    }) as never;
+    const run = makeRun();
+    await executeCollection(() => ({ dfs, service: client }), run, direct);
+    expect(peak).toBe(Math.min(14, run.plan.serp.length));
+  });
+
+  it("la langue de la page qui cite un lien mort est gardée pour le filtre avant lecture", () => {
+    const item = {
+      sourceUrl: "https://blog.exemple.org/article",
+      sourceDomain: "blog.exemple.org",
+      targetUrl: "https://concurrent.fr/page-disparue",
+      dofollow: true,
+      isBroken: true,
+      spamScore: 0,
+      sourceRank: 120,
+    };
+    const ctx = makeRun().ctx;
+    const [raw] = fromDeadPages([item], ctx, "concurrent.fr", new Map([[item.sourceUrl, "en"]]));
+    expect(raw).toMatchObject({ domain: "blog.exemple.org", language: "en" });
+    expect(mergeCandidates([raw!])[0]!.language).toBe("en");
+    expect(fromDeadPages([item], ctx, "concurrent.fr")[0]!.language).toBeNull();
   });
 });

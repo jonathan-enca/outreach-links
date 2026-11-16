@@ -55,6 +55,10 @@ export const plannedQuerySchema = z.object({
   estUsd: z.number().min(0),
   /** recette en cache, générée à l'instant, secours sans LLM, ou règle fixe. */
   origin: z.enum(["cache", "llm", "secours", "regle"]),
+  /** Chantier H : requête GARANTIE d'un type d'éditeur (jamais coupée par l'arrêt de rendement). */
+  guaranteed: z.boolean().optional(),
+  /** Catégorie générique du type d'éditeur visé (requêtes construites par gabarit). */
+  category: z.string().max(30).optional(),
 });
 export type PlannedQuery = z.infer<typeof plannedQuerySchema>;
 

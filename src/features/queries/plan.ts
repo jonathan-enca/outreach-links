@@ -1,4 +1,6 @@
+import type { PublisherType } from "@/features/brand/schema";
 import { estimateCost } from "@/lib/dataforseo/endpoints";
+import { GUARANTEED_PER_TYPE, typeQueries } from "./templates";
 import { QUERY_LIMITS, queryBudgetUsd } from "./limits";
 import type { PlannedQuery, RecipeQuery, Tactic } from "./schema";
 
@@ -125,6 +127,9 @@ export interface BuildPlanInput {
   nameVariants: readonly string[];
   /** Recettes des personas, dans l'ordre du profil. */
   recipes: readonly PersonaRecipe[];
+  /** Chantier H : types d'éditeurs ACTIFS du profil et mots du thème (requêtes garanties par gabarit). */
+  publisherTypes?: readonly PublisherType[];
+  themeTerms?: readonly string[];
   /** Nombre maximal de requêtes (voir `estimateQueryPhase`). */
   maxQueries: number;
   perQueryUsd: number;
@@ -139,6 +144,8 @@ interface Candidate {
   base: number;
   origin: PlannedQuery["origin"];
   reserved: boolean;
+  guaranteed?: boolean;
+  category?: string;
 }
 
 /** Requêtes de marque (tactique 3) : variantes du nom entre guillemets, hors du site lui-même. */
@@ -179,13 +186,46 @@ export function buildQueryPlan(input: BuildPlanInput): PlannedQuery[] {
 
   const candidates: Candidate[] = [];
   const seen = new Set<string>();
-  const push = (c: Omit<Candidate, "q"> & { q: string | null }) => {
-    if (!c.q) return;
+  const push = (c: Omit<Candidate, "q"> & { q: string | null }): boolean => {
+    if (!c.q) return false;
     const k = normalizeKey(c.q);
-    if (seen.has(k)) return;
+    if (seen.has(k)) return false;
     seen.add(k);
     candidates.push({ ...c, q: c.q });
+    return true;
   };
+
+  // Chantier H : chaque type d'éditeur du profil reçoit ses requêtes GARANTIES, construites par
+  // gabarit (catégorie générique × mots du type × mots du thème). Elles passent avant tout le reste,
+  // à tour de rôle entre les types ; les suivantes du même type ne partent que si le budget le permet.
+  const types = input.publisherTypes ?? [];
+  const perType = types.map((type) =>
+    typeQueries(type, input.themeTerms ?? [], input.language).filter((x) => !hasBrand(x.q)),
+  );
+  const kept = types.map(() => 0);
+  for (let round = 0; round < 12; round++) {
+    types.forEach((type, ti) => {
+      const next = perType[ti]!.shift();
+      if (!next) return;
+      const guaranteed = kept[ti]! < GUARANTEED_PER_TYPE;
+      const added = push({
+        q: next.q,
+        tactic: next.tactic,
+        persona: type.label,
+        target: "home",
+        keyword: null,
+        // Garanties : au-dessus de toute autre requête, dans l'ordre du tour de rôle.
+        base: guaranteed
+          ? 1.9 - 0.1 * kept[ti]! - 0.001 * ti
+          : TACTIC_WEIGHT[next.tactic] * 0.7 * Math.max(0.7, 1 - 0.04 * ti),
+        origin: "regle",
+        reserved: guaranteed,
+        guaranteed,
+        category: type.category,
+      });
+      if (added) kept[ti]!++;
+    });
+  }
 
   input.recipes.forEach((recipe, pi) => {
     const posFactor = Math.max(0.7, 1 - 0.06 * pi);
@@ -244,7 +284,14 @@ export function buildQueryPlan(input: BuildPlanInput): PlannedQuery[] {
     chosen.push(c);
     pool.splice(pool.indexOf(c), 1);
   };
-  for (const c of candidates.filter((x) => x.reserved)) {
+  // Garanties : les requêtes de marque d'abord (peu nombreuses), puis celles des types d'éditeurs.
+  const reserved = candidates
+    .filter((x) => x.reserved)
+    .sort(
+      (a, b) =>
+        (a.tactic === "mentions" ? 0 : 1) - (b.tactic === "mentions" ? 0 : 1) || b.base - a.base,
+    );
+  for (const c of reserved) {
     if (chosen.length < input.maxQueries) take(c);
   }
   const perPersona = new Map<string, number>();
@@ -270,5 +317,7 @@ export function buildQueryPlan(input: BuildPlanInput): PlannedQuery[] {
       rank: i + 1,
       estUsd: input.perQueryUsd,
       origin: c.origin,
+      ...(c.guaranteed ? { guaranteed: true } : {}),
+      ...(c.category ? { category: c.category } : {}),
     }));
 }

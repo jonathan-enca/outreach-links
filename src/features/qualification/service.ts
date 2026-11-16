@@ -128,6 +128,10 @@ export async function prepareQualification(
     created_at: nonce,
     started_at: null,
     finished_at: null,
+    // Une qualification refaite repart sans lot supplémentaire en cours.
+    more_status: "aucun",
+    more_requested_at: null,
+    more_stats: {} as Json,
   };
   // Relance (après échec ou nouvelle collecte) : la ligne repart de zéro.
   const { error } = await service

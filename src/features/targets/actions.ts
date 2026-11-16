@@ -5,6 +5,7 @@ import { inngest } from "@/inngest/client";
 import type { AuditActionState } from "@/features/audits/service";
 import { startCollection } from "@/features/collection/service";
 import { startFindings } from "@/features/findings/service";
+import { requestMore } from "@/features/qualification/more";
 import { startQualification } from "@/features/qualification/service";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
@@ -49,6 +50,15 @@ export async function startFindingsAction(auditId: string): Promise<AuditActionS
   const a = await authorize(auditId);
   if ("error" in a) return { status: "error", message: a.error };
   const r = await startFindings(createServiceClient(), auditId, (e) => inngest.send(e), a.userId);
+  refresh();
+  return r;
+}
+
+/** « Lire d'autres sites » : lit et juge un lot de plus parmi les sites trouvés mais pas encore lus. */
+export async function readMoreAction(auditId: string): Promise<AuditActionState> {
+  const a = await authorize(auditId);
+  if ("error" in a) return { status: "error", message: a.error };
+  const r = await requestMore(a.supabase, createServiceClient, auditId, (e) => inngest.send(e));
   refresh();
   return r;
 }

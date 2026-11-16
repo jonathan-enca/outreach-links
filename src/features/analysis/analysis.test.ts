@@ -95,12 +95,13 @@ describe("les étapes de l'analyse", () => {
 });
 
 describe("coût annoncé de l'analyse", () => {
-  it("l'attendu vise 0,55 à 0,65 USD au plus et tient dans le budget cible et le plafond", () => {
+  it("l'attendu tient dans le budget cible ; le pire cas (jugement à 0,40 USD) reste sous le plafond", () => {
     const e = estimateAnalysis(0.018);
     expect(e.expectedUsd).toBeGreaterThan(0.3);
-    expect(e.expectedUsd).toBeLessThanOrEqual(0.65);
+    expect(e.expectedUsd).toBeLessThanOrEqual(0.8);
     expect(e.expectedUsd).toBeLessThanOrEqual(AUDIT_BUDGET.targetUsd);
-    expect(e.worstUsd).toBeLessThanOrEqual(AUDIT_BUDGET.targetUsd);
+    // Chantier G : budget de jugement porté à 0,40 USD ; le pire cas dépasse la cible, jamais le plafond.
+    expect(e.worstUsd).toBeLessThanOrEqual(1.2);
     expect(e.worstUsd).toBeLessThanOrEqual(PLAN_LIMITS.payant.costCapUsd);
     expect(e.expectedUsd).toBeCloseTo(e.discoveryUsd + e.analysisUsd, 6);
     expect(linksStateUsd()).toBeLessThan(0.1);

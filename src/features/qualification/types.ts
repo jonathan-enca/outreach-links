@@ -72,6 +72,8 @@ export interface QualCandidate {
   spamScore: number | null;
   pageType: string | null;
   signalCount: number;
+  /** Langue de la page selon le fournisseur, quand il la donne (chantier G : filtre avant lecture). */
+  language?: string | null;
 }
 
 /** Contexte de la qualification (site à promouvoir, exclusions). */

@@ -14,6 +14,7 @@ import {
   registrableDomain,
 } from "@/features/collection/hosts";
 import { QUALIFY_LIMITS } from "./limits";
+import { preReadLanguage } from "./prefilter";
 import type { ExclusionReason, QualCandidate, QualContext } from "./types";
 
 export interface FreeVerdict {
@@ -21,6 +22,8 @@ export interface FreeVerdict {
   stage: 1 | 2;
   reason: ExclusionReason | null;
   detail: string | null;
+  /** Vrai si le motif vient du filtre avant lecture (langue visible sans télécharger la page). */
+  preRead?: boolean;
   platformHosted: boolean;
   /** Score provisoire (gratuit) : ordre de lecture des pages et de passage au LLM. */
   provisionalScore: number;
@@ -147,12 +150,15 @@ export function runFreeStages(cands: readonly QualCandidate[], ctx: QualContext)
       });
       continue;
     }
-    const two = stageTwoReason(c, ctx);
+    const lang = preReadLanguage(c, ctx);
+    const two =
+      stageTwoReason(c, ctx) ?? (lang ? { reason: "langue" as const, detail: lang } : null);
     const v: FreeVerdict = {
       ...base,
       stage: 2,
       reason: two?.reason ?? null,
       detail: two?.detail ?? null,
+      ...(two ? { preRead: true } : {}),
     };
     if (!two) kept.set(key, v);
     out.push(v);

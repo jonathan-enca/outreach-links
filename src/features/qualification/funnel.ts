@@ -23,8 +23,14 @@ import type {
 /** Un appel externe = un step Inngest (reprise sans refaire ce qui est fait). */
 export type StepRunner = <T>(id: string, fn: () => Promise<T>) => Promise<T>;
 
+/** Résultat de la vérification légère du robots.txt, avant toute lecture. */
+export type RobotsCheck = "ok" | "interdit" | "injoignable" | "inconnu";
+
 export interface QualDeps {
-  readPage: (c: QualCandidate) => Promise<PageRead>;
+  /** `robotsOk` : le robots.txt a déjà été vérifié pour cette page ET l'accueil (il n'est pas relu). */
+  readPage: (c: QualCandidate, opts?: { robotsOk?: boolean }) => Promise<PageRead>;
+  /** Vérification légère du robots.txt (une requête par site), absente = vérifiée à la lecture. */
+  checkRobots?: (c: QualCandidate) => Promise<RobotsCheck>;
   /** Client LLM plafonné à `remainingUsd` ; null sans clé (les cibles restent « non qualifiées »). */
   llm: (remainingUsd: number) => LlmClient | null;
   /** Plafonds durs (audit, sécurité, jour) contrôlés AVANT chaque appel payant ; lève si dépassé. */
@@ -32,6 +38,18 @@ export interface QualDeps {
   investigate: (item: ContactItem) => Promise<ContactResult>;
   /** Attente entre deux sites d'un même hôte (défaut : minuterie réelle). */
   sleep?: (ms: number) => Promise<void>;
+  /** Horloge (défaut : `Date.now`), lue DANS les steps pour que le rejeu reste déterministe. */
+  now?: () => number;
+}
+
+/** Rendement d'une source ou d'un type d'éditeur : du candidat à la cible. */
+export interface YieldRow {
+  candidates: number;
+  read: number;
+  alive: number;
+  judged: number;
+  relevant: number;
+  shortlist: number;
 }
 
 export interface QualInput {
@@ -47,10 +65,20 @@ export interface QualInput {
     maxLlmTargets?: number;
     maxContactTargets?: number;
     minFit?: number;
+    targetJudged?: number;
+    maxReadMs?: number;
+    pagesPerStep?: number;
+    shortlistSize?: number;
+    preflightMax?: number;
   };
+  /** Rendement déjà mesuré par source (lecture d'un lot supplémentaire du stock). */
+  priorYield?: Record<string, { read: number; relevant: number }>;
 }
 
 export type QualStop = "termine" | "budget" | "plafond";
+
+/** Pourquoi la lecture s'est arrêtée. */
+export type ReadStop = "epuise" | "objectif" | "duree" | "budget" | "rendement" | "plafond_pages";
 
 /** Avancement d'une phase de l'entonnoir, émis DANS le step qui vient de travailler (MU.1). */
 export interface QualProgressEvent {
@@ -88,6 +116,19 @@ export interface FunnelStats {
   stop: QualStop;
   byReason: Partial<Record<ExclusionReason, number>>;
   authority: AuthorityImpact;
+  /** Chantier G. Écartés AVANT lecture, par motif (langue visible, robots.txt, concurrents, doublons...). */
+  preRead?: Partial<Record<ExclusionReason, number>>;
+  /** Candidats encore à lire après le filtre avant lecture. */
+  afterPreRead?: number;
+  /** Lots de lecture exécutés, raison de l'arrêt, durée de la lecture et du jugement (ms). */
+  lots?: number;
+  readStop?: ReadStop;
+  readMs?: number;
+  /** Candidats jamais lus, gardés en stock pour une lecture ultérieure. */
+  stock?: number;
+  /** Rendement par source de la recherche et par type d'éditeur cherché (candidats → cibles). */
+  bySource?: Record<string, YieldRow>;
+  byPersona?: Record<string, YieldRow>;
 }
 
 interface Track {
@@ -98,6 +139,11 @@ interface Track {
   page: PageVerdict["page"];
   judgement: LlmJudgement | null;
   contact: ContactOutcome | null;
+  /** File de lecture du candidat (source de la recherche). */
+  lane: string;
+  preRead: boolean;
+  robotsOk: boolean;
+  read: boolean;
 }
 
 /** Motifs qui ne disent rien de la qualité de la cible : elle reste « en réserve », pas exclue. */
@@ -124,9 +170,107 @@ const toContact = (r: ContactResult): ContactOutcome => ({
 });
 
 /**
- * Entonnoir complet (MT.4), du moins cher au plus cher. Gratuit : étages 1-2 (calcul), 3 (lecture),
- * 5 (contact, sans finder payant). Payant : étage 4 seulement, par lots, dans l'ordre du score
- * provisoire, avec contrôle du budget de qualification ET des plafonds durs avant chaque appel.
+ * File de lecture d'un candidat : sa source ; « plusieurs » quand au moins deux sources différentes
+ * l'ont trouvé (signal fort, lu en priorité tant que le rendement le confirme).
+ */
+export function laneOf(c: Pick<QualCandidate, "sources">): string {
+  const distinct = [...new Set(c.sources.map((s) => s.source))];
+  if (distinct.length >= 2) return "plusieurs";
+  return distinct[0] ?? "inconnue";
+}
+
+/**
+ * Répartition d'un lot de lecture entre les files (pur, déterministe). Chaque file qui a encore des
+ * candidats reçoit un minimum (exploration) ; le reste va aux files dans la proportion de leur
+ * rendement MESURÉ (pages pertinentes par page lue, lissé pour ne pas condamner une file sur un
+ * mauvais départ). C'est ce qui déplace la lecture vers ce qui rapporte, quel que soit le site.
+ */
+export function allocateLot(
+  size: number,
+  remaining: ReadonlyMap<string, number>,
+  yields: ReadonlyMap<string, { read: number; relevant: number }>,
+  floor: number = QUALIFY_LIMITS.sourceFloor,
+): Map<string, number> {
+  const lanes = [...remaining.entries()]
+    .filter(([, n]) => n > 0)
+    .sort(([a], [b]) => a.localeCompare(b));
+  const out = new Map<string, number>(lanes.map(([k]) => [k, 0]));
+  let left = size;
+  for (const [k, n] of lanes) {
+    const take = Math.min(n, floor, left);
+    out.set(k, take);
+    left -= take;
+  }
+  const weight = (k: string) => {
+    const y = yields.get(k) ?? { read: 0, relevant: 0 };
+    return (y.relevant + 1) / (y.read + 3);
+  };
+  // Parts proportionnelles au rendement, bornées par ce qui reste dans chaque file.
+  for (let guard = 0; left > 0 && guard < 8; guard++) {
+    const open = lanes.filter(([k, n]) => out.get(k)! < n);
+    if (open.length === 0) break;
+    const total = open.reduce((s, [k]) => s + weight(k), 0);
+    const before = left;
+    for (const [k, n] of open) {
+      const share = Math.min(n - out.get(k)!, Math.floor((before * weight(k)) / total), left);
+      out.set(k, out.get(k)! + share);
+      left -= share;
+    }
+    if (left === before) {
+      // Restes d'arrondi : aux files les plus rentables d'abord.
+      for (const [k, n] of [...open].sort(
+        ([a], [b]) => weight(b) - weight(a) || a.localeCompare(b),
+      )) {
+        if (left === 0) break;
+        if (out.get(k)! < n) {
+          out.set(k, out.get(k)! + 1);
+          left--;
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/** Ordre d'une file : meilleur score provisoire d'abord ; pour la recherche Google, un type d'éditeur après l'autre. */
+function orderLane(lane: string, tracks: Track[]): Track[] {
+  const byScore = (a: Track, b: Track) =>
+    b.free.provisionalScore - a.free.provisionalScore ||
+    a.free.candidate.domain.localeCompare(b.free.candidate.domain);
+  const sorted = [...tracks].sort(byScore);
+  if (lane !== "serp") return sorted;
+  // Tour de rôle entre les types d'éditeurs cherchés : chacun voit ses meilleurs résultats lus.
+  const groups = new Map<string, Track[]>();
+  for (const t of sorted) {
+    const persona = t.free.candidate.sources.find((s) => s.source === "serp")?.persona ?? "";
+    const g = groups.get(persona);
+    if (g) g.push(t);
+    else groups.set(persona, [t]);
+  }
+  const lists = [...groups.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, g]) => g);
+  const out: Track[] = [];
+  for (let i = 0; out.length < sorted.length; i++) {
+    for (const g of lists) if (g[i]) out.push(g[i]!);
+  }
+  return out;
+}
+
+const emptyYield = (): YieldRow => ({
+  candidates: 0,
+  read: 0,
+  alive: 0,
+  judged: 0,
+  relevant: 0,
+  shortlist: 0,
+});
+
+/**
+ * Entonnoir complet (MT.4, lecture adaptative du chantier G), du moins cher au plus cher. Gratuit :
+ * étages 1-2 (calcul, filtre avant lecture, robots.txt), 3 (lecture), 5 (contact, sans finder payant).
+ * Payant : étage 4 seulement. La lecture se fait PAR LOTS : chaque lot est lu puis jugé, et le
+ * rendement mesuré décide de la composition du lot suivant. Arrêts : candidats épuisés, objectif de
+ * pages jugées atteint, durée maximale, budget de jugement, rendement décroissant. Les candidats non
+ * lus restent en stock (« en réserve ») avec leur score.
  */
 export async function executeQualification(
   deps: () => QualDeps,
@@ -142,6 +286,7 @@ export async function executeQualification(
     for (let i = xs.length - 1; i >= 0; i--) if (ok(xs[i]!)) return name(i);
     return null;
   };
+  const clock = (d: QualDeps) => (d.now ?? Date.now)();
   const tracks: Track[] = runFreeStages(input.candidates, input.ctx).map((free) => ({
     free,
     stage: free.stage,
@@ -150,166 +295,330 @@ export async function executeQualification(
     page: null,
     judgement: null,
     contact: null,
+    lane: laneOf(free.candidate),
+    preRead: free.reason !== null,
+    robotsOk: false,
+    read: false,
   }));
   const alive = () => tracks.filter((t) => t.reason === null);
-  const byScore = (a: Track, b: Track) => b.free.provisionalScore - a.free.provisionalScore;
   const afterStage1 = tracks.filter((t) => t.stage === 2).length;
   const afterStage2 = alive().length;
 
-  // 3. Lecture des pages (gratuit, bornée) : les meilleurs candidats provisoires d'abord.
-  const toRead = alive().sort(byScore);
-  for (const t of toRead.slice(L.maxPagesRead)) {
-    Object.assign(t, { stage: 3, reason: "hors_budget_lecture", detail: "au-delà des pages lues" });
+  // Files de lecture, une par source.
+  const buildQueues = () => {
+    const by = new Map<string, Track[]>();
+    for (const t of tracks) {
+      if (t.reason !== null || t.read) continue;
+      const q = by.get(t.lane);
+      if (q) q.push(t);
+      else by.set(t.lane, [t]);
+    }
+    return new Map([...by.entries()].map(([k, v]) => [k, orderLane(k, v)]));
+  };
+  const yields = new Map<string, { read: number; relevant: number }>(
+    Object.entries(input.priorYield ?? {}).map(([k, v]) => [k, { ...v }]),
+  );
+  const yieldOf = (lane: string) => {
+    let y = yields.get(lane);
+    if (!y) yields.set(lane, (y = { read: 0, relevant: 0 }));
+    return y;
+  };
+
+  // 2 bis. Robots.txt AVANT lecture (gratuit, léger, en parallèle) sur la tête de chaque file.
+  let queues = buildQueues();
+  const startedAt = (await runStep("start", async () => ({ at: clock(deps()) }))).at;
+  let lastAt = startedAt;
+  if (L.preflightMax > 0) {
+    const perLane = Math.ceil(L.preflightMax / Math.max(1, queues.size));
+    const heads = [...queues.values()].flatMap((q) => q.slice(0, perLane)).slice(0, L.preflightMax);
+    for (const [k, chunk] of chunks(heads, L.preflightPerStep).entries()) {
+      const res = await runStep(`preflight-${k + 1}`, async () => {
+        const d = deps();
+        if (!d.checkRobots)
+          return { checks: chunk.map((): RobotsCheck => "inconnu"), at: clock(d) };
+        const checks = await mapByHost(
+          chunk,
+          (t) => t.free.candidate.domain,
+          (t) => d.checkRobots!(t.free.candidate).catch((): RobotsCheck => "inconnu"),
+          { concurrency: L.preflightConcurrency, sleep: d.sleep },
+        );
+        return { checks, at: clock(d) };
+      });
+      lastAt = res.at;
+      chunk.forEach((t, i) => {
+        const c = res.checks[i];
+        if (c === "ok") t.robotsOk = true;
+        else if (c === "interdit") {
+          Object.assign(t, {
+            stage: 2,
+            reason: "robots",
+            detail: "le robots.txt interdit la lecture",
+            preRead: true,
+          });
+        } else if (c === "injoignable") {
+          Object.assign(t, {
+            stage: 2,
+            reason: "injoignable",
+            detail: "le site ne répond pas",
+            preRead: true,
+          });
+        }
+      });
+    }
+    queues = buildQueues();
   }
-  const reading = toRead.slice(0, L.maxPagesRead);
-  let readDone = 0;
-  let readKept = 0;
-  for (const [k, chunk] of chunks(reading, L.pagesPerStep).entries()) {
-    const doneBefore = readDone;
-    const keptBefore = readKept;
-    const verdicts = await runStep(`read-${k + 1}`, async () => {
+  const afterPreRead = alive().length;
+
+  // 3 et 4. Lecture puis jugement, lot après lot.
+  let costUsd = 0;
+  let stop: QualStop = "termine";
+  let readStop: ReadStop = "epuise";
+  let llmCalls = 0;
+  let llmFailures = 0;
+  let llmLastError: string | undefined;
+  let pagesRead = 0;
+  let aliveAfterRead = 0;
+  let judgedCount = 0;
+  let judgeKept = 0;
+  let dry = 0;
+  let lots = 0;
+  const plannedTotal = () =>
+    Math.min(L.maxPagesRead, pagesRead + [...queues.values()].reduce((n, q) => n + q.length, 0));
+
+  for (;;) {
+    const remaining = new Map([...queues.entries()].map(([k, q]) => [k, q.length]));
+    const left = [...remaining.values()].reduce((a, b) => a + b, 0);
+    if (left === 0) {
+      readStop = "epuise";
+      break;
+    }
+    if (judgedCount >= Math.min(L.targetJudged, L.maxLlmTargets)) {
+      readStop = "objectif";
+      break;
+    }
+    if (pagesRead >= L.maxPagesRead) {
+      readStop = "plafond_pages";
+      break;
+    }
+    if (stop !== "termine") {
+      readStop = "budget";
+      break;
+    }
+    if (lastAt - startedAt >= L.maxReadMs) {
+      readStop = "duree";
+      break;
+    }
+    if (lots >= L.minLots && dry >= L.dryLots) {
+      readStop = "rendement";
+      break;
+    }
+    lots++;
+    const size = Math.min(L.pagesPerStep, L.maxPagesRead - pagesRead);
+    const plan = allocateLot(size, remaining, yields, L.sourceFloor);
+    const lot: Track[] = [];
+    for (const [lane, n] of plan) lot.push(...queues.get(lane)!.splice(0, n));
+
+    const doneBefore = pagesRead;
+    const keptBefore = aliveAfterRead;
+    const total = plannedTotal();
+    const read = await runStep(`read-${lots}`, async () => {
       const d = deps();
       // MU.1 : sites différents lus de front ; un même hôte reste en série, avec son délai.
       const out = await mapByHost(
-        chunk,
+        lot,
         (t) => t.free.candidate.domain,
-        async (t) => pageVerdict(await d.readPage(t.free.candidate), t.free.candidate, input.ctx),
+        async (t) =>
+          pageVerdict(
+            await d.readPage(t.free.candidate, { robotsOk: t.robotsOk }),
+            t.free.candidate,
+            input.ctx,
+          ),
         { concurrency: L.readConcurrency, sameHostDelayMs: L.hostDelayMs, sleep: d.sleep },
       );
       await emit({
         phase: "lecture",
-        done: doneBefore + chunk.length,
-        total: reading.length,
+        done: doneBefore + lot.length,
+        total: Math.max(total, doneBefore + lot.length),
         found: keptBefore + out.filter((v) => v.reason === null).length,
         example: lastOk(
           out,
           (v) => v.reason === null,
-          (i) => chunk[i]!.free.candidate.domain,
+          (i) => lot[i]!.free.candidate.domain,
         ),
       });
-      return out;
+      return { out, at: clock(d) };
     });
-    chunk.forEach((t, i) => {
-      const v = verdicts[i]!;
-      Object.assign(t, { stage: 3, page: v.page, reason: v.reason, detail: v.detail });
+    lastAt = read.at;
+    lot.forEach((t, i) => {
+      const v = read.out[i]!;
+      Object.assign(t, { stage: 3, page: v.page, reason: v.reason, detail: v.detail, read: true });
+      yieldOf(t.lane).read++;
     });
-    readDone += chunk.length;
-    readKept += verdicts.filter((v) => v.reason === null).length;
-  }
-  const aliveAfterRead = alive().length;
+    pagesRead += lot.length;
+    const toJudge = lot.filter((t) => t.reason === null);
+    aliveAfterRead += toJudge.length;
 
-  // 4. LLM sur les seuls survivants (payant), par lots, sous le budget de qualification.
-  let costUsd = 0;
-  let stop: QualStop = "termine";
-  let llmCalls = 0;
-  let llmFailures = 0;
-  let llmLastError: string | undefined;
-  const toJudge = alive().sort(byScore);
-  for (const t of toJudge.slice(L.maxLlmTargets)) {
-    Object.assign(t, { stage: 4, reason: "hors_budget_llm", detail: "au-delà des cibles jugées" });
-  }
-  const judging = toJudge.slice(0, L.maxLlmTargets);
-  let judgeDone = 0;
-  let judgeKept = 0;
-  for (const [k, batch] of chunks(judging, L.batchSize).entries()) {
-    const judgedBefore = judgeDone;
-    const keptBefore = judgeKept;
-    judgeDone += batch.length;
-    const worst = batchWorstUsd(batch.length, input.model);
-    if (stop !== "termine" || costUsd + worst > input.budgetUsd + 1e-9) {
-      if (stop === "termine") stop = "budget";
-      for (const t of batch) {
+    // Jugement du lot : appels de 5 cibles, lancés de front, sous le budget de qualification.
+    const room = Math.max(0, L.maxLlmTargets - judgedCount);
+    for (const t of toJudge.slice(room)) {
+      Object.assign(t, {
+        stage: 4,
+        reason: "hors_budget_llm",
+        detail: "au-delà des cibles jugées",
+      });
+    }
+    const batches = chunks(toJudge.slice(0, room), L.batchSize);
+    let planned = 0;
+    let plannedUsd = 0;
+    for (const b of batches) {
+      const worst = batchWorstUsd(b.length, input.model);
+      if (costUsd + plannedUsd + worst > input.budgetUsd + 1e-9) break;
+      plannedUsd += worst;
+      planned++;
+    }
+    for (const b of batches.slice(planned)) {
+      stop = "budget";
+      for (const t of b) {
         Object.assign(t, {
           stage: 4,
           reason: "hors_budget_llm",
           detail: "budget de qualification atteint",
         });
       }
-      continue;
     }
-    const items: BatchItem[] = batch.map((t, i) => ({
-      id: `c${i + 1}`,
-      candidate: t.free.candidate,
-      page: t.page!,
-    }));
-    const res = await runStep(`judge-${k + 1}`, async () => {
-      const d = deps();
-      try {
-        await d.guard(worst);
-      } catch (e) {
-        if (e instanceof BudgetExceededError)
-          return { blocked: true, failed: false, costUsd: 0, judgements: [] };
-        throw e;
-      }
-      const llm = d.llm(input.budgetUsd - costUsd);
-      if (!llm) return { blocked: false, failed: true, costUsd: 0, judgements: [] };
-      try {
-        const out = await judgeBatch(llm, items, input.ctx, {
-          workspaceId: input.workspaceId,
-          auditId: input.auditId,
-        });
-        const kept = batch.map((_, i) => {
-          const j = new Map(out.judgements).get(`c${i + 1}`);
-          return Boolean(j) && judgementExclusion(j!, L.minFit) === null;
-        });
+    const doing = batches.slice(0, planned);
+    let lotRelevant = 0;
+    if (doing.length > 0) {
+      const judgedBefore = judgedCount;
+      const keptBeforeJudge = judgeKept;
+      const spentBefore = costUsd;
+      const res = await runStep(`judge-${lots}`, async () => {
+        const d = deps();
+        try {
+          await d.guard(plannedUsd);
+        } catch (e) {
+          if (e instanceof BudgetExceededError) return { blocked: true, batches: [], at: clock(d) };
+          throw e;
+        }
+        const one = async (batch: Track[]) => {
+          const items: BatchItem[] = batch.map((t, i) => ({
+            id: `c${i + 1}`,
+            candidate: t.free.candidate,
+            page: t.page!,
+          }));
+          const llm = d.llm(input.budgetUsd - spentBefore);
+          if (!llm) return { failed: true, blocked: false, costUsd: 0, judgements: [] };
+          try {
+            const out = await judgeBatch(llm, items, input.ctx, {
+              workspaceId: input.workspaceId,
+              auditId: input.auditId,
+            });
+            return {
+              failed: false,
+              blocked: false,
+              costUsd: out.costUsd,
+              judgements: [...out.judgements],
+            };
+          } catch (e) {
+            if (e instanceof LlmBudgetExceededError) {
+              return { failed: false, blocked: true, costUsd: llm.spentUsd, judgements: [] };
+            }
+            // Réponse illisible ou panne : le lot reste non qualifié (coût éventuel compté), on continue.
+            // Jamais muet (essai du 17/11 : 11 lots sur 11 en échec sans aucune trace).
+            const error = e instanceof Error ? e.message.slice(0, 300) : String(e).slice(0, 300);
+            logger.warn("qualification : lot non jugé", { error });
+            return { failed: true, blocked: false, costUsd: llm.spentUsd, judgements: [], error };
+          }
+        };
+        const out: Awaited<ReturnType<typeof one>>[] = [];
+        for (const group of chunks(doing, L.judgeConcurrency)) {
+          out.push(...(await Promise.all(group.map(one))));
+        }
+        const flat = doing.flat();
+        const keptFlags = doing.flatMap((batch, b) =>
+          batch.map((_, i) => {
+            const j = new Map(out[b]!.judgements).get(`c${i + 1}`);
+            return Boolean(j) && judgementExclusion(j!, L.minFit) === null;
+          }),
+        );
         await emit({
           phase: "jugement",
-          done: judgedBefore + batch.length,
-          total: judging.length,
-          found: keptBefore + kept.filter(Boolean).length,
+          done: judgedBefore + flat.length,
+          total: Math.max(L.targetJudged, judgedBefore + flat.length),
+          found: keptBeforeJudge + keptFlags.filter(Boolean).length,
           example: lastOk(
-            kept,
+            keptFlags,
             (x) => x,
-            (i) => batch[i]!.free.candidate.domain,
+            (i) => flat[i]!.free.candidate.domain,
           ),
         });
-        return {
-          blocked: false,
-          failed: false,
-          costUsd: out.costUsd,
-          judgements: [...out.judgements],
-        };
-      } catch (e) {
-        if (e instanceof LlmBudgetExceededError) {
-          return { blocked: true, failed: false, costUsd: llm.spentUsd, judgements: [] };
+        return { blocked: false, batches: out, at: clock(d) };
+      });
+      lastAt = res.at;
+      if (res.blocked) {
+        stop = "plafond";
+        for (const t of doing.flat()) {
+          Object.assign(t, {
+            stage: 4,
+            reason: "hors_budget_llm",
+            detail: "plafond de sécurité atteint",
+          });
         }
-        // Réponse illisible ou panne : le lot reste non qualifié (coût éventuel compté), on continue.
-        // Jamais muet (essai du 17/11 : 11 lots sur 11 en échec sans aucune trace).
-        const error = e instanceof Error ? e.message.slice(0, 300) : String(e).slice(0, 300);
-        logger.warn("qualification : lot non jugé", { error });
-        return { blocked: false, failed: true, costUsd: llm.spentUsd, judgements: [], error };
-      }
-    });
-    costUsd += res.costUsd;
-    if (res.blocked) {
-      stop = "plafond";
-      for (const t of batch)
-        Object.assign(t, {
-          stage: 4,
-          reason: "hors_budget_llm",
-          detail: "plafond de sécurité atteint",
+      } else {
+        doing.forEach((batch, b) => {
+          const r = res.batches[b]!;
+          costUsd += r.costUsd;
+          if (r.blocked) {
+            stop = "plafond";
+            for (const t of batch) {
+              Object.assign(t, {
+                stage: 4,
+                reason: "hors_budget_llm",
+                detail: "plafond de sécurité atteint",
+              });
+            }
+            return;
+          }
+          llmCalls++;
+          if (r.failed) {
+            llmFailures++;
+            llmLastError ??= (r as { error?: string }).error ?? "client LLM absent";
+          }
+          const got = new Map(r.judgements);
+          batch.forEach((t, i) => {
+            const j = got.get(`c${i + 1}`) ?? null;
+            t.stage = 4;
+            t.judgement = j;
+            if (!j) {
+              t.reason = "non_qualifie";
+              t.detail = "pas de jugement du modèle";
+              return;
+            }
+            judgedCount++;
+            const ex = judgementExclusion(j, L.minFit);
+            if (ex) Object.assign(t, { reason: ex.reason, detail: ex.detail });
+            else {
+              judgeKept++;
+              lotRelevant++;
+              yieldOf(t.lane).relevant++;
+            }
+          });
         });
-      continue;
-    }
-    llmCalls++;
-    if (res.failed) {
-      llmFailures++;
-      llmLastError ??= (res as { error?: string }).error ?? "client LLM absent";
-    }
-    const got = new Map(res.judgements);
-    batch.forEach((t, i) => {
-      const j = got.get(`c${i + 1}`) ?? null;
-      t.stage = 4;
-      t.judgement = j;
-      if (!j) {
-        t.reason = "non_qualifie";
-        t.detail = "pas de jugement du modèle";
-        return;
       }
-      const ex = judgementExclusion(j, L.minFit);
-      if (ex) Object.assign(t, { reason: ex.reason, detail: ex.detail });
-      else judgeKept++;
-    });
+    }
+    dry = lotRelevant <= L.dryLotMaxRelevant ? dry + 1 : 0;
+  }
+  // Le stock : ce qui n'a pas été lu reste en réserve, avec son score, pour une lecture ultérieure.
+  let stock = 0;
+  for (const q of queues.values()) {
+    for (const t of q) {
+      stock++;
+      Object.assign(t, {
+        stage: 3,
+        reason: "hors_budget_lecture",
+        detail: "en stock : pas encore lu",
+      });
+    }
   }
   const relevant = alive();
 
@@ -430,6 +739,36 @@ export async function executeQualification(
   const byReason: FunnelStats["byReason"] = {};
   for (const r of results)
     if (r.exclusionReason) byReason[r.exclusionReason] = (byReason[r.exclusionReason] ?? 0) + 1;
+  // Écartés avant lecture (étages 1 et 2 : calcul, langue visible, robots.txt), par motif.
+  const preRead: NonNullable<FunnelStats["preRead"]> = {};
+  for (const t of tracks) {
+    if (t.reason && (t.stage === 1 || t.preRead) && !t.read) {
+      preRead[t.reason] = (preRead[t.reason] ?? 0) + 1;
+    }
+  }
+  // Rendement par source et par type d'éditeur cherché : du candidat à la cible livrée.
+  const bySource: Record<string, YieldRow> = {};
+  const byPersona: Record<string, YieldRow> = {};
+  const listed = new Set(results.filter((r) => r.status === "liste_courte").map((r) => r.domain));
+  const count = (row: YieldRow, t: Track) => {
+    row.candidates++;
+    if (t.read) row.read++;
+    if (t.page && t.stage >= 4) row.alive++;
+    if (t.judgement) row.judged++;
+    if (t.judgement && judgementExclusion(t.judgement, L.minFit) === null) row.relevant++;
+    if (listed.has(t.free.candidate.domain)) row.shortlist++;
+  };
+  for (const t of tracks) {
+    for (const src of new Set(t.free.candidate.sources.map((x) => x.source))) {
+      count((bySource[src] ??= emptyYield()), t);
+    }
+    const personas = new Set(
+      t.free.candidate.sources.flatMap((x) =>
+        x.source === "serp" && x.persona ? [x.persona] : [],
+      ),
+    );
+    for (const p of personas) count((byPersona[p] ??= emptyYield()), t);
+  }
   return {
     results: results.sort(
       (a, b) =>
@@ -441,9 +780,9 @@ export async function executeQualification(
       candidates: input.candidates.length,
       afterStage1,
       afterStage2,
-      pagesRead: reading.length,
+      pagesRead,
       alive: aliveAfterRead,
-      judged: judging.filter((t) => t.judgement).length,
+      judged: judgedCount,
       relevant: relevant.length,
       contactsSearched: searching.length,
       withContact: scored.length,
@@ -456,6 +795,14 @@ export async function executeQualification(
       stop,
       byReason,
       authority: authorityImpact(input.candidates),
+      preRead,
+      afterPreRead,
+      lots,
+      readStop,
+      readMs: Math.max(0, lastAt - startedAt),
+      stock,
+      bySource,
+      byPersona,
     },
   };
 }

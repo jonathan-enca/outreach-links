@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { t } from "@/lib/messages";
 import { profileToFields } from "./form";
+import { PublisherTags } from "./publisher-tags";
 import type { StoredBrandProfile } from "./schema";
 
 const areaClass =
@@ -156,6 +157,13 @@ export function BrandFields({
         value={f.personas}
         rows={Math.max(6, (brand?.profile.personas.length ?? 0) * 3)}
       />
+      {brand && (brand.profile.publisher_types ?? []).length > 0 ? (
+        <PublisherTags
+          key={brand.version}
+          initial={brand.profile.publisher_types ?? []}
+          themeTerms={brand.profile.theme_terms ?? []}
+        />
+      ) : null}
       <CitedPages brand={brand} domain={domain} />
       <Field
         name="names"

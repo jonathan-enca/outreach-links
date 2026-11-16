@@ -11,8 +11,13 @@ import { PRICING } from "@/lib/dataforseo/endpoints";
 export const COLLECTION_LIMITS = {
   /** Part du budget cible d'audit réservée à la collecte (docs/audit-v2.md section 6). */
   shareOfTarget: 0.55,
-  /** Part de ce budget par phase (somme = 1) : le pire cas annoncé est donc le budget cible. */
-  phaseShare: { intersection: 0.16, mentions: 0.125, morts: 0.2, serp: 0.275, content: 0.24 },
+  /**
+   * Part de ce budget par phase (somme = 1) : le pire cas annoncé est donc le budget cible.
+   * Chantier H (17/11/2026) : les recherches Google passent de 27,5 % à 44 % (40 requêtes garanties
+   * par type d'éditeur) ; le recoupement (1 cible pour 169 candidats au run de référence) et les
+   * mentions (0 cible) gardent juste de quoi faire leurs appels.
+   */
+  phaseShare: { intersection: 0.08, mentions: 0.085, morts: 0.155, serp: 0.44, content: 0.24 },
   intersection: {
     /** 8 au plus : le filtre serveur « autorité > 0 » compte une condition par cible (8 conditions maximum). */
     maxTargets: 8,

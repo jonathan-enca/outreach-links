@@ -89,6 +89,8 @@ export interface SafeFetchOptions {
   userAgent: string;
   maxBytes: number;
   accept?: string;
+  /** Délai de réponse (ms) ; défaut : 8 secondes. */
+  timeoutMs?: number;
 }
 
 const DEFAULT_OPTIONS: SafeFetchOptions = {
@@ -107,7 +109,7 @@ function getOnce(
       {
         method: "GET",
         lookup: publicOnlyLookup,
-        timeout: TIMEOUT_MS,
+        timeout: opts.timeoutMs ?? TIMEOUT_MS,
         headers: { "user-agent": opts.userAgent, accept: opts.accept ?? "text/html,text/plain" },
       },
       (res) => {

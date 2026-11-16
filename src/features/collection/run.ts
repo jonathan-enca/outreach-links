@@ -314,10 +314,16 @@ export async function runDeadPagesCall(
   );
   if (!out) return failedOutcome("morts", label);
   const items = normalizeBacklinkItems(out.result?.items, competitor);
+  const languages = new Map<string, string>();
+  for (const it of (out.result?.items ?? []) as Record<string, unknown>[]) {
+    if (typeof it.url_from === "string" && typeof it.page_from_language === "string") {
+      languages.set(it.url_from.trim(), it.page_from_language);
+    }
+  }
   return {
     phase: "morts",
     label,
-    raws: fromDeadPages(items, run.ctx, competitor),
+    raws: fromDeadPages(items, run.ctx, competitor, languages),
     intersection: [],
     costUsd: out.actualCostUsd,
     cacheHit: out.cacheHit,
@@ -548,6 +554,11 @@ export type StepRunner = <T>(id: string, fn: () => Promise<T>) => Promise<T>;
 
 /** Nombre d'appels exécutés en parallèle (docs : chantier A.3, lots de 5). */
 export const COLLECTION_BATCH = 5;
+/**
+ * Recherches Google par lot (chantier H) : 40 requêtes garanties en lots de 5 prenaient plus de six
+ * minutes (une recherche dure 10 à 40 s) ; par 14, trois lots suffisent.
+ */
+export const SERP_BATCH = 14;
 
 /** Ce que la collecte raconte à l'écran après chaque lot (écrit une seule fois, dans un step). */
 export interface CollectionReport {
@@ -588,7 +599,7 @@ export async function executeCollection(
 ): Promise<CollectionProgress> {
   const progress = new CollectionProgress(run.targetUsd);
   const L = COLLECTION_LIMITS;
-  const size = Math.max(1, opts.batchSize ?? COLLECTION_BATCH);
+  const defaultSize = Math.max(1, opts.batchSize ?? COLLECTION_BATCH);
   const exampleOf = opts.example ?? (() => null);
   let batchNo = 0;
 
@@ -624,11 +635,15 @@ export async function executeCollection(
     spec: {
       estimate: (item: I) => number;
       call: (item: I, index: number) => Promise<StepOutcome>;
-      stopBefore?: () => StopReason | null;
+      /** Évalué avant chaque lot, avec l'index du premier appel du lot. */
+      stopBefore?: (from: number) => StopReason | null;
+      /** Taille de lot propre à la phase (défaut : celle de la collecte). */
+      batch?: number;
     },
   ): Promise<void> {
+    const size = Math.max(1, spec.batch ?? defaultSize);
     for (let from = 0; from < items.length;) {
-      const why = spec.stopBefore?.();
+      const why = spec.stopBefore?.(from);
       if (why) {
         progress.stop(phase, why);
         return;
@@ -709,18 +724,71 @@ export async function executeCollection(
     call: (keyword, i) => runContentCall(deps(), run, { keyword, pageType: null }, "mentions", i),
   });
 
-  // 3. SERP top 30 des requêtes de l'univers, dans l'ordre de rendement ; arrêt par rendement décroissant.
+  // 4 (lancé en avance). Content Analysis par type de page : indépendant des recherches Google et
+  // long (deux minutes par appel), il part EN MÊME TEMPS qu'elles. Ses résultats ne touchent à rien
+  // tant que les recherches ne sont pas finies (ajoutés ensuite, dans l'ordre du plan) : les
+  // décisions de la phase précédente et le rejeu restent déterministes.
+  const contentEarly = (async () => {
+    const batches: StepOutcome[][] = [];
+    let spent = 0;
+    let stopped: StopReason | null = null;
+    const items = run.plan.content;
+    for (let from = 0; from < items.length;) {
+      let planned = 0;
+      let est = 0;
+      const wanted = Math.min(defaultSize, items.length - from);
+      for (let j = 0; j < wanted; j++) {
+        const one = contentCallUsd(L.content.rowsPerCall);
+        if (progress.phaseOver("content", spent + est + one)) break;
+        est += one;
+        planned++;
+      }
+      if (planned === 0) {
+        stopped = "budget_phase";
+        break;
+      }
+      const batch = items.slice(from, from + planned);
+      const start = from;
+      const outcomes = await runStep(`content-lot-${from + 1}`, () =>
+        Promise.all(
+          batch.map((call, j) =>
+            timed(() => runContentCall(deps(), run, call, "content", start + j)),
+          ),
+        ),
+      );
+      batches.push(outcomes);
+      spent += outcomes.reduce((n, o) => n + o.costUsd, 0);
+      if (outcomes.some((o) => o.blocked)) break;
+      from += planned;
+      if (planned < wanted) {
+        stopped = "budget_phase";
+        break;
+      }
+    }
+    return { batches, stopped };
+  })();
+  // Une panne des recherches Google ne doit pas laisser cette promesse sans gestionnaire.
+  contentEarly.catch(() => undefined);
+
+  // 3. SERP top 30 des requêtes de l'univers, dans l'ordre de rendement. Les requêtes GARANTIES des
+  // types d'éditeurs (chantier H) passent toutes : l'arrêt par rendement décroissant ne s'applique
+  // qu'aux suivantes.
+  const guaranteed = run.plan.serp.filter((q) => q.guaranteed).length;
   await phaseInBatches("serp", run.plan.serp, {
     estimate: (q) => estimateCost("serpOrganicLive", { keyword: q.q, depth: L.serp.depth }),
     call: (q, i) => runSerpQuery(deps(), run, q, "serp", i),
-    stopBefore: () => (progress.serpShouldStop() ? "rendement" : null),
+    stopBefore: (from) => (from >= guaranteed && progress.serpShouldStop() ? "rendement" : null),
+    batch: opts.batchSize ?? SERP_BATCH,
   });
 
-  // 4. Content Analysis par type de page (blogs, organisations, forums, e-commerce).
-  await phaseInBatches("content", run.plan.content, {
-    estimate: () => contentCallUsd(L.content.rowsPerCall),
-    call: (call, i) => runContentCall(deps(), run, call, "content", i),
-  });
+  // 4 (suite). Les résultats de Content Analysis entrent maintenant, dans l'ordre du plan.
+  const content = await contentEarly;
+  for (const outcomes of content.batches) {
+    for (const o of outcomes) progress.add(o);
+    progress.addWall("content", outcomes);
+    await report("content", outcomes);
+  }
+  if (content.stopped) progress.stop("content", content.stopped);
   return progress;
 }
 
@@ -770,6 +838,7 @@ function toRow(run: CollectionRun, c: MergedCandidate) {
     spam_score: c.spamScore,
     page_type: c.pageType,
     signal_count: c.signalCount,
+    language: c.language ?? null,
   };
 }
 

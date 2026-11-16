@@ -7,10 +7,10 @@ import { AUDIT_BUDGET } from "@/features/audits/beta";
  */
 export const QUERY_LIMITS = {
   /** Part du budget cible d'audit réservée aux recherches d'éditeurs (SERP top 30 de la collecte). */
-  serpShareOfTarget: 0.2,
+  serpShareOfTarget: 0.256,
   /** Bornes du nombre de requêtes gardées, quel que soit le budget. */
   minQueries: 6,
-  maxQueries: 40,
+  maxQueries: 60,
   /** Profondeur SERP chiffrée pour l'annonce du coût (pire cas : top 30). */
   serpDepth: 30,
   /** Requêtes demandées au modèle par persona (le classement en gardera moins si le budget l'impose). */
@@ -32,4 +32,4 @@ export function queryBudgetUsd(auditTargetUsd: number = AUDIT_BUDGET.targetUsd):
 }
 
 /** Version des recettes : monter ce numéro invalide tout le cache quand le prompt change. */
-export const RECIPE_VERSION = 1;
+export const RECIPE_VERSION = 2;

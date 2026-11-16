@@ -9,7 +9,7 @@ export const BRAND_LANGUAGES = ["fr", "en"] as const;
  */
 
 export const personaSchema = z.object({
-  /** Qui : « Enseignants et assistantes maternelles ». */
+  /** Qui : la famille d'éditeurs, au pluriel. */
   label: z.string().trim().min(3).max(80),
   /** Où on les trouve : types de sites concrets (blogs de classe, médiathèques...). */
   sites: z.string().trim().min(3).max(200),
@@ -26,6 +26,44 @@ export const resourceSchema = z.object({
 });
 export type LinkableResource = z.infer<typeof resourceSchema>;
 
+/**
+ * Catégories GÉNÉRIQUES d'éditeurs (chantier H). Elles ne décrivent aucun thème : elles servent à
+ * choisir des gabarits de requêtes. Les types d'éditeurs d'un site (leur nom, leurs mots) viennent
+ * toujours de son profil, jamais du code.
+ */
+export const PUBLISHER_CATEGORIES = [
+  "ecole",
+  "collectivite",
+  "association",
+  "bibliotheque",
+  "forum",
+  "media",
+  "boutique",
+  "annuaire",
+  "blog",
+  "professionnel",
+  "autre",
+] as const;
+export type PublisherCategory = (typeof PUBLISHER_CATEGORIES)[number];
+
+export const PUBLISHER_ORIGINS = ["persona", "voisin", "utilisateur"] as const;
+
+/** Un type d'éditeur à chercher : « qui peut vous citer », en étiquette modifiable. */
+export const publisherTypeSchema = z.object({
+  /** Nom affiché, au pluriel, dans la langue de la campagne. */
+  label: z.string().trim().min(2).max(80),
+  category: z.enum(PUBLISHER_CATEGORIES),
+  /** Mots qu'on trouve dans le nom ou le titre de ces sites (servent aux requêtes). */
+  terms: z.array(z.string().trim().min(2).max(40)).min(1).max(4),
+  /** Déduit d'une persona du profil, type voisin proposé, ou ajouté par l'utilisateur. */
+  origin: z.enum(PUBLISHER_ORIGINS),
+  /** Étiquette désactivée par l'utilisateur : gardée, jamais cherchée. Absent = active. */
+  active: z.boolean().optional(),
+});
+export type PublisherType = z.infer<typeof publisherTypeSchema>;
+
+export const MAX_PUBLISHER_TYPES = 12;
+
 export const brandProfileSchema = z.object({
   activity: z.string().trim().min(5).max(300),
   offer: z.string().trim().min(3).max(300),
@@ -35,6 +73,10 @@ export const brandProfileSchema = z.object({
   name_variants: z.array(z.string().trim().min(2).max(60)).max(10),
   tone: z.string().trim().max(120),
   personas: z.array(personaSchema).min(2).max(8),
+  /** Chantier H : types d'éditeurs à chercher (absent des profils antérieurs : déduits des personas). */
+  publisher_types: z.array(publisherTypeSchema).max(MAX_PUBLISHER_TYPES).optional(),
+  /** Expressions courtes qui nomment le sujet du site, de la plus précise à la plus large. */
+  theme_terms: z.array(z.string().trim().min(2).max(40)).max(5).optional(),
 });
 export type BrandProfile = z.infer<typeof brandProfileSchema>;
 

@@ -586,6 +586,7 @@ function qualifyStage(deps: AnalysisDeps): Stage {
             total: stats.pagesRead,
             kept: stats.alive,
             judged: stats.judged,
+            to_judge: stats.judged,
             found: stats.relevant,
           },
         });

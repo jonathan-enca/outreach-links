@@ -195,6 +195,7 @@ export function fromContent(
       competitorsCount: 0,
       domainRank: nb(item.domain_rank),
       spamScore: spam,
+      language,
     });
   }
   return out;
@@ -222,6 +223,8 @@ export function fromDeadPages(
   }[],
   ctx: CollectionContext,
   competitor: string,
+  /** Langue de la page qui cite, par adresse, quand le fournisseur la donne. */
+  languageByUrl: ReadonlyMap<string, string> = new Map(),
 ): RawCandidate[] {
   const out: RawCandidate[] = [];
   for (const it of items) {
@@ -244,6 +247,7 @@ export function fromDeadPages(
       competitorsCount: 1,
       domainRank: it.sourceRank,
       spamScore: it.spamScore,
+      language: languageByUrl.get(it.sourceUrl) ?? null,
     });
   }
   return out;
@@ -301,6 +305,7 @@ export function mergeCandidates(raws: readonly RawCandidate[], maxSources = 6): 
         spamScore: r.spamScore,
         pageType: r.pageType,
         signalCount: 1,
+        language: r.language ?? null,
       });
       continue;
     }
@@ -309,8 +314,13 @@ export function mergeCandidates(raws: readonly RawCandidate[], maxSources = 6): 
     if (cur.sources.length < maxSources) cur.sources.push(ref);
     // La page d'une mention ou d'une SERP est plus parlante que l'ancre d'un recoupement ; la page
     // qui cite un lien mort d'un concurrent est celle à lire en priorité (la preuve y est).
-    if (r.source === "lien_mort" && r.url) cur.url = r.url;
-    else if (!cur.url && r.url) cur.url = r.url;
+    if (r.source === "lien_mort" && r.url) {
+      cur.url = r.url;
+      cur.language = r.language ?? null;
+    } else if (!cur.url && r.url) {
+      cur.url = r.url;
+      cur.language = r.language ?? null;
+    }
     if (!cur.title && r.title) cur.title = r.title;
     cur.competitorsCount = Math.max(cur.competitorsCount, r.competitorsCount);
     if (r.domainRank !== null) cur.domainRank = Math.max(cur.domainRank ?? 0, r.domainRank);

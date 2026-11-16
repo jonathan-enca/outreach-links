@@ -942,6 +942,9 @@ export type Database = {
           expected_cost_usd: number;
           finished_at: string | null;
           id: string;
+          more_requested_at: string | null;
+          more_stats: Json;
+          more_status: string;
           plan: Json;
           site_id: string;
           started_at: string | null;
@@ -963,6 +966,9 @@ export type Database = {
           expected_cost_usd: number;
           finished_at?: string | null;
           id?: string;
+          more_requested_at?: string | null;
+          more_stats?: Json;
+          more_status?: string;
           plan: Json;
           site_id: string;
           started_at?: string | null;
@@ -984,6 +990,9 @@ export type Database = {
           expected_cost_usd?: number;
           finished_at?: string | null;
           id?: string;
+          more_requested_at?: string | null;
+          more_stats?: Json;
+          more_status?: string;
           plan?: Json;
           site_id?: string;
           started_at?: string | null;
@@ -1170,6 +1179,7 @@ export type Database = {
           domain: string;
           domain_rank: number | null;
           id: string;
+          language: string | null;
           page_type: string | null;
           signal_count: number;
           sources: Json;
@@ -1187,6 +1197,7 @@ export type Database = {
           domain: string;
           domain_rank?: number | null;
           id?: string;
+          language?: string | null;
           page_type?: string | null;
           signal_count?: number;
           sources?: Json;
@@ -1204,6 +1215,7 @@ export type Database = {
           domain?: string;
           domain_rank?: number | null;
           id?: string;
+          language?: string | null;
           page_type?: string | null;
           signal_count?: number;
           sources?: Json;
