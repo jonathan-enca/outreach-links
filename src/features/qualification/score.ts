@@ -86,11 +86,12 @@ export function finalScore(
 /** Exclusion après le LLM (étage 4), dans l'ordre de gravité. */
 export function judgementExclusion(
   j: LlmJudgement,
+  minFit: number = QUALIFY_LIMITS.minFit,
 ): { reason: ExclusionReason; detail: string } | null {
   if (j.sellsLinks) return { reason: "vend_des_liens", detail: j.fitReason };
   if (j.sameOffer) return { reason: "concurrent", detail: j.fitReason };
   if (j.unrealistic) return { reason: "irrealiste", detail: j.fitReason };
-  if (j.fit < QUALIFY_LIMITS.minFit) return { reason: "hors_sujet", detail: j.fitReason };
+  if (j.fit < minFit) return { reason: "hors_sujet", detail: j.fitReason };
   return null;
 }
 

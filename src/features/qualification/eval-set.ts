@@ -610,6 +610,7 @@ export function evalPage(url: string, p: Partial<PageRead> | null | undefined): 
     mailtos: [],
     hasContactForm: false,
     viaFallback: false,
+    outbound: [],
     ...(p ?? { status: 0, unreachable: true }),
   };
 }

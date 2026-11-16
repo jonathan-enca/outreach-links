@@ -72,31 +72,13 @@ export interface HuntDeps {
   limits?: Partial<HuntLimits>;
 }
 
-const isDead = (status: number): status is 404 | 410 => status === 404 || status === 410;
+export const isDead = (status: number): status is 404 | 410 => status === 404 || status === 410;
 
 /**
- * Chasseur 404. Deux sources, aucune requête payante :
- * 1. pages de concurrents ayant des backlinks et qui répondent aujourd'hui 404/410 : les sites
- *    qui les citent sont des cibles de remplacement ;
- * 2. liens sortants cassés (404/410) sur des pages ressources de la niche.
- * Chaque requête respecte robots.txt (jeton `OutreachLinksBot`), le délai par hôte et le
- * plafond global. Un lien n'est « mort » que sur un 404/410 constaté (une erreur DNS ou un
- * délai dépassé ne prouvent rien).
+ * Vérificateur de statut poli (robots.txt par hôte, délai par hôte, plafond global de requêtes) :
+ * partagé par le chasseur 404 (M2.2) et la recherche de liens morts sur les pages cibles (MT.5).
  */
-export async function huntDeadLinks(
-  input: { competitorLinks: CompetitorLink[]; resourcePages: ResourcePage[] },
-  deps: HuntDeps,
-): Promise<{ findings: DeadLinkFinding[]; stats: HuntStats }> {
-  const limits: HuntLimits = { ...DEFAULT_LIMITS, ...deps.limits };
-  const stats: HuntStats = {
-    requests: 0,
-    competitorUrlsChecked: 0,
-    resourcePagesCrawled: 0,
-    linksChecked: 0,
-    blockedByRobots: 0,
-    dead: 0,
-    truncated: false,
-  };
+export function createStatusChecker(deps: HuntDeps, stats: HuntStats, limits: HuntLimits) {
   const lastHit = new Map<string, number>();
   const robots = new Map<string, RobotsRules>();
   const statusCache = new Map<string, number | null>();
@@ -156,6 +138,34 @@ export async function huntDeadLinks(
     statusCache.set(url, status);
     return status;
   }
+
+  return { polite, rulesFor, statusOf, budgetLeft };
+}
+
+/**
+ * Chasseur 404. Deux sources, aucune requête payante :
+ * 1. pages de concurrents ayant des backlinks et qui répondent aujourd'hui 404/410 : les sites
+ *    qui les citent sont des cibles de remplacement ;
+ * 2. liens sortants cassés (404/410) sur des pages ressources de la niche.
+ * Chaque requête respecte robots.txt (jeton `OutreachLinksBot`), le délai par hôte et le
+ * plafond global. Un lien n'est « mort » que sur un 404/410 constaté (une erreur DNS ou un
+ * délai dépassé ne prouvent rien).
+ */
+export async function huntDeadLinks(
+  input: { competitorLinks: CompetitorLink[]; resourcePages: ResourcePage[] },
+  deps: HuntDeps,
+): Promise<{ findings: DeadLinkFinding[]; stats: HuntStats }> {
+  const limits: HuntLimits = { ...DEFAULT_LIMITS, ...deps.limits };
+  const stats: HuntStats = {
+    requests: 0,
+    competitorUrlsChecked: 0,
+    resourcePagesCrawled: 0,
+    linksChecked: 0,
+    blockedByRobots: 0,
+    dead: 0,
+    truncated: false,
+  };
+  const { polite, rulesFor, statusOf, budgetLeft } = createStatusChecker(deps, stats, limits);
 
   const findings: DeadLinkFinding[] = [];
   const stamp = () => new Date(deps.now()).toISOString();

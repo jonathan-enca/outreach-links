@@ -116,4 +116,5 @@ const EMPTY_READ = {
   mailtos: [],
   hasContactForm: false,
   viaFallback: false,
+  outbound: [],
 };
