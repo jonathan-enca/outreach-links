@@ -282,11 +282,12 @@ Vérifie que MU.1 est fait dans PROGRESS.md sur main. Annonce en 3 lignes ce que
 
 ### MU.7 Moteur, tactique 2 : pages ressources et liens morts
 
-- **Objectif** : que la tactique 2 produise des cibles, avec preuve.
+- **Décision de Jonathan (17/11, essai) : la tactique « liens morts des concurrents » est l'une des plus efficaces et des plus faciles pour obtenir des backlinks ; elle devient la tactique principale de ce sous-jalon, avant les pages ressources.** Principe : des pages de **sites concurrents** ont disparu (404 / 410) mais reçoivent encore des liens ; chaque site qui les cite est une cible, avec la preuve du lien mort et la page équivalente de notre site à proposer. Le point (c) de la section 2.1 n'est donc plus « à vérifier » : il est à construire en premier, avec un run borné qui mesure coût et rendement.
+- **Objectif** : que la tactique 2 produise des cibles, avec preuve, en commençant par les liens morts des concurrents.
 - **Prérequis** : MU.1.
-- **Tâches** : points (a) à (d) de la section 2.1, tactique 2 : requêtes à empreinte pour pages de liens, reconnaissance d'une page ressources, lecture de 60 à 100 pages, vérification des liens sortants, deux demandes distinctes (remplacement avec preuve 404 / 410 ; ajout à la liste avec la rubrique visée), run borné du sens inverse (pages disparues des concurrents) avec coût mesuré avant de le garder, faux 404, fusion avec l'analyse de pages existante.
+- **Tâches** : **d'abord le point (c)** (pages disparues des concurrents qui reçoivent encore des liens : liste des pages en 404 / 410, des sites qui les citent, de la page de notre site la plus proche à proposer, preuve affichée), puis les points (a), (b) et (d) de la section 2.1, tactique 2 : requêtes à empreinte pour pages de liens, reconnaissance d'une page ressources, lecture de 60 à 100 pages, vérification des liens sortants, deux demandes distinctes (remplacement avec preuve 404 / 410 ; ajout à la liste avec la rubrique visée), run borné du sens inverse (pages disparues des concurrents) avec coût mesuré avant de le garder, faux 404, fusion avec l'analyse de pages existante.
 - **Livrables** : pages ressources comme source de candidates, jeu annoté de pages de liens, run réel.
-- **Acceptation** (mega-coloring.com) : au moins 30 pages ressources lues ; au moins 8 cibles « page ressources » livrées, dont au moins 2 liens morts prouvés ; aucun lien déclaré mort sans 404 / 410 constaté. Si le thème n'en fournit pas assez : chiffres et explication à l'écran, pas de remplissage.
+- **Acceptation** (mega-coloring.com) : au moins 10 cibles « lien mort d'un concurrent » avec preuve (page concurrente en 404 / 410 constatée, lien entrant vérifié, page équivalente proposée) ; au moins 30 pages ressources lues ; au moins 8 cibles « page ressources » livrées, dont au moins 2 liens morts prouvés ; aucun lien déclaré mort sans 404 / 410 constaté. Si le thème n'en fournit pas assez : chiffres et explication à l'écran, pas de remplissage.
 - **Hors périmètre** : contacts (MU.8), écran (MU.10).
 
 ```

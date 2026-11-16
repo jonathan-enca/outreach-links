@@ -994,3 +994,10 @@ Essai fait avec un compte neuf (l'ancien compte de Jonathan et son espace ont é
 - **Prévention** : workflow GitHub `.github/workflows/inngest-sync.yml` (après chaque déploiement de production réussi, `PUT /api/inngest`). **Règle : toute nouvelle fonction Inngest exige une resynchronisation de la production** (automatique désormais ; à vérifier avec `get_apps` : `functionCount`).
 - **Piège** : l'outil MCP Inngest refuse la lecture des événements (`list_events`) faute de permissions ; `get_apps`, `list_functions`, `sync_app`, `send_event`, `get_event_runs` fonctionnent.
 - **Backlog** : un écran d'analyse qui détecte « confirmée depuis plus de 2 minutes sans aucune étape » et le dit (aujourd'hui il reste muet sur « L'analyse démarre… ») ; le chien de garde ne couvre pas ce cas (`confirme` sans étape).
+
+## Décisions de Jonathan, suite de l'essai (17/11/2026)
+
+- **Langue** : la fiche et les pages proposées restent dans **la langue du site analysé** ; le marché (pays, langue) sert à la recherche, pas à traduire. Multilingue : plus tard.
+- **Robustesse** : une erreur du fournisseur (ex. DataForSEO 500 sur Content Analysis, observé en production) ne doit plus faire échouer toute l'analyse ; **relance possible à partir d'une étape donnée** ; recherche en parallèle (les appels sont indépendants).
+- **Liens morts des concurrents** : tactique **principale** de MU.7 (voir `docs/jalon-mu.md`), à placer avant MU.6.
+- **Ordre proposé** : étape 1 + robustesse (MU.4), puis MU.7, puis contrôle de qualité de la recherche et MU.6.
