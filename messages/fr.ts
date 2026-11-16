@@ -512,11 +512,11 @@ export const fr = {
         text: "Un audit réduit de votre site et un aperçu de vos premières cibles. Sans carte bancaire, sans aucun envoi.",
         cta: "Essai gratuit",
       },
-      perMonth: "par mois",
+      perMonth: "TTC par mois",
       popular: "Recommandé",
       unavailable:
         "Les tarifs ne sont pas affichables pour le moment. Lancez l'audit gratuit, ils seront disponibles à la création de votre compte.",
-      note: "Grille de lancement, susceptible d'évoluer. Un envoi réel est un email parti de votre boîte : la relance et vos réponses comptent chacune pour un envoi. Abonnement mensuel, payé en ligne.",
+      note: "Prix TTC. Grille de lancement, susceptible d'évoluer. Un envoi réel est un email parti de votre boîte : la relance et vos réponses comptent chacune pour un envoi. Abonnement mensuel, payé en ligne.",
       limits: {
         sends: "envois réels par mois",
         sites: "site",
@@ -531,24 +531,23 @@ export const fr = {
           tagline: "Pour lancer le netlinking d'un site.",
           cta: "Commencer",
           features: [
-            "Une tactique : les sites jamais sollicités",
+            "Audit complet et plan de liens",
             "Tri des cibles avec motifs, brouillons, lots à valider",
             "Relance unique et inbox classé",
             "Vérification des liens obtenus",
           ],
         },
         pro: {
-          tagline: "Les trois tactiques, sur un ou plusieurs sites.",
+          tagline: "Pour quelques sites, avec plus de volume.",
           cta: "Commencer",
           features: [
             "Tout Starter",
-            "Les trois tactiques : liens morts et mentions sans lien en plus",
             "Réponses prêtes à insérer quand un site dit oui",
             "Options guidées face à une demande de paiement",
           ],
         },
         business: {
-          tagline: "Pour gérer plusieurs sites à la fois.",
+          tagline: "Pour gérer tout un portefeuille de sites.",
           cta: "Commencer",
           features: [
             "Tout Pro",
@@ -2251,7 +2250,7 @@ export const fr = {
       "Les clés de paiement ne sont pas encore configurées : le bouton de souscription n'aboutit pas à un vrai paiement.",
     portal: "Gérer mon abonnement",
     free: "Gratuit",
-    perMonth: "par mois",
+    perMonth: "TTC par mois",
     noSending: "Aucun envoi réel",
     sendCap: (n: number) => `${n} envois par mois`,
     sites: (n: number) => `${n} site${n > 1 ? "s" : ""}`,

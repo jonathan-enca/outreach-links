@@ -123,6 +123,9 @@ describe("home FR", () => {
     const p = fr.home.pricing;
     expect(Object.keys(p.plans)).toEqual(["starter", "pro", "business"]);
     expect(p.free.cta).toBe("Essai gratuit");
+    // Les trois tactiques sont dans toutes les offres : la grille n'en parle pas. Prix affichés TTC.
+    expect(texts(p).join(" ")).not.toMatch(/tactique/i);
+    expect(p.perMonth).toMatch(/TTC/);
     // Aucun client pour l'instant : pas de « le plus choisi ».
     expect(texts(p).join(" ")).not.toMatch(/plus choisi|populaire/i);
   });
