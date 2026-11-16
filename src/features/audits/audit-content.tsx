@@ -30,7 +30,14 @@ import type { ProfileData } from "@/features/profile/run";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 
-export async function AuditContent({ id }: { id: string }) {
+export async function AuditContent({
+  id,
+  showSteps = false,
+}: {
+  id: string;
+  /** Revoir les étapes d'une analyse terminée (pour en reprendre une), sans ouverture automatique des cibles. */
+  showSteps?: boolean;
+}) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/connexion");
@@ -44,7 +51,7 @@ export async function AuditContent({ id }: { id: string }) {
 
   // MU.3 : une analyse lancée (en attente, en cours ou en échec) a son propre écran, qui se met à jour
   // seul ; une analyse finie mène directement aux cibles.
-  if (audit.analysis_status === "termine") redirect(siteHref.cibles(audit.site_id));
+  if (audit.analysis_status === "termine" && !showSteps) redirect(siteHref.cibles(audit.site_id));
   if (audit.analysis_status !== "aucun") {
     const snapshot = await loadAnalysisSnapshot(supabase, id);
     if (!snapshot) notFound();
@@ -61,6 +68,7 @@ export async function AuditContent({ id }: { id: string }) {
           restartAction={restartFromStepAction.bind(null, audit.id)}
           relaunchAction={relaunchStalledAction.bind(null, audit.id)}
           emailEnabled={Boolean(env.RESEND_API_KEY)}
+          autoOpen={!showSteps}
         />
       </>
     );

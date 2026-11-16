@@ -8,8 +8,15 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: t.audits.analysisTitle };
 
-async function Analyse({ params }: { params: Promise<{ id: string }> }) {
+async function Analyse({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ etapes?: string }>;
+}) {
   const { id } = await params;
+  const { etapes } = await searchParams;
   if (!UUID_RE.test(id)) notFound();
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
@@ -18,13 +25,16 @@ async function Analyse({ params }: { params: Promise<{ id: string }> }) {
   if (!found) notFound();
   // Pas encore d'analyse : la personne est en cours d'onboarding.
   if (!found.audit) redirect(siteHref.relecture(id));
-  return <AuditContent id={found.audit.id} />;
+  return <AuditContent id={found.audit.id} showSteps={etapes === "1"} />;
 }
 
-export default function Page(props: { params: Promise<{ id: string }> }) {
+export default function Page(props: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ etapes?: string }>;
+}) {
   return (
     <Suspense>
-      <Analyse params={props.params} />
+      <Analyse params={props.params} searchParams={props.searchParams} />
     </Suspense>
   );
 }
