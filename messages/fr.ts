@@ -1365,6 +1365,7 @@ export const fr = {
   },
   targets: {
     title: "Vos cibles",
+    reviewSteps: "Revoir les étapes de l'analyse ou en reprendre une",
     description:
       "La liste courte, classée : pour chaque site, la demande à faire et pourquoi. Rien n'est envoyé avant que vous ayez validé un lot de messages.",
     back: "Retour à l'analyse",

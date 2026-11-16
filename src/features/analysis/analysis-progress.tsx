@@ -126,6 +126,7 @@ export function AnalysisProgress({
   restartAction,
   relaunchAction,
   emailEnabled,
+  autoOpen = true,
 }: {
   initial: AnalysisSnapshot;
   resumeAction: (prev: AuditActionState) => Promise<AuditActionState>;
@@ -134,6 +135,8 @@ export function AnalysisProgress({
   /** Démarrage bloqué : relance l'événement (chantier A.4). */
   relaunchAction: () => Promise<AuditActionState>;
   emailEnabled: boolean;
+  /** Faux : on revoit les étapes d'une analyse finie, « Vos cibles » ne s'ouvre pas seul. */
+  autoOpen?: boolean;
 }) {
   const router = useRouter();
   const [snap, setSnap] = useState(initial);
@@ -169,10 +172,10 @@ export function AnalysisProgress({
 
   // Fin : on laisse voir « terminée », puis « Vos cibles » s'ouvre seul.
   useEffect(() => {
-    if (snap.status !== "termine") return;
+    if (snap.status !== "termine" || !autoOpen) return;
     const timer = setTimeout(() => router.push(siteHref.cibles(snap.siteId)), REDIRECT_MS);
     return () => clearTimeout(timer);
-  }, [snap.status, snap.siteId, router]);
+  }, [snap.status, snap.siteId, router, autoOpen]);
 
   // Après « Reprendre », on relit l'état tout de suite : l'interrogation repart d'elle-même.
   const resume = async (prev: AuditActionState) => {
@@ -222,9 +225,11 @@ export function AnalysisProgress({
                 <ArrowRight aria-hidden className="size-4" />
               </Link>
             </Button>
-            <span role="status" className="text-sm text-muted-foreground">
-              {S.redirecting}
-            </span>
+            {autoOpen ? (
+              <span role="status" className="text-sm text-muted-foreground">
+                {S.redirecting}
+              </span>
+            ) : null}
           </div>
         </Card>
       ) : failed ? (

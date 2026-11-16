@@ -242,8 +242,9 @@ export function createLlmClient(options: LlmClientOptions) {
     if (!parsed.success) {
       throw new LlmError(
         `${options.provider} : sortie non conforme au schéma (${parsed.error.issues
-          .map((i) => i.path.join("."))
-          .join(", ")})`,
+          .slice(0, 3)
+          .map((i) => `${i.path.join(".")} : ${i.code} ${i.message}`.slice(0, 120))
+          .join(" ; ")}) début : ${raw.text.slice(0, 160).replace(/\s+/g, " ")}`,
         "invalid",
       );
     }

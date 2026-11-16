@@ -72,6 +72,14 @@ async function Targets({ params }: { params: Promise<{ id: string }> }) {
           validate: validateRequestsAction.bind(null, auditId),
         }}
       />
+      <p className="mt-6 text-sm text-muted-foreground">
+        <Link
+          href={`${siteHref.analyse(id)}?etapes=1`}
+          className="text-primary underline underline-offset-4"
+        >
+          {t.targets.reviewSteps}
+        </Link>
+      </p>
     </>
   );
 }
