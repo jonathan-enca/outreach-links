@@ -5,7 +5,12 @@ import { configuredModel } from "@/features/qualification/service";
 import { dailyCapReached, totalCostForAudit } from "@/lib/costs";
 import { t } from "@/lib/messages";
 import type { Database, Json } from "@/lib/supabase/database.types";
-import { estimateFindings, FINDINGS_LIMITS, type FindingsEstimate } from "./limits";
+import {
+  estimateFindings,
+  FINDINGS_LIMITS,
+  MENTION_ONLY_REASONS,
+  type FindingsEstimate,
+} from "./limits";
 import { FINDINGS_EVENT } from "./run";
 
 type Client = SupabaseClient<Database>;
@@ -43,7 +48,17 @@ export async function previewFindings(service: Client, auditId: string): Promise
     .eq("run_id", qrun.id)
     .eq("status", "liste_courte");
   if (error) return { ok: false, message: M.saveError };
-  if (!count) return { ok: false, message: M.noTargets };
+  // Cibles « mentions » sans contact : examinées aussi (mention seulement), au plus `maxMentionOnly`.
+  const extra = await service
+    .from("qualified_targets")
+    .select("id", { count: "exact", head: true })
+    .eq("run_id", qrun.id)
+    .eq("status", "exclu")
+    .contains("tactics", ["mentions"])
+    .in("exclusion_reason", [...MENTION_ONLY_REASONS])
+    .not("url", "is", null);
+  const extraCount = Math.min(extra.count ?? 0, FINDINGS_LIMITS.maxMentionOnly);
+  if (!count && !extraCount) return { ok: false, message: M.noTargets };
   const { data: audit } = await service
     .from("audits")
     .select("cost_cap_usd")
@@ -56,7 +71,7 @@ export async function previewFindings(service: Client, auditId: string): Promise
     siteId: qrun.site_id,
     qualificationRunId: qrun.id,
     preview: {
-      estimate: estimateFindings(count, { model: configuredModel() }),
+      estimate: estimateFindings((count ?? 0) + extraCount, { model: configuredModel() }),
       remainingUsd: Math.round((Number(audit?.cost_cap_usd ?? 0) - spent) * 1e6) / 1e6,
     },
   };

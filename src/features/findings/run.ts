@@ -4,7 +4,7 @@ import { getLatestBrandProfile } from "@/features/brand/service";
 import { logger } from "@/lib/logger";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import type { FindInput, FindStats } from "./funnel";
-import { FINDINGS_LIMITS } from "./limits";
+import { FINDINGS_LIMITS, MENTION_ONLY_REASONS } from "./limits";
 import type { Finding, FindingContext, FindingTarget } from "./types";
 
 type Client = SupabaseClient<Database>;
@@ -21,6 +21,25 @@ export interface FindingsRunRow {
   budgetUsd: number;
   model: string;
   auditCapUsd: number;
+}
+
+/** Pages proposables du site, l'accueil d'abord : même liste et même ordre que la qualification (MT.4). */
+export function siteResources(
+  domain: string,
+  p:
+    | {
+        name_variants: string[];
+        linkable_resources: { url: string; title: string; selected?: boolean }[];
+      }
+    | undefined,
+): { url: string; title: string }[] {
+  const home = `https://${domain}/`;
+  return [
+    { url: home, title: `Accueil de ${p?.name_variants[0] ?? domain}` },
+    ...(p?.linkable_resources ?? [])
+      .filter((r) => r.selected !== false && /^https?:\/\//.test(r.url) && r.url !== home)
+      .map((r) => ({ url: r.url, title: r.title })),
+  ].slice(0, 6);
 }
 
 /**
@@ -57,7 +76,7 @@ export async function loadFindingsInput(
     .maybeSingle();
   if (!qrun || qrun.status !== "termine") return null;
 
-  const [rows, comps, profile] = await Promise.all([
+  const [rows, comps, profile, extra] = await Promise.all([
     service
       .from("qualified_targets")
       .select("id, domain, url, rank, judgement")
@@ -67,17 +86,22 @@ export async function loadFindingsInput(
       .limit(FINDINGS_LIMITS.maxTargets),
     service.from("competitors").select("domain").eq("audit_id", auditId),
     getLatestBrandProfile(service, site.id),
+    service
+      .from("qualified_targets")
+      .select("id, domain, url, judgement")
+      .eq("run_id", qrun.id)
+      .eq("status", "exclu")
+      .contains("tactics", ["mentions"])
+      .in("exclusion_reason", [...MENTION_ONLY_REASONS])
+      .not("url", "is", null)
+      .order("provisional_score", { ascending: false })
+      .limit(FINDINGS_LIMITS.maxMentionOnly),
   ]);
   if (rows.error) throw new Error(`loadFindingsInput : ${rows.error.message}`);
+  if (extra.error) throw new Error(`loadFindingsInput : ${extra.error.message}`);
 
   const p = profile?.profile;
-  const home = `https://${site.domain}/`;
-  const resources = [
-    { url: home, title: `Accueil de ${p?.name_variants[0] ?? site.domain}` },
-    ...(p?.linkable_resources ?? [])
-      .filter((r) => r.selected !== false && /^https?:\/\//.test(r.url) && r.url !== home)
-      .map((r) => ({ url: r.url, title: r.title })),
-  ].slice(0, 6);
+  const resources = siteResources(site.domain, p);
   const resourceIdx = z.object({ resource: z.number().int().min(0).max(9) }).catch({ resource: 0 });
 
   return {
@@ -92,7 +116,18 @@ export async function loadFindingsInput(
         url: r.url!,
         rank: r.rank!,
         resource: resourceIdx.parse(r.judgement).resource,
-      })),
+      }))
+      .concat(
+        (extra.data ?? []).map((r, i) => ({
+          targetId: r.id,
+          domain: r.domain,
+          url: r.url!,
+          // Après toute la liste courte (rangs 1 à 40) : ne la déloge jamais.
+          rank: 1000 + i,
+          resource: resourceIdx.parse(r.judgement).resource,
+          mentionOnly: true as const,
+        })),
+      ),
     ctx: {
       ownDomain: site.domain,
       brandName: p?.name_variants[0] ?? site.domain,

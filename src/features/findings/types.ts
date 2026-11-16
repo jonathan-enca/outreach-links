@@ -33,6 +33,12 @@ export interface FindingTarget {
   rank: number;
   /** Ressource préférée du jugement MT.4 (index dans `resources`), repli du choix de remplacement. */
   resource: number;
+  /**
+   * Cible « mentions » écartée en amont faute de contact (ou non jugée) : on ne cherche QUE la mention
+   * sans lien (lecture gratuite + un jugement), jamais de lien mort ni de lien inadapté. Une mention
+   * sans lien reste une très bonne cible même sans contact trouvé (la demande passera par une tâche).
+   */
+  mentionOnly?: boolean;
 }
 
 export interface MentionHit {

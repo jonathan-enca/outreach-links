@@ -362,7 +362,7 @@ describe("demande en trois lignes et brief du rédacteur", () => {
     replacementHow: "jugement" as const,
     reason: "Site américain, en anglais.",
   };
-  it("lien inadapté : cite le lien, propose la ressource, présente honnêtement le fondateur", () => {
+  it("lien inadapté : cite le lien, propose la ressource, ne revendique aucune qualité (la présentation vient de l'utilisateur)", () => {
     const f = buildFinding(
       {
         ...base,
@@ -377,7 +377,8 @@ describe("demande en trois lignes et brief du rédacteur", () => {
     expect(f.requestLines).toHaveLength(3);
     expect(f.requestLines[0]).toContain(CTX.resources[2]!.url);
     expect(f.requestLines[1]).toContain("free printable coloring pages");
-    expect(f.requestLines[2]).toContain("fondateur");
+    expect(f.requestLines[2]).toContain("Pourquoi");
+    expect(f.requestLines.join(" ")).not.toContain("fondateur");
     expect(f.brief.introduceAs).toBe("fondateur");
     expect(f.brief.opening).toContain("x.com");
   });
@@ -585,6 +586,34 @@ describe("entonnoir des constats", () => {
     });
     const { findings } = await run(d, ["u15"]);
     expect(findings).toEqual([]);
+  });
+  it("cible « mentions » sans contact : seule la mention est cherchée (ni lien mort ni lien inadapté, aucune requête sur ses liens)", async () => {
+    const d = fakeDeps();
+    const ids = ["d01", "m01", "u01"];
+    const { findings, stats } = await executeFindings(
+      d.deps,
+      {
+        workspaceId: null,
+        auditId: null,
+        ctx: CTX,
+        targets: ids.map((id, i) => ({
+          ...target(id, 1000 + i),
+          domain: `${id}.exemple.fr`,
+          mentionOnly: true,
+        })),
+        budgetUsd: 0.05,
+        model: "gpt-4o-mini",
+      },
+      (_id, fn) => fn(),
+    );
+    expect(findings.map((f) => f.kind)).toEqual(["mention_sans_lien"]);
+    expect(stats).toMatchObject({
+      deadFound: 0,
+      deadFindings: 0,
+      unsuitedFindings: 0,
+      requests: 0,
+    });
+    expect(d.calls.llm).toBe(1);
   });
   it("sans clé LLM, les liens morts restent trouvés et le reste n'est pas deviné", async () => {
     const d = fakeDeps({ noLlm: true });

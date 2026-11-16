@@ -786,6 +786,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      plan_item_briefs: {
+        Row: {
+          brief: Json;
+          created_at: string;
+          finding_id: string | null;
+          kind: string;
+          plan_id: string;
+          plan_item_id: string;
+          presentation: string;
+          quote: string | null;
+          request_lines: string[];
+          target_id: string | null;
+          workspace_id: string;
+        };
+        Insert: {
+          brief: Json;
+          created_at?: string;
+          finding_id?: string | null;
+          kind: string;
+          plan_id: string;
+          plan_item_id: string;
+          presentation: string;
+          quote?: string | null;
+          request_lines: string[];
+          target_id?: string | null;
+          workspace_id: string;
+        };
+        Update: {
+          brief?: Json;
+          created_at?: string;
+          finding_id?: string | null;
+          kind?: string;
+          plan_id?: string;
+          plan_item_id?: string;
+          presentation?: string;
+          quote?: string | null;
+          request_lines?: string[];
+          target_id?: string | null;
+          workspace_id?: string;
+        };
+        Relationships: [];
+      };
       qualification_runs: {
         Row: {
           actual_cost_usd: number | null;
@@ -2949,6 +2991,8 @@ export type Database = {
           offered_asset: string | null;
           priority_queries: string[];
           goal: string;
+          founder_role: string | null;
+          founder_confirmed_at: string | null;
           target_keywords: string[];
           sender_email: string | null;
           signature_first_name: string | null;
@@ -2969,6 +3013,8 @@ export type Database = {
           offered_asset?: string | null;
           priority_queries?: string[];
           goal?: string;
+          founder_role?: string | null;
+          founder_confirmed_at?: string | null;
           target_keywords?: string[];
           sender_email?: string | null;
           signature_first_name?: string | null;
@@ -2989,6 +3035,8 @@ export type Database = {
           offered_asset?: string | null;
           priority_queries?: string[];
           goal?: string;
+          founder_role?: string | null;
+          founder_confirmed_at?: string | null;
           target_keywords?: string[];
           sender_email?: string | null;
           signature_first_name?: string | null;
