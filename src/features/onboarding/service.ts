@@ -24,6 +24,7 @@ import type { StoredBrandProfile } from "@/features/brand/schema";
 import { nicheQueries } from "@/features/public-audit/niche";
 import { estimateQueryPhase, type QueryPhaseEstimate } from "@/features/queries/plan";
 import { buildAndStoreQueryUniverse, type QueryDeps } from "@/features/queries/service";
+import { isMarketCountry, type MarketCountry } from "@/features/sites/market";
 import { deduceSite } from "./deduce";
 
 type Client = SupabaseClient<Database>;
@@ -39,11 +40,43 @@ export interface StartState {
   siteId?: string;
   /** Renseigné quand un audit existe déjà pour ce site : on y va directement. */
   auditId?: string;
+  /** Ce qui a été compris à la lecture de l'accueil (affiché pendant la lecture du reste du site). */
+  theme?: string;
+  language?: string;
+  /** Le profil de marque reste à établir (phase 2 : `understandSite`). */
+  needsProfile?: boolean;
+}
+
+/** Marché et objectif demandés dès l'étape 1 (chantier B) : une campagne = un site × un pays. */
+export interface StartMarket {
+  country: MarketCountry;
+  /** « auto » : langue détectée sur le site (modifiable ensuite). */
+  language: "auto" | "fr" | "en";
+  goal: SiteGoal;
+}
+export const DEFAULT_MARKET: StartMarket = {
+  country: "FR",
+  language: "auto",
+  goal: "autorite_generale",
+};
+
+/** Lit le marché saisi dans le formulaire de l'étape 1 ; valeurs inconnues = valeurs par défaut. */
+export function readMarket(formData: FormData): StartMarket {
+  const country = formData.get("country");
+  const language = formData.get("language");
+  const goal = formData.get("goal");
+  return {
+    country: isMarketCountry(country) ? country : DEFAULT_MARKET.country,
+    language: language === "fr" || language === "en" ? language : "auto",
+    goal: (SITE_GOALS as readonly string[]).includes(String(goal))
+      ? (goal as SiteGoal)
+      : DEFAULT_MARKET.goal,
+  };
 }
 
 export interface StartDeps {
   /** Lit la page d'accueil du domaine (lecteur sûr : SSRF, robots.txt). null = illisible. */
-  readHomepage: (domain: string) => Promise<PageRead | null>;
+  readHomepage: (domain: string, language?: string) => Promise<PageRead | null>;
   /** Client LLM borné, ou null sans clé. */
   makeLlm: () => LlmClient | null;
   /** MT.1 : profil de marque (lecture du site + un appel LLM). Absent = pas de profil. */
@@ -66,6 +99,8 @@ export async function startFromUrl(
   supabase: Client,
   rawUrl: string,
   deps: StartDeps,
+  market: StartMarket = DEFAULT_MARKET,
+  opts: { profile?: boolean } = {},
 ): Promise<StartState> {
   const domain = normalizeDomain(rawUrl);
   if (!domain) return { status: "error", message: ONBOARDING_MESSAGES.invalidUrl };
@@ -86,6 +121,7 @@ export async function startFromUrl(
     .select("id, niche, priority_queries")
     .eq("workspace_id", ws.id)
     .eq("domain", domain)
+    .eq("country", market.country)
     .maybeSingle();
 
   if (existing) {
@@ -101,6 +137,9 @@ export async function startFromUrl(
     // Site déjà cadré (ou saisi à la main) : pas de nouvelle déduction, donc pas de nouvel appel LLM.
     // Le profil de marque, lui, est établi s'il manque (site créé avant MT.1).
     if (existing.niche && existing.priority_queries.length > 0) {
+      if (opts.profile === false) {
+        return { status: "ok", siteId: existing.id, theme: existing.niche, needsProfile: true };
+      }
       await ensureBrandProfile(supabase, deps, {
         siteId: existing.id,
         workspaceId: ws.id,
@@ -114,7 +153,10 @@ export async function startFromUrl(
 
   let page: PageRead | null = null;
   try {
-    page = await deps.readHomepage(domain);
+    page = await deps.readHomepage(
+      domain,
+      market.language === "auto" ? undefined : market.language,
+    );
   } catch {
     page = null;
   }
@@ -126,10 +168,14 @@ export async function startFromUrl(
   }
   const deduction = await deduceSite({ domain, page, llm, workspaceId: ws.id });
 
+  // Le marché choisi prime : pays demandé, langue demandée ou, à défaut, celle détectée sur le site.
+  const language = market.language === "auto" ? deduction.language : market.language;
   const row = {
     niche: deduction.theme || null,
-    country: deduction.country,
-    language: deduction.language,
+    country: market.country,
+    language,
+    goal: market.goal,
+    ...(market.goal === "autorite_generale" ? { target_keywords: [] as string[] } : {}),
     priority_queries: deduction.queries,
   };
 
@@ -165,12 +211,16 @@ export async function startFromUrl(
       queries: deduction.queries.length,
     },
   });
+  if (opts.profile === false) {
+    return { status: "ok", siteId, theme: deduction.theme, language, needsProfile: true };
+  }
   const brand = await ensureBrandProfile(supabase, deps, {
     siteId,
     workspaceId: ws.id,
     userId,
     domain,
     home: page,
+    language,
   });
   if (brand) {
     await supabase.from("events").insert({
@@ -193,6 +243,7 @@ async function ensureBrandProfile(
     userId: string;
     domain: string;
     home: PageRead | null;
+    language?: string;
   },
 ): Promise<StoredBrandProfile | null> {
   if (!deps.brand) return null;
@@ -504,4 +555,41 @@ export async function launchJourney(
     },
   });
   return { status: "ok", auditId: created.auditId };
+}
+
+/**
+ * Phase 2 de l'étape 1 : lecture du reste du site (plan du site, pages) et profil de marque, dans la
+ * langue de la campagne. Séparée de la phase 1 pour que l'écran coche chaque étape quand elle est
+ * réellement faite. Ne lève jamais ; un site sans profil est relu à la main à l'écran suivant.
+ */
+export async function understandSite(
+  supabase: Client,
+  siteId: string,
+  deps: StartDeps,
+): Promise<StartState> {
+  const userId = await currentUserId(supabase);
+  if (!userId) return { status: "error", message: ONBOARDING_MESSAGES.unauthenticated };
+  const { data: site } = await supabase
+    .from("sites")
+    .select("id, workspace_id, domain, language")
+    .eq("id", siteId)
+    .maybeSingle();
+  if (!site) return { status: "error", message: ONBOARDING_MESSAGES.siteNotFound };
+  const brand = await ensureBrandProfile(supabase, deps, {
+    siteId,
+    workspaceId: site.workspace_id,
+    userId,
+    domain: site.domain,
+    home: null,
+    language: site.language,
+  });
+  if (brand) {
+    await supabase.from("events").insert({
+      workspace_id: site.workspace_id,
+      actor_id: userId,
+      type: "brand_profile.created",
+      payload: { site_id: siteId, version: brand.version, pages: brand.pagesRead.length },
+    });
+  }
+  return { status: "ok", siteId, language: site.language };
 }

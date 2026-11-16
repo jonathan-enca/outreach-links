@@ -1,6 +1,10 @@
 import { env } from "@/env";
 import { safeFetchPage } from "@/features/sites/verify";
-import { createPageReader, type PageRead } from "@/features/triage/page-reader";
+import {
+  createPageReader,
+  languageVersionHref,
+  type PageRead,
+} from "@/features/triage/page-reader";
 import { createLlmClientFromEnv, type LlmClient } from "@/lib/llm/client";
 import { BRAND_LIMITS } from "@/features/brand/limits";
 import { readSite } from "@/features/brand/read-site";
@@ -12,14 +16,21 @@ import { DEDUCE_LIMITS } from "./deduce";
 import type { StartDeps } from "./service";
 
 /** Lit la page d'accueil du domaine : robots.txt, protection SSRF, 2 requêtes au plus. */
-async function readHomepage(domain: string): Promise<PageRead | null> {
+async function readHomepage(domain: string, language?: string): Promise<PageRead | null> {
   const reader = createPageReader({
     fetch: safeFetchPage,
     sleep: (ms) => new Promise<void>((r) => setTimeout(r, ms)),
     now: () => Date.now(),
-    maxRequests: 2,
+    maxRequests: 4,
   });
-  return reader.read(`https://${domain}/`);
+  const home = await reader.read(`https://${domain}/`);
+  // Site à plusieurs langues : on lit la version de la campagne (jamais de traduction).
+  const href = language && home.status === 200 ? languageVersionHref(home, language) : null;
+  if (href) {
+    const alt = await reader.read(href).catch(() => null);
+    if (alt && alt.status === 200) return alt;
+  }
+  return home;
 }
 
 /** Client LLM plafonné pour la déduction ; null sans clé (le repli sans LLM prend le relais). */
@@ -42,8 +53,9 @@ function makeBrandLlm(): LlmClient | null {
 
 /** Lecture du site et LLM plafonné du profil de marque (onboarding et analyse unique MU.1). */
 export const brandDeps: BrandDeps = {
-  readSite: (domain, home) =>
+  readSite: (domain, home, language) =>
     readSite(domain, {
+      language,
       fetch: safeFetchPage,
       sleep: (ms) => new Promise<void>((r) => setTimeout(r, ms)),
       now: () => Date.now(),

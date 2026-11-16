@@ -10,6 +10,7 @@ import {
   serpEntries,
   type QueryEntries,
 } from "./discover";
+import { serpLocation } from "@/features/sites/market";
 import { isPlanKey, limitsFor, PLAN_LIMITS } from "./plans";
 import { transitionAudit } from "./service";
 
@@ -22,6 +23,8 @@ export interface RunAudit {
   domain: string;
   queries: string[];
   costCapUsd: number;
+  /** Marché de la campagne (pays, langue) : lieu et langue des recherches Google. */
+  market?: { country: string; language: string };
 }
 
 /**
@@ -32,7 +35,7 @@ export interface RunAudit {
 export async function beginDiscovery(service: Client, auditId: string): Promise<RunAudit | null> {
   const { data: audit, error } = await service
     .from("audits")
-    .select("*, sites(domain)")
+    .select("*, sites(domain, country, language)")
     .eq("id", auditId)
     .maybeSingle();
   if (error) throw new Error(`beginDiscovery : ${error.message}`);
@@ -45,9 +48,17 @@ export async function beginDiscovery(service: Client, auditId: string): Promise<
   } else if (audit.status !== "en_cours") {
     return null;
   }
-  const site = audit.sites as unknown as { domain: string } | null;
+  const site = audit.sites as unknown as {
+    domain: string;
+    country?: string;
+    language?: string;
+  } | null;
   if (!site) return null;
   return {
+    market:
+      site.country && site.language
+        ? { country: site.country, language: site.language }
+        : undefined,
     id: audit.id,
     workspaceId: audit.workspace_id,
     domain: site.domain,
@@ -81,7 +92,7 @@ export async function discoverQuery(
   }
 
   const out = await dfs.serpOrganicLive(
-    { keyword: query, depth },
+    { keyword: query, depth, ...serpLocation(audit.market?.country, audit.market?.language) },
     { workspaceId: audit.workspaceId, auditId: audit.id },
   );
   const entries = serpEntries(out.result, depth);

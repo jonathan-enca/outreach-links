@@ -39,6 +39,8 @@ export interface CollectionContext {
   /** Tous les concurrents de l'audit (retenus ou non) : jamais des cibles. */
   competitorDomains: string[];
   language: string;
+  /** Pays de la campagne (lieu des recherches Google). */
+  country?: string;
   theme: string;
   nameVariants: string[];
   targetKeywords: string[];

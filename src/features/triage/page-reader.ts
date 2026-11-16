@@ -41,6 +41,8 @@ export interface PageRead {
   headings: string[];
   text: string;
   lang: string | null;
+  /** Versions dans d'autres langues déclarées par la page (`<link rel="alternate" hreflang>`). */
+  alternates?: { lang: string; href: string }[];
   /** Liens internes (même hôte), pour retrouver une page à partir d'une URL partielle. */
   links: PageLink[];
   /** Liens vers d'autres hôtes (MT.5), au plus `MAX_OUTBOUND`, dans l'ordre du document. */
@@ -179,6 +181,20 @@ export function parseHtml(html: string, url: string): Omit<PageRead, "status" | 
     .slice(0, 12)
     .map((h) => h.slice(0, 160));
   const lang = ($("html").attr("lang") ?? "").trim().toLowerCase().slice(0, 12) || null;
+  const alternates = $("link[rel='alternate'][hreflang]")
+    .map((_, el) => {
+      const hl = ($(el).attr("hreflang") ?? "").trim().toLowerCase();
+      const href = $(el).attr("href");
+      try {
+        return hl && href && hl !== "x-default"
+          ? { lang: hl, href: new URL(href, url).toString() }
+          : null;
+      } catch {
+        return null;
+      }
+    })
+    .get()
+    .slice(0, 20);
   $("script, style, noscript, template, svg, iframe").remove();
   const text = collapse($("body").text() || $.root().text()).slice(0, MAX_TEXT_CHARS);
   return {
@@ -190,6 +206,7 @@ export function parseHtml(html: string, url: string): Omit<PageRead, "status" | 
     headings,
     text,
     lang,
+    alternates,
     links,
     outbound,
     mailtos: allMailtos,
@@ -244,6 +261,7 @@ const EMPTY = (url: string): PageRead => ({
   headings: [],
   text: "",
   lang: null,
+  alternates: [],
   links: [],
   outbound: [],
   mailtos: [],
@@ -377,4 +395,18 @@ export function createJinaFallback(fetchImpl: typeof fetch = fetch): FallbackRea
     if (!res.ok) return null;
     return (await res.text()).slice(0, MAX_TEXT_CHARS);
   };
+}
+
+/**
+ * Adresse de la version de la page dans la langue demandée (« fr », « en »), si la page en déclare une
+ * et qu'elle n'est pas déjà dans cette langue. Null : rien à changer. Pur (testé).
+ */
+export function languageVersionHref(
+  page: Pick<PageRead, "url" | "lang" | "alternates">,
+  language: string,
+): string | null {
+  const want = language.toLowerCase().slice(0, 2);
+  if ((page.lang ?? "").startsWith(want)) return null;
+  const alt = (page.alternates ?? []).find((a) => a.lang.startsWith(want));
+  return alt && alt.href !== page.url ? alt.href : null;
 }

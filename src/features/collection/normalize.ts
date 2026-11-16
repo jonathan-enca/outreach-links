@@ -200,6 +200,10 @@ export function fromContent(
   return out;
 }
 
+/** Adresse d'un fichier ou d'une image (jamais une page qu'un éditeur remplacerait par la nôtre). */
+const ASSET_URL =
+  /(\.(jpe?g|png|gif|webp|svg|ico|pdf|zip|css|js|mp4|mp3|xml|json)(\$|\?|#|$))|^https?:\/\/(img|image|images|cdn|static|avatar|assets|media)\./i;
+
 /**
  * Candidats « lien mort d'un concurrent » (chantier D) : chaque ligne est un lien d'une page tierce vers
  * une page d'un concurrent qui répond 404 / 410 (déclaré par le fournisseur, VÉRIFIÉ ensuite par une
@@ -222,6 +226,8 @@ export function fromDeadPages(
   const out: RawCandidate[] = [];
   for (const it of items) {
     if (it.isBroken !== true || it.dofollow === false || !it.targetUrl) continue;
+    // Mesuré (16/11) : la plupart des « pages disparues » sont des images ou des fichiers, pas des pages.
+    if (ASSET_URL.test(it.targetUrl)) continue;
     if (it.spamScore !== null && it.spamScore >= COLLECTION_LIMITS.deadPages.spamMax) continue;
     const domain = acceptDomain(it.sourceDomain, ctx);
     if (!domain) continue;

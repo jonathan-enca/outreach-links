@@ -96,7 +96,7 @@ export async function saveBrandProfileVersion(
 
 export interface BrandDeps {
   /** Lit le site (accueil, sitemap, quelques pages). Ne lève jamais. */
-  readSite: (domain: string, home: SiteRead["home"] | null) => Promise<SiteRead>;
+  readSite: (domain: string, home: SiteRead["home"] | null, language?: string) => Promise<SiteRead>;
   makeLlm: () => LlmClient | null;
 }
 
@@ -112,18 +112,25 @@ export async function buildAndStoreBrandProfile(
     userId: string | null;
     domain: string;
     home: SiteRead["home"] | null;
+    /** Langue de la campagne (profil et pages lues dans cette langue). */
+    language?: string;
   },
   deps: BrandDeps,
 ): Promise<StoredBrandProfile | null> {
   try {
-    const site = await deps.readSite(input.domain, input.home);
+    const site = await deps.readSite(input.domain, input.home, input.language);
     let llm: LlmClient | null = null;
     try {
       llm = deps.makeLlm();
     } catch {
       llm = null;
     }
-    const generated = await generateBrandProfile({ site, llm, workspaceId: input.workspaceId });
+    const generated = await generateBrandProfile({
+      site,
+      llm,
+      workspaceId: input.workspaceId,
+      language: input.language,
+    });
     if (!generated) return null;
     const saved = await saveBrandProfileVersion(supabase, {
       siteId: input.siteId,

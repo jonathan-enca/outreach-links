@@ -2,7 +2,7 @@ import { z } from "zod";
 import { t } from "@/lib/messages";
 import { normalizeDomain } from "./domain";
 
-export const COUNTRIES = ["FR", "BE", "CH", "CA", "LU", "MC"] as const;
+export const COUNTRIES = ["FR", "BE", "CH", "CA", "LU", "MC", "GB", "US"] as const;
 export const LANGUAGES = ["fr", "en"] as const;
 
 const text = (min: number, max: number, message: string) =>

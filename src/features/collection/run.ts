@@ -12,6 +12,7 @@ import {
 } from "@/lib/dataforseo";
 import { logger } from "@/lib/logger";
 import type { Database, Json } from "@/lib/supabase/database.types";
+import { serpLocation } from "@/features/sites/market";
 import { normalizeBacklinkItems } from "@/features/backlinks/normalize";
 import { spendLimitsFor, assertCanSpend, type SpendLimits } from "./guard";
 import {
@@ -108,7 +109,7 @@ export async function beginCollection(
 
   const { data: audit, error: aErr } = await service
     .from("audits")
-    .select("id, cost_cap_usd, sites(id, domain, language, niche, target_keywords)")
+    .select("id, cost_cap_usd, sites(id, domain, language, country, niche, target_keywords)")
     .eq("id", auditId)
     .maybeSingle();
   if (aErr) throw new Error(`beginCollection : ${aErr.message}`);
@@ -116,6 +117,7 @@ export async function beginCollection(
     id: string;
     domain: string;
     language: string;
+    country: string;
     niche: string | null;
     target_keywords: string[];
   } | null;
@@ -135,6 +137,7 @@ export async function beginCollection(
       ownDomain: site.domain,
       competitorDomains: (comp.data ?? []).map((c) => c.domain),
       language: site.language,
+      country: site.country,
       theme: site.niche ?? "",
       nameVariants: profile?.profile.name_variants ?? [],
       targetKeywords: site.target_keywords,
@@ -303,7 +306,7 @@ export async function runDeadPagesCall(
         target: competitor,
         limit: rows,
         mode: "one_per_domain",
-        filters: [["is_broken", "=", true], "and", ["dofollow", "=", true]],
+        filters: [["url_to_status_code", "in", [404, 410]], "and", ["dofollow", "=", true]],
         order_by: ["rank,desc"],
       },
       callOpts(run),
@@ -336,7 +339,10 @@ export async function runSerpQuery(
   const est = estimateCost("serpOrganicLive", { keyword: query.q, depth });
   if (!(await guarded(deps.service, run, est))) return blockedOutcome(phase, label);
   const out = await withProviderRetry(() =>
-    deps.dfs.serpOrganicLive({ keyword: query.q, depth }, callOpts(run)),
+    deps.dfs.serpOrganicLive(
+      { keyword: query.q, depth, ...serpLocation(run.ctx.country, run.ctx.language) },
+      callOpts(run),
+    ),
   );
   if (!out) return failedOutcome(phase, label);
   const entries = serpEntries(out.result, depth);

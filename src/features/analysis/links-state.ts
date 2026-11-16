@@ -1,3 +1,4 @@
+import { serpLocation } from "@/features/sites/market";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { assertCanSpend, spendLimitsFor } from "@/features/collection/guard";
 import { BudgetExceededError, type DataForSeoClient } from "@/lib/dataforseo";
@@ -39,6 +40,8 @@ export interface LinksState {
 }
 
 export interface LinksStateRun {
+  /** Marché de la campagne : lieu et langue des mots-clés classés. */
+  market?: { country: string; language: string };
   auditId: string;
   workspaceId: string;
   domain: string;
@@ -53,7 +56,7 @@ export async function beginLinksState(
   const [{ data: audit }, { data: step }] = await Promise.all([
     service
       .from("audits")
-      .select("id, workspace_id, cost_cap_usd, sites(domain)")
+      .select("id, workspace_id, cost_cap_usd, sites(domain, country, language)")
       .eq("id", auditId)
       .maybeSingle(),
     service
@@ -63,13 +66,18 @@ export async function beginLinksState(
       .eq("key", "etat_des_lieux")
       .maybeSingle(),
   ]);
-  const site = audit?.sites as unknown as { domain: string } | null;
+  const site = audit?.sites as unknown as {
+    domain: string;
+    country?: string;
+    language?: string;
+  } | null;
   if (!audit || !site || !step || step.status === "termine") return null;
   return {
     auditId,
     workspaceId: audit.workspace_id,
     domain: site.domain,
     costCapUsd: Number(audit.cost_cap_usd),
+    market: { country: site.country ?? "FR", language: site.language ?? "fr" },
   };
 }
 
@@ -161,6 +169,7 @@ export async function executeLinksState(
       target: run.domain,
       limit: L.rankedKeywords,
       order_by: ["keyword_data.keyword_info.search_volume,desc"],
+      ...serpLocation(run.market?.country, run.market?.language),
     };
     const out = await part(guard, estimateCost("labsRankedKeywords", p), async () => {
       const r = (await deps.dfs().labsRankedKeywords(p, ids)).result;

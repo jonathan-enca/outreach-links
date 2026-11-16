@@ -35,12 +35,25 @@ async function Home() {
             <li key={s.id}>
               <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
                 <div className="flex flex-col gap-1">
-                  <strong>{s.domain}</strong>
+                  <strong>
+                    {s.domain}
+                    {s.country
+                      ? ` · ${t.sites.countries[s.country as keyof typeof t.sites.countries] ?? s.country}`
+                      : ""}
+                  </strong>
                   <span className="text-sm text-muted-foreground">{h.state[step.kind]}</span>
                 </div>
-                <Button asChild>
-                  <Link href={step.href}>{h.action[step.kind]}</Link>
-                </Button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Link
+                    href={`${START_HREF}?site=${encodeURIComponent(s.domain)}`}
+                    className="text-sm text-primary underline underline-offset-4"
+                  >
+                    {t.onboarding.market.addCountry}
+                  </Link>
+                  <Button asChild>
+                    <Link href={step.href}>{h.action[step.kind]}</Link>
+                  </Button>
+                </div>
               </Card>
             </li>
           );

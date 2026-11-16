@@ -11,6 +11,8 @@ export type JourneyStep = (typeof JOURNEY_STEPS)[number];
 export interface SiteSnapshot {
   id: string;
   domain: string;
+  /** Pays de la campagne (une campagne = un site × un pays). */
+  country?: string | null;
   /** Dernier audit du site, ou null si la personne n'a pas encore lancé l'analyse. */
   audit: {
     id: string;
@@ -70,7 +72,7 @@ export function homeDestination(sites: SiteSnapshot[]): string | null {
 /** Les sites de la personne (la RLS limite à son espace) avec leur dernier audit. */
 export async function loadSiteSnapshots(supabase: Client): Promise<SiteSnapshot[]> {
   const [{ data: sites }, { data: audits }] = await Promise.all([
-    supabase.from("sites").select("id, domain").order("created_at", { ascending: true }),
+    supabase.from("sites").select("id, domain, country").order("created_at", { ascending: true }),
     supabase
       .from("audits")
       .select("id, site_id, status, analysis_status, created_at")
@@ -86,6 +88,7 @@ export async function loadSiteSnapshots(supabase: Client): Promise<SiteSnapshot[
   return (sites ?? []).map((s) => ({
     id: s.id,
     domain: s.domain,
+    country: s.country,
     audit: latest.get(s.id) ?? null,
   }));
 }

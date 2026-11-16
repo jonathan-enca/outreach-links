@@ -1063,7 +1063,7 @@ describe("chantier D : liens morts des concurrents", () => {
     expect(params).toMatchObject({
       target: "coloriez.com",
       mode: "one_per_domain",
-      filters: [["is_broken", "=", true], "and", ["dofollow", "=", true]],
+      filters: [["url_to_status_code", "in", [404, 410]], "and", ["dofollow", "=", true]],
     });
     // Le lien d'un domaine à spam élevé est écarté ; le candidat est la page qui CITE, pas l'accueil.
     expect(out.raws).toHaveLength(1);
@@ -1093,6 +1093,8 @@ describe("chantier D : liens morts des concurrents", () => {
       { ...ok, sourceDomain: "mega-coloring.com", sourceUrl: "https://mega-coloring.com/a" },
       { ...ok, dofollow: false, sourceDomain: "nofollow.fr" },
       { ...ok, isBroken: false, sourceDomain: "vivant.fr" },
+      { ...ok, targetUrl: "https://coloriez.com/img/a.png", sourceDomain: "image.fr" },
+      { ...ok, targetUrl: "https://img.coloriez.com/x", sourceDomain: "cdn.fr" },
       { ...ok, targetUrl: null, sourceDomain: "sanscible.fr" },
     ];
     expect(fromDeadPages(rows, ctx, "coloriez.com").map((r) => r.domain)).toEqual(["asso.fr"]);
