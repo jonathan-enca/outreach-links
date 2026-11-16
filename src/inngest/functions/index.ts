@@ -4,6 +4,7 @@ import { auditDeadlinks } from "./audit-deadlinks";
 import { auditDiscover } from "./audit-discover";
 import { auditOpportunities } from "./audit-opportunities";
 import { auditProfile } from "./audit-profile";
+import { auditQualify } from "./audit-qualify";
 import { planContacts } from "./plan-contacts";
 import { planDrafts } from "./plan-drafts";
 import { linkCheckTick } from "./link-check-tick";
@@ -25,6 +26,7 @@ export const functions = [
   auditOpportunities,
   auditDeadlinks,
   auditCollect,
+  auditQualify,
   planTriage,
   planContacts,
   planDrafts,

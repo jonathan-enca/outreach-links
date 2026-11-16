@@ -7,12 +7,15 @@ import {
 import type { SerpEntry } from "@/features/audits/discover";
 import type { PlannedQuery, Tactic } from "@/features/queries/schema";
 import type { ContentSearchResult, DomainIntersectionResult } from "@/lib/dataforseo";
+import { isPlatformUserSite } from "./hosts";
 import { COLLECTION_LIMITS } from "./limits";
 import type { CollectionContext, MergedCandidate, RawCandidate } from "./types";
 
 /**
  * Filtre GRATUIT commun à toutes les sources : vrai nom de domaine, ni le site lui-même, ni un
  * concurrent, ni une plateforme ou un géant (liste de M1.3). Retourne le domaine normalisé ou null.
+ * MT.4 : le site d'un utilisateur hébergé sur une plateforme de blogs (monblog.blogspot.com) est
+ * gardé même si la plateforme est dans la liste de M1.3 ; la racine de la plateforme ne l'est pas.
  * Les exclusions plus fines (faux domaines, domaines déjà contactés) relèvent de MT.4.
  */
 export function acceptDomain(
@@ -23,7 +26,7 @@ export function acceptDomain(
   const host = hostOf(input);
   if (!isValidHost(host)) return null;
   if (isOwnDomain(host, ctx.ownDomain)) return null;
-  if (isExcludedDomain(host)) return null;
+  if (isExcludedDomain(host) && !isPlatformUserSite(host)) return null;
   if (FREE_HOSTING_FARMS.some((f) => host === f || host.endsWith(`.${f}`))) return null;
   if (ctx.competitorDomains.some((c) => host === c || host.endsWith(`.${c}`))) return null;
   return host;
@@ -32,7 +35,7 @@ export function acceptDomain(
 /**
  * Hébergements gratuits où prolifèrent des réseaux de pages-liens (constaté au run réel du 16/11/2026 :
  * coloriage*.web.app, *.firebaseapp.com). Écartés dès la collecte. Les plateformes de blogs (blogspot...)
- * sont déjà exclues par la liste de M1.3 : à rouvrir en MT.4, ce sont parfois de vraies petites cibles.
+ * sont traitées à part : voir `hosts.ts` (MT.4).
  */
 const FREE_HOSTING_FARMS = ["web.app", "firebaseapp.com", "pages.dev"];
 
@@ -168,7 +171,12 @@ export function fromContent(
 ): RawCandidate[] {
   const out: RawCandidate[] = [];
   for (const item of result?.items ?? []) {
-    const domain = acceptDomain(item.main_domain ?? item.domain, ctx);
+    // `main_domain` d'un blog hébergé est la plateforme (blogspot.com) : on garde alors l'hôte réel.
+    const host = str(item.domain);
+    const domain = acceptDomain(
+      host && isPlatformUserSite(host) ? host : (item.main_domain ?? item.domain),
+      ctx,
+    );
     if (!domain) continue;
     const language = str(item.language ?? item.content_info?.language)?.toLowerCase() ?? null;
     if (language && language !== ctx.language.toLowerCase()) continue;
