@@ -137,15 +137,17 @@ Réponse de la cible demandant de l'argent : trois options présentées à l'uti
 - Audit gratuit : version réduite (score, 3 pages prioritaires, 10 cibles en aperçu, pas d'envoi), cache DataForSEO par domaine, une exécution par domaine et par période, email requis.
 - Mesurer le coût API réel par audit avant de fixer les prix ; un tableau de bord interne du coût par audit et par utilisateur est obligatoire.
 
-### 4.6 Pricing [HYPOTHÈSE à tester]
+### 4.6 Pricing
 
-Modèle mixte : abonnement avec crédits (audits, cibles qualifiées) et plafond d'envois par palier. Pistes :
+**Décision de Jonathan (16/11/2026)** : trois offres payantes, **19,90 € / 39,90 € / 99,90 € TTC par mois**, plus un accès gratuit sans carte (audit réduit, aperçu de cibles, aucun envoi). Source de vérité : table `plans` (`starter`, `pro`, `business`). **Les trois tactiques sont incluses dans toutes les offres** (c'est la base : la grille de tarifs ne les mentionne pas).
 
-- **Gratuit** : audit réduit, aperçu de cibles, aucune carte, aucun envoi.
-- **Starter** (~39 à 49 €/mois) : 1 site, plafond d'envoi bas, 1 boîte.
-- **Pro** (~89 à 119 €/mois) : plusieurs sites, plafond supérieur, inbox classé complet.
-- **Agence** : multi-sites, marque blanche, plus tard.
-  Carte demandée au premier envoi réel (comme Outlink). Paliers différenciés par valeur (sites, audits, crédits), pas seulement par volume d'emails. Remboursement à définir.
+Répartition des accès [HYPOTHÈSE proposée, à confirmer] :
+
+- **Starter 19,90 €** : 1 site, 1 audit complet par mois, 100 envois par mois, 1 boîte.
+- **Pro 39,90 €** (recommandé) : 3 sites, 3 audits, 300 envois, 2 boîtes, réponses prêtes à insérer.
+- **Business 99,90 €** : 10 sites, 10 audits, 1 000 envois, 5 boîtes, tout Pro.
+
+Carte demandée au premier envoi réel (comme Outlink). Paliers différenciés par valeur (sites, audits, réponses prêtes à insérer), pas seulement par volume d'emails. Marque blanche et offre agence : plus tard. Remboursement à définir.
 
 ## 5. Pitch et qualité des messages
 

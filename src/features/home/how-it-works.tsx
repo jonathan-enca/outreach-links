@@ -2,14 +2,23 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/messages";
-import { AppMockup } from "./app-mockup";
+import { howScreens } from "./how-screens";
+import { HowTour } from "./how-tour";
 import { HOME_SECTIONS } from "./sections";
 import { SectionHeading } from "./section-heading";
 
-/** Bande produit sombre : la méthode en étapes, puis la maquette de l'application. */
+/** Bande produit sombre : le parcours en six étapes, chacune avec l'écran du produit qui lui correspond. */
 export function HowItWorks() {
   const s = t.home.how;
   const headingId = `${HOME_SECTIONS.howItWorks}-titre`;
+  const screens = howScreens();
+  const steps = s.steps.map((step, i) => ({
+    title: step.title,
+    text: step.text,
+    roleLabel: step.role === "you" ? s.roles.you : s.roles.tool,
+    byUser: step.role === "you",
+    screen: screens[i],
+  }));
   return (
     <section
       id={HOME_SECTIONS.howItWorks}
@@ -18,26 +27,8 @@ export function HowItWorks() {
     >
       <div className="mx-auto max-w-6xl">
         <SectionHeading id={headingId} label={s.label} title={s.title} intro={s.intro} />
-        <div className="rounded-panel border border-border bg-card p-5 sm:p-7">
-          <h3 className="mb-5 text-lg font-semibold">{s.loopTitle}</h3>
-          <ol className="grid gap-5 sm:grid-cols-2 lg:grid-cols-6 lg:gap-4">
-            {s.steps.map((step, i) => (
-              <li key={step.title} className="flex gap-3 lg:flex-col">
-                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-                  {i + 1}
-                </span>
-                <div>
-                  <p className="font-semibold">{step.title}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{step.text}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-        <div className="mt-10">
-          <AppMockup />
-        </div>
-        <div className="mt-10 flex flex-col items-center gap-2 text-center">
+        <HowTour steps={steps} caption={s.screenCaption} />
+        <div className="mt-12 flex flex-col items-center gap-2 text-center">
           <Button asChild className="h-11 px-5 text-base">
             <Link href="/inscription">
               {s.cta}

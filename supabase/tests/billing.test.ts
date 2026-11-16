@@ -64,14 +64,15 @@ describe.skipIf(!adminUrl)("facturation : garde-fous en base", () => {
 
   it("catalogue : le gratuit n'envoie rien, les plafonds croissent", async () => {
     const r = await db.query("select key, monthly_send_cap from public.plans order by sort_order");
-    expect(r.rows.map((x) => x.key)).toEqual(["gratuit", "starter", "pro"]);
+    expect(r.rows.map((x) => x.key)).toEqual(["gratuit", "starter", "pro", "business"]);
     expect(r.rows[0].monthly_send_cap).toBe(0);
     expect(r.rows[1].monthly_send_cap).toBeLessThan(r.rows[2].monthly_send_cap);
+    expect(r.rows[2].monthly_send_cap).toBeLessThan(r.rows[3].monthly_send_cap);
   });
 
   it("le catalogue est lisible sans connexion (page Tarifs), sans aucune écriture", async () => {
     const r = await inTx("anon", null, (c) => c.query("select key from public.plans"));
-    expect(r.rows).toHaveLength(3);
+    expect(r.rows).toHaveLength(4);
     await expect(
       inTx("anon", null, (c) => c.query("update public.plans set price_eur_cents = 1")),
     ).rejects.toThrow(/permission denied/);

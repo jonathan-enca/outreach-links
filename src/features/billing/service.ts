@@ -15,6 +15,7 @@ export interface PlanRow {
   monthly_credits: number;
   max_sites: number;
   max_mailboxes: number;
+  monthly_audits: number;
 }
 
 export interface BillingOverview {

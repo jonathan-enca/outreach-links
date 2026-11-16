@@ -2401,6 +2401,7 @@ export type Database = {
           key: string;
           max_mailboxes: number;
           max_sites: number;
+          monthly_audits: number;
           monthly_credits: number;
           monthly_send_cap: number;
           name: string;
@@ -2411,6 +2412,7 @@ export type Database = {
           key: string;
           max_mailboxes: number;
           max_sites: number;
+          monthly_audits?: number;
           monthly_credits: number;
           monthly_send_cap: number;
           name: string;
@@ -2421,6 +2423,7 @@ export type Database = {
           key?: string;
           max_mailboxes?: number;
           max_sites?: number;
+          monthly_audits?: number;
           monthly_credits?: number;
           monthly_send_cap?: number;
           name?: string;

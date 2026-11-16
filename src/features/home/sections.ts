@@ -1,12 +1,9 @@
 /** Ancres de la home : utilisées par les sections et par l'en-tête (un test vérifie qu'elles se correspondent). */
 export const HOME_SECTIONS = {
   whatItIs: "c-est-quoi",
-  problem: "probleme",
   proofs: "preuves",
   howItWorks: "comment-ca-marche",
   tactics: "tactiques",
-  quality: "qualite",
-  features: "fonctions",
   compare: "comparatif",
   pricing: "tarifs",
   faq: "faq",
