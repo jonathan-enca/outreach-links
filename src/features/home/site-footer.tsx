@@ -28,6 +28,11 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
+              <Link className={link} href={`/#${HOME_SECTIONS.tactics}`}>
+                {n.tactics}
+              </Link>
+            </li>
+            <li>
               <Link className={link} href={`/#${HOME_SECTIONS.howItWorks}`}>
                 {n.howItWorks}
               </Link>

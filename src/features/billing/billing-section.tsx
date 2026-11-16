@@ -3,11 +3,12 @@ import { Card } from "@/components/ui/card";
 import { t } from "@/lib/messages";
 import type { BillingOverview } from "./service";
 
+/** « 19,90 € » ; sans décimales si le prix est rond. */
 const eur = (cents: number) =>
   new Intl.NumberFormat("fr-FR", {
     style: "currency",
     currency: "EUR",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
   }).format(cents / 100);
 
 export function BillingSection({
@@ -49,7 +50,7 @@ export function BillingSection({
           </form>
         ) : null}
       </Card>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {overview.plans.map((p) => (
           <Card key={p.key} className="flex flex-col gap-2 p-6">
             <h3 className="font-display text-base font-semibold">{p.name}</h3>
@@ -59,6 +60,7 @@ export function BillingSection({
             <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
               <li>{p.monthly_send_cap === 0 ? b.noSending : b.sendCap(p.monthly_send_cap)}</li>
               <li>{b.sites(p.max_sites)}</li>
+              {p.monthly_audits > 0 ? <li>{b.audits(p.monthly_audits)}</li> : null}
               <li>{b.mailboxes(p.max_mailboxes)}</li>
               <li>{b.creditsPerMonth(p.monthly_credits)}</li>
             </ul>

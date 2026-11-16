@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/messages";
@@ -8,16 +8,19 @@ import { SectionHeading } from "./section-heading";
 
 function limitsFor(plan: PublicPlan): string[] {
   const l = t.home.pricing.limits;
+  const n = (count: number, one: string, many: string) => `${count} ${count > 1 ? many : one}`;
   return [
-    plan.monthlySendCap > 0 ? `${plan.monthlySendCap} ${l.sends}` : l.none,
-    `${plan.maxSites} ${plan.maxSites > 1 ? l.sitesPlural : l.sites}`,
-    ...(plan.maxMailboxes > 0
-      ? [`${plan.maxMailboxes} ${plan.maxMailboxes > 1 ? l.mailboxesPlural : l.mailboxes}`]
-      : []),
+    n(plan.maxSites, l.sites, l.sitesPlural),
+    n(plan.monthlyAudits, l.audits, l.auditsPlural),
+    `${new Intl.NumberFormat("fr-FR").format(plan.monthlySendCap)} ${l.sends}`,
+    n(plan.maxMailboxes, l.mailboxes, l.mailboxesPlural),
   ];
 }
 
-/** Tarifs : tout vient de la table `plans` ; la carte du milieu est inversée (surface nuit). Aucun prix comparatif. */
+/**
+ * Tarifs : un bandeau « gratuit pour commencer », puis les trois offres payantes. Prix et plafonds
+ * viennent de la table `plans` ; la carte du milieu est inversée (surface nuit). Aucun prix comparatif.
+ */
 export function Pricing({ plans }: { plans: PublicPlan[] | null }) {
   const s = t.home.pricing;
   const headingId = `${HOME_SECTIONS.pricing}-titre`;
@@ -29,11 +32,26 @@ export function Pricing({ plans }: { plans: PublicPlan[] | null }) {
     >
       <div className="mx-auto max-w-6xl">
         <SectionHeading id={headingId} label={s.label} title={s.title} intro={s.intro} />
+        <div className="mb-5 flex flex-col items-start gap-4 rounded-card border border-border bg-muted p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="flex items-center gap-2.5 font-semibold">
+              <span aria-hidden className="size-2 rounded-full bg-primary" />
+              {s.free.title}
+            </p>
+            <p className="mt-1 text-[15px] text-muted-foreground">{s.free.text}</p>
+          </div>
+          <Button asChild variant="outline" className="h-10 shrink-0">
+            <Link href="/inscription">
+              {s.free.cta}
+              <ArrowRight aria-hidden />
+            </Link>
+          </Button>
+        </div>
         {plans ? (
           <ul className="grid items-stretch gap-5 lg:grid-cols-3">
             {plans.map((p) => {
               const copy = s.plans[p.key];
-              const featured = p.key === "starter";
+              const featured = p.key === "pro";
               return (
                 <li
                   key={p.key}
@@ -61,7 +79,7 @@ export function Pricing({ plans }: { plans: PublicPlan[] | null }) {
                       </li>
                     ))}
                   </ul>
-                  <ul className="mt-4 grid flex-1 gap-2 text-[15px]">
+                  <ul className="mt-4 grid flex-1 content-start gap-2 text-[15px]">
                     {copy.features.map((f) => (
                       <li key={f} className="flex items-start gap-2 text-muted-foreground">
                         <Check aria-hidden className="mt-1 size-4 shrink-0 text-primary" />

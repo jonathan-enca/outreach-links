@@ -14,7 +14,7 @@ export const fr = {
     nav: {
       label: "Navigation principale",
       whatItIs: "C'est quoi",
-      problem: "Le problème",
+      tactics: "Tactiques",
       howItWorks: "Comment ça marche",
       features: "Fonctionnalités",
       pricing: "Tarifs",
@@ -26,7 +26,7 @@ export const fr = {
     },
     hero: {
       pill: "Audit gratuit, sans carte bancaire",
-      audience: "Pour les sites, boutiques et blogs francophones",
+      audience: "Pour les sites, blogs, SaaS et e-commerces",
       title: "Des backlinks gratuits, demandés aux bons sites",
       titleAccent: "Des backlinks gratuits,",
       titleRest: "demandés aux bons sites",
@@ -87,23 +87,23 @@ export const fr = {
       label: "En clair",
       title: "C'est quoi ?",
       intro:
-        "Un service de netlinking pour sites francophones. Il analyse d'abord votre place dans Google, trouve les sites qui ont une vraie raison de vous citer, puis prépare et envoie les demandes depuis votre boîte mail, avec votre accord, relance les silencieux et vérifie que le lien est bien en ligne.",
+        "Un outil de netlinking pour les sites, blogs, SaaS et e-commerces. Il trouve les sites qui ont une vraie raison de vous citer, leur écrit depuis votre boîte mail avec votre accord, et suit chaque demande jusqu'au lien en ligne.",
       items: [
         {
           q: "Ce que c'est",
-          a: "Un audit de votre site et de vos concurrents, un plan de liens, puis une prospection par email vers des sites qui ne vendent pas leurs liens.",
+          a: "Un audit de votre site et de vos concurrents, puis des demandes de liens envoyées par email à des sites qui ne vendent pas les leurs.",
         },
         {
           q: "Pour qui",
-          a: "Les sites, boutiques et blogs qui veulent des liens éditoriaux sans passer par une place de marché de liens sponsorisés.",
+          a: "Un site vitrine, un blog, un SaaS, une boutique en ligne. Tous ceux qui veulent des liens éditoriaux sans sortir la carte bancaire sur une plateforme de liens sponsorisés.",
         },
         {
-          q: "Ce qui s'automatise",
-          a: "L'analyse des concurrents, le tri des cibles, la recherche du contact, la rédaction des messages, la relance, le classement des réponses et la vérification des liens.",
+          q: "Ce que l'outil fait seul",
+          a: "Il analyse vos concurrents, lit chaque site avant de le retenir, cherche le bon contact, rédige la demande, relance une fois, classe les réponses et contrôle le lien posé.",
         },
         {
           q: "Ce que vous décidez",
-          a: "Le plan de liens, chaque lot avant tout envoi, les plafonds d'envoi et la suite à donner à une demande payante.",
+          a: "Les sites à contacter, le texte de chaque message, le rythme d'envoi. Et la réponse à donner quand un site demande de l'argent.",
         },
         {
           q: "D'où partent les messages",
@@ -111,71 +111,124 @@ export const fr = {
         },
         {
           q: "Ce que nous ne faisons pas",
-          a: "Acheter des liens, monter des réseaux de sites ou promettre un nombre de liens. Un lien dépend toujours de la réponse du site contacté.",
+          a: "Acheter des liens, monter des réseaux de sites, promettre un nombre de liens. En face, c'est toujours quelqu'un qui décide de vous citer ou non.",
         },
-      ],
-    },
-    problem: {
-      label: "Le problème",
-      title: "Le netlinking ne devrait pas occuper vos soirées",
-      intro:
-        "À la main, la méthode fonctionne, mais elle prend un temps fou et les mêmes pièges reviennent.",
-      items: [
-        "Des listes de sites à trier une à une",
-        "Des concurrents directs parmi les cibles",
-        "Des sites qui revendent leurs liens",
-        "Des messages copiés-collés qui restent sans réponse",
-        "Des relances oubliées",
-        "Des pages mortes à reprendre, jamais repérées",
-        "Des liens sponsorisés achetés faute d'alternative",
-        "Une boîte mail abîmée par des envois trop rapides",
-        "Des liens retirés sans que personne ne le voie",
-        "Des cibles hors de portée, comme les grands médias",
-        "Des demandes de paiement à traiter au cas par cas",
-        "Un suivi éparpillé dans trois tableurs",
       ],
     },
     tactics: {
       label: "Tactiques",
-      title: "Trois façons d'obtenir des liens gratuits",
+      title: "Trois façons d'obtenir un lien sans l'acheter",
       intro:
-        "Chaque tactique s'exécute dans le cadre que vous fixez : validation de chaque lot avant tout envoi, plafond d'envoi par heure, une seule relance. Ouvrez une tactique pour voir comment elle se déroule.",
+        "Les meilleurs liens ne sont pas en vente. Ils sont sur des sites que personne ne pense à contacter, sur des pages dont un lien ne mène plus nulle part, ou chez des gens qui parlent déjà de vous. Voici comment nous allons les chercher.",
+      kicker: "Tactique",
+      stepsLabel: "Comment ça se passe",
+      exampleLabel: "Exemple de demande",
+      frame:
+        "Le cadre est le même pour les trois : vous validez chaque lot avant l'envoi, dix emails par heure au plus, une seule relance.",
       primary: "Essai gratuit",
       secondary: "Fonctionnement",
-      hint: "Voyez vos premières cibles gratuitement : la carte n'est demandée qu'au premier envoi réel.",
-      howLabel: "Comment ça marche",
+      hint: "Vos premières cibles s'affichent gratuitement. La carte bancaire n'est demandée qu'au premier envoi réel.",
       closing:
         "Ce que nous ne faisons pas : acheter des liens, publier des articles sponsorisés déguisés, monter des réseaux de sites.",
       items: [
         {
           title: "Les sites que personne ne sollicite",
-          text: "Mairies, associations, photographes, boutiques, forums modérés : des sites qui ne vendent pas de liens, mais qui en donnent quand la demande est utile et bien adressée.",
-          steps: [
-            "Nous listons les sites du top 30 sur vos recherches prioritaires, et ceux qui citent déjà vos concurrents.",
-            "Nous écartons les vendeurs de liens, les sites piratés et vos concurrents directs, avec le motif affiché.",
-            "Nous cherchons un contact jusque dans les mentions légales et les conditions d'utilisation.",
-            "Nous rédigeons une demande courte, avec une accroche tirée de leur page. Rien ne part avant votre accord sur le lot.",
+          text: "Une mairie, un club de randonnée, une photographe, une boutique en ligne, un forum encore modéré. Ces sites n'ont pas de grille tarifaire et ne reçoivent presque jamais ce genre de demande. Ils ne vendent pas de liens, mais ils en donnent quand la demande leur est utile.",
+          whereLabel: "Qui nous contactons",
+          where: [
+            "Mairies",
+            "Associations et clubs",
+            "Photographes, artisans",
+            "Boutiques en ligne",
+            "Forums modérés",
+            "Blogs de passionnés",
           ],
+          steps: [
+            {
+              title: "Nous partons de vos recherches",
+              text: "Nous relevons les 30 premiers résultats de Google sur vos recherches prioritaires, puis les sites qui citent vos concurrents sans vous citer.",
+            },
+            {
+              title: "Nous lisons chaque site",
+              text: "Vendeur de liens, site piraté, concurrent direct, média hors de portée : il sort de la liste, avec le motif écrit à côté.",
+            },
+            {
+              title: "Nous trouvons à qui écrire",
+              text: "Une adresse, cherchée jusque dans les mentions légales. À défaut, le formulaire de contact : le message est prêt, vous le collez vous-même.",
+            },
+            {
+              title: "Vous validez, le lot part",
+              text: "Trois lignes qui citent leur page et disent ce que la vôtre y apporte. Rien n'est envoyé sans votre accord.",
+            },
+          ],
+          example: {
+            to: "À une médiathèque qui recommande des sites pour les enfants",
+            body: "Bonjour, j'ai vu votre sélection de sites pour occuper les enfants le mercredi. Nous publions des coloriages gratuits à imprimer, sans inscription : monsite.example/coloriages. S'ils ont leur place dans la liste, je serais ravie de les y voir.",
+            signature: "Camille",
+          },
         },
         {
-          title: "Pages ressources et liens morts",
-          text: "Nous repérons les pages ressources de votre thème et leurs liens cassés, puis nous proposons votre page comme remplaçante.",
-          steps: [
-            "Nous trouvons les pages de ressources et de liens utiles de votre thème.",
-            "Nous lisons leurs liens sortants : un lien n'est déclaré mort que si la page répond bien « introuvable ».",
-            "Nous proposons à l'éditeur votre page à jour à la place du lien cassé, en une demande de trois lignes.",
-            "Nous vérifions ensuite, sur la page en ligne, que le lien est bien posé.",
+          title: "Les liens morts à remplacer",
+          text: "Les pages de ressources vieillissent. Un site ferme, une page déménage, et le lien renvoie une erreur. Nous signalons le lien cassé à l'éditeur et lui proposons votre page à la place. Il répare sa page, vous gagnez un lien.",
+          whereLabel: "Où nous cherchons",
+          where: [
+            "Pages « liens utiles »",
+            "Sélections de ressources",
+            "Guides pratiques",
+            "Pages qui citent vos concurrents",
           ],
+          steps: [
+            {
+              title: "Nous repérons les pages de ressources",
+              text: "Celles de votre thème, et celles qui renvoient déjà vers vos concurrents.",
+            },
+            {
+              title: "Nous testons leurs liens",
+              text: "Un lien n'est déclaré mort que si la page répond vraiment « introuvable ». Une lenteur ou une panne passagère ne prouve rien, nous n'en faisons pas un argument.",
+            },
+            {
+              title: "Nous choisissons la page à proposer",
+              text: "Celle de votre site dont le sujet est le plus proche de la page disparue.",
+            },
+            {
+              title: "L'éditeur reçoit une demande précise",
+              text: "Le lien cassé, l'endroit où il se trouve, votre page pour le remplacer. Après sa réponse, nous vérifions que le lien est bien posé.",
+            },
+          ],
+          example: {
+            to: "À un blog de randonnée dont un lien ne répond plus",
+            body: "Bonjour, dans votre guide du sentier des douaniers, le lien « préparer son sac » mène à une page qui n'existe plus. Nous avons une liste de matériel à jour sur le même sujet : monsite.example/sac-rando. Elle peut le remplacer si elle vous convient.",
+            signature: "Camille",
+          },
         },
         {
-          title: "Mentions de votre marque sans lien",
-          text: "Des sites parlent déjà de vous sans vous lier. Une simple demande d'ajout de lien suffit souvent.",
+          title: "Les mentions de votre marque sans lien",
+          text: "Quelqu'un a cité votre site dans un article, un comparatif ou un fil de forum, sans mettre de lien. C'est la demande la plus simple à faire : l'auteur vous connaît déjà, il lui reste un lien à ajouter.",
+          whereLabel: "Où nous cherchons",
+          where: ["Articles de blog", "Comparatifs", "Fils de forum", "Sélections et classements"],
           steps: [
-            "Nous repérons les pages qui citent le nom de votre marque.",
-            "Nous écartons les sites payants, morts ou hors sujet, et les concurrents.",
-            "Nous rédigeons la demande d'ajout, avec la page à lier et l'ancre suggérée.",
-            "Nous classons les réponses et vérifions le lien une fois posé.",
+            {
+              title: "Nous cherchons votre nom",
+              text: "Sous toutes ses écritures : avec espace, avec tiret, collé, ou votre adresse écrite en toutes lettres.",
+            },
+            {
+              title: "Nous vérifions deux choses",
+              text: "Que la page parle bien de vous et pas d'un homonyme. Et qu'elle ne vous lie pas déjà ailleurs, même discrètement.",
+            },
+            {
+              title: "Nous préparons la phrase",
+              text: "Les mots exacts à rendre cliquables, et la phrase telle qu'elle sera une fois le lien posé. L'auteur n'a plus qu'à copier.",
+            },
+            {
+              title: "Nous contrôlons le résultat",
+              text: "Après la réponse de l'auteur, nous vérifions sur sa page que le lien est en ligne.",
+            },
           ],
+          example: {
+            to: "À l'auteur d'un comparatif qui cite votre outil",
+            body: "Bonjour, merci d'avoir cité Monsite dans votre comparatif des outils de planning. Le nom n'est pas cliquable : pourriez-vous le lier vers monsite.example ? Vos lecteurs y arriveront directement.",
+            signature: "Camille",
+          },
         },
       ],
     },
@@ -209,20 +262,23 @@ export const fr = {
     },
     how: {
       label: "Comment ça marche",
-      title: "Vous validez le plan et chaque lot. Le reste s'enchaîne.",
+      title: "Du premier audit au lien en ligne",
       intro:
-        "Rien n'est envoyé sans votre accord. Chaque site écarté garde un motif lisible, et chaque message montre le passage de sa page qui le justifie.",
-      loopTitle: "La méthode, en six étapes",
+        "Rien ne part sans votre accord. Un site écarté garde son motif, écrit en clair. Un message montre toujours le passage de la page qui le justifie.",
+      loopTitle: "Six étapes, deux validations de votre part",
       steps: [
-        { title: "Analyser", text: "Vos vrais concurrents dans Google et leurs liens." },
-        { title: "Planifier", text: "Les types de cibles et les pages à pousser." },
-        { title: "Trier", text: "Un motif lisible pour chaque site écarté." },
-        { title: "Valider et envoyer", text: "Vous validez le lot, l'envoi est plafonné." },
-        { title: "Relancer", text: "Une seule relance, arrêtée à la première réponse." },
-        { title: "Vérifier", text: "Le lien est-il en ligne, dofollow, indexé ?" },
+        { title: "Analyser", text: "Qui se classe devant vous, et qui leur fait des liens." },
+        { title: "Planifier", text: "Quels sites viser, pour quelle page de votre site." },
+        { title: "Trier", text: "Chaque site est lu. Les mauvais sortent, motif à l'appui." },
+        {
+          title: "Valider et envoyer",
+          text: "Vous relisez le lot. Il part de votre boîte, au compte-gouttes.",
+        },
+        { title: "Relancer", text: "Une fois, dix jours plus tard. Jamais après une réponse." },
+        { title: "Vérifier", text: "Le lien est-il en ligne et dofollow ? Nous y retournons." },
       ],
       cta: "Essai gratuit",
-      ctaHint: "Sans carte bancaire : elle n'est demandée qu'au premier envoi réel.",
+      ctaHint: "Sans carte bancaire. Elle n'est demandée qu'au premier envoi réel.",
     },
     mockup: {
       caption: "Données de démonstration",
@@ -266,18 +322,18 @@ export const fr = {
       ],
     },
     quality: {
-      label: "Qualité, message, suivi",
-      title: "Des cibles triées, un message qui cite leur page, un suivi sans tableur",
+      label: "Dans le détail",
+      title: "Ce qui fait qu'une demande de lien est lue",
       intro:
-        "Trois choses font la différence entre une demande lue et un message ignoré : le choix du site, la raison de lui écrire et ce qui se passe après l'envoi.",
+        "La plupart des demandes de liens finissent à la corbeille : envoyées au mauvais site, sans raison précise, puis oubliées. Voici ce que l'outil fait autrement sur ces trois points.",
       blocks: [
         {
           id: "cibles",
           title: "Des cibles lues, pas devinées",
-          text: "Chaque site du plan est visité avant d'être retenu. Ceux qui vendent des liens, les concurrents directs, les sites morts ou hors de portée sont écartés, avec le motif affiché.",
+          text: "Avant de retenir un site, l'outil ouvre la page. S'il vend des liens, s'il est à l'abandon, si c'est un concurrent ou un média qui ne vous répondra jamais, il sort de la liste et vous voyez pourquoi.",
           points: [
             "Page lue le jour même, adresse exacte vérifiée",
-            "Motif lisible pour chaque site écarté",
+            "Un motif écrit pour chaque site écarté",
             "Concurrents directs et très grands sites exclus d'office",
           ],
           mockup: {
@@ -305,12 +361,12 @@ export const fr = {
         },
         {
           id: "message",
-          title: "Un message court, avec la raison de l'écrire",
-          text: "Le brouillon cite le passage de la page qui justifie votre demande, propose quelque chose de précis et renvoie vers l'adresse exacte. Vous le relisez et vous pouvez le modifier avant la validation du lot.",
+          title: "Trois lignes, qui citent leur page",
+          text: "Le brouillon reprend le passage de la page qui justifie la demande, dit ce que vous proposez et donne l'adresse exacte de votre page. Vous pouvez le réécrire avant de valider le lot.",
           points: [
-            "Le passage de la page ciblée est surligné",
-            "Adresse de votre page vérifiée avant l'envoi",
-            "Signé de votre prénom, sans vocabulaire marketing",
+            "Le passage cité est surligné dans le brouillon",
+            "L'adresse de votre page est testée avant l'envoi",
+            "Signé de votre prénom, écrit comme un email normal",
           ],
           mockup: {
             from: "De",
@@ -329,10 +385,10 @@ export const fr = {
         },
         {
           id: "suivi",
-          title: "Une relance, un inbox classé, des liens contrôlés",
-          text: "Une seule relance part, et elle s'arrête dès qu'une réponse arrive. Les réponses sont classées par catégorie, les demandes de paiement vous reviennent, et le lien est revérifié après la pose.",
+          title: "Une relance, puis un inbox déjà trié",
+          text: "Une seule relance, qui ne part pas si la personne a déjà répondu. Les réponses arrivent classées : oui, peut-être, non, « c'est payant ». Devant une demande d'argent, c'est vous qui tranchez. Le lien obtenu est recontrôlé dans les semaines qui suivent.",
           points: [
-            "Une relance, dans le même fil de discussion",
+            "La relance part dans le même fil de discussion",
             "Réponses classées : chaud, tiède, offre payante, refus",
             "Contrôle du lien : en ligne, dofollow, indexable",
           ],
@@ -370,185 +426,193 @@ export const fr = {
     },
     features: {
       label: "Fonctions",
-      title: "Ce qui est prévu pour garder la main",
-      intro: "Huit fonctions, toutes pensées pour que vous décidiez et que l'outil exécute.",
+      title: "Huit fonctions, aucune qui décide à votre place",
+      intro:
+        "Chacune prépare le travail ou l'exécute. Le choix des sites et le texte des messages restent entre vos mains.",
       items: [
         {
           title: "Audit par page",
-          text: "Vos concurrents réels dans Google, l'écart de liens et les pages à pousser en priorité.",
+          text: "Vos vrais concurrents dans Google, les liens qu'ils ont et pas vous, et vos pages qui gagneraient le plus à en recevoir un.",
         },
         {
-          title: "Plan de liens validé",
-          text: "Vous cochez, décochez et ordonnez les types de cibles. Rien ne démarre sans votre validation.",
+          title: "Plan de liens",
+          text: "Vous cochez les types de sites à viser et leur ordre de priorité. Rien ne démarre avant.",
         },
         {
           title: "Tri avec motifs",
-          text: "Payant, mort, piraté, hors sujet, compte obligatoire, concurrent direct : chaque exclusion est expliquée.",
+          text: "Payant, mort, piraté, hors sujet, compte obligatoire, concurrent direct : chaque site écarté dit pourquoi.",
         },
         {
-          title: "Hook et adresse vérifiés",
-          text: "Chaque brouillon montre le passage qui justifie le message et l'adresse exacte de votre page.",
+          title: "Accroche vérifiée",
+          text: "Chaque brouillon montre le passage de la page qui justifie la demande, et l'adresse exacte de votre page.",
         },
         {
           title: "Envoi plafonné",
-          text: "Vos messages partent de votre boîte, à un rythme limité et en heures ouvrées. Un lot se valide d'un bloc.",
+          text: "Depuis votre boîte, dix emails par heure au plus, aux heures de bureau. Un lot se valide d'un bloc.",
         },
         {
           title: "Formulaires en tâches",
-          text: "Quand un site n'a qu'un formulaire, le message est prêt à copier. Nous ne remplissons rien à votre place.",
+          text: "Le site n'a qu'un formulaire ? Le message est prêt, vous le collez. Nous ne remplissons rien à votre place.",
         },
         {
           title: "Inbox classé",
-          text: "Douze catégories de réponses, une réponse prête à insérer et trois options face à une demande de paiement.",
+          text: "Douze catégories de réponses, une réponse prête à insérer quand c'est oui, trois options quand on vous demande de l'argent.",
         },
         {
           title: "Vérification des liens",
-          text: "Contrôle à une, deux puis quatre semaines environ, avec alerte si un lien disparaît.",
+          text: "Contrôle une, deux puis quatre semaines après la pose, avec une alerte si le lien disparaît.",
         },
       ],
     },
     compare: {
       label: "Comparatif",
-      title: "Trois façons d'obtenir des liens",
+      title: "Acheter, tout faire à la main, ou faire exécuter",
       intro:
-        "Un comparatif descriptif, sans note : ce que chaque approche implique concrètement, pour que vous choisissiez en connaissance de cause.",
+        "Ni note ni classement. Seulement ce que chaque approche vous demande, en argent et en temps.",
       columns: ["", "Acheter des liens", "Tout faire à la main"],
       rows: [
         {
           label: "Nature des liens",
-          values: [
-            "Liens sponsorisés, à signaler comme tels",
-            "Éditoriaux, selon les réponses obtenues",
-          ],
+          values: ["Sponsorisés, à signaler comme tels", "Éditoriaux, selon les réponses obtenues"],
         },
         {
           label: "Choix des cibles",
-          values: ["Catalogue de sites proposés à la vente", "Votre recherche, site par site"],
+          values: ["Le catalogue des sites en vente", "Votre recherche, site par site"],
         },
         {
-          label: "Temps à y consacrer",
-          values: ["Faible", "Élevé : tri, rédaction, relances et suivi"],
+          label: "Temps à y passer",
+          values: ["Faible", "Élevé : tri, rédaction, relances, suivi"],
         },
         {
           label: "Contrôle avant envoi",
-          values: ["Commande unitaire", "Total, mais tout est manuel"],
+          values: ["Une commande à l'unité", "Total, mais tout est manuel"],
         },
         {
           label: "Suivi du lien",
-          values: ["Selon la plateforme", "Tableur à tenir à jour"],
+          values: ["Selon la plateforme", "Un tableur à tenir à jour"],
         },
       ],
       usColumn: "Ce service",
       usValues: [
         "Éditoriaux, jamais achetés",
         "Audit, plan validé, tri avec motifs",
-        "Réduit : vous validez, l'outil exécute",
-        "Validation de chaque lot, plafonds d'envoi",
-        "Vérification automatique avec alerte",
+        "Réduit : vous relisez et validez",
+        "Chaque lot validé, envois plafonnés",
+        "Contrôle automatique, avec alerte",
       ],
-      note: "Aucune approche n'assure un lien : un site éditorial reste libre de répondre ou non.",
+      note: "Hors achat, personne ne peut promettre un lien : un site éditorial reste libre de dire non.",
     },
     pricing: {
       label: "Tarifs",
       title: "Gratuit pour voir, payant pour envoyer",
       intro:
-        "L'audit et l'aperçu des cibles sont gratuits et sans carte bancaire. Un abonnement est demandé au premier envoi réel.",
+        "L'audit et l'aperçu de vos cibles ne coûtent rien et ne demandent pas de carte. Vous choisissez une offre au moment d'envoyer votre premier message.",
+      free: {
+        title: "Gratuit pour commencer",
+        text: "Un audit réduit de votre site et un aperçu de vos premières cibles. Sans carte bancaire, sans aucun envoi.",
+        cta: "Essai gratuit",
+      },
       perMonth: "par mois",
-      popular: "Le plus choisi",
+      popular: "Recommandé",
       unavailable:
         "Les tarifs ne sont pas affichables pour le moment. Lancez l'audit gratuit, ils seront disponibles à la création de votre compte.",
-      note: "Grille de lancement, susceptible d'évoluer. Plafonds d'envoi mensuels, tous sites confondus. Le paiement se fait en ligne, par abonnement mensuel.",
+      note: "Grille de lancement, susceptible d'évoluer. Un envoi réel est un email parti de votre boîte : la relance et vos réponses comptent chacune pour un envoi. Abonnement mensuel, payé en ligne.",
       limits: {
         sends: "envois réels par mois",
         sites: "site",
         sitesPlural: "sites",
         mailboxes: "boîte mail connectée",
         mailboxesPlural: "boîtes mail connectées",
-        none: "Aucun envoi réel",
+        audits: "audit complet par mois",
+        auditsPlural: "audits complets par mois",
       },
       plans: {
-        gratuit: {
-          tagline: "Pour voir ce que donne l'audit.",
-          cta: "Essai gratuit",
-          features: [
-            "Audit réduit de votre site",
-            "Aperçu des cibles, certaines floutées",
-            "Aucune carte bancaire",
-          ],
-        },
         starter: {
-          tagline: "Pour un site, avec votre propre boîte mail.",
+          tagline: "Pour lancer le netlinking d'un site.",
           cta: "Commencer",
           features: [
-            "Audit complet et plan de liens",
-            "Tri des cibles, brouillons, lots validés",
+            "Une tactique : les sites jamais sollicités",
+            "Tri des cibles avec motifs, brouillons, lots à valider",
             "Relance unique et inbox classé",
-            "Vérification des liens",
+            "Vérification des liens obtenus",
           ],
         },
         pro: {
-          tagline: "Pour plusieurs sites et un volume plus élevé.",
+          tagline: "Les trois tactiques, sur un ou plusieurs sites.",
           cta: "Commencer",
           features: [
             "Tout Starter",
-            "Plusieurs sites et plusieurs boîtes",
-            "Plafond d'envoi plus élevé",
-            "Réponses prêtes à insérer",
+            "Les trois tactiques : liens morts et mentions sans lien en plus",
+            "Réponses prêtes à insérer quand un site dit oui",
+            "Options guidées face à une demande de paiement",
+          ],
+        },
+        business: {
+          tagline: "Pour gérer plusieurs sites à la fois.",
+          cta: "Commencer",
+          features: [
+            "Tout Pro",
+            "Le volume pour mener plusieurs campagnes de front",
+            "Une boîte d'envoi par site ou par marque",
           ],
         },
       },
     },
     faq: {
       label: "Questions fréquentes",
-      title: "Ce que l'on nous demande avant de commencer",
-      intro: "Des réponses directes, y compris sur ce que le service ne peut pas promettre.",
+      title: "Les questions à se poser avant de commencer",
+      intro: "Des réponses courtes, y compris quand la réponse est « on ne peut pas le savoir ».",
       items: [
         {
           q: "Combien de liens vais-je obtenir ?",
-          a: "Nous ne pouvons pas le dire. Un site éditorial répond ou non, et nous ne promettons aucun nombre de liens. Ce que nous maîtrisons : l'audit, le choix des cibles, la qualité du message et le suivi.",
+          a: "Impossible à dire à l'avance. En face, quelqu'un répond ou ne répond pas, et nous ne promettons aucun nombre de liens. Ce qui dépend de nous : le choix des sites, la qualité du message et le suivi.",
+        },
+        {
+          q: "Mon site est un SaaS ou une boutique en ligne : est-ce que ça marche aussi ?",
+          a: "La méthode dépend moins du type de site que de ce que vous avez à proposer : un guide, un outil gratuit, une ressource utile. Un SaaS avec un outil gratuit ou une boutique avec un bon guide d'achat ont de quoi faire. Une page purement commerciale est plus difficile à faire citer, et l'audit vous le dira.",
         },
         {
           q: "Les liens sont-ils payants ?",
-          a: "Non, l'objectif est le lien éditorial gratuit. Si un site demande de l'argent, la décision vous revient : décliner, proposer un échange ou, si vous fixez un budget, accepter un lien clairement présenté comme sponsorisé. Par défaut, la demande est déclinée.",
+          a: "Non, nous visons le lien éditorial gratuit. Quand un site demande de l'argent, c'est vous qui choisissez : décliner, proposer un échange ou, si vous avez fixé un budget, accepter un lien clairement présenté comme sponsorisé. Sans consigne de votre part, la demande est déclinée.",
         },
         {
           q: "Google peut-il pénaliser ces liens ?",
-          a: "Nous n'utilisons ni réseau de sites ni lien acheté, et les liens payants éventuels doivent être déclarés comme tels. Personne ne peut exclure tout risque, mais la méthode reste celle des consignes de Google : des liens éditoriaux demandés à des sites pertinents.",
+          a: "Nous n'utilisons ni réseau de sites ni lien acheté, et un lien payant doit être déclaré comme tel. Personne ne peut exclure tout risque, mais demander un lien éditorial à un site pertinent reste dans les consignes de Google.",
         },
         {
           q: "D'où partent les messages ?",
-          a: "De votre propre boîte mail, reliée en SMTP et IMAP, avec votre prénom en signature. Les envois sont plafonnés par heure et par mois, et nous n'envoyons rien tant que vous n'avez pas validé le lot.",
+          a: "De votre propre boîte mail, reliée en SMTP et IMAP, avec votre prénom en signature. Les envois sont plafonnés par heure et par mois, et rien ne part tant que vous n'avez pas validé le lot.",
         },
         {
           q: "Les messages disent-ils qu'ils sont rédigés par une IA ?",
-          a: "Non. Chaque message est relu et validé par vous avant l'envoi, et il est signé de votre nom. Si un destinataire pose la question, la réponse doit rester honnête.",
+          a: "Non. Vous relisez et validez chaque message avant l'envoi, et il part signé de votre nom. Si un destinataire pose la question, la réponse doit rester honnête.",
         },
         {
           q: "Est-ce légal d'écrire à des sites que je ne connais pas ?",
-          a: "La prospection professionnelle par email est encadrée : le message doit concerner l'activité du destinataire et permettre de refuser. Nous tenons une liste de suppression et arrêtons tout envoi dès une désinscription. Les textes juridiques sont en cours de validation par un juriste.",
+          a: "La prospection professionnelle par email est encadrée : le message doit concerner l'activité du destinataire et lui permettre de refuser. Nous tenons une liste de suppression et tout envoi s'arrête dès une désinscription. Nos textes juridiques sont en cours de validation par un juriste.",
         },
         {
           q: "Que fait l'outil, et que décidez-vous ?",
-          a: "L'outil analyse, trie, cherche les contacts, rédige, envoie dans les limites fixées, relance et classe les réponses. Vous validez le plan, chaque lot, les plafonds et toute suite à donner à une demande payante.",
+          a: "L'outil analyse, trie, cherche les contacts, rédige, envoie dans les limites fixées, relance et classe les réponses. Vous validez le plan, chaque lot, les plafonds, et la suite à donner à une demande payante.",
         },
         {
-          q: "Que se passe-t-il pour les sites avec un simple formulaire ?",
-          a: "Ils deviennent des tâches pour vous : le message est préparé, vous le copiez et l'envoyez vous-même depuis le site. Nous ne remplissons aucun formulaire et ne créons aucun compte à votre place.",
+          q: "Que se passe-t-il pour les sites qui n'ont qu'un formulaire ?",
+          a: "Ils deviennent des tâches pour vous : le message est prêt, vous le copiez et l'envoyez depuis leur site. Nous ne remplissons aucun formulaire et ne créons aucun compte à votre place.",
         },
         {
           q: "Combien ça coûte, et quand dois-je payer ?",
-          a: "L'audit gratuit ne demande aucune carte. Un abonnement est demandé au premier envoi réel. Les tarifs et plafonds sont affichés plus haut, dans la section Tarifs.",
+          a: "L'audit gratuit ne demande pas de carte. Vous choisissez une offre au premier envoi réel. Les trois offres et leurs plafonds sont dans la section Tarifs, plus haut.",
         },
         {
           q: "Que deviennent mes données ?",
-          a: "Les identifiants de votre boîte mail sont chiffrés, la lecture se limite aux fils de campagne, et les données de prospection sont conservées pour une durée limitée. Voir la page Confidentialité.",
+          a: "Les identifiants de votre boîte mail sont chiffrés, la lecture se limite aux fils de campagne, et les données de prospection sont conservées pour une durée limitée. Le détail est sur la page Confidentialité.",
         },
       ],
     },
     finalCta: {
-      label: "Prêt à commencer",
-      title: "Voyez ce que l'audit trouve pour votre site",
-      text: "Quelques minutes suffisent pour voir vos concurrents, vos pages à pousser et un aperçu des cibles. Aucun email n'est envoyé.",
+      label: "Pour commencer",
+      title: "Regardez d'abord ce que l'audit trouve chez vous",
+      text: "En quelques minutes : vos concurrents, vos pages à pousser, un aperçu des sites à contacter. Aucun email ne part pendant l'audit.",
       primary: "Essai gratuit",
       secondary: "Voir les tarifs",
       hints: ["Sans carte bancaire", "Aucun lien acheté", "Rien n'est envoyé sans votre accord"],
@@ -556,7 +620,7 @@ export const fr = {
     footer: {
       label: "Pied de page",
       tagline:
-        "Des demandes de liens éditoriaux préparées à partir d'un vrai audit, validées par vous.",
+        "Des liens éditoriaux demandés aux bons sites, depuis votre boîte mail, avec votre accord.",
       productTitle: "Produit",
       accountTitle: "Compte",
       legalTitle: "Informations légales",
@@ -2191,6 +2255,7 @@ export const fr = {
     noSending: "Aucun envoi réel",
     sendCap: (n: number) => `${n} envois par mois`,
     sites: (n: number) => `${n} site${n > 1 ? "s" : ""}`,
+    audits: (n: number) => `${n} audit${n > 1 ? "s" : ""} complet${n > 1 ? "s" : ""} par mois`,
     mailboxes: (n: number) => `${n} boîte${n > 1 ? "s" : ""} d'envoi`,
     creditsPerMonth: (n: number) => `${n} crédits par mois`,
     choose: (name: string) => `Choisir ${name}`,

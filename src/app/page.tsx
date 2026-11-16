@@ -8,7 +8,6 @@ import { HowItWorks } from "@/features/home/how-it-works";
 import { JsonLd } from "@/features/home/json-ld";
 import { getPublicPlans } from "@/features/home/plans";
 import { Pricing } from "@/features/home/pricing";
-import { Problem } from "@/features/home/problem";
 import { Quality } from "@/features/home/quality";
 import { SiteFooter } from "@/features/home/site-footer";
 import { SiteHeader } from "@/features/home/site-header";
@@ -35,10 +34,9 @@ export default async function Home() {
       <main id="contenu">
         <Hero />
         <WhatItIs />
-        <Problem />
+        <Tactics />
         <Proofs />
         <HowItWorks />
-        <Tactics />
         <Quality />
         <Features />
         <Compare />

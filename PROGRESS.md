@@ -488,12 +488,36 @@
 - **Backlog** : bouton « Collecter » ; saisie d'un contact pour une mention sans contact ; choisir le constat à utiliser par cible ; suivi de progression des jobs sur l'écran ; Playwright connecté.
 - Prochain sous-jalon recommandé : **MB.2** (test réel de bout en bout en dry run, qui exposera le trou de la collecte) ou **MT.7** (mesure par tactique et coût).
 
+## Home : « Le problème » retiré, Tactiques détaillées, trois offres payantes (16/11/2026, demande de Jonathan, hors sous-jalon)
+
+- **Section « Le problème » supprimée** (`problem.tsx`, textes, ancre `#probleme`). **« Tactiques » prend sa place**, juste après « C'est quoi », et n'est plus repliée : pour chacune des trois tactiques, le principe, où l'on cherche (pastilles), le déroulé en quatre étapes titrées et un **exemple de demande** de trois lignes (adresses `monsite.example`, signé d'un prénom, aucune mention de l'IA). `src/features/home/tactics.tsx`, textes `messages/fr.ts > home.tactics`. Tactique 2 renommée « Les liens morts à remplacer ». Lien « Tactiques » ajouté au pied de page. Ordre de la home : hero, C'est quoi, Tactiques, Preuves, Comment ça marche, Qualité, Fonctions, Comparatif, Tarifs, FAQ, appel final.
+- **Cible** : « sites, blogs, SaaS et e-commerces » (hero, « C'est quoi », nouvelle question de FAQ pour les SaaS et boutiques). « francophones » retiré de la ligne d'audience.
+- **Tarifs (décision de Jonathan) : trois offres payantes à 19,90 / 39,90 / 99,90 € par mois.** Le gratuit n'est plus une carte mais un bandeau « Gratuit pour commencer » au-dessus des trois offres ; en base, `gratuit` reste l'état sans abonnement. Migration `2026113100000000_plans_three_paid.sql` **appliquée sur la vraie base** (aucun abonnement n'existait) : nouvelle offre `business`, nouvelle colonne `plans.monthly_audits`, prix et plafonds mis à jour. Code : `BILLING_PLANS` et `isPaidPlan` acceptent `business` ; `/app/facturation` affiche les centimes et les audits ; `getPublicPlans` renvoie les trois offres payantes ; JSON-LD = trois offres. Pastille de la carte du milieu : « Recommandé » (« Le plus choisi » était une preuve sociale invérifiable, aucun client).
+- **Répartition des accès PROPOSÉE (à confirmer par Jonathan ; se change par un `update` de `plans` et dans `home.pricing.plans`)** :
+
+  |                                                     | Starter 19,90 €             | Pro 39,90 € (recommandé) | Business 99,90 € |
+  | --------------------------------------------------- | --------------------------- | ------------------------ | ---------------- |
+  | Sites                                               | 1                           | 3                        | 10               |
+  | Audits complets par mois                            | 1                           | 3                        | 10               |
+  | Envois réels par mois                               | 100                         | 300                      | 1 000            |
+  | Boîtes mail                                         | 1                           | 2                        | 5                |
+  | Tactiques                                           | 1 (sites jamais sollicités) | les 3                    | les 3            |
+  | Réponses prêtes à insérer, options « c'est payant » | non                         | oui                      | oui              |
+
+  Logique : Starter = essayer la méthode sur un site ; Pro = la méthode complète (celle qu'on veut vendre) ; Business = le volume pour plusieurs sites. Marge : un audit complet coûte ~0,25 à 0,50 USD mesuré, plafonné à 2 USD ; au pire cas, les audits inclus coûtent 2 / 6 / 20 USD par mois selon l'offre.
+
+- **Ce qui n'est PAS encore appliqué par le code** : seul le plafond d'envois mensuel est imposé (`checkSendAllowance`). Sites, boîtes, audits par mois, tactiques par offre et réponses prêtes à insérer ne sont pas limités (et `BETA_MODE` met tout le monde au niveau payant). La page décrit donc l'offre cible : à imposer avant d'ouvrir le paiement réel (backlog).
+- **Textes réécrits** (trop plats) : « C'est quoi », « Comment ça marche » (titre « Du premier audit au lien en ligne »), « Dans le détail » (ex-« Qualité, message, suivi »), Fonctions, Comparatif (titre distinct de celui des tactiques ; note corrigée : « hors achat, personne ne peut promettre un lien »), Tarifs, FAQ (11 questions), appel final, pied de page. **Le titre et le texte du hero, écrits par Jonathan le 15/11, ne sont pas touchés.**
+- Tests : `home.test.ts` (section supprimée, ordre, cible, trois offres, exemples de demande), `supabase/tests/billing.test.ts` (quatre lignes au catalogue). 1 096 tests verts avec Postgres 16 local, lint, typecheck, format, build. Playwright 1440 et 390 px : aucun débordement, prix lus depuis la vraie base.
+- **Questions pour Jonathan** : (1) valider ou corriger la répartition ci-dessus, surtout « une seule tactique en Starter » ; (2) prix affichés HT ou TTC ? (rien n'est écrit sur la page pour l'instant) ; (3) nom de la troisième offre (« Business » par défaut).
+
 ## Vidéo de visite ajoutée à la home (15/11/2026, demande de Jonathan)
 
 - `PRODUCT_TOUR_VIDEO` (`src/features/home/sections.ts`) renseigné : `public/visite-produit.mp4` (1920x1080, 61 s, ~5 Mo, fournie par Jonathan) et sa vignette `public/visite-produit-poster.jpg` (image à 3 s). Lecture manuelle, sans son au départ, chargement différé (`preload="none"`). Vérifié avec Playwright (bureau 1440 et mobile 390) : vidéo chargée (61,5 s), vignette affichée, aucun débordement horizontal. Le fichier est servi par Vercel depuis `public/` (pas de stockage externe).
 
 ## Backlog (idées hors périmètre)
 
+- Tarifs (16/11) : imposer par offre le nombre de sites, de boîtes, d'audits par mois, les tactiques ouvertes et les réponses prêtes à insérer (aujourd'hui seul le plafond d'envois l'est) ; mention HT/TTC ; facturation annuelle ; faire correspondre `workspaces.plan` (gratuit/payant) aux trois offres.
 - **Contexte à garder pour MT.5 (16/11/2026, retour de Jonathan)** : Jonathan a obtenu un **backlink réel** avec un mail personnalisé qui **cite un point précis de l'article cible** (un lien vers un service américain peu utile à un lecteur français) et **propose la ressource la plus pertinente de son site**, en se présentant **honnêtement comme le fondateur**. À reprendre dans MT.5 (liens inadaptés : repérer dans la page un lien sortant étranger ou peu utile au lecteur, le citer, proposer la ressource du site qui le remplace) et dans le rédacteur (M3.3) : ouverture par le point précis, la ressource choisie (champ `resource` du jugement MT.4), signature « fondateur de ». Rien de codé en MT.4.
 - MT.4 : bouton « Qualifier » et écran (MT.6) ; requalifier automatiquement après une nouvelle collecte ; finder d'emails payant derrière une ligne de budget ; résoudre les racines de plateformes du recoupement (quels blogs hébergés lient) ; cache partagé des qualifications de domaines entre clients (docs/audit-v2.md section 5) ; recaler les facteurs du score sur les réponses réelles (phase 5).
 - M5.3 : bouton « lien posé » dans la fiche de fil (crée le lien avec `plan_item_id`, origine `reponse`, passe le prospect à `lien_pose`) ; digest des alertes (M6.3) ; `X-Robots-Tag` ; vérifier l'indexation réelle si une API le permet.
