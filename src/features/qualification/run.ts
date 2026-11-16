@@ -70,7 +70,7 @@ export async function loadQualificationInput(
     service
       .from("collection_candidates")
       .select(
-        "domain, url, title, tactics, sources, competitors_count, domain_rank, spam_score, page_type, signal_count",
+        "domain, url, title, tactics, sources, competitors_count, domain_rank, spam_score, page_type, signal_count, language",
       )
       .eq("collection_id", col.id)
       .limit(MAX_CANDIDATES),
@@ -97,6 +97,7 @@ export async function loadQualificationInput(
     spamScore: r.spam_score === null ? null : Number(r.spam_score),
     pageType: r.page_type,
     signalCount: r.signal_count,
+    language: r.language,
   }));
 
   const contacted = await service.rpc("domains_contacted_elsewhere", {
@@ -189,7 +190,7 @@ export function toInput(
   };
 }
 
-function toRow(run: QualRunRow, r: QualResult) {
+export function toRow(run: Pick<QualRunRow, "id" | "auditId" | "workspaceId">, r: QualResult) {
   return {
     run_id: run.id,
     audit_id: run.auditId,

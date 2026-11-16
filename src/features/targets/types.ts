@@ -64,6 +64,29 @@ export interface TargetCard {
   alreadyValidated: boolean;
   /** Ressource du site la plus utile pour ce lecteur (jugement MT.4), pour une demande sans constat. */
   resource: { url: string; title: string } | null;
+  /** Type d'éditeur cherché auquel la cible correspond (chantier H) ; null = autres sites. */
+  publisher?: string | null;
+}
+
+/** Ce que l'analyse a examiné, en chiffres lisibles (chantier G). */
+export interface FunnelView {
+  candidates: number;
+  /** Écartés avant lecture, par motif. */
+  preRead: { reason: string; count: number }[];
+  preReadTotal: number;
+  pagesRead: number;
+  judged: number;
+  relevant: number;
+  shortlist: number;
+  /** Sites jamais lus, gardés en stock. */
+  stock: number;
+}
+
+/** État de « Lire d'autres sites ». */
+export interface MoreView {
+  status: "aucun" | "demande" | "en_cours" | "termine" | "echoue";
+  /** Cibles ajoutées par le dernier lot. */
+  added: number | null;
 }
 
 export interface TargetsRunView {

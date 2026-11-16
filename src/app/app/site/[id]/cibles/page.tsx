@@ -10,6 +10,7 @@ import { legacyChainEnabled } from "@/features/audits/chain";
 import { JourneySteps } from "@/features/shell/journey-steps";
 import { loadSiteWithAudit, siteHref, UUID_RE } from "@/features/shell/next-step";
 import {
+  readMoreAction,
   setFounderRoleAction,
   startCollectionAction,
   startFindingsAction,
@@ -70,6 +71,7 @@ async function Targets({ params }: { params: Promise<{ id: string }> }) {
           startFindings: startFindingsAction.bind(null, auditId),
           saveFounder: setFounderRoleAction.bind(null, auditId),
           validate: validateRequestsAction.bind(null, auditId),
+          readMore: readMoreAction.bind(null, auditId),
         }}
       />
       <p className="mt-6 text-sm text-muted-foreground">

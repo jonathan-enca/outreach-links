@@ -86,8 +86,8 @@ const base = {
 
 describe("budget et annonce de coût", () => {
   it("une part du budget cible est réservée aux recherches d'éditeurs", () => {
-    expect(queryBudgetUsd()).toBeCloseTo(0.2, 6);
-    expect(queryBudgetUsd(2)).toBeCloseTo(0.4, 6);
+    expect(queryBudgetUsd()).toBeCloseTo(0.256, 6);
+    expect(queryBudgetUsd(2)).toBeCloseTo(0.512, 6);
   });
 
   it("le nombre de requêtes suit le budget, entre les bornes", () => {
@@ -484,7 +484,8 @@ describe("univers enregistré", () => {
     const out = await ensureQueryUniverse(db.client, { siteId: "s1", userId: "u1" }, deps(llm, db));
     expect(out.status).toBe("cree");
     expect(db.tables.query_universes).toHaveLength(1);
-    expect(calls).toHaveLength(1);
+    // Deux appels courts : les types d'éditeurs (chantier H), puis les recettes par persona.
+    expect(calls).toHaveLength(2);
 
     // Rejouable (reprise Inngest) : un univers à jour est réutilisé, sans nouvel appel payant.
     const again = await ensureQueryUniverse(
@@ -494,7 +495,7 @@ describe("univers enregistré", () => {
     );
     expect(again.status).toBe("existant");
     expect(db.tables.query_universes).toHaveLength(1);
-    expect(calls).toHaveLength(1);
+    expect(calls).toHaveLength(2);
   });
 
   it("régénère l'univers quand le profil de marque a changé de version", async () => {

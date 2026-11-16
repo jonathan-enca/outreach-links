@@ -893,6 +893,18 @@ export const fr = {
       names: "Façons d'écrire votre nom",
       namesHint:
         "Une par ligne. Elles servent à retrouver les sites qui parlent de vous sans vous lier.",
+      publishers: {
+        title: "Les types de sites que nous chercherons",
+        hint: "Déduits de votre site. Cliquez sur une étiquette pour la désactiver, retirez celles qui ne vous concernent pas, ajoutez les vôtres : la recherche ne visera que les étiquettes actives.",
+        suggested: "suggestion",
+        turnOff: "Ne plus chercher ce type de site",
+        turnOn: "Chercher de nouveau ce type de site",
+        remove: (label: string) => `Retirer « ${label} »`,
+        none: "Aucune étiquette : la recherche partira des profils décrits ci-dessus.",
+        addLabel: "Ajouter un type de site",
+        addPlaceholder: "Un autre type de site qui pourrait vous citer",
+        add: "Ajouter",
+      },
       personas: "Qui aurait une raison de vous citer",
       personasHint:
         "Les sites que personne ne sollicite et qui servent le même public que vous. Une ligne par profil : qui | où on les trouve | pourquoi ils vous citeraient.",
@@ -1322,7 +1334,7 @@ export const fr = {
       vend_des_liens: "Le site vend des liens ou des articles sponsorisés.",
       mur_connexion: "Il faut un compte pour voir la page.",
       editeur_introuvable: "Aucun éditeur identifiable (ni contact, ni mentions, ni auteur).",
-      hors_budget_lecture: "Pas lu cette fois : au-delà du nombre de pages lues.",
+      hors_budget_lecture: "Pas encore lu : gardé en réserve pour une lecture ultérieure.",
       hors_sujet: "Pas assez proche de votre sujet ou de votre public.",
       hors_budget_llm: "Pas évalué cette fois : budget de qualification atteint.",
       non_qualifie: "Évaluation impossible cette fois.",
@@ -1458,6 +1470,58 @@ export const fr = {
         needQualification: "L'analyse devient disponible une fois la qualification terminée.",
       },
       starting: "Lancement…",
+    },
+    funnel: {
+      summary: (examined: number, kept: number) =>
+        `Nous avons examiné ${examined} sites et retenu ${kept} ${kept > 1 ? "cibles" : "cible"}.`,
+      detail: (skipped: number, read: number, judged: number) =>
+        `${skipped} écartés sans les lire, ${read} pages lues, ${judged} étudiées en détail.`,
+      skippedTitle: "Pourquoi des sites sont écartés sans être lus",
+      reasons: {
+        langue: "dans une autre langue",
+        robots: "lecture interdite aux robots",
+        injoignable: "ne répondent pas",
+        concurrent: "vos concurrents",
+        doublon: "déjà présents sous un autre nom",
+        plateforme: "plateformes, pas des éditeurs",
+        geant: "très gros sites",
+        irrealiste: "très gros sites",
+        spam: "sites douteux",
+        faux_domaine: "adresses invalides",
+        propre_site: "votre propre site",
+        deja_contacte: "déjà sollicités récemment",
+        ne_pas_contacter: "votre liste « ne pas contacter »",
+        autre: "autres motifs",
+      } as Record<string, string>,
+    },
+    more: {
+      stock: (n: number) =>
+        `${n} ${n > 1 ? "autres sites trouvés par la recherche n'ont pas encore été lus" : "autre site trouvé par la recherche n'a pas encore été lu"}.`,
+      hint: "Nous lisons les suivants avec les mêmes exigences, sans refaire la recherche. Comptez quelques minutes.",
+      button: "Lire d'autres sites",
+      busy: "Lancement…",
+      running:
+        "Lecture en cours : les nouvelles cibles s'ajouteront à cette liste dans quelques minutes. Vous pouvez rester ici ou revenir plus tard.",
+      done: (n: number) =>
+        n > 0
+          ? `${n} ${n > 1 ? "nouvelles cibles ajoutées" : "nouvelle cible ajoutée"} à la liste.`
+          : "Aucune nouvelle cible dans ce lot : nous n'ajoutons rien pour faire du volume.",
+      failedLine: "La lecture s'est arrêtée avant la fin. Vous pouvez la relancer.",
+      notReady: "Les cibles ne sont pas encore prêtes.",
+      already: "Une lecture est déjà en cours.",
+      empty: "Tous les sites trouvés ont déjà été lus.",
+      failed: "Impossible de lancer la lecture. Réessayez.",
+      started: "Lecture lancée : les nouvelles cibles s'ajouteront à la liste.",
+    },
+    publishers: {
+      label: "Filtrer par type de site",
+      title: "Les types de sites cherchés",
+      all: "Toutes",
+      others: "Autres sites",
+      zero: "aucune cible pour l'instant",
+      suggested: "suggestion",
+      emptyTab:
+        "Aucune cible de ce type pour l'instant. Nous l'avons cherché ; rien n'a passé le tri.",
     },
     filters: {
       label: "Filtrer par tactique",

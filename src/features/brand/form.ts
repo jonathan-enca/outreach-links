@@ -1,5 +1,13 @@
 import { t } from "@/lib/messages";
-import { BRAND_LANGUAGES, brandProfileSchema, type BrandProfile } from "./schema";
+import { userPublisherType } from "./publishers";
+import {
+  BRAND_LANGUAGES,
+  brandProfileSchema,
+  MAX_PUBLISHER_TYPES,
+  publisherTypeSchema,
+  type BrandProfile,
+  type PublisherType,
+} from "./schema";
 
 /**
  * Relecture du profil dans le formulaire d'onboarding : chaque liste tient dans une zone de texte,
@@ -25,7 +33,47 @@ export function profileToFields(p: BrandProfile | null) {
     names: (p?.name_variants ?? []).join("\n"),
     personas: (p?.personas ?? []).map((x) => `${x.label} | ${x.sites} | ${x.reason}`).join("\n"),
     tone: p?.tone ?? "",
+    publishers: JSON.stringify(
+      (p?.publisher_types ?? []).map((x) => [x.label, x.category, x.terms, x.active !== false]),
+    ),
+    theme: (p?.theme_terms ?? []).join("\n"),
   };
+}
+
+const jsonArray = (raw: FormDataEntryValue | null): unknown[] | null => {
+  if (typeof raw !== "string") return null;
+  try {
+    const v: unknown = JSON.parse(raw);
+    return Array.isArray(v) ? v : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Étiquettes « types de sites cherchés » du formulaire (chantier H). Champ absent : null (le profil
+ * garde ce qu'il avait). Une étiquette ajoutée à la main est reconstruite côté serveur (catégorie et
+ * mots déduits de son libellé) ; une entrée illisible est ignorée, jamais enregistrée de travers.
+ */
+export function parsePublishers(raw: FormDataEntryValue | null): PublisherType[] | null {
+  const list = jsonArray(raw);
+  if (!list) return null;
+  const out: PublisherType[] = [];
+  const seen = new Set<string>();
+  for (const item of list) {
+    const parsed = publisherTypeSchema.safeParse(item);
+    if (!parsed.success) continue;
+    const key = parsed.data.label.toLowerCase();
+    if (seen.has(key)) continue;
+    const type =
+      parsed.data.origin === "utilisateur"
+        ? userPublisherType(parsed.data.label)
+        : { ...parsed.data };
+    if (!type) continue;
+    seen.add(key);
+    out.push(parsed.data.active === false ? { ...type, active: false } : type);
+  }
+  return out.slice(0, MAX_PUBLISHER_TYPES);
 }
 
 export type ProfileFormResult =
@@ -116,6 +164,10 @@ export function parseProfileForm(
   const language = (BRAND_LANGUAGES as readonly string[]).includes(ctx.language)
     ? ctx.language
     : "fr";
+  const publishers = parsePublishers(formData.get("profile_publishers"));
+  const themeTerms = (jsonArray(formData.get("profile_theme_terms")) ?? [])
+    .flatMap((x) => (typeof x === "string" && x.trim().length >= 2 ? [x.trim().slice(0, 40)] : []))
+    .slice(0, 5);
   const parsed = brandProfileSchema.safeParse({
     activity: raw.activity,
     offer: raw.offer,
@@ -125,6 +177,8 @@ export function parseProfileForm(
     name_variants: raw.names,
     tone: raw.tone,
     personas,
+    ...(publishers ? { publisher_types: publishers } : {}),
+    ...(themeTerms.length > 0 ? { theme_terms: themeTerms } : {}),
   });
   if (!parsed.success) {
     const path = parsed.error.issues[0]?.path[0];

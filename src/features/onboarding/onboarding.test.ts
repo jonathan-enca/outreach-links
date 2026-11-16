@@ -447,7 +447,8 @@ describe("profil de marque dans l'onboarding (MT.1)", () => {
     expect(makeLlm).not.toHaveBeenCalled();
     await startFromUrl(user.client, "exemple-coloriage.fr", deps);
     expect(user.tables.brand_profiles).toHaveLength(1); // jamais de second appel LLM
-    expect(b.generate).toHaveBeenCalledTimes(1);
+    // Deux appels courts : le profil, puis les types d'éditeurs à chercher (chantier H).
+    expect(b.generate).toHaveBeenCalledTimes(2);
   });
 
   it("l'aperçu porte le profil, null s'il n'existe pas", async () => {
@@ -621,7 +622,7 @@ describe("univers de requêtes au lancement (MT.2b)", () => {
     expect(p.totalUsd).toBe(p.chain.totalUsd);
   });
 
-  it("enregistre l'univers au lancement, avec un seul appel LLM, sans toucher au total", async () => {
+  it("enregistre l'univers au lancement, avec deux appels LLM courts, sans toucher au total", async () => {
     const { user, service, getService } = setup({ sites: [SITE] });
     user.tables.brand_profiles = [profileRow];
     user.tables.query_universes = [];
@@ -637,7 +638,8 @@ describe("univers de requêtes au lancement (MT.2b)", () => {
       q.deps,
     );
     expect(res.status).toBe("ok");
-    expect(q.generate).toHaveBeenCalledTimes(1);
+    // Deux appels courts : les types d'éditeurs (profil sans étiquettes), puis les recettes.
+    expect(q.generate).toHaveBeenCalledTimes(2);
     expect(user.tables.query_universes).toHaveLength(1);
     expect(user.tables.query_universes![0]).toMatchObject({
       site_id: "site-1",

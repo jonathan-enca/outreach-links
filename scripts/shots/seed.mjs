@@ -74,7 +74,50 @@ const PROFILE = {
       reason: "Elles listent des activités gratuites pour les familles.",
     },
   ],
+  // Chantier H : types de sites cherchés (étiquettes modifiables) et mots du thème.
+  publisher_types: [
+    {
+      label: "Enseignants de maternelle",
+      category: "ecole",
+      terms: ["école maternelle", "classe"],
+      origin: "persona",
+    },
+    {
+      label: "Médiathèques",
+      category: "bibliotheque",
+      terms: ["médiathèque", "bibliothèque"],
+      origin: "persona",
+    },
+    {
+      label: "Associations de parents",
+      category: "association",
+      terms: ["association de parents"],
+      origin: "persona",
+    },
+    {
+      label: "Clubs de loisirs créatifs",
+      category: "association",
+      terms: ["atelier créatif", "club"],
+      origin: "voisin",
+    },
+  ],
+  theme_terms: ["coloriages à imprimer", "coloriage enfant"],
 };
+
+/** Chantier G : chiffres de l'analyse et sites restés en réserve (jamais lus). */
+const QUAL_STATS = {
+  candidates: 544,
+  preRead: { langue: 61, robots: 22, concurrent: 14, doublon: 9 },
+  afterPreRead: 438,
+  pagesRead: 310,
+  alive: 126,
+  judged: 118,
+  relevant: 41,
+  stock: 12,
+  lots: 8,
+  readStop: "objectif",
+};
+const STOCK = Array.from({ length: 12 }, (_, i) => `site-en-reserve-${i + 1}.example`);
 
 async function addSite(workspaceId, userId, row) {
   const [site] = await must(
@@ -291,9 +334,10 @@ async function addTargets(workspaceId, siteId, auditId, userId) {
       .insert({
         ...run,
         collection_id: collection.id,
-        budget_usd: 0.1,
-        actual_cost_usd: 0.0107,
+        budget_usd: 0.4,
+        actual_cost_usd: 0.19,
         stop_reason: "termine",
+        stats: QUAL_STATS,
       })
       .select("id"),
   );
@@ -338,7 +382,26 @@ async function addTargets(workspaceId, siteId, auditId, userId) {
     "cibles",
     db
       .from("qualified_targets")
-      .insert([...short, contactless], { defaultToNull: false })
+      .insert(
+        [
+          ...short,
+          contactless,
+          ...STOCK.map((domain, i) => ({
+            run_id: qrun.id,
+            audit_id: auditId,
+            workspace_id: workspaceId,
+            domain,
+            url: `https://${domain}/`,
+            tactics: ["inconnus"],
+            status: "reserve",
+            stage_reached: 3,
+            exclusion_reason: "hors_budget_lecture",
+            exclusion_detail: "en stock : pas encore lu",
+            provisional_score: 40 - i,
+          })),
+        ],
+        { defaultToNull: false },
+      )
       .select("id, domain"),
   );
   const idOf = (domain) => targets.find((t) => t.domain === domain).id;

@@ -121,9 +121,9 @@ const SITE_TYPE_LABEL: Record<SiteType, string> = {
 
 /** Ce que la cible gagne à citer la page proposée, selon son type (jamais de promesse chiffrée). */
 const ANGLE: Record<SiteType, string> = {
-  mairie: "une ressource utile aux familles, à ajouter à ses liens utiles",
+  mairie: "une ressource utile à ses habitants, à ajouter à ses liens utiles",
   association: "une ressource pratique pour ses adhérents et ses animateurs",
-  ecole: "une ressource à donner aux élèves ou aux parents",
+  ecole: "une ressource à partager avec ses élèves",
   photographe: "un complément pour ses visiteurs, sur un sujet proche du sien",
   ecommerce: "un contenu utile pour ses clients, sans rapport commercial",
   forum_modere: "une réponse utile à ses membres, si la modération l'accepte",

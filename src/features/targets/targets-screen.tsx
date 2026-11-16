@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { formatUsd } from "@/features/audits/format";
 import type { AuditActionState } from "@/features/audits/service";
 import { t } from "@/lib/messages";
 import { countByTactic, eligibleIds, filterCards, isEligible, primaryRequest } from "./cards";
+import { publisherTabs } from "./publishers";
 import {
   FOUNDER_ROLES,
   type FindingView,
@@ -312,6 +314,91 @@ export function TargetCardView({
   );
 }
 
+/** Chantier G : ce que l'analyse a examiné, en une phrase, et le détail des sites écartés sans lecture. */
+export function FunnelSummary({ funnel }: { funnel: NonNullable<TargetsView["funnel"]> }) {
+  const F = M.funnel;
+  return (
+    <Card className="flex flex-col gap-2 p-4" data-testid="funnel-summary">
+      <p className="font-medium">{F.summary(funnel.candidates, funnel.shortlist)}</p>
+      <p className="text-sm text-muted-foreground">
+        {F.detail(funnel.preReadTotal, funnel.pagesRead, funnel.judged)}
+      </p>
+      {funnel.preRead.length > 0 ? (
+        <details className="text-sm">
+          <summary className="cursor-pointer text-primary underline underline-offset-4">
+            {F.skippedTitle}
+          </summary>
+          <ul className="mt-2 flex flex-col gap-1 text-muted-foreground">
+            {funnel.preRead.map((r) => (
+              <li key={r.reason}>
+                {r.count} : {F.reasons[r.reason] ?? F.reasons.autre}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+    </Card>
+  );
+}
+
+/** Chantier G : le stock de sites pas encore lus, et le bouton qui en lit un lot de plus. */
+export function MoreSites({
+  funnel,
+  more,
+  start,
+}: {
+  funnel: NonNullable<TargetsView["funnel"]>;
+  more: TargetsView["more"];
+  start: Act;
+}) {
+  const R = M.more;
+  const router = useRouter();
+  const [state, setState] = useState<AuditActionState>({ status: "idle" });
+  const [pending, begin] = useTransition();
+  const running = more.status === "demande" || more.status === "en_cours";
+  // Pendant la lecture, l'écran se met à jour seul : les nouvelles cibles arrivent sans recharger.
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => router.refresh(), 8000);
+    return () => clearInterval(id);
+  }, [running, router]);
+  if (funnel.stock === 0 && more.status === "aucun") return null;
+  return (
+    <Card className="flex flex-col gap-2 p-4" data-testid="more-sites">
+      {more.status === "termine" && more.added !== null ? (
+        <p className="font-medium">{R.done(more.added)}</p>
+      ) : null}
+      {more.status === "echoue" ? <p className="text-destructive">{R.failedLine}</p> : null}
+      {running ? (
+        <p role="status" className="font-medium">
+          {R.running}
+        </p>
+      ) : funnel.stock > 0 ? (
+        <>
+          <p>{R.stock(funnel.stock)}</p>
+          <p className="text-sm text-muted-foreground">{R.hint}</p>
+          <div>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pending}
+              onClick={() =>
+                begin(async () => {
+                  setState(await start());
+                  router.refresh();
+                })
+              }
+            >
+              {pending ? R.busy : R.button}
+            </Button>
+          </div>
+        </>
+      ) : null}
+      <Message state={state} />
+    </Card>
+  );
+}
+
 export function TargetsScreen({
   view,
   auditId,
@@ -328,14 +415,33 @@ export function TargetsScreen({
     startFindings: Act;
     saveFounder: FormAct;
     validate: (ids: string[]) => Promise<AuditActionState>;
+    readMore: Act;
   };
 }) {
   const [filter, setFilter] = useState<TacticFilter>("toutes");
+  /** Onglet de type d'éditeur : `undefined` = toutes, `null` = autres sites. */
+  const [publisher, setPublisher] = useState<string | null | undefined>(undefined);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(eligibleIds(view.cards)));
   const [vState, setVState] = useState<AuditActionState>({ status: "idle" });
   const [vPending, startValidate] = useTransition();
   const counts = useMemo(() => countByTactic(view.cards), [view.cards]);
-  const shown = useMemo(() => filterCards(view.cards, filter), [view.cards, filter]);
+  const types = view.publisherTypes;
+  const tabs = useMemo(
+    () =>
+      publisherTabs(
+        view.cards.map((c) => c.publisher ?? null),
+        types,
+      ),
+    [view.cards, types],
+  );
+  const shown = useMemo(() => {
+    const byTactic = filterCards(view.cards, filter);
+    if (publisher === undefined) return byTactic;
+    const known = new Set(types.map((x) => x.label));
+    return byTactic.filter((c) =>
+      publisher === null ? !c.publisher || !known.has(c.publisher) : c.publisher === publisher,
+    );
+  }, [view.cards, filter, publisher, types]);
   const q = view.qualification;
   const f = view.findings;
   const chosen = [...selected].filter((id) => view.cards.some((c) => c.id === id && isEligible(c)));
@@ -460,6 +566,7 @@ export function TargetsScreen({
         <h2 id="short-list" className="font-display text-2xl font-semibold">
           {M.list.title}
         </h2>
+        {view.funnel ? <FunnelSummary funnel={view.funnel} /> : null}
         {view.cards.length === 0 ? (
           <Card className="p-6 text-muted-foreground">{M.list.empty}</Card>
         ) : (
@@ -478,8 +585,46 @@ export function TargetsScreen({
                 </Button>
               ))}
             </div>
+            {types.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                <p className="text-sm font-medium">{M.publishers.title}</p>
+                <div
+                  role="group"
+                  aria-label={M.publishers.label}
+                  className="flex flex-wrap gap-2"
+                  data-testid="publisher-tabs"
+                >
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={publisher === undefined ? "default" : "outline"}
+                    aria-pressed={publisher === undefined}
+                    onClick={() => setPublisher(undefined)}
+                  >
+                    {M.publishers.all} ({view.cards.length})
+                  </Button>
+                  {tabs.map((tab) => (
+                    <Button
+                      key={tab.label ?? "~autres"}
+                      type="button"
+                      size="sm"
+                      variant={publisher === tab.label ? "default" : "outline"}
+                      aria-pressed={publisher === tab.label}
+                      className={tab.count === 0 ? "text-muted-foreground" : undefined}
+                      onClick={() => setPublisher(tab.label)}
+                    >
+                      {tab.label ?? M.publishers.others} ({tab.count})
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             {shown.length === 0 ? (
-              <p className="text-muted-foreground">{M.list.emptyFiltered}</p>
+              <p className="text-muted-foreground">
+                {publisher !== undefined && publisher !== null
+                  ? M.publishers.emptyTab
+                  : M.list.emptyFiltered}
+              </p>
             ) : (
               <ul className="flex flex-col gap-4">
                 {shown.map((c) => (
@@ -492,6 +637,9 @@ export function TargetsScreen({
                 ))}
               </ul>
             )}
+            {view.funnel ? (
+              <MoreSites funnel={view.funnel} more={view.more} start={actions.readMore} />
+            ) : null}
             <Card className="sticky bottom-4 flex flex-col gap-2 p-4">
               <div className="flex flex-wrap items-center gap-3">
                 <Button

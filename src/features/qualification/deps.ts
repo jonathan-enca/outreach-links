@@ -1,16 +1,52 @@
 import { env } from "@/env";
 import { investigateItem } from "@/features/contacts/investigate";
 import { createMxVerifier } from "@/features/contacts/provider";
-import { BOT_USER_AGENT } from "@/features/deadlinks/hunt";
+import { BOT_TOKEN, BOT_USER_AGENT } from "@/features/deadlinks/hunt";
+import { ALLOW_ALL, robotsFromResponse } from "@/features/deadlinks/robots";
 import { createSafeFetcher } from "@/features/sites/verify";
 import { createJinaFallback, createPageReader } from "@/features/triage/page-reader";
 import { assertCanSpend, spendLimitsFor } from "@/features/collection/guard";
 import { createLlmClientFromEnv, type LlmClient } from "@/lib/llm/client";
 import { createServiceClient } from "@/lib/supabase/service";
-import type { QualDeps } from "./funnel";
+import type { QualDeps, RobotsCheck } from "./funnel";
 import { batchWorstUsd, QUALIFY_LIMITS } from "./limits";
 import { readCandidate } from "./page";
-import type { QualContext } from "./types";
+import type { QualCandidate, QualContext } from "./types";
+
+const originOf = (url: string): string | null => {
+  try {
+    const u = new URL(url);
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return null;
+  }
+};
+
+/** Adresse lue pour un candidat : la page trouvée par la recherche, sinon l'accueil. */
+const readUrl = (c: QualCandidate) => c.url ?? `https://${c.domain}/`;
+
+/**
+ * Vérification légère du robots.txt d'un candidat (une seule requête, délai court) : « interdit » si
+ * la page à lire est fermée à notre robot, « injoignable » si le site ne répond pas (même issue qu'à
+ * la lecture, mais sans y dépenser une place de lecture).
+ */
+export async function checkRobotsFor(
+  fetchRobots: (url: string) => Promise<{ status: number; text: string } | null>,
+  c: QualCandidate,
+): Promise<RobotsCheck> {
+  let u: URL;
+  try {
+    u = new URL(readUrl(c));
+  } catch {
+    return "inconnu";
+  }
+  const res = await fetchRobots(`${u.protocol}//${u.host}/robots.txt`);
+  if (!res || res.status >= 500) return "injoignable";
+  const rules = robotsFromResponse(res, BOT_TOKEN);
+  // « ok » seulement si la page ET l'accueil sont ouverts : la lecture peut retomber sur l'accueil.
+  if (!rules.allowed(u.pathname + u.search)) return "interdit";
+  return rules.allowed("/") ? "ok" : "inconnu";
+}
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -39,16 +75,26 @@ export function realQualDeps(
   };
   const emails = new Set(ctx.suppressedEmails);
   const domains = new Set(ctx.suppressedDomains);
+  const fetchRobots = createSafeFetcher({
+    userAgent: BOT_USER_AGENT,
+    maxBytes: 64 * 1024,
+    accept: "text/plain,*/*;q=0.5",
+    timeoutMs: 5_000,
+  });
   return {
-    readPage: (c) =>
-      readCandidate(
+    readPage: (c, o) => {
+      const origin = o?.robotsOk ? originOf(readUrl(c)) : null;
+      return readCandidate(
         createPageReader({
           ...base,
           hostDelayMs: QUALIFY_LIMITS.hostDelayMs,
           maxRequests: QUALIFY_LIMITS.requestsPerPage,
+          robotsPreset: origin ? (key) => (key === origin ? ALLOW_ALL : undefined) : undefined,
         }),
         c,
-      ),
+      );
+    },
+    checkRobots: (c) => checkRobotsFor(fetchRobots, c),
     llm: opts.llm,
     guard: opts.guard,
     investigate: (item) =>

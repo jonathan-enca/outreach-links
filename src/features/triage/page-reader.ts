@@ -67,6 +67,11 @@ export interface PageReaderDeps {
   hostDelayMs?: number;
   /** Nombre maximal de requêtes HTTP (robots.txt compris). */
   maxRequests?: number;
+  /**
+   * Règles robots.txt déjà connues pour une origine (« https://exemple.fr ») : le fichier n'est pas
+   * relu (chantier G : il a été vérifié avant la lecture, en parallèle).
+   */
+  robotsPreset?: (origin: string) => RobotsRules | undefined;
 }
 
 const collapse = (s: string) => s.replace(/\s+/g, " ").trim();
@@ -297,7 +302,7 @@ export function createPageReader(deps: PageReaderDeps) {
 
   async function rulesFor(u: URL): Promise<RobotsRules | null> {
     const key = `${u.protocol}//${u.host}`;
-    const cached = robots.get(key);
+    const cached = robots.get(key) ?? deps.robotsPreset?.(key);
     if (cached) return cached;
     if (requests >= maxRequests) return null;
     const res = await polite(`${key}/robots.txt`);

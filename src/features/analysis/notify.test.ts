@@ -98,3 +98,17 @@ describe("notifyAnalysisReady", () => {
     expect(JSON.stringify(inserted)).not.toContain("@");
   });
 });
+
+describe("diagnostic d'un refus de Resend", () => {
+  it("garde le nom de l'erreur, jamais le message (il peut contenir une adresse)", async () => {
+    const { resendErrorName } = await import("./notify");
+    const res = (body: string) => ({ text: async () => body });
+    expect(
+      await resendErrorName(
+        res('{"statusCode":401,"name":"restricted_api_key","message":"clé limitée, a@b.fr"}'),
+      ),
+    ).toBe(" restricted_api_key");
+    expect(await resendErrorName(res("pas du json"))).toBe("");
+    expect(await resendErrorName(res('{"name":"<script>"}'))).toBe("");
+  });
+});

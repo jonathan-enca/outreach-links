@@ -20,6 +20,9 @@ Produis :
 
 export const BRAND_SYSTEM = brandSystem("fr");
 
+/** Sortie demandée au modèle : le profil seul (les types d'éditeurs viennent d'un second appel court). */
+const brandGenerationSchema = brandProfileSchema.omit({ publisher_types: true, theme_terms: true });
+
 const squash = (s: string) =>
   s
     .toLowerCase()
@@ -146,7 +149,7 @@ export async function generateBrandProfile(input: {
       task: "brand_profile",
       system: brandSystem(input.language),
       prompt: buildBrandPrompt(site),
-      schema: brandProfileSchema,
+      schema: brandGenerationSchema,
       schemaName: "brand_profile",
       maxOutputTokens: BRAND_LIMITS.maxOutputTokens,
       temperature: 0.2,

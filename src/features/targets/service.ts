@@ -12,11 +12,17 @@ import { SITE_TYPES } from "@/features/qualification/types";
 import { TACTICS } from "@/features/queries/schema";
 import { t } from "@/lib/messages";
 import type { Database, Json } from "@/lib/supabase/database.types";
+import { resolvePublishers } from "@/features/brand/publishers";
+import type { PublisherType } from "@/features/brand/schema";
+import { STOCK_REASONS } from "@/features/qualification/more";
 import { buildBridge, type BridgeContext } from "./bridge";
+import { assignPublisher } from "./publishers";
 import {
   isFounderRole,
   type FindingView,
   type FounderRole,
+  type FunnelView,
+  type MoreView,
   type TargetCard,
   type TargetContact,
   type TargetsRunView,
@@ -131,6 +137,38 @@ export interface TargetsView {
   /** Cibles « mentions » sans contact (mention seulement) : visibles, jamais validées. */
   contactless: TargetCard[];
   competitors: { domain: string; queries: number; bestRank: number | null }[];
+  /** Chantier H : types d'éditeurs cherchés (étiquettes actives du profil). */
+  publisherTypes: PublisherType[];
+  /** Chantier G : ce que l'analyse a examiné, le stock, et l'état de « Lire d'autres sites ». */
+  funnel: FunnelView | null;
+  more: MoreView;
+}
+
+const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+
+/** Chiffres de l'entonnoir tels qu'on les montre (pur). */
+export function funnelView(stats: unknown, shortlist: number, stock: number): FunnelView | null {
+  if (!stats || typeof stats !== "object") return null;
+  const s = stats as Record<string, unknown>;
+  if (!("candidates" in s)) return null;
+  const pre = (s.preRead && typeof s.preRead === "object" ? s.preRead : {}) as Record<
+    string,
+    unknown
+  >;
+  const preRead = Object.entries(pre)
+    .map(([reason, n]) => ({ reason, count: num(n) }))
+    .filter((x) => x.count > 0)
+    .sort((a, b) => b.count - a.count || a.reason.localeCompare(b.reason));
+  return {
+    candidates: num(s.candidates),
+    preRead,
+    preReadTotal: preRead.reduce((n, x) => n + x.count, 0),
+    pagesRead: num(s.pagesRead),
+    judged: num(s.judged),
+    relevant: num(s.relevant),
+    shortlist,
+    stock,
+  };
 }
 
 /**
@@ -165,7 +203,9 @@ export async function loadTargets(
       .maybeSingle(),
     supabase
       .from("qualification_runs")
-      .select("id, status, actual_cost_usd, stop_reason, error_message")
+      .select(
+        "id, status, actual_cost_usd, stop_reason, error_message, stats, more_status, more_stats",
+      )
       .eq("audit_id", auditId)
       .maybeSingle(),
     supabase
@@ -186,15 +226,17 @@ export async function loadTargets(
   let cards: TargetCard[] = [];
   let contactless: TargetCard[] = [];
   let findingsCount = 0;
+  let publisherTypes: PublisherType[] = [];
+  let stock = 0;
   if (qrun && qrun.status === "termine") {
-    const [short, extra, fnd, profile] = await Promise.all([
+    const [short, extra, fnd, profile, stockRes] = await Promise.all([
       supabase
         .from("qualified_targets")
         .select("*")
         .eq("run_id", qrun.id)
         .eq("status", "liste_courte")
         .order("rank", { ascending: true })
-        .limit(100),
+        .limit(200),
       supabase
         .from("qualified_targets")
         .select("*")
@@ -204,7 +246,13 @@ export async function loadTargets(
         .limit(200),
       supabase.from("target_findings").select("*").eq("audit_id", auditId).limit(500),
       getLatestBrandProfile(supabase, audit.site_id),
+      supabase
+        .from("qualified_targets")
+        .select("id", { count: "exact", head: true })
+        .eq("run_id", qrun.id)
+        .in("exclusion_reason", [...STOCK_REASONS]),
     ]);
+    stock = stockRes.count ?? 0;
     const findings = fnd.data ?? [];
     findingsCount = findings.length;
     const ids = (short.data ?? []).map((r) => r.id);
@@ -215,7 +263,39 @@ export async function loadTargets(
       (briefs.data ?? []).flatMap((b) => (b.target_id ? [b.target_id] : [])),
     );
     const resources = siteResources(site.domain, profile?.profile);
-    cards = (short.data ?? []).map((r) => toCard(r, findings, resources, validated));
+    // Chantier H : chaque cible est rangée sous le type d'éditeur cherché auquel elle correspond.
+    publisherTypes = profile ? resolvePublishers(profile.profile, "").types : [];
+    const foundBy = new Map<string, string[]>();
+    const domains = (short.data ?? []).map((r) => r.domain);
+    if (publisherTypes.length > 0 && domains.length > 0) {
+      const { data: cands } = await supabase
+        .from("collection_candidates")
+        .select("domain, sources")
+        .eq("audit_id", auditId)
+        .in("domain", domains);
+      for (const c of cands ?? []) {
+        const labels = (Array.isArray(c.sources) ? c.sources : []).flatMap((x) => {
+          const p = (x as { persona?: unknown } | null)?.persona;
+          return typeof p === "string" ? [p] : [];
+        });
+        foundBy.set(c.domain, labels);
+      }
+    }
+    cards = (short.data ?? []).map((r) => {
+      const card = toCard(r, findings, resources, validated);
+      return {
+        ...card,
+        publisher: assignPublisher(
+          {
+            domain: card.domain,
+            pageTitle: card.pageTitle,
+            siteType: card.siteType,
+            foundBy: foundBy.get(card.domain) ?? [],
+          },
+          publisherTypes,
+        ),
+      };
+    });
     // Mentions sans contact : seulement celles où l'on a PROUVÉ une mention sans lien.
     const withMention = new Set(
       findings.filter((f) => f.kind === "mention_sans_lien").map((f) => f.target_id),
@@ -263,6 +343,19 @@ export async function loadTargets(
     competitors: (comps.data ?? [])
       .filter((c) => c.selected)
       .map((c) => ({ domain: c.domain, queries: c.queries_count, bestRank: c.best_rank })),
+    publisherTypes,
+    funnel: qrun?.status === "termine" ? funnelView(qrun.stats, cards.length, stock) : null,
+    more: {
+      status: (["demande", "en_cours", "termine", "echoue"] as const).includes(
+        qrun?.more_status as never,
+      )
+        ? (qrun!.more_status as MoreView["status"])
+        : "aucun",
+      added:
+        typeof (qrun?.more_stats as { added?: unknown } | null)?.added === "number"
+          ? ((qrun!.more_stats as { added: number }).added ?? null)
+          : null,
+    },
   };
 }
 

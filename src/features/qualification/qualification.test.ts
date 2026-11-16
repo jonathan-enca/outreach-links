@@ -336,13 +336,13 @@ describe("étage 6 : score et demande en trois lignes", () => {
   });
 });
 
-describe("coût annoncé et budget (0,10 USD)", () => {
-  it("budget = 10 % du budget cible ; attendu <= pire cas <= budget", () => {
-    expect(qualificationBudgetUsd()).toBeCloseTo(0.1);
+describe("coût annoncé et budget (0,40 USD)", () => {
+  it("budget de jugement de 0,40 USD ; attendu <= pire cas <= budget", () => {
+    expect(qualificationBudgetUsd()).toBeCloseTo(0.4);
     for (const n of [0, 3, 40, 200, 1000]) {
       const e = estimateQualification(n);
       expect(e.expectedUsd).toBeLessThanOrEqual(e.worstUsd + 1e-9);
-      expect(e.worstUsd).toBeLessThanOrEqual(0.1 + 1e-9);
+      expect(e.worstUsd).toBeLessThanOrEqual(0.4 + 1e-9);
       expect(e.llmTargetsMax).toBeLessThanOrEqual(QUALIFY_LIMITS.maxLlmTargets);
     }
     expect(estimateQualification(0).worstUsd).toBe(0);
@@ -517,7 +517,7 @@ describe("entonnoir complet", () => {
   it("budget de qualification : s'arrête AVANT l'appel qui le dépasserait, le reste est en réserve", async () => {
     const worst = batchWorstUsd(5, "gpt-4o-mini");
     const { deps, calls } = fakeDeps({ costPerCall: worst * 0.9 });
-    const many = Array.from({ length: 60 }, (_, i) => cand(`site-${i}.fr`));
+    const many = Array.from({ length: 100 }, (_, i) => cand(`site-${i}.fr`));
     const budget = worst * 2.5;
     const { results, stats } = await executeQualification(deps, input(many, budget), step);
     expect(calls.llm).toBeGreaterThan(0);
@@ -529,11 +529,13 @@ describe("entonnoir complet", () => {
   });
 
   it("plafond dur (audit, sécurité, jour) contrôlé avant chaque appel : rien n'est appelé au-delà", async () => {
+    // Le plafond est contrôlé une fois par lot, pour tous les appels du lot : le 2e lot est refusé.
     const { deps, calls } = fakeDeps({ guardThrowsAfter: 1 });
-    const many = Array.from({ length: 20 }, (_, i) => cand(`site-${i}.fr`));
+    const many = Array.from({ length: 100 }, (_, i) => cand(`site-${i}.fr`));
     const { stats } = await executeQualification(deps, input(many), step);
-    expect(calls.llm).toBe(1);
+    expect(calls.llm).toBe(QUALIFY_LIMITS.pagesPerStep / QUALIFY_LIMITS.batchSize);
     expect(stats.stop).toBe("plafond");
+    expect(stats.readStop).toBe("budget");
   });
 
   it("sans LLM ou sans réponse pour une cible : jamais deviné, « non qualifié » en réserve", async () => {

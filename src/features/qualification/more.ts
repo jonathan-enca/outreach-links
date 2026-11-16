@@ -1,0 +1,303 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { AuditActionState, SendEvent } from "@/features/audits/service";
+import { logger } from "@/lib/logger";
+import { t } from "@/lib/messages";
+import type { Database, Json } from "@/lib/supabase/database.types";
+import type { FunnelStats, QualInput } from "./funnel";
+import { loadQualificationInput, toRow, type QualRunRow } from "./run";
+import type { QualCandidate, QualContext, QualResult } from "./types";
+
+type Client = SupabaseClient<Database>;
+const M = t.targets.more;
+
+export const MORE_EVENT = "audit/qualification.more.requested";
+
+/**
+ * « Lire d'autres sites » (chantier G, le stock) : les candidats jamais lus restent en base avec leur
+ * score ; ce lot supplémentaire en lit et en juge une partie, sans refaire la recherche. Bornes d'un
+ * lot : pages jugées, durée, budget de jugement (les plafonds durs de l'analyse restent contrôlés).
+ */
+export const MORE_LIMITS = {
+  targetJudged: 40,
+  maxReadMs: 5 * 60_000,
+  budgetUsd: 0.15,
+  preflightMax: 150,
+} as const;
+
+/** Motifs « en stock » : jamais lus, ou lus mais pas encore jugés faute de budget. */
+export const STOCK_REASONS = ["hors_budget_lecture", "hors_budget_llm"] as const;
+
+/** Nombre de sites encore en stock pour cette analyse (lecture avec les droits de l'appelant). */
+export async function countStock(supabase: Client, runId: string): Promise<number> {
+  const { count } = await supabase
+    .from("qualified_targets")
+    .select("id", { count: "exact", head: true })
+    .eq("run_id", runId)
+    .in("exclusion_reason", [...STOCK_REASONS]);
+  return count ?? 0;
+}
+
+/**
+ * Demande la lecture d'un lot du stock. `supabase` porte les droits de l'utilisateur (il doit voir
+ * l'analyse) ; l'écriture et l'événement passent par le client de service. Une demande déjà en cours
+ * n'en lance pas une seconde.
+ */
+export async function requestMore(
+  supabase: Client,
+  getServiceClient: () => Client,
+  auditId: string,
+  sendEvent: SendEvent,
+): Promise<AuditActionState> {
+  const { data: run } = await supabase
+    .from("qualification_runs")
+    .select("id, status, more_status")
+    .eq("audit_id", auditId)
+    .maybeSingle();
+  if (!run || run.status !== "termine") return { status: "error", message: M.notReady };
+  if (run.more_status === "demande" || run.more_status === "en_cours") {
+    return { status: "ok", auditId, message: M.already };
+  }
+  if ((await countStock(supabase, run.id)) === 0) return { status: "error", message: M.empty };
+  const at = new Date().toISOString();
+  const { data, error } = await getServiceClient()
+    .from("qualification_runs")
+    .update({ more_status: "demande", more_requested_at: at })
+    .eq("id", run.id)
+    .in("more_status", ["aucun", "termine", "echoue"])
+    .select("id");
+  if (error) return { status: "error", message: M.failed };
+  if (!data?.length) return { status: "ok", auditId, message: M.already };
+  try {
+    await sendEvent({
+      id: `qualification-more-${auditId}-${at}`,
+      name: MORE_EVENT,
+      data: { auditId },
+    });
+  } catch {
+    await getServiceClient()
+      .from("qualification_runs")
+      .update({ more_status: "echoue" })
+      .eq("id", run.id);
+    return { status: "error", auditId, message: M.failed };
+  }
+  return { status: "ok", auditId, message: M.started };
+}
+
+export interface MoreRun extends QualRunRow {
+  /** Rendement déjà mesuré par source, pour composer le premier lot. */
+  priorYield: Record<string, { read: number; relevant: number }>;
+}
+
+/** demande -> en_cours (idempotent pour une nouvelle tentative). Null si rien n'est demandé. */
+export async function beginMore(service: Client, auditId: string): Promise<MoreRun | null> {
+  const { data: row, error } = await service
+    .from("qualification_runs")
+    .select("*")
+    .eq("audit_id", auditId)
+    .maybeSingle();
+  if (error) throw new Error(`beginMore : ${error.message}`);
+  if (!row || row.status !== "termine") return null;
+  if (row.more_status === "demande") {
+    const { error: uErr } = await service
+      .from("qualification_runs")
+      .update({ more_status: "en_cours" })
+      .eq("id", row.id)
+      .eq("more_status", "demande");
+    if (uErr) throw new Error(`beginMore : ${uErr.message}`);
+  } else if (row.more_status !== "en_cours") return null;
+  const { data: audit } = await service
+    .from("audits")
+    .select("cost_cap_usd")
+    .eq("id", auditId)
+    .maybeSingle();
+  const stats = (row.stats ?? {}) as Partial<FunnelStats>;
+  const priorYield: MoreRun["priorYield"] = {};
+  for (const [src, y] of Object.entries(stats.bySource ?? {})) {
+    priorYield[src] = { read: y.read, relevant: y.relevant };
+  }
+  const plan = (row.plan ?? {}) as { model?: string };
+  return {
+    id: row.id,
+    auditId,
+    collectionId: row.collection_id,
+    workspaceId: row.workspace_id,
+    siteId: row.site_id,
+    budgetUsd: MORE_LIMITS.budgetUsd,
+    model: plan.model ?? "",
+    auditCapUsd: Number(audit?.cost_cap_usd ?? 0),
+    priorYield,
+  };
+}
+
+/** Contexte et candidats EN STOCK seulement (les autres ont déjà leur verdict). */
+export async function loadMoreInput(
+  service: Client,
+  run: MoreRun,
+): Promise<{ ctx: QualContext; candidates: QualCandidate[] } | null> {
+  const loaded = await loadQualificationInput(service, run.auditId);
+  if (!loaded) return null;
+  const stock = new Set<string>();
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await service
+      .from("qualified_targets")
+      .select("domain")
+      .eq("run_id", run.id)
+      .in("exclusion_reason", [...STOCK_REASONS])
+      .range(from, from + 999);
+    if (error) throw new Error(`loadMoreInput : ${error.message}`);
+    for (const r of data ?? []) stock.add(r.domain);
+    if ((data ?? []).length < 1000) break;
+  }
+  const bare = (d: string) => d.toLowerCase().replace(/^www\./, "");
+  return {
+    ctx: loaded.ctx,
+    candidates: loaded.candidates.filter((c) => stock.has(c.domain) || stock.has(bare(c.domain))),
+  };
+}
+
+export function toMoreInput(
+  run: MoreRun,
+  loaded: { ctx: QualContext; candidates: QualCandidate[] },
+): QualInput {
+  return {
+    workspaceId: run.workspaceId,
+    auditId: run.auditId,
+    ctx: loaded.ctx,
+    candidates: loaded.candidates,
+    budgetUsd: run.budgetUsd,
+    model: run.model,
+    tuning: {
+      targetJudged: MORE_LIMITS.targetJudged,
+      maxReadMs: MORE_LIMITS.maxReadMs,
+      preflightMax: MORE_LIMITS.preflightMax,
+    },
+    priorYield: run.priorYield,
+  };
+}
+
+const add = (a: number | undefined, b: number | undefined) => (a ?? 0) + (b ?? 0);
+
+/** Compteurs de l'analyse après un lot supplémentaire (pur). */
+export function mergeStats(
+  base: Partial<FunnelStats>,
+  lot: FunnelStats,
+  shortlist: number,
+): Partial<FunnelStats> {
+  const bySource = { ...(base.bySource ?? {}) };
+  for (const [k, y] of Object.entries(lot.bySource ?? {})) {
+    const cur = bySource[k];
+    bySource[k] = cur
+      ? {
+          candidates: cur.candidates,
+          read: cur.read + y.read,
+          alive: cur.alive + y.alive,
+          judged: cur.judged + y.judged,
+          relevant: cur.relevant + y.relevant,
+          shortlist: cur.shortlist + y.shortlist,
+        }
+      : y;
+  }
+  return {
+    ...base,
+    pagesRead: add(base.pagesRead, lot.pagesRead),
+    alive: add(base.alive, lot.alive),
+    judged: add(base.judged, lot.judged),
+    relevant: add(base.relevant, lot.relevant),
+    contactsSearched: add(base.contactsSearched, lot.contactsSearched),
+    withContact: add(base.withContact, lot.withContact),
+    llmCalls: add(base.llmCalls, lot.llmCalls),
+    llmFailures: add(base.llmFailures, lot.llmFailures),
+    costUsd: Math.round(add(base.costUsd, lot.costUsd) * 1e6) / 1e6,
+    lots: add(base.lots, lot.lots),
+    stock: lot.stock,
+    shortlist,
+    bySource,
+  };
+}
+
+/**
+ * Range le lot : les sites traités remplacent leur ligne « en stock » (les cibles déjà livrées ne
+ * sont jamais touchées : mêmes identifiants, mêmes décisions), puis le rang de toute la liste est
+ * recalculé par score. Les sites restés en stock gardent leur ligne.
+ */
+export async function finalizeMore(
+  service: Client,
+  run: MoreRun,
+  results: readonly QualResult[],
+  stats: FunnelStats,
+): Promise<{ added: number; shortlist: number; stock: number }> {
+  const processed = results.filter((r) => r.exclusionReason !== "hors_budget_lecture");
+  for (let i = 0; i < processed.length; i += 200) {
+    const chunk = processed.slice(i, i + 200);
+    const del = await service
+      .from("qualified_targets")
+      .delete()
+      .eq("run_id", run.id)
+      .in("exclusion_reason", [...STOCK_REASONS])
+      .in(
+        "domain",
+        chunk.map((r) => r.domain),
+      );
+    if (del.error) throw new Error(`finalizeMore : ${del.error.message}`);
+    // Le rang sera recalculé sur toute la liste : la ligne entre sans rang.
+    const ins = await service
+      .from("qualified_targets")
+      .insert(chunk.map((r) => ({ ...toRow(run, r), rank: null })));
+    if (ins.error) throw new Error(`finalizeMore : ${ins.error.message}`);
+  }
+  const { data: scored, error } = await service
+    .from("qualified_targets")
+    .select("id, domain, score, rank, status")
+    .eq("run_id", run.id)
+    .is("exclusion_reason", null)
+    .not("score", "is", null)
+    .limit(1000);
+  if (error) throw new Error(`finalizeMore : ${error.message}`);
+  const ordered = [...(scored ?? [])].sort(
+    (a, b) => Number(b.score) - Number(a.score) || a.domain.localeCompare(b.domain),
+  );
+  const changes = ordered.flatMap((r, i) =>
+    r.rank === i + 1 && r.status === "liste_courte" ? [] : [{ id: r.id, rank: i + 1 }],
+  );
+  for (let i = 0; i < changes.length; i += 20) {
+    const out = await Promise.all(
+      changes
+        .slice(i, i + 20)
+        .map((c) =>
+          service
+            .from("qualified_targets")
+            .update({ rank: c.rank, status: "liste_courte" })
+            .eq("id", c.id),
+        ),
+    );
+    const failed = out.find((o) => o.error);
+    if (failed?.error) throw new Error(`finalizeMore : ${failed.error.message}`);
+  }
+  const added = processed.filter((r) => r.status === "liste_courte").length;
+  const { data: row } = await service
+    .from("qualification_runs")
+    .select("stats, actual_cost_usd")
+    .eq("id", run.id)
+    .maybeSingle();
+  const merged = mergeStats((row?.stats ?? {}) as Partial<FunnelStats>, stats, ordered.length);
+  const up = await service
+    .from("qualification_runs")
+    .update({
+      more_status: "termine",
+      more_stats: { ...stats, added } as unknown as Json,
+      stats: merged as unknown as Json,
+      actual_cost_usd: Math.round((Number(row?.actual_cost_usd ?? 0) + stats.costUsd) * 1e6) / 1e6,
+    })
+    .eq("id", run.id);
+  if (up.error) throw new Error(`finalizeMore : ${up.error.message}`);
+  return { added, shortlist: ordered.length, stock: stats.stock ?? 0 };
+}
+
+export async function failMore(service: Client, auditId: string, message: string): Promise<void> {
+  const { error } = await service
+    .from("qualification_runs")
+    .update({ more_status: "echoue", more_stats: { error: message.slice(0, 300) } as Json })
+    .eq("audit_id", auditId)
+    .in("more_status", ["demande", "en_cours"]);
+  if (error) logger.error("lot supplémentaire : échec non enregistré", { auditId });
+}

@@ -31,6 +31,8 @@ export interface RawCandidate {
   competitorsCount: number;
   domainRank: number | null;
   spamScore: number | null;
+  /** Langue de la page selon le fournisseur, quand il la donne (filtre avant lecture, chantier G). */
+  language?: string | null;
 }
 
 /** Contexte de filtrage gratuit appliqué à chaque candidat (avant tout appel au LLM). */
@@ -67,4 +69,6 @@ export interface MergedCandidate {
   pageType: string | null;
   /** Nombre de sources distinctes qui l'ont trouvé : signal d'ordre pour MT.4, pas un score final. */
   signalCount: number;
+  /** Langue de la page selon le fournisseur (null = inconnue). */
+  language?: string | null;
 }

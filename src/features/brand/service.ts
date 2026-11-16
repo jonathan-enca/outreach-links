@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { LlmClient } from "@/lib/llm/client";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { generateBrandProfile } from "./generate";
+import { generatePublisherTypes } from "./publishers";
 import type { SiteRead } from "./read-site";
 import {
   brandProfileSchema,
@@ -114,6 +115,8 @@ export async function buildAndStoreBrandProfile(
     home: SiteRead["home"] | null;
     /** Langue de la campagne (profil et pages lues dans cette langue). */
     language?: string;
+    /** Thème du site, s'il est déjà connu (aide à nommer le sujet des recherches). */
+    theme?: string | null;
   },
   deps: BrandDeps,
 ): Promise<StoredBrandProfile | null> {
@@ -132,18 +135,89 @@ export async function buildAndStoreBrandProfile(
       language: input.language,
     });
     if (!generated) return null;
+    // Chantier H : types d'éditeurs à chercher (personas + voisins). Un échec n'empêche rien : les
+    // types seront déduits des personas au moment de la recherche.
+    const publishers = await generatePublisherTypes({
+      profile: generated.profile,
+      theme: input.theme ?? generated.profile.activity,
+      domain: input.domain,
+      language: input.language ?? generated.profile.language,
+      llm,
+      workspaceId: input.workspaceId,
+    });
     const saved = await saveBrandProfileVersion(supabase, {
       siteId: input.siteId,
       workspaceId: input.workspaceId,
       userId: input.userId,
-      profile: generated.profile,
+      profile: publishers
+        ? {
+            ...generated.profile,
+            publisher_types: publishers.types,
+            theme_terms: publishers.themeTerms,
+          }
+        : generated.profile,
       source: "llm",
       pagesRead: generated.pagesRead,
-      costUsd: generated.costUsd,
+      costUsd: generated.costUsd + (publishers?.costUsd ?? 0),
     });
     if (!saved.ok) return null;
     return getLatestBrandProfile(supabase, input.siteId);
   } catch {
     return null;
+  }
+}
+
+/**
+ * Chantier H : garantit que le profil d'un site porte ses types d'éditeurs. Un profil antérieur (ou
+ * dont le second appel avait échoué) reçoit une NOUVELLE version, identique au reste (même source :
+ * les corrections de l'utilisateur sont gardées telles quelles). Sans modèle ou en cas de panne, le
+ * profil est rendu tel quel : la recherche déduira les types des personas. Ne lève jamais.
+ */
+export async function ensurePublisherTypes(
+  supabase: Client,
+  input: {
+    siteId: string;
+    workspaceId: string;
+    domain: string;
+    theme: string;
+    language: string;
+  },
+  makeLlm: () => LlmClient | null,
+): Promise<StoredBrandProfile | null> {
+  const stored = await getLatestBrandProfile(supabase, input.siteId);
+  // Des étiquettes déjà posées (même toutes retirées par l'utilisateur) ne sont jamais refaites.
+  if (!stored || stored.profile.publisher_types !== undefined) return stored;
+  try {
+    let llm: LlmClient | null = null;
+    try {
+      llm = makeLlm();
+    } catch {
+      llm = null;
+    }
+    const publishers = await generatePublisherTypes({
+      profile: stored.profile,
+      theme: input.theme,
+      domain: input.domain,
+      language: input.language,
+      llm,
+      workspaceId: input.workspaceId,
+    });
+    if (!publishers) return stored;
+    const saved = await saveBrandProfileVersion(supabase, {
+      siteId: input.siteId,
+      workspaceId: input.workspaceId,
+      userId: null,
+      profile: {
+        ...stored.profile,
+        publisher_types: publishers.types,
+        theme_terms: publishers.themeTerms,
+      },
+      source: stored.source,
+      pagesRead: stored.pagesRead,
+      costUsd: publishers.costUsd,
+    });
+    return saved.ok ? ((await getLatestBrandProfile(supabase, input.siteId)) ?? stored) : stored;
+  } catch {
+    return stored;
   }
 }

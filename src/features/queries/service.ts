@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getLatestBrandProfile } from "@/features/brand/service";
+import { resolvePublishers } from "@/features/brand/publishers";
+import { ensurePublisherTypes, getLatestBrandProfile } from "@/features/brand/service";
 import type { BrandProfile } from "@/features/brand/schema";
 import type { LlmClient } from "@/lib/llm/client";
 import { logger } from "@/lib/logger";
@@ -93,6 +94,9 @@ export interface BuiltUniverse {
   estimatedUsd: number;
   llmCostUsd: number;
   recipes: { cache: number; generated: number; fallback: number };
+  /** Types d'éditeurs cherchés (chantier H) et nombre de requêtes garanties. */
+  publisherTypes: number;
+  guaranteed: number;
 }
 
 /**
@@ -185,7 +189,10 @@ export async function buildUniverse(input: UniverseInput, deps: QueryDeps): Prom
     counts.fallback++;
   }
 
+  const publishers = resolvePublishers(input.profile, input.theme);
   const queries = buildQueryPlan({
+    publisherTypes: publishers.types,
+    themeTerms: publishers.themeTerms,
     theme: input.theme,
     language: input.language,
     domain: input.domain,
@@ -203,6 +210,8 @@ export async function buildUniverse(input: UniverseInput, deps: QueryDeps): Prom
     estimatedUsd,
     llmCostUsd: generated?.costUsd ?? 0,
     recipes: counts,
+    publisherTypes: publishers.types.length,
+    guaranteed: queries.filter((q) => q.guaranteed).length,
   };
 }
 
@@ -299,9 +308,21 @@ async function storeQueryUniverse(
       .maybeSingle();
     if (!site) return { reason: "site_introuvable" };
     if (!site.niche) return { reason: "theme_absent" };
-    const stored = await getLatestBrandProfile(supabase, input.siteId);
-    if (!stored) return { reason: "profil_absent" };
     const language = site.language === "en" ? "en" : "fr";
+    // Chantier H : un profil sans types d'éditeurs les reçoit ici (un appel court), sinon ils seront
+    // déduits des personas.
+    const stored = await ensurePublisherTypes(
+      supabase,
+      {
+        siteId: site.id,
+        workspaceId: site.workspace_id,
+        domain: site.domain,
+        theme: site.niche,
+        language,
+      },
+      deps.makeLlm,
+    );
+    if (!stored) return { reason: "profil_absent" };
     const goal = site.goal === "mots_cles" ? "mots_cles" : "autorite_generale";
     const built = await buildUniverse(
       {
@@ -342,6 +363,8 @@ async function storeQueryUniverse(
         estimated_usd: built.estimatedUsd,
         llm_cost_usd: built.llmCostUsd,
         recipes: built.recipes,
+        publisher_types: built.publisherTypes,
+        guaranteed: built.guaranteed,
         goal,
       },
     });
