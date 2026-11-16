@@ -100,10 +100,19 @@ export async function notifyAnalysisReady(
     });
     return "envoye";
   } catch (e) {
-    logger.warn("email de fin d'analyse non envoyé", {
-      auditId: run.auditId,
-      error: (e as Error).message,
-    });
+    const message = (e as Error).message;
+    logger.warn("email de fin d'analyse non envoyé", { auditId: run.auditId, error: message });
+    // Trace durable de la cause (sans adresse) : essai du 17/11, « echec » sans aucun indice.
+    try {
+      await service.from("events").insert({
+        workspace_id: run.workspaceId,
+        actor_id: null,
+        type: "analysis.email_error",
+        payload: { audit_id: run.auditId, error: message.slice(0, 200) },
+      });
+    } catch {
+      // jamais bloquant
+    }
     return "echec";
   }
 }

@@ -1048,7 +1048,47 @@ PR #101 (A), #102 (B, C, D), #104 (correctifs du run réel, E, F). Migrations ap
 | mentions de marque                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | 25        | 0      |
 | Par type : 11 blogs, 2 médias, 2 e-commerces, 1 association, 1 « autre » sur 17. Sorties du tri : 28 sans contact, 25 robots.txt, 25 hors langue, 17 injoignables, 16 éditeur introuvable, 16 hors sujet, 12 doublons ; 575 candidats jamais lus (au-delà de 150 pages). **Contenu fournit 94 % des cibles** (les blogs), le recoupement 91 candidats pour 1 cible. Fichier à juger : `docs/eval-qualite-recherche.md` (17 retenues + 20 écartées au hasard). Aucune règle de tri modifiée. |
 
-### F. Run réel en production (compte de test, mega-coloring.com, France, par l'interface)
+### F. Runs réels en production (compte de test, mega-coloring.com, France, par l'interface)
 
-- Script : `scripts/shots/prod-run.mjs` (`pnpm shots:env && pnpm shots:seed`, puis `SHOTS_DIR=… node scripts/shots/prod-run.mjs`).
-- **Run 1 (17/11, 19:09 UTC, audit `c15cc42e-cd19-4846-b698-b662cbba147d`)** : 1 090 s (18 min), **0,659 USD** (DataForSEO 0,577 + LLM 0,082), 1 000 candidats lus (1 636 trouvés), 150 pages lues, **0 cible**. Causes : (1) site lu en anglais (voir B) ; (2) **11 lots de jugement sur 11 en échec sans trace** (cause inconnue, maintenant tracée dans `qualification_runs.stats.llmLastError` et les journaux) ; (3) deux appels Content Analysis ont dépassé 300 s (délai 60 s mal réglé, corrigé). L'écran a fonctionné sans rechargement (captures dans le dossier du script).
+- Script : `scripts/shots/prod-run.mjs` (`pnpm shots:env && pnpm shots:seed`, puis `SHOTS_DIR=<dossier> node scripts/shots/prod-run.mjs`). Les captures (étape 1, lecture, fiche, analyse début / milieu / fin, bureau et mobile) sont dans le dossier de session, hors dépôt. Fonctions Inngest : 36, aucune nouvelle (vérifié avec `get_apps`).
+- **Run 1 (19:09 UTC, audit `c15cc42e…`)** : 18 min, 0,659 USD, 0 cible. Trois causes : site lu en anglais (accueil anglais, langue « détectée ») ; recherche lente (un step Inngest par appel : 859 s) ; **jugements perdus** (voir ci-dessous).
+- **Run 2 (19:40 UTC, audit `f19021aa-f30f-44d2-a05d-22070a84cc5a`, après correctifs)** : site lu en **français** (thème « coloriages gratuits à imprimer », profil français), **8 min 34 s** au total (recherche 277 s, tri 141 s), 0,62 USD, 2 recherches « manquées » signalées à l'écran et tolérées, mais **toujours 0 cible** : le jugement échouait encore.
+- **Cause du « 0 cible » trouvée** : depuis l'ajout de `ANTHROPIC_API_KEY` en production, les jugements passent par **Claude Haiku 4.5** (avant : gpt-4o-mini). Chaque lot s'arrêtait à la limite de **610 jetons de sortie** (5 × 110 + 60) et le modèle renvoyait `{}` : 12 lots sur 12 perdus. Limite portée à 200 jetons par cible (constats : 420) ; une sortie tronquée est désormais une erreur explicite ; `stats.llmLastError` garde la cause.
+- **Reprise par étape testée en production** (bouton « Reprendre à partir d'ici » sur « Trier », écran `?etapes=1`) : refait le tri sans refaire la recherche ni les concurrents. **Résultat final sur ce même audit : 20 cibles** (10 blogs, 3 associations, 2 écoles, 2 annuaires, 1 mairie, 1 boutique, 1 média), **9 constats « lien mort » prouvés** (404 / 410 constatés par nous), dont **7 des 20 cibles viennent de la source « lien mort d'un concurrent »** (papapositive.fr, apelpassy.fr, ville-domont.fr, apajhetvous.apajh.org, arnamur.be, gostudent.org, lesbonsplansdenaima.fr). Durée de la reprise : 2 min 40 à 6 min, jugement 11 appels, 0 échec.
+- **Coût total de la session** (budget 2 USD) : run 1 0,659 + run 2 0,621 + deux reprises du tri 0,23 + sondes Backlinks (liens morts) ≈ 0,25 = **≈ 1,76 USD**, uniquement sur le site de test.
+- **Email de fin : non constaté.** Les deux analyses ont répondu `echec` (aucun appel n'apparaît dans les journaux Resend aux heures concernées, alors que `RESEND_API_KEY` est posée sur Vercel). La cause n'est pas établie ; elle est maintenant écrite dans `events` (`analysis.email_error`, sans adresse) pour la prochaine analyse. Hypothèses : exception avant l'envoi (lecture de l'utilisateur de test), clé restreinte. À vérifier au prochain run réel.
+
+### Décisions (défauts appliqués)
+
+- Campagne = site × pays, unicité `(workspace, domaine, pays)`, pays par défaut France.
+- Langue « détectée » : langue du pays visé préférée quand une version existe, sinon langue détectée.
+- Un step Inngest par lot de 5 appels (et non par appel).
+- Les liens morts de concurrents : filtre `url_to_status_code in (404, 410)`, jamais `is_broken` (les 403 sont des blocages, pas des pages mortes) ; part de 20 % du budget de collecte ; une page ne devient « lien mort » que par notre propre requête HTTP.
+- Parts du budget de collecte : recoupement 16 %, mentions 12,5 %, liens morts 20 %, recherche 27,5 %, contenu 24 %.
+
+### Fichiers clés
+
+`src/features/collection/run.ts` (retry, lots, phase `morts`), `src/features/analysis/restart.ts` + `supabase/migrations/2026120200000000_analysis_restart.sql`, `src/features/analysis/{view,analysis-progress,run}.ts*`, `src/features/onboarding/{service,url-form,actions}.ts*`, `src/features/sites/market.ts`, `src/features/brand/{read-site,generate,brand-fields}.ts*`, `src/features/findings/{rules,request,funnel}.ts`, `src/lib/llm/client.ts`, `src/lib/dataforseo/client.ts`, `docs/eval-qualite-recherche.md`, `scripts/shots/prod-run.mjs`.
+
+### Commandes
+
+`pnpm shots:env && pnpm shots:seed` puis `SHOTS_DIR=… node scripts/shots/prod-run.mjs` (run réel en production, ~0,7 USD) ; base locale pour les tests SQL : serveur Postgres 16 puis `TEST_DATABASE_URL=postgres://postgres@127.0.0.1:5433/postgres pnpm test`.
+
+### Dettes et pièges
+
+- Recherche en 277 s sur le run 2 (objectif « moins de 3 minutes » non tenu : SERP 25 appels = 208 s de lots, Content Analysis jusqu'à 140 s par appel) ; recouper les phases entre elles (mentions, SERP, contenu en parallèle) est possible mais touche au déterminisme du rejeu.
+- La reprise par étape n'est atteignable depuis « Vos cibles » que par le lien « Revoir les étapes » ; elle efface les décisions Garder / Écarter déjà prises sur les cibles refaites.
+- Une campagne existante n'est pas relue quand on change la langue ; l'ajout d'un pays se fait par « Ajouter un pays » (page d'accueil de l'espace, liste de plusieurs sites) ou par l'étape 1.
+- Lecture en direct : deux phases réelles seulement (accueil ; reste du site et profil), pas une coche par page lue.
+- Les concurrents retenus du run 2 incluent des géants (magnific.com, crayola.com) : sans effet sur les cibles mais les liens morts de magnific.com sont presque tous des images (filtrées).
+- Les pages ressources (MU.7 a, b, d) et le faux 404 ne sont pas faits ; liens morts : rendement mesuré 3 à 8 pages par analyse sur ce thème, 9 constats prouvés au run 2.
+- Contrôle de qualité : toujours à juger par Jonathan (`docs/eval-qualite-recherche.md`) avant toute modification des règles de tri ; le run 2 n'a pas rejoué le jeu annoté (aucune règle modifiée).
+- `PROGRESS.md > État` n'a pas de ligne par chantier de cette session (tout est ici).
+
+### Backlog
+
+Mesurer les pages hors langue au tri avec le marché choisi ; réglage du nom du produit dans l'expéditeur de l'email ; capture automatique de l'écran de fin ; changer la langue d'une campagne existante ; lien « Ajouter un pays » aussi sur l'écran des cibles.
+
+### Prochain sous-jalon recommandé
+
+Relancer un run réel pour constater l'email de fin (lire `analysis.email_error`), puis **MU.8** (contacts : 7 cibles sur 27 jugées pertinentes n'ont pas de contact), puis MU.5, MU.6, MU.9 à MU.11.
