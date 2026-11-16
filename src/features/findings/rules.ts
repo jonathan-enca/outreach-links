@@ -203,19 +203,41 @@ export function linkCandidates(
 export function linksToCheck(
   read: Pick<PageRead, "outbound">,
   max: number = FINDINGS_LIMITS.maxLinksChecked,
+  /** Domaines des concurrents : leurs liens passent en premier (chantier D, jamais coupés par le plafond). */
+  competitorDomains: readonly string[] = [],
 ): PageOutbound[] {
+  const toCompetitor = (l: PageOutbound) => isCompetitorUrl(l.url, competitorDomains);
   const body = read.outbound.filter((l) => l.zone === "body");
   const chrome = read.outbound.filter((l) => l.zone === "chrome");
-  return [...body, ...chrome].slice(0, max);
+  const ordered = [...body, ...chrome];
+  return [...ordered.filter(toCompetitor), ...ordered.filter((l) => !toCompetitor(l))].slice(
+    0,
+    max,
+  );
 }
 
-export function toDeadHit(link: PageOutbound, status: 404 | 410, ownDomain: string): DeadLinkHit {
+/** L'adresse est-elle une page d'un concurrent (ou d'un de ses sous-domaines) ? */
+export function isCompetitorUrl(url: string, competitorDomains: readonly string[]): boolean {
+  const host = hostOf(url);
+  return competitorDomains.some((c) => {
+    const d = hostOf(c);
+    return host === d || host.endsWith(`.${d}`);
+  });
+}
+
+export function toDeadHit(
+  link: PageOutbound,
+  status: 404 | 410,
+  ownDomain: string,
+  competitorDomains: readonly string[] = [],
+): DeadLinkHit {
   return {
     url: link.url,
     anchor: link.anchor,
     context: link.context,
     status,
     toOwnSite: isOwnDomain(hostOf(link.url), ownDomain),
+    toCompetitor: isCompetitorUrl(link.url, competitorDomains),
   };
 }
 

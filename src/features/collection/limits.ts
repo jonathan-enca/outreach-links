@@ -12,7 +12,7 @@ export const COLLECTION_LIMITS = {
   /** Part du budget cible d'audit réservée à la collecte (docs/audit-v2.md section 6). */
   shareOfTarget: 0.55,
   /** Part de ce budget par phase (somme = 1) : le pire cas annoncé est donc le budget cible. */
-  phaseShare: { intersection: 0.17, mentions: 0.16, serp: 0.36, content: 0.31 },
+  phaseShare: { intersection: 0.16, mentions: 0.125, morts: 0.2, serp: 0.275, content: 0.24 },
   intersection: {
     /** 8 au plus : le filtre serveur « autorité > 0 » compte une condition par cible (8 conditions maximum). */
     maxTargets: 8,
@@ -39,6 +39,18 @@ export const COLLECTION_LIMITS = {
     window: 4,
     /** Seuil : moyenne de nouveaux domaines par requête sur la fenêtre. */
     minNewPerQuery: 3,
+  },
+  /**
+   * Liens morts des concurrents (chantier D) : pages disparues (404 / 410) qui reçoivent encore des
+   * liens. UN appel Backlinks par concurrent (un lien par domaine source), les plus gros concurrents
+   * d'abord ; chaque domaine qui cite une page disparue est une cible.
+   */
+  deadPages: {
+    maxCompetitors: 5,
+    rowsPerCall: 100,
+    /** Un lien dont le score de spam atteint ce seuil est écarté (0-100). */
+    spamMax: 30,
+    typicalFill: 0.75,
   },
   content: {
     rowsPerCall: 150,
@@ -78,6 +90,11 @@ export function phaseBudgetUsd(
 /** Coût d'un appel Content Analysis de `rows` lignes (USD). */
 export function contentCallUsd(rows: number): number {
   return r6(PRICING.contentAnalysisPerRequest + rows * PRICING.contentAnalysisPerRow);
+}
+
+/** Coût d'un appel Backlinks (liens morts d'un concurrent) de `rows` lignes (USD). */
+export function deadPagesCallUsd(rows: number): number {
+  return r6(PRICING.backlinksPerRequest + rows * PRICING.backlinksPerRow);
 }
 
 /** Coût d'une page de Domain Intersection de `rows` lignes (USD). */

@@ -26,6 +26,8 @@ export interface BuildInput {
   /** Raison du jugement (lien inadapté) ou note (lien mort). */
   reason: string;
   toOwnSite?: boolean;
+  /** Le lien mort vise une page disparue d'un concurrent (chantier D). */
+  toCompetitor?: boolean;
 }
 
 /** Phrase de la mention avec le texte à lier repéré par des crochets : la « phrase après ». */
@@ -55,11 +57,17 @@ export function buildFinding(input: BuildInput, ctx: Pick<FindingContext, "brand
           `Point précis : « ${clip(input.quote, 220)} » (${input.linkUrl}).`,
           `Pour lui : un lien qui fonctionne de nouveau pour ses lecteurs.`,
         ]
-      : [
-          `Signaler le lien mort ${label} (${host(input.linkUrl ?? "")}, erreur ${input.httpStatus}) de ${pageName} et proposer « ${res.title} » (${res.url}) comme remplaçant.`,
-          `Point précis : « ${clip(input.quote, 220)} » (${input.linkUrl}).`,
-          `Pour lui : un lien qui fonctionne pour ses lecteurs, signalé par quelqu'un qui connaît le site proposé.`,
-        ];
+      : input.toCompetitor
+        ? [
+            `Signaler que le lien ${label} de ${pageName} mène à une page de ${host(input.linkUrl ?? "")} qui n'existe plus (erreur ${input.httpStatus}), et proposer « ${res.title} » (${res.url}) comme remplaçant ou en complément.`,
+            `Point précis : « ${clip(input.quote, 220)} » (${input.linkUrl}).`,
+            `Pour lui : un lien qui fonctionne pour ses lecteurs, à la place d'une page disparue.`,
+          ]
+        : [
+            `Signaler le lien mort ${label} (${host(input.linkUrl ?? "")}, erreur ${input.httpStatus}) de ${pageName} et proposer « ${res.title} » (${res.url}) comme remplaçant.`,
+            `Point précis : « ${clip(input.quote, 220)} » (${input.linkUrl}).`,
+            `Pour lui : un lien qui fonctionne pour ses lecteurs, signalé par quelqu'un qui connaît le site proposé.`,
+          ];
     opening = `Votre page ${pageName} contient un lien qui ne fonctionne plus : « ${clip(input.quote, 160)} ».`;
   } else if (input.kind === "lien_inadapte") {
     const label = input.anchor ? `« ${clip(input.anchor, 60)} »` : host(input.linkUrl ?? "");

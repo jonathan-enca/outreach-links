@@ -12,16 +12,19 @@ import {
 } from "@/lib/dataforseo";
 import { logger } from "@/lib/logger";
 import type { Database, Json } from "@/lib/supabase/database.types";
+import { normalizeBacklinkItems } from "@/features/backlinks/normalize";
 import { spendLimitsFor, assertCanSpend, type SpendLimits } from "./guard";
 import {
   COLLECTION_LIMITS,
   contentCallUsd,
+  deadPagesCallUsd,
   intersectionPageUsd,
   phaseBudgetUsd,
   type CollectionPhase,
 } from "./limits";
 import {
   fromContent,
+  fromDeadPages,
   fromSerp,
   intersectionCandidates,
   mergeCandidates,
@@ -37,7 +40,7 @@ import type { CollectionContext, MergedCandidate, RawCandidate } from "./types";
 type Client = SupabaseClient<Database>;
 type Dfs = Pick<
   DataForSeoClient,
-  "serpOrganicLive" | "backlinksDomainIntersection" | "contentAnalysisSearch"
+  "serpOrganicLive" | "backlinksDomainIntersection" | "contentAnalysisSearch" | "backlinksBacklinks"
 >;
 
 export const COLLECTION_EVENT = "audit/collection.requested";
@@ -57,6 +60,8 @@ export const collectionPlanSchema = z.object({
       }),
     )
     .max(20),
+  /** Concurrents dont on cherche les pages disparues (absent des plans figés avant le chantier D). */
+  deadPages: z.array(z.string()).max(10).default([]),
 });
 
 export interface CollectionRun {
@@ -238,7 +243,7 @@ const callOpts = (run: CollectionRun) => ({ workspaceId: run.workspaceId, auditI
 
 /** Une page du recoupement des concurrents (mode partiel : domaines qui lient au moins un concurrent). */
 export async function runIntersectionPage(
-  deps: { dfs: Dfs; service: Client },
+  deps: { dfs: Pick<Dfs, "backlinksDomainIntersection">; service: Client },
   run: CollectionRun,
   page: number,
 ): Promise<StepOutcome> {
@@ -275,9 +280,52 @@ export async function runIntersectionPage(
   };
 }
 
+/**
+ * Pages disparues d'un concurrent qui reçoivent encore des liens (chantier D) : UN appel Backlinks
+ * filtré sur les liens cassés, un lien par domaine source. Le fournisseur DÉCLARE le lien cassé ; la
+ * preuve (404 / 410 constaté, lien présent sur la page) est établie plus tard, par une requête HTTP,
+ * à l'étape des constats : rien n'est jamais déclaré mort sur la seule foi du fournisseur.
+ */
+export async function runDeadPagesCall(
+  deps: { dfs: Pick<Dfs, "backlinksBacklinks">; service: Client },
+  run: CollectionRun,
+  competitor: string,
+  index: number,
+): Promise<StepOutcome> {
+  const rows = COLLECTION_LIMITS.deadPages.rowsPerCall;
+  const label = `morts-${index + 1}`;
+  if (!(await guarded(deps.service, run, deadPagesCallUsd(rows)))) {
+    return blockedOutcome("morts", label);
+  }
+  const out = await withProviderRetry(() =>
+    deps.dfs.backlinksBacklinks(
+      {
+        target: competitor,
+        limit: rows,
+        mode: "one_per_domain",
+        filters: [["is_broken", "=", true], "and", ["dofollow", "=", true]],
+        order_by: ["rank,desc"],
+      },
+      callOpts(run),
+    ),
+  );
+  if (!out) return failedOutcome("morts", label);
+  const items = normalizeBacklinkItems(out.result?.items, competitor);
+  return {
+    phase: "morts",
+    label,
+    raws: fromDeadPages(items, run.ctx, competitor),
+    intersection: [],
+    costUsd: out.actualCostUsd,
+    cacheHit: out.cacheHit,
+    rows: out.result?.items_count ?? out.result?.items?.length ?? 0,
+    blocked: false,
+  };
+}
+
 /** Une requête SERP top 30 (découverte ou marque). */
 export async function runSerpQuery(
-  deps: { dfs: Dfs; service: Client },
+  deps: { dfs: Pick<Dfs, "serpOrganicLive">; service: Client },
   run: CollectionRun,
   query: CollectionPlan["serp"][number],
   phase: "serp" | "mentions",
@@ -306,7 +354,7 @@ export async function runSerpQuery(
 
 /** Un appel Content Analysis : un type de page sur un mot-clé, ou une expression de marque. */
 export async function runContentCall(
-  deps: { dfs: Dfs; service: Client },
+  deps: { dfs: Pick<Dfs, "contentAnalysisSearch">; service: Client },
   run: CollectionRun,
   call: { keyword: string; pageType: ContentPageType | null },
   phase: "content" | "mentions",
@@ -403,6 +451,7 @@ export class CollectionProgress {
   readonly stats: Record<CollectionPhase, PhaseStats> = {
     intersection: emptyPhaseStats(),
     mentions: emptyPhaseStats(),
+    morts: emptyPhaseStats(),
     serp: emptyPhaseStats(),
     content: emptyPhaseStats(),
   };
@@ -638,6 +687,13 @@ export async function executeCollection(
     progress.finishIntersection();
     await report("intersection", [first]);
   }
+
+  // 1 bis. Liens morts des concurrents (chantier D) : les pages disparues qui reçoivent encore des liens.
+  await phaseInBatches("morts", run.plan.deadPages, {
+    estimate: () => deadPagesCallUsd(L.deadPages.rowsPerCall),
+    stepId: (i) => `morts-${i + 1}`,
+    call: (competitor, i) => runDeadPagesCall(deps(), run, competitor, i),
+  });
 
   // 2. Tactique « mentions de marque » : SERP de marque, puis Content Analysis sur chaque variante.
   await phaseInBatches("mentions", run.plan.mentionSerp, {

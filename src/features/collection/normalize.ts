@@ -200,6 +200,49 @@ export function fromContent(
   return out;
 }
 
+/**
+ * Candidats « lien mort d'un concurrent » (chantier D) : chaque ligne est un lien d'une page tierce vers
+ * une page d'un concurrent qui répond 404 / 410 (déclaré par le fournisseur, VÉRIFIÉ ensuite par une
+ * requête HTTP avant toute demande). Seuls les liens suivis (dofollow) sans spam sont gardés ; la page
+ * du candidat est la page qui cite, pas l'accueil du domaine.
+ */
+export function fromDeadPages(
+  items: readonly {
+    sourceUrl: string;
+    sourceDomain: string;
+    targetUrl: string | null;
+    dofollow: boolean | null;
+    isBroken: boolean | null;
+    spamScore: number | null;
+    sourceRank: number | null;
+  }[],
+  ctx: CollectionContext,
+  competitor: string,
+): RawCandidate[] {
+  const out: RawCandidate[] = [];
+  for (const it of items) {
+    if (it.isBroken !== true || it.dofollow === false || !it.targetUrl) continue;
+    if (it.spamScore !== null && it.spamScore >= COLLECTION_LIMITS.deadPages.spamMax) continue;
+    const domain = acceptDomain(it.sourceDomain, ctx);
+    if (!domain) continue;
+    out.push({
+      domain,
+      url: it.sourceUrl,
+      title: null,
+      source: "lien_mort",
+      tactic: "ressources",
+      query: it.targetUrl,
+      persona: competitor,
+      rank: null,
+      pageType: null,
+      competitorsCount: 1,
+      domainRank: it.sourceRank,
+      spamScore: it.spamScore,
+    });
+  }
+  return out;
+}
+
 /** Domaines nouveaux (jamais vus) parmi des candidats bruts : la mesure du rendement d'un appel. */
 export function newDomains(raws: readonly RawCandidate[], seen: ReadonlySet<string>): string[] {
   const fresh = new Set<string>();
@@ -258,8 +301,10 @@ export function mergeCandidates(raws: readonly RawCandidate[], maxSources = 6): 
     if (!cur.tactics.includes(r.tactic)) cur.tactics.push(r.tactic);
     cur.signalCount++;
     if (cur.sources.length < maxSources) cur.sources.push(ref);
-    // La page d'une mention ou d'une SERP est plus parlante que l'ancre d'un recoupement.
-    if (!cur.url && r.url) cur.url = r.url;
+    // La page d'une mention ou d'une SERP est plus parlante que l'ancre d'un recoupement ; la page
+    // qui cite un lien mort d'un concurrent est celle à lire en priorité (la preuve y est).
+    if (r.source === "lien_mort" && r.url) cur.url = r.url;
+    else if (!cur.url && r.url) cur.url = r.url;
     if (!cur.title && r.title) cur.title = r.title;
     cur.competitorsCount = Math.max(cur.competitorsCount, r.competitorsCount);
     if (r.domainRank !== null) cur.domainRank = Math.max(cur.domainRank ?? 0, r.domainRank);

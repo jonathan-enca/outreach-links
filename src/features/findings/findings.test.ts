@@ -24,6 +24,8 @@ import { buildFinding, proposedSentence } from "./request";
 import {
   destinationIsForeign,
   findMentions,
+  isCompetitorUrl,
+  linksToCheck,
   publisherDomain,
   linkCandidates,
   nameRegex,
@@ -31,6 +33,7 @@ import {
   pickReplacement,
   replacesTopic,
   sentenceWith,
+  toDeadHit,
 } from "./rules";
 import type { FindingTarget } from "./types";
 
@@ -644,5 +647,65 @@ describe("entonnoir des constats", () => {
     const { stats } = await run(d, ids);
     expect(stats.targets).toBe(Math.min(ids.length, FINDINGS_LIMITS.maxTargets));
     expect(stats.read).toBe(ids.length);
+  });
+});
+
+describe("chantier D : lien mort vers une page disparue d'un concurrent", () => {
+  const out = (url: string, zone: "body" | "chrome" = "body") => ({
+    url,
+    anchor: "coloriages",
+    context: "Voir aussi nos coloriages favoris.",
+    zone,
+    rel: [],
+    imageOnly: false,
+  });
+  const competitors = ["coloriez.com"];
+
+  it("reconnaît un concurrent et ses sous-domaines, jamais un nom qui lui ressemble", () => {
+    expect(isCompetitorUrl("https://www.coloriez.com/vieille-page", competitors)).toBe(true);
+    expect(isCompetitorUrl("https://blog.coloriez.com/x", competitors)).toBe(true);
+    expect(isCompetitorUrl("https://mon-coloriez.com/x", competitors)).toBe(false);
+    expect(isCompetitorUrl("https://autre.fr/x", competitors)).toBe(false);
+  });
+
+  it("les liens vers les concurrents sont vérifiés en premier, même au-delà du plafond de liens", () => {
+    const many = Array.from({ length: 30 }, (_, i) => out(`https://site-${i}.fr/p`));
+    const read = { outbound: [...many, out("https://coloriez.com/vieille-page", "chrome")] };
+    expect(linksToCheck(read, 25).map((l) => l.url)).not.toContain(
+      "https://coloriez.com/vieille-page",
+    );
+    expect(linksToCheck(read, 25, competitors)[0]!.url).toBe("https://coloriez.com/vieille-page");
+  });
+
+  it("le constat vient d'un 404 constaté et parle d'une page disparue du concurrent", () => {
+    const hit = toDeadHit(
+      out("https://coloriez.com/vieille-page"),
+      404,
+      "mega-coloring.com",
+      competitors,
+    );
+    expect(hit).toMatchObject({ status: 404, toOwnSite: false, toCompetitor: true });
+    const f = buildFinding(
+      {
+        kind: "lien_mort",
+        targetId: "t1",
+        domain: "asso.fr",
+        pageUrl: "https://asso.fr/liens",
+        pageTitle: "Liens utiles",
+        quote: hit.context,
+        linkUrl: hit.url,
+        httpStatus: 404,
+        anchor: hit.anchor,
+        resource: { url: "https://mega-coloring.com/fr/coloriages", title: "Coloriages" },
+        replacementHow: "jugement",
+        reason: "Le lien répond HTTP 404.",
+        toCompetitor: true,
+      },
+      { brandName: "Mega Coloring" },
+    );
+    expect(f.httpStatus).toBe(404);
+    expect(f.requestLines[0]).toContain("qui n'existe plus (erreur 404)");
+    expect(f.requestLines[0]).toContain("https://mega-coloring.com/fr/coloriages");
+    expect(f.requestLines).toHaveLength(3);
   });
 });

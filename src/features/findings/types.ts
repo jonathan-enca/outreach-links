@@ -68,6 +68,8 @@ export interface DeadLinkHit {
   status: 404 | 410;
   /** Le lien mort pointe vers le site lui-même (une de ses anciennes pages) : cas le plus favorable. */
   toOwnSite: boolean;
+  /** Le lien mort pointe vers une page d'un CONCURRENT disparue (chantier D) : la tactique principale. */
+  toCompetitor?: boolean;
 }
 
 /** Ce que la lecture et les contrôles gratuits ont trouvé sur la page d'une cible. */

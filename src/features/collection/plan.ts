@@ -6,6 +6,7 @@ import {
   COLLECTION_LIMITS,
   collectionTargetUsd,
   contentCallUsd,
+  deadPagesCallUsd,
   intersectionPageUsd,
   phaseBudgetUsd,
   type CollectionPhase,
@@ -29,6 +30,8 @@ export interface CollectionPlan {
   /** Expressions de marque à chercher dans Content Analysis, entre guillemets. */
   mentionKeywords: string[];
   content: ContentCall[];
+  /** Concurrents dont on cherche les pages disparues qui reçoivent encore des liens (chantier D). */
+  deadPages: string[];
 }
 
 export interface PlanInput {
@@ -90,6 +93,7 @@ export function buildCollectionPlan(input: PlanInput): CollectionPlan {
     mentionSerp,
     mentionKeywords: distinctVariants(input.nameVariants, input.domain).map((v) => `"${v}"`),
     content,
+    deadPages: [...input.competitorDomains].slice(0, COLLECTION_LIMITS.deadPages.maxCompetitors),
   };
 }
 
@@ -147,7 +151,16 @@ export function estimateCollection(
     worstUsd: r6(plan.content.length * cWorst),
   };
 
-  const phases = { intersection, mentions, serp, content };
+  const dRows = L.deadPages.rowsPerCall;
+  const deadPages: PhaseEstimate = {
+    calls: plan.deadPages.length,
+    expectedUsd: r6(
+      plan.deadPages.length * deadPagesCallUsd(Math.round(dRows * L.deadPages.typicalFill)),
+    ),
+    worstUsd: r6(plan.deadPages.length * deadPagesCallUsd(dRows)),
+  };
+
+  const phases = { intersection, mentions, morts: deadPages, serp, content };
   let expected = 0;
   let worst = 0;
   let calls = 0;

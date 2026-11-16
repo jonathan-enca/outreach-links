@@ -109,7 +109,9 @@ export function provisionalScore(c: QualCandidate): number {
   const r = c.domainRank;
   const auth = r === null ? 0.8 : 0.6 + 0.4 * (Math.min(r, QUALIFY_LIMITS.authorityCap) / 300);
   const mentions = c.tactics.includes("mentions") ? 1.1 : 1;
-  return Math.round(40 * overlap * sources * type * auth * mentions * 10) / 10;
+  // Une page qui cite une page disparue d'un concurrent : la preuve est sur la page, on la lit d'abord.
+  const deadLink = c.sources.some((x) => x.source === "lien_mort") ? 1.4 : 1;
+  return Math.round(40 * overlap * sources * type * auth * mentions * deadLink * 10) / 10;
 }
 
 /**
