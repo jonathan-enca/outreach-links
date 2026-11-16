@@ -315,10 +315,13 @@ export function TargetCardView({
 export function TargetsScreen({
   view,
   auditId,
+  showSteps = false,
   actions,
 }: {
   view: TargetsView;
   auditId: string;
+  /** Panneaux payants par étape (ancien parcours) : cachés, remplacés par l'analyse unique (MU.1). */
+  showSteps?: boolean;
   actions: {
     startCollection: Act;
     startQualification: Act;
@@ -354,97 +357,104 @@ export function TargetsScreen({
         save={actions.saveFounder}
       />
 
-      <CostStep
-        title={m.collect.title}
-        body={m.collect.body}
-        detail={
-          c.preview ? m.collect.detail.replace("{n}", String(c.preview.estimate.calls)) : null
-        }
-        run={c}
-        preview={
-          c.preview
-            ? {
-                expectedUsd: c.preview.estimate.expectedUsd,
-                worstUsd: c.preview.estimate.worstUsd,
-                budgetUsd: c.preview.estimate.targetUsd,
-              }
-            : null
-        }
-        remainingUsd={c.preview?.remainingUsd ?? null}
-        labels={{
-          button: m.collect.button,
-          confirm: m.collect.confirm,
-          running: m.collect.running,
-          failed: m.collect.failed,
-          redo: m.collect.redo,
-        }}
-        start={actions.startCollection}
-        disabledReason={null}
-        doneLine={
-          view.collectionDone ? m.collect.done.replace("{cost}", formatUsd(c.costUsd)) : null
-        }
-      />
+      {showSteps ? (
+        <>
+          <CostStep
+            title={m.collect.title}
+            body={m.collect.body}
+            detail={
+              c.preview ? m.collect.detail.replace("{n}", String(c.preview.estimate.calls)) : null
+            }
+            run={c}
+            preview={
+              c.preview
+                ? {
+                    expectedUsd: c.preview.estimate.expectedUsd,
+                    worstUsd: c.preview.estimate.worstUsd,
+                    budgetUsd: c.preview.estimate.targetUsd,
+                  }
+                : null
+            }
+            remainingUsd={c.preview?.remainingUsd ?? null}
+            labels={{
+              button: m.collect.button,
+              confirm: m.collect.confirm,
+              running: m.collect.running,
+              failed: m.collect.failed,
+              redo: m.collect.redo,
+            }}
+            start={actions.startCollection}
+            disabledReason={null}
+            doneLine={
+              view.collectionDone ? m.collect.done.replace("{cost}", formatUsd(c.costUsd)) : null
+            }
+          />
 
-      <CostStep
-        title={m.qualify.title}
-        body={m.qualify.body}
-        detail={
-          q.preview
-            ? m.qualify.candidates.replace("{n}", String(q.preview.estimate.afterFree))
-            : null
-        }
-        run={q}
-        preview={q.preview?.estimate ?? null}
-        remainingUsd={q.preview?.remainingUsd ?? null}
-        labels={{
-          button: m.qualify.button,
-          confirm: m.qualify.confirm,
-          running: m.qualify.running,
-          failed: m.qualify.failed,
-          redo: m.qualify.redo,
-        }}
-        start={actions.startQualification}
-        disabledReason={view.collectionDone ? null : m.collectMissing}
-        doneLine={
-          qDone
-            ? m.qualify.done
-                .replace("{n}", String(view.cards.length))
-                .replace("{cost}", formatUsd(q.costUsd))
-            : null
-        }
-        redoNote={m.qualify.redoNote}
-      />
+          <CostStep
+            title={m.qualify.title}
+            body={m.qualify.body}
+            detail={
+              q.preview
+                ? m.qualify.candidates.replace("{n}", String(q.preview.estimate.afterFree))
+                : null
+            }
+            run={q}
+            preview={q.preview?.estimate ?? null}
+            remainingUsd={q.preview?.remainingUsd ?? null}
+            labels={{
+              button: m.qualify.button,
+              confirm: m.qualify.confirm,
+              running: m.qualify.running,
+              failed: m.qualify.failed,
+              redo: m.qualify.redo,
+            }}
+            start={actions.startQualification}
+            disabledReason={view.collectionDone ? null : m.collectMissing}
+            doneLine={
+              qDone
+                ? m.qualify.done
+                    .replace("{n}", String(view.cards.length))
+                    .replace("{cost}", formatUsd(q.costUsd))
+                : null
+            }
+            redoNote={m.qualify.redoNote}
+          />
 
-      <CostStep
-        title={m.findings.title}
-        body={m.findings.body}
-        detail={
-          f.preview
-            ? m.findings.targets
-                .replace("{n}", String(f.preview.estimate.targets))
-                .replace("{m}", String(Math.max(0, f.preview.estimate.targets - view.cards.length)))
-            : null
-        }
-        run={f}
-        preview={f.preview?.estimate ?? null}
-        remainingUsd={f.preview?.remainingUsd ?? null}
-        labels={{
-          button: m.findings.button,
-          confirm: m.findings.confirm,
-          running: m.findings.running,
-          failed: m.findings.failed,
-          redo: m.findings.redo,
-        }}
-        start={actions.startFindings}
-        disabledReason={qDone ? null : m.findings.needQualification}
-        doneLine={
-          f.status === "termine"
-            ? m.findings.done
-                .replace("{n}", String(f.count))
-                .replace("{cost}", formatUsd(f.costUsd))
-            : null
-        }
-      />
+          <CostStep
+            title={m.findings.title}
+            body={m.findings.body}
+            detail={
+              f.preview
+                ? m.findings.targets
+                    .replace("{n}", String(f.preview.estimate.targets))
+                    .replace(
+                      "{m}",
+                      String(Math.max(0, f.preview.estimate.targets - view.cards.length)),
+                    )
+                : null
+            }
+            run={f}
+            preview={f.preview?.estimate ?? null}
+            remainingUsd={f.preview?.remainingUsd ?? null}
+            labels={{
+              button: m.findings.button,
+              confirm: m.findings.confirm,
+              running: m.findings.running,
+              failed: m.findings.failed,
+              redo: m.findings.redo,
+            }}
+            start={actions.startFindings}
+            disabledReason={qDone ? null : m.findings.needQualification}
+            doneLine={
+              f.status === "termine"
+                ? m.findings.done
+                    .replace("{n}", String(f.count))
+                    .replace("{cost}", formatUsd(f.costUsd))
+                : null
+            }
+          />
+        </>
+      ) : null}
 
       <section className="flex flex-col gap-4" aria-labelledby="short-list">
         <h2 id="short-list" className="font-display text-2xl font-semibold">

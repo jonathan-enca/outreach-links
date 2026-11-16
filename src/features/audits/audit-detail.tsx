@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { siteHref } from "@/features/shell/next-step";
 import { t } from "@/lib/messages";
 import { BacklinksSection, type BacklinksView } from "@/features/backlinks/backlinks-section";
 import {
@@ -14,11 +16,13 @@ import { AuditStatusBadge } from "./audit-status-badge";
 import type { ChainEstimate } from "./chain";
 import { ChainProgress, type ChainProgressView } from "./chain-progress";
 import { ConfirmAuditPanel } from "./confirm-audit-panel";
-import { formatUsd } from "./format";
 import type { AuditActionState } from "./service";
 
 export interface AuditView {
   id: string;
+  siteId: string;
+  /** Analyse unique (MU.1) : `aucun` pour un ancien audit ou un audit pas encore confirmé. */
+  analysisStatus?: string;
   domain: string;
   status: string;
   plan: string;
@@ -65,12 +69,16 @@ export function AuditDetail({
   startDeadlinksAction?: (prev: AuditActionState) => Promise<AuditActionState>;
 }) {
   const r = t.audits.result;
-  const awaitingConfirm = audit.status === "estime" || audit.status === "confirme";
+  const analysis = audit.analysisStatus ?? "aucun";
+  const awaitingConfirm =
+    analysis === "aucun" && (audit.status === "estime" || audit.status === "confirme");
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-3">
-        <AuditStatusBadge status={audit.status} />
-      </div>
+      {analysis === "aucun" ? (
+        <div className="flex items-center gap-3">
+          <AuditStatusBadge status={audit.status} />
+        </div>
+      ) : null}
 
       {audit.chainProgress && audit.status !== "estime" ? (
         <ChainProgress view={audit.chainProgress} />
@@ -78,24 +86,50 @@ export function AuditDetail({
       {audit.chainProgress?.stages.some((s) => s.state === "en_cours") ? <AutoRefresh /> : null}
 
       {awaitingConfirm && audit.estimatedCostUsd !== null ? (
-        <ConfirmAuditPanel
-          estimatedUsd={audit.estimatedCostUsd}
-          capUsd={audit.costCapUsd}
-          perQuery={audit.perQuery}
-          chain={audit.chain}
-          confirmed={audit.status === "confirme"}
-          action={confirmAction}
-        />
+        <ConfirmAuditPanel confirmed={audit.status === "confirme"} action={confirmAction} />
       ) : null}
 
-      {audit.status === "en_cours" ? (
+      {analysis === "confirme" || analysis === "en_cours" ? (
+        <>
+          <AutoRefresh />
+          <Card className="flex flex-col gap-1 p-6">
+            <h2 className="font-display text-xl font-semibold">{t.audits.analysisRunning.title}</h2>
+            <p className="text-muted-foreground">{t.audits.analysisRunning.body}</p>
+          </Card>
+        </>
+      ) : null}
+
+      {analysis === "echoue" ? (
+        <>
+          <Card className="flex flex-col gap-1 p-6">
+            <h2 className="font-display text-xl font-semibold text-danger">
+              {t.audits.analysisFailed.title}
+            </h2>
+            <p className="text-muted-foreground">{t.audits.analysisFailed.body}</p>
+            {audit.errorMessage ? <p className="text-sm">{audit.errorMessage}</p> : null}
+          </Card>
+          <ConfirmAuditPanel resume confirmed action={confirmAction} />
+        </>
+      ) : null}
+
+      {analysis === "termine" ? (
+        <Card className="flex flex-col items-start gap-3 p-6">
+          <h2 className="font-display text-xl font-semibold">{t.audits.analysisDone.title}</h2>
+          <p className="text-muted-foreground">{t.audits.analysisDone.body}</p>
+          <Button asChild>
+            <Link href={siteHref.cibles(audit.siteId)}>{t.audits.analysisDone.cta}</Link>
+          </Button>
+        </Card>
+      ) : null}
+
+      {analysis === "aucun" && audit.status === "en_cours" ? (
         <Card className="flex flex-col gap-1 p-6">
           <h2 className="font-display text-xl font-semibold">{t.audits.running.title}</h2>
           <p className="text-muted-foreground">{t.audits.running.body}</p>
         </Card>
       ) : null}
 
-      {audit.status === "echoue" ? (
+      {analysis === "aucun" && audit.status === "echoue" ? (
         <Card className="flex flex-col gap-1 p-6">
           <h2 className="font-display text-xl font-semibold text-danger">
             {t.audits.failed.title}
@@ -105,7 +139,7 @@ export function AuditDetail({
         </Card>
       ) : null}
 
-      {audit.status === "termine" ? (
+      {analysis === "aucun" && audit.status === "termine" ? (
         <>
           <Card className="flex flex-col gap-3 p-6">
             <h2 className="font-display text-xl font-semibold">{r.title}</h2>
@@ -146,21 +180,6 @@ export function AuditDetail({
               <p className="text-sm text-muted-foreground">{r.freeNote}</p>
             ) : null}
           </Card>
-          <Card className="flex flex-col gap-2 p-6">
-            <h2 className="font-display text-xl font-semibold">{r.costTitle}</h2>
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:max-w-md">
-              <dt className="text-muted-foreground">{r.estimatedCost}</dt>
-              <dd>{formatUsd(audit.estimatedCostUsd)}</dd>
-              <dt className="text-muted-foreground">{r.actualCost}</dt>
-              <dd className="font-semibold">{formatUsd(audit.actualCostUsd)}</dd>
-              <dt className="text-muted-foreground">{r.gap}</dt>
-              <dd>
-                {audit.estimatedCostUsd !== null && audit.actualCostUsd !== null
-                  ? formatUsd(audit.actualCostUsd - audit.estimatedCostUsd)
-                  : "-"}
-              </dd>
-            </dl>
-          </Card>
           {audit.backlinks && startBacklinksAction ? (
             <BacklinksSection view={audit.backlinks} startAction={startBacklinksAction} />
           ) : null}
@@ -182,7 +201,7 @@ export function AuditDetail({
           <Card className="flex flex-wrap items-center justify-between gap-3 p-6">
             <p className="text-muted-foreground">{t.targets.description}</p>
             <Link
-              href={`/app/audit/${audit.id}/cibles`}
+              href={siteHref.cibles(audit.siteId)}
               className="font-semibold underline underline-offset-4"
             >
               {t.targets.title}

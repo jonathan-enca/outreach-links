@@ -11,8 +11,10 @@ const inputClass =
 /** Le seul champ de l'onboarding : l'adresse du site. */
 export function UrlForm({
   action,
+  defaultUrl = "",
 }: {
   action: (prev: StartState, formData: FormData) => Promise<StartState>;
+  defaultUrl?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, { status: "idle" });
   const o = t.onboarding;
@@ -27,6 +29,7 @@ export function UrlForm({
           id="url"
           name="url"
           required
+          defaultValue={defaultUrl}
           autoFocus
           autoComplete="url"
           inputMode="url"

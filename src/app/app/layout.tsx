@@ -1,6 +1,18 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { AppNav } from "@/components/app-nav";
 import { t } from "@/lib/messages";
+import { createClient } from "@/lib/supabase/server";
+
+/** Les sites de la personne (la RLS limite à son espace) pour le menu ; vide tant que rien n'est chargé. */
+async function Nav() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("sites")
+    .select("id, domain")
+    .order("created_at", { ascending: true });
+  return <AppNav sites={data ?? []} />;
+}
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -17,7 +29,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </Link>
       </header>
       <div className="flex flex-1 flex-col md:flex-row">
-        <AppNav />
+        <Suspense fallback={<AppNav sites={[]} />}>
+          <Nav />
+        </Suspense>
         <main id="contenu" className="flex-1 px-4 py-6 pb-24 md:px-8 md:pb-8">
           <div className="mx-auto max-w-4xl">{children}</div>
         </main>

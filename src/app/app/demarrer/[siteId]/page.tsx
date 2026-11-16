@@ -8,6 +8,8 @@ import { Card } from "@/components/ui/card";
 import { launchJourneyAction, saveCorrectionsAction } from "@/features/onboarding/actions";
 import { LaunchPanel } from "@/features/onboarding/launch-panel";
 import { getLaunchPreview } from "@/features/onboarding/service";
+import { JourneySteps } from "@/features/shell/journey-steps";
+import { siteHref } from "@/features/shell/next-step";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 
@@ -25,7 +27,7 @@ async function Review({ params }: { params: Promise<{ siteId: string }> }) {
       <Card className="flex flex-col gap-3 p-6">
         <h2 className="text-xl font-semibold">{t.onboarding.review.alreadyTitle}</h2>
         <Button asChild className="self-start">
-          <Link href={`/app/audit/${preview.auditId}`}>{t.onboarding.review.alreadyOpen}</Link>
+          <Link href={siteHref.analyse(siteId)}>{t.onboarding.review.alreadyOpen}</Link>
         </Button>
       </Card>
     );
@@ -42,6 +44,7 @@ async function Review({ params }: { params: Promise<{ siteId: string }> }) {
 export default function Page(props: { params: Promise<{ siteId: string }> }) {
   return (
     <>
+      <JourneySteps current="verification" />
       <PageHeader
         title={t.onboarding.review.title}
         description={t.onboarding.review.pageDescription}

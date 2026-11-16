@@ -5,13 +5,14 @@ import { redirect } from "next/navigation";
 import { inngest } from "@/inngest/client";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { siteHref } from "@/features/shell/next-step";
 import { confirmAudit, createAudit, type AuditActionState } from "./service";
 
 export async function createAuditAction(siteId: string): Promise<AuditActionState> {
   const result = await createAudit(await createClient(), siteId, createServiceClient);
   if (result.status === "ok" && result.auditId) {
-    revalidatePath("/app/audit");
-    redirect(`/app/audit/${result.auditId}`);
+    revalidatePath("/app", "layout");
+    redirect(siteHref.analyse(siteId));
   }
   return result;
 }
@@ -20,7 +21,6 @@ export async function confirmAuditAction(auditId: string): Promise<AuditActionSt
   const result = await confirmAudit(await createClient(), auditId, createServiceClient, (e) =>
     inngest.send(e),
   );
-  revalidatePath(`/app/audit/${auditId}`);
-  revalidatePath("/app/audit");
+  revalidatePath("/app", "layout");
   return result;
 }

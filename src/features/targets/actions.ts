@@ -12,7 +12,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { setFounderRole, validateRequests } from "./service";
 
 const M = t.targets.messages;
-const refresh = (auditId: string) => revalidatePath(`/app/audit/${auditId}/cibles`);
+const refresh = () => revalidatePath("/app", "layout");
 
 /** L'utilisateur voit-il cet audit ? (RLS) : à vérifier AVANT d'utiliser le client de service. */
 async function authorize(auditId: string) {
@@ -28,7 +28,7 @@ export async function startCollectionAction(auditId: string): Promise<AuditActio
   const a = await authorize(auditId);
   if ("error" in a) return { status: "error", message: a.error };
   const r = await startCollection(createServiceClient(), auditId, (e) => inngest.send(e), a.userId);
-  refresh(auditId);
+  refresh();
   return r;
 }
 
@@ -41,7 +41,7 @@ export async function startQualificationAction(auditId: string): Promise<AuditAc
     (e) => inngest.send(e),
     a.userId,
   );
-  refresh(auditId);
+  refresh();
   return r;
 }
 
@@ -49,7 +49,7 @@ export async function startFindingsAction(auditId: string): Promise<AuditActionS
   const a = await authorize(auditId);
   if ("error" in a) return { status: "error", message: a.error };
   const r = await startFindings(createServiceClient(), auditId, (e) => inngest.send(e), a.userId);
-  refresh(auditId);
+  refresh();
   return r;
 }
 
@@ -59,7 +59,7 @@ export async function setFounderRoleAction(
   formData: FormData,
 ): Promise<AuditActionState> {
   const r = await setFounderRole(await createClient(), auditId, formData.get("role"));
-  refresh(auditId);
+  refresh();
   return r;
 }
 
@@ -70,7 +70,7 @@ export async function validateRequestsAction(
   const r = await validateRequests(await createClient(), auditId, ids, createServiceClient, (e) =>
     inngest.send(e),
   );
-  refresh(auditId);
+  refresh();
   revalidatePath(`/app/audit/${auditId}/plan`);
   return r;
 }
