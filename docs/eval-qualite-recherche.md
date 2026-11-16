@@ -1,0 +1,53 @@
+# Jeu d'évaluation de la qualité de la recherche (chantier E, 17/11/2026)
+
+Source : dernier run réel complet, audit `3edd59a0-0429-43bd-b7b1-e9fbb620d824` (mega-coloring.com, France, français) : 741 candidats, 150 pages lues, 17 cibles.
+Ce fichier est à juger par Jonathan plus tard : pour chaque ligne, écrire `bon` ou `mauvais` dans la colonne « Votre avis » (et pourquoi si possible). Les règles de tri ne sont PAS modifiées tant que ce jugement n'est pas fait ; toute évolution se mesure ensuite sur le jeu annoté (précision et rappel avant / après).
+
+## 1. Les 17 cibles retenues
+
+| # | Site | Page lue | Type | Pourquoi retenue | Contact | Votre avis |
+|---|---|---|---|---|---|---|
+| 1 | lacabaneajouerdecdiscount.com | https://www.lacabaneajouerdecdiscount.com | ecommerce | Le site propose des coloriages et des activités créatives pour les enfants, en lien direct avec Mega Coloring ; petite boutique en ligne, rarement sollicité pou | email_a_verifier | |
+| 2 | pass-montessori.com | https://pass-montessori.com/blog/coloriages-guide-a-imprimer-montessori/ | blog | Le site propose des coloriages pour enfants, ce qui correspond bien au thème ; blog. | email_a_verifier | |
+| 3 | papa-noel.net | https://www.papa-noel.net/rubrique/coloriages/ | ecommerce | Le site propose des coloriages, ce qui est très proche de l'offre de Mega Coloring ; petite boutique en ligne, rarement sollicité pour des liens. | formulaire | |
+| 4 | printmania.online | https://printmania.online/fr/coloriages/hotel-transylvanie/ | blog | Le site propose des coloriages imprimables, ce qui est directement lié au thème de Mega Coloring ; blog. | formulaire | |
+| 5 | geeek.org | https://www.geeek.org/coloriages-halloween-chatgpt/ | blog | Les lecteurs s'intéressent à des coloriages originaux à imprimer ; blog. | formulaire | |
+| 6 | kitchengarden.fr | https://www.kitchengarden.fr/coloriages-imprimer-halloween/ | blog | Le site propose des coloriages à imprimer, ce qui est directement lié à Mega Coloring ; blog. | formulaire | |
+| 7 | famille-econome.com | https://www.famille-econome.com/confinement-mes-10-astuces-pour-occuper-les-enfants/ | blog | Le site mentionne des coloriages à imprimer, ce qui est pertinent pour les lecteurs ; blog. | formulaire | |
+| 8 | coloriagewk.com | https://coloriagewk.com/plage/ | blog | Le site offre des coloriages gratuits, ce qui est en lien direct avec Mega Coloring ; blog. | formulaire | |
+| 9 | la-belle-et-la-bete.fr | https://la-belle-et-la-bete.fr/ | blog | Le site propose des activités et coloriages pour enfants, ce qui attire le même public ; blog. | formulaire | |
+| 10 | lesateliersdelabible.com | https://lesateliersdelabible.com/ | association | Les activités proposées sont pour les enfants, ce qui peut intéresser les parents ; il lie déjà 3 de vos concurrents ; site d'association, rarement sollicité po | email_a_verifier | |
+| 11 | blogfamille.fr | https://blogfamille.fr/ | blog | Le site traite de la vie de famille, ce qui peut inclure des activités pour enfants ; blog. | formulaire | |
+| 12 | cottonbird.fr | https://www.cottonbird.fr/blog/2017/07/diy-set-de-table-coloriage/ | blog | Le blog propose des activités manuelles pour enfants, ce qui peut inclure des coloriages ; blog. | email_a_verifier | |
+| 13 | dearmuesli.com | https://www.dearmuesli.com/comment-dessiner-une-licorne-etape-par-etape/ | blog | Le site parle de dessins à colorier, mais se concentre sur les licornes, ce qui est plus spécifique ; blog. | formulaire | |
+| 14 | pixelmonsh.fr | https://pixelmonsh.fr/dessins-minecraft-coloriages/ | blog | Le site propose des coloriages, mais spécifiquement sur Minecraft, ce qui est moins général ; blog. | formulaire | |
+| 15 | fetedepaques.com | https://fetedepaques.com/ | autre | Le site parle de coloriages, ce qui peut intéresser les parents ; site. | formulaire | |
+| 16 | bayard-jeunesse.com | https://www.bayard-jeunesse.com/infos/pour-apprendre-et-creer/halloween-recettes-bricolages-coloriages-enfants/ | media | Le site traite d'activités pour enfants, incluant des coloriages ; média. | email_a_verifier | |
+| 17 | catholique.fr | https://www.alsace.catholique.fr/actualites/416520-preparer-la-toussaint-avec-les-enfants/ | media | Le site parle d'activités pour enfants, ce qui peut inclure des coloriages ; média. | formulaire | |
+
+## 2. 20 sites écartés pris au hasard (hors « au-delà des pages lues »)
+
+Question : l'écart est-il juste ? (`juste` / `à tort`)
+
+| # | Site | Page | Motif d'écart | Détail | Votre avis |
+|---|---|---|---|---|---|
+| 1 | mesactivites-seine-et-marne.ccas.fr | https://mesactivites-seine-et-marne.ccas.fr/culture | doublon | même éditeur que mesactivites-gironde.ccas.fr | |
+| 2 | colorcove.org | https://colorcove.org/fr/coloriages-smg4/ | sans_contact | L'adresse est invalide selon le vérificateur : elle ne sera pas utilisée. | |
+| 3 | bart.gov | https://bart.gov/ | langue | page en « en » | |
+| 4 | ludosurlefil.com | https://ludosurlefil.com/produit/coloriages-poisson-avril-gratuit/ | sans_contact | Aucun email ni formulaire trouvé sur le site. | |
+| 5 | coloringbook.ai | https://www.coloringbook.ai/free-coloring-pages | langue | page en « en-us » | |
+| 6 | deco.fr | https://www.deco.fr/diapos-deco/78199-35-coloriages-de-noel-a-imprimer-pour-petits-et-grands | sans_contact | L'adresse est invalide selon le vérificateur : elle ne sera pas utilisée. | |
+| 7 | debian-fr.org | https://www.debian-fr.org/t/probleme-a-limpression/8061 | editeur_introuvable | ni contact, ni mentions, ni auteur | |
+| 8 | wellicious.com | https://wellicious.com/ | langue | page en « en » | |
+| 9 | lespionnieres.org | https://lespionnieres.org/cahier-coloriage-metier/ | hors_sujet | Le site parle d'entrepreneuriat féminin, ce qui est éloigné du thème des coloriages. | |
+| 10 | astucesdefilles.com | https://www.astucesdefilles.com/dessins-halloween/ | sans_contact | L'adresse est invalide selon le vérificateur : elle ne sera pas utilisée. | |
+| 11 | imagetou.com | https://imagetou.com/ | langue | page en « en » | |
+| 12 | sudouest.fr | https://sudouest.fr/ | hors_sujet | Le site traite de l'actualité générale, peu en lien avec les coloriages pour enfants. | |
+| 13 | photobox.be | https://fr.photobox.be/boutique/livres-photo/livre-photo-compact | editeur_introuvable | ni contact, ni mentions, ni auteur | |
+| 14 | forum.trictrac.net | https://forum.trictrac.net/Du ludique/Discutons jeux | doublon | même éditeur que trictrac.net | |
+| 15 | trictrac.net | https://forum.trictrac.net/t/article-coloriages-ma-premiere-aventure/215524 | editeur_introuvable | ni contact, ni mentions, ni auteur | |
+| 16 | iveco.com | https://iveco.com/ | langue | page en « en » | |
+| 17 | pour-enfants.fr | https://pour-enfants.fr/charades/date-dhalloween-2017-dessins-des-chiffres-de-0-a-9-a-imprimer-en-grand-pour-celebrer-halloween/ | sans_contact | Aucun email ni formulaire trouvé sur le site. | |
+| 18 | athlenda.com | https://athlenda.com/coloriages-magiques-gratuits-imprimer | sans_contact | Aucun email ni formulaire trouvé sur le site. | |
+| 19 | mediadiversified.org | https://mediadiversified.org/ | langue | page en « en-gb » | |
+| 20 | gbcolorare.com | https://gbcolorare.com/chien/ | robots | le robots.txt interdit la lecture | |

@@ -25,7 +25,7 @@ import type { StoredBrandProfile } from "@/features/brand/schema";
 import { nicheQueries } from "@/features/public-audit/niche";
 import { estimateQueryPhase, type QueryPhaseEstimate } from "@/features/queries/plan";
 import { buildAndStoreQueryUniverse, type QueryDeps } from "@/features/queries/service";
-import { isMarketCountry, type MarketCountry } from "@/features/sites/market";
+import { isMarketCountry, MARKETS, type MarketCountry } from "@/features/sites/market";
 import { deduceSite } from "./deduce";
 
 type Client = SupabaseClient<Database>;
@@ -154,9 +154,11 @@ export async function startFromUrl(
 
   let page: PageRead | null = null;
   try {
+    // Langue « détectée » : on préfère la langue du pays visé quand le site en propose une version
+    // (essai du 17/11 : mega-coloring.com pour la France était lu en anglais, son accueil étant anglais).
     page = await deps.readHomepage(
       domain,
-      market.language === "auto" ? undefined : market.language,
+      market.language === "auto" ? MARKETS[market.country].language : market.language,
     );
   } catch {
     page = null;

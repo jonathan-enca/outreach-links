@@ -623,7 +623,6 @@ export async function executeCollection(
     items: readonly I[],
     spec: {
       estimate: (item: I) => number;
-      stepId: (index: number) => string;
       call: (item: I, index: number) => Promise<StepOutcome>;
       stopBefore?: () => StopReason | null;
     },
@@ -649,10 +648,10 @@ export async function executeCollection(
         return;
       }
       const batch = items.slice(from, from + planned);
-      const outcomes = await Promise.all(
-        batch.map((item, j) =>
-          runStep(spec.stepId(from + j), () => timed(() => spec.call(item, from + j))),
-        ),
+      // UN step par lot, appels en parallèle DANS le step : mesuré en production (17/11), un step par
+      // appel coûtait autant d'allers-retours Inngest (859 s pour 440 s d'appels réels).
+      const outcomes = await runStep(`${phase}-lot-${from + 1}`, () =>
+        Promise.all(batch.map((item, j) => timed(() => spec.call(item, from + j)))),
       );
       for (const o of outcomes) progress.add(o);
       progress.addWall(phase, outcomes);
@@ -697,26 +696,22 @@ export async function executeCollection(
   // 1 bis. Liens morts des concurrents (chantier D) : les pages disparues qui reçoivent encore des liens.
   await phaseInBatches("morts", run.plan.deadPages, {
     estimate: () => deadPagesCallUsd(L.deadPages.rowsPerCall),
-    stepId: (i) => `morts-${i + 1}`,
     call: (competitor, i) => runDeadPagesCall(deps(), run, competitor, i),
   });
 
   // 2. Tactique « mentions de marque » : SERP de marque, puis Content Analysis sur chaque variante.
   await phaseInBatches("mentions", run.plan.mentionSerp, {
     estimate: (q) => estimateCost("serpOrganicLive", { keyword: q.q, depth: L.serp.depth }),
-    stepId: (i) => `mentions-serp-${i + 1}`,
     call: (q, i) => runSerpQuery(deps(), run, q, "mentions", i),
   });
   await phaseInBatches("mentions", run.plan.mentionKeywords, {
     estimate: () => contentCallUsd(L.mentions.rowsPerCall),
-    stepId: (i) => `mentions-content-${i + 1}`,
     call: (keyword, i) => runContentCall(deps(), run, { keyword, pageType: null }, "mentions", i),
   });
 
   // 3. SERP top 30 des requêtes de l'univers, dans l'ordre de rendement ; arrêt par rendement décroissant.
   await phaseInBatches("serp", run.plan.serp, {
     estimate: (q) => estimateCost("serpOrganicLive", { keyword: q.q, depth: L.serp.depth }),
-    stepId: (i) => `serp-${i + 1}`,
     call: (q, i) => runSerpQuery(deps(), run, q, "serp", i),
     stopBefore: () => (progress.serpShouldStop() ? "rendement" : null),
   });
@@ -724,7 +719,6 @@ export async function executeCollection(
   // 4. Content Analysis par type de page (blogs, organisations, forums, e-commerce).
   await phaseInBatches("content", run.plan.content, {
     estimate: () => contentCallUsd(L.content.rowsPerCall),
-    stepId: (i) => `content-${i + 1}`,
     call: (call, i) => runContentCall(deps(), run, call, "content", i),
   });
   return progress;
