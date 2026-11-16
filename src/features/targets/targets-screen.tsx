@@ -320,6 +320,7 @@ export function TargetsScreen({
   view: TargetsView;
   auditId: string;
   actions: {
+    startCollection: Act;
     startQualification: Act;
     startFindings: Act;
     saveFounder: FormAct;
@@ -341,6 +342,7 @@ export function TargetsScreen({
       if (!next.delete(id)) next.add(id);
       return next;
     });
+  const c = view.collection;
   const qDone = q.status === "termine";
   const m = M.steps;
 
@@ -350,6 +352,37 @@ export function TargetsScreen({
         site={view.siteDomain}
         current={view.founderRole}
         save={actions.saveFounder}
+      />
+
+      <CostStep
+        title={m.collect.title}
+        body={m.collect.body}
+        detail={
+          c.preview ? m.collect.detail.replace("{n}", String(c.preview.estimate.calls)) : null
+        }
+        run={c}
+        preview={
+          c.preview
+            ? {
+                expectedUsd: c.preview.estimate.expectedUsd,
+                worstUsd: c.preview.estimate.worstUsd,
+                budgetUsd: c.preview.estimate.targetUsd,
+              }
+            : null
+        }
+        remainingUsd={c.preview?.remainingUsd ?? null}
+        labels={{
+          button: m.collect.button,
+          confirm: m.collect.confirm,
+          running: m.collect.running,
+          failed: m.collect.failed,
+          redo: m.collect.redo,
+        }}
+        start={actions.startCollection}
+        disabledReason={null}
+        doneLine={
+          view.collectionDone ? m.collect.done.replace("{cost}", formatUsd(c.costUsd)) : null
+        }
       />
 
       <CostStep
