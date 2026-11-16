@@ -99,6 +99,9 @@ describe("vocabulaire du parcours", () => {
     "targets (hors étapes payantes)": { ...t.targets, steps: undefined },
     "onboarding.review": t.onboarding.review,
     "onboarding (URL)": { ...t.onboarding, review: undefined },
+    "analysis.screen (MU.3)": t.analysis.screen,
+    "analysis.steps": t.analysis.steps,
+    "analysis.email": t.analysis.email,
     "audits.estimate": t.audits.estimate,
     "audits.analysis": {
       title: t.audits.analysisTitle,

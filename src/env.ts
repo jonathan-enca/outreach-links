@@ -35,6 +35,12 @@ const schema = z.object({
   /** Lecteur de pages de secours du tri (M3.1) : `jina` active r.jina.ai (hôte à autoriser). */
   PAGE_READER_FALLBACK: z.enum(["none", "jina"]).default("none"),
   /** Finder et vérificateur d'emails (M3.2) : sans clé, rien n'est jamais « envoyable ». */
+  /**
+   * Emails transactionnels (jamais d'outreach) : Resend. Sans clé, aucun email n'est envoyé et l'espace
+   * le dit (l'écran d'analyse ne promet plus d'email). `TRANSACTIONAL_FROM` : expéditeur d'un domaine vérifié.
+   */
+  RESEND_API_KEY: z.string().min(1).optional(),
+  TRANSACTIONAL_FROM: z.string().min(3).default("no-reply@ouiouioui.app"),
   EMAIL_FINDER_PROVIDER: z.enum(["hunter"]).default("hunter"),
   EMAIL_FINDER_API_KEY: z.string().min(1).optional(),
   /** Vérification gratuite (DNS) des emails publiés par la cible sur son domaine ; `none` la coupe. */

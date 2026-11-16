@@ -2527,6 +2527,63 @@ export const fr = {
       constats: "Chercher liens morts et mentions",
       demandes: "Préparer vos demandes",
     },
+    /** Écran « Analyse en cours » (MU.3). */
+    screen: {
+      intro:
+        "Nous cherchons les sites qui peuvent vous citer, et la demande à leur faire. Rien n'est envoyé.",
+      closeWithEmail: "Vous pouvez fermer cette page : vous recevrez un email dès que c'est prêt.",
+      closeNoEmail:
+        "Vous pouvez fermer cette page : l'analyse continue sans vous. Retrouvez-la ici à votre retour.",
+      starting: "L'analyse démarre…",
+      percent: (n: number) => `${n} % fait`,
+      remaining: (m: number) =>
+        m <= 1 ? "Environ 1 minute restante" : `Environ ${m} minutes restantes`,
+      stepState: {
+        attente: "En attente",
+        en_cours: "En cours",
+        termine: "Terminé",
+        echoue: "Interrompu",
+        saute: "Sans objet",
+      },
+      outOf: (done: number, total: number, unit: string) => `${done} sur ${total} ${unit}`,
+      /** Ce que compte chaque étape à l'écran (jamais de montant). */
+      units: {
+        comprendre: { found: "pages lues" },
+        concurrents: { progress: "recherches", found: "concurrents retenus" },
+        etat_des_lieux: { progress: "relevés" },
+        recherche: { progress: "recherches", found: "sites trouvés" },
+        tri: { progress: "pages lues", judged: "pages jugées", found: "pages pertinentes" },
+        contacts: { progress: "sites vérifiés", found: "contacts trouvés" },
+        constats: { progress: "pages vérifiées", found: "liens morts ou mentions" },
+        demandes: { found: "cibles prêtes" },
+      },
+      funnelTitle: "Où en est le tri",
+      funnelExamined: (n: number) => `${n} sites examinés`,
+      funnelAfterSort: (n: number) => `${n} après tri`,
+      funnelTargets: (n: number) => (n <= 1 ? `${n} cible` : `${n} cibles`),
+      targetsTitle: "Premières cibles prêtes",
+      targetsEmpty: "Les premières cibles apparaîtront ici dès qu'elles sont prêtes.",
+      targetsMore: (n: number) => (n <= 1 ? "+ 1 autre cible" : `+ ${n} autres cibles`),
+      doneTitle: "Analyse terminée",
+      doneBody: (n: number) =>
+        n === 0
+          ? "Aucune cible retenue cette fois."
+          : n === 1
+            ? "1 cible est prête."
+            : `${n} cibles sont prêtes.`,
+      doneCta: "Voir vos cibles",
+      redirecting: "Ouverture de vos cibles…",
+      failedTitle: "L'analyse s'est arrêtée",
+      failedBody:
+        "Ce qui est déjà fait est conservé. Reprendre repart de là où elle s'est arrêtée, sans rien refaire.",
+      failedWorked: "Ce qui a marché",
+      failedStopped: "Ce qui s'est arrêté",
+      failedNothing: "Rien n'était encore terminé.",
+      failedGeneric: "L'analyse s'est interrompue avant la fin.",
+      resume: "Reprendre l'analyse",
+      resuming: "Reprise en cours…",
+      offline: "Connexion perdue : nouvelle tentative dans quelques secondes.",
+    },
     messages: {
       unauthenticated: "Connectez-vous pour lancer l'analyse.",
       notFound: "Analyse introuvable.",
@@ -2541,6 +2598,21 @@ export const fr = {
       sendFailed: "L'analyse est enregistrée mais n'a pas pu démarrer. Réessayez.",
       started: "Analyse lancée. Rien n'est contacté à cette étape.",
       resumed: "Analyse reprise là où elle s'était arrêtée. Rien de déjà fait n'est refait.",
+    },
+    /** Email « vos cibles sont prêtes » (D7) : transactionnel, aucun montant. */
+    email: {
+      subject: (domain: string, n: number) =>
+        n === 0
+          ? `Votre analyse de ${domain} est terminée`
+          : n === 1
+            ? `1 cible est prête pour ${domain}`
+            : `${n} cibles sont prêtes pour ${domain}`,
+      body: (domain: string, n: number) =>
+        n === 0
+          ? `L'analyse de ${domain} est terminée. Aucune cible n'a été retenue cette fois : vous pouvez consulter le détail dans votre espace.`
+          : `L'analyse de ${domain} est terminée : ${n === 1 ? "1 cible est prête" : `${n} cibles sont prêtes`}, avec pour chacune la demande à faire et pourquoi. Rien n'a été envoyé.`,
+      cta: "Voir vos cibles",
+      footer: "Vous recevez cet email parce que vous avez lancé une analyse dans votre espace.",
     },
     /** Motifs d'arrêt écrits dans l'étape en échec (lisibles tels quels). */
     errors: {

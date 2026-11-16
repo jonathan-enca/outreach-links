@@ -1,4 +1,8 @@
 import { notFound, redirect } from "next/navigation";
+import { env } from "@/env";
+import { AnalysisProgress } from "@/features/analysis/analysis-progress";
+import { loadAnalysisSnapshot } from "@/features/analysis/status";
+import { siteHref } from "@/features/shell/next-step";
 import { JourneySteps } from "@/features/shell/journey-steps";
 import { PageHeader } from "@/components/page-header";
 import { confirmAuditAction } from "@/features/audits/actions";
@@ -33,6 +37,28 @@ export async function AuditContent({ id }: { id: string }) {
     .eq("id", id)
     .maybeSingle();
   if (!audit) notFound();
+
+  // MU.3 : une analyse lancée (en attente, en cours ou en échec) a son propre écran, qui se met à jour
+  // seul ; une analyse finie mène directement aux cibles.
+  if (audit.analysis_status === "termine") redirect(siteHref.cibles(audit.site_id));
+  if (audit.analysis_status !== "aucun") {
+    const snapshot = await loadAnalysisSnapshot(supabase, id);
+    if (!snapshot) notFound();
+    return (
+      <>
+        <JourneySteps current="analyse" />
+        <PageHeader
+          title={`${t.audits.analysisTitle} ${snapshot.domain}`}
+          description={t.analysis.screen.intro}
+        />
+        <AnalysisProgress
+          initial={snapshot}
+          resumeAction={confirmAuditAction.bind(null, audit.id)}
+          emailEnabled={Boolean(env.RESEND_API_KEY)}
+        />
+      </>
+    );
+  }
   const { data: competitors } = await supabase
     .from("competitors")
     .select("domain, queries_count, best_rank, appearances, selected, score, referring_domains")
