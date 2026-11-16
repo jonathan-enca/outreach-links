@@ -36,7 +36,7 @@ export const QUALIFY_LIMITS = {
   /** Extrait de page envoyé au modèle (caractères). */
   excerptChars: 1_200,
   /** Jetons de sortie par cible (borne du coût). */
-  outputTokensPerTarget: 110,
+  outputTokensPerTarget: 200,
   /** Adéquation minimale pour rester candidat. */
   minFit: 0.5,
   // --- Étage 5 : contact ---

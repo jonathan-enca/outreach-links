@@ -85,7 +85,14 @@ const API = {
   openai: "https://api.openai.com/v1/chat/completions",
 } as const;
 
-type Raw = { text: string; inputTokens: number; outputTokens: number; model: string };
+type Raw = {
+  text: string;
+  inputTokens: number;
+  outputTokens: number;
+  model: string;
+  /** Le modèle s'est arrêté faute de jetons de sortie : la réponse est incomplète. */
+  truncated?: boolean;
+};
 
 function jsonSchemaOf(schema: z.ZodType): Record<string, unknown> {
   const js = z.toJSONSchema(schema, { target: "draft-7" }) as Record<string, unknown>;
@@ -161,6 +168,7 @@ export function createLlmClient(options: LlmClientOptions) {
         inputTokens: body.usage.input_tokens,
         outputTokens: body.usage.output_tokens,
         model: body.model ?? model,
+        truncated: body.stop_reason === "max_tokens",
       };
     }
     const res = await fetchImpl(API.openai, {
@@ -231,6 +239,13 @@ export function createLlmClient(options: LlmClientOptions) {
       });
     } catch (e) {
       logger.error("llm : coût non journalisé", { task: o.task, error: (e as Error).message });
+    }
+    // Essai du 17/11 : Haiku s'arrêtait à la limite de jetons et renvoyait `{}` (12 lots sur 12 perdus).
+    if (raw.truncated) {
+      throw new LlmError(
+        `${options.provider} : sortie tronquée (limite de jetons atteinte)`,
+        "invalid",
+      );
     }
     let json: unknown;
     try {
