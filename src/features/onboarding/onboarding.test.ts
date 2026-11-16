@@ -13,6 +13,7 @@ import {
   readMarket,
   saveCorrections,
   startFromUrl,
+  urlChecker,
 } from "./service";
 
 // MU.1 : ces tests décrivent l'ANCIENNE chaîne (backlinks, profil, opportunités), conservée derrière
@@ -759,5 +760,45 @@ describe("chantier B : marché et objectif dès l'étape 1, une campagne par pay
     expect(be.siteId).not.toBe(fr.siteId);
     expect(frAgain.siteId).toBe(fr.siteId);
     expect(user.tables.sites!.map((s) => s.country).sort()).toEqual(["BE", "FR"]);
+  });
+});
+
+describe("chantier C : ajout manuel d'une page, vérifiée en HTTP 200", () => {
+  const SITE2 = { ...SITE, id: "site-1" };
+  const send = async (add: string, status: number | null) => {
+    const { user } = setup({ sites: [SITE2] });
+    const spy = vi.spyOn(urlChecker, "status").mockResolvedValue(status);
+    try {
+      const f = new FormData();
+      f.set("theme", "coloriages");
+      f.set("profile_res_add", add);
+      f.append("profile_res_all", `https://${SITE2.domain}/ | Accueil`);
+      f.append("profile_res_on", `https://${SITE2.domain}/`);
+      f.set("profile_activity", "Un site de coloriages.");
+      f.set("profile_offer", "Des coloriages gratuits.");
+      f.set("profile_audience", "Parents");
+      f.set(
+        "profile_personas",
+        "Écoles | écoles primaires | elles utilisent des coloriages\nParents | blogs de parents | ils cherchent des activités",
+      );
+      const res = await saveCorrections(user.client, "site-1", f);
+      return { res, checked: spy.mock.calls.map((c) => c[0]) };
+    } finally {
+      spy.mockRestore();
+    }
+  };
+
+  it("une adresse du site qui répond 200 est acceptée", async () => {
+    const { res, checked } = await send(`${SITE2.domain}/ma-page`, 200);
+    expect(res).toMatchObject({ status: "ok" });
+    expect(checked).toEqual([`https://${SITE2.domain}/ma-page`]);
+  });
+
+  it("une adresse qui répond 404, injoignable ou d'un autre site est refusée", async () => {
+    expect((await send(`${SITE2.domain}/absente`, 404)).res.status).toBe("error");
+    expect((await send(`${SITE2.domain}/x`, null)).res.status).toBe("error");
+    const other = await send("https://autre-site.fr/page", 200);
+    expect(other.res.status).toBe("error");
+    expect(other.checked).toEqual([]);
   });
 });

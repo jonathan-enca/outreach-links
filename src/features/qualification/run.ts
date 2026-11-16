@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { siteResources } from "@/features/findings/run";
 import { getLatestBrandProfile } from "@/features/brand/service";
 import { COLLECTION_SOURCES } from "@/features/collection/types";
 import { TACTICS } from "@/features/queries/schema";
@@ -106,13 +107,7 @@ export async function loadQualificationInput(
   if (contacted.error) throw new Error(`loadQualificationInput : ${contacted.error.message}`);
 
   const p = profile?.profile;
-  const home = `https://${site.domain}/`;
-  const resources = [
-    { url: home, title: `Accueil de ${p?.name_variants[0] ?? site.domain}` },
-    ...(p?.linkable_resources ?? [])
-      .filter((r) => r.selected !== false && /^https?:\/\//.test(r.url) && r.url !== home)
-      .map((r) => ({ url: r.url, title: r.title })),
-  ].slice(0, 6);
+  const resources = siteResources(site.domain, p);
 
   return {
     collectionId: col.id,

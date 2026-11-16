@@ -9,6 +9,7 @@ import {
 } from "@/features/audits/service";
 import type { ChainEstimate } from "@/features/audits/chain";
 import { normalizeDomain } from "@/features/sites/domain";
+import { safeFetchPage } from "@/features/sites/verify";
 import type { PageRead } from "@/features/triage/page-reader";
 import type { LlmClient } from "@/lib/llm/client";
 import { t } from "@/lib/messages";
@@ -266,7 +267,19 @@ async function applyProfileEdits(
   userId: string,
   formData: FormData,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const parsed = parseProfileForm(formData, { domain: site.domain, language: site.language });
+  // Page ajoutée à la main : doit être une page du site ET répondre HTTP 200 (jamais d'adresse devinée).
+  const added: { url: string; title: string }[] = [];
+  const addRaw = String(formData.get("profile_res_add") ?? "").trim();
+  if (addRaw) {
+    const url = await verifiedSitePage(addRaw, site.domain);
+    if (!url) return { ok: false, message: t.onboarding.brand.messages.addPageInvalid };
+    added.push({ url, title: url.replace(/^https?:\/\/(www\.)?/, "") });
+  }
+  const parsed = parseProfileForm(formData, {
+    domain: site.domain,
+    language: site.language,
+    added,
+  });
   if (parsed.status === "error") return { ok: false, message: parsed.message };
   if (parsed.status === "empty") return { ok: true };
   const latest = await getLatestBrandProfile(supabase, site.id);
@@ -287,6 +300,25 @@ async function applyProfileEdits(
     payload: { site_id: site.id, version: saved.version },
   });
   return { ok: true };
+}
+
+/** Statut HTTP d'une adresse (null : injoignable) : remplaçable dans les tests. */
+export const urlChecker = {
+  status: async (url: string): Promise<number | null> => (await safeFetchPage(url))?.status ?? null,
+};
+
+/** Adresse complète d'une page du domaine qui répond 200, sinon null. */
+async function verifiedSitePage(raw: string, domain: string): Promise<string | null> {
+  let u: URL;
+  try {
+    u = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+  } catch {
+    return null;
+  }
+  const host = u.hostname.toLowerCase().replace(/^www\./, "");
+  if (!/^https?:$/.test(u.protocol) || host !== domain.replace(/^www\./, "")) return null;
+  u.hash = "";
+  return (await urlChecker.status(u.toString())) === 200 ? u.toString() : null;
 }
 
 /** MT.2a : objectif de l'utilisateur (colonne `sites.goal`). */

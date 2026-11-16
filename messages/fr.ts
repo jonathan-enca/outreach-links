@@ -885,7 +885,11 @@ export const fr = {
       resourcesNone:
         "Nous n'avons pas trouvé d'autre page à proposer : seule l'accueil sera citée. Vous pourrez affiner après l'audit.",
       homePage: "Page d'accueil",
-      homeAlways: "Toujours incluse",
+      homeAlways: "Proposée par défaut : décochez-la si vous préférez faire citer d'autres pages.",
+      addPage: "Ajouter une page de votre site",
+      addPageHint: "Collez l'adresse complète : nous vérifions qu'elle répond avant de l'ajouter.",
+      edit: "Modifier",
+      summaryEmpty: "Non renseigné",
       names: "Façons d'écrire votre nom",
       namesHint:
         "Une par ligne. Elles servent à retrouver les sites qui parlent de vous sans vous lier.",
@@ -894,6 +898,9 @@ export const fr = {
         "Les sites que personne ne sollicite et qui servent le même public que vous. Une ligne par profil : qui | où on les trouve | pourquoi ils vous citeraient.",
       tone: "Ton",
       messages: {
+        noPageSelected: "Cochez au moins une page de votre site à faire citer.",
+        addPageInvalid:
+          "Cette adresse n'est pas une page de votre site, ou elle ne répond pas (HTTP 200). Vérifiez-la et réessayez.",
         resourceInvalid:
           "Une page à faire citer n'est pas une adresse complète de votre site. Rechargez la page et réessayez.",
         personaInvalid:

@@ -41,14 +41,25 @@ const M = t.onboarding.brand.messages;
  */
 export function parseProfileForm(
   formData: FormData,
-  ctx: { domain: string; language: string },
+  ctx: {
+    domain: string;
+    language: string;
+    /** Pages ajoutées à la main et déjà vérifiées (HTTP 200) : cochées d'office (chantier C). */
+    added?: { url: string; title: string }[];
+  },
 ): ProfileFormResult {
   const get = (k: string) => String(formData.get(`profile_${k}`) ?? "");
   // MT.2a : les pages candidates arrivent une par champ caché `profile_res_all` (adresse | titre) ;
   // les cases cochées arrivent dans `profile_res_on` (adresses). Sans champ caché, on lit l'ancienne
   // zone de texte `profile_resources` (toutes les pages sont alors cochées).
-  const allRes = formData.getAll("profile_res_all").map(String);
-  const onRes = new Set(formData.getAll("profile_res_on").map((v) => String(v).trim()));
+  const allRes = [
+    ...formData.getAll("profile_res_all").map(String),
+    ...(ctx.added ?? []).map((a) => `${a.url} | ${a.title}`),
+  ];
+  const onRes = new Set([
+    ...formData.getAll("profile_res_on").map((v) => String(v).trim()),
+    ...(ctx.added ?? []).map((a) => a.url),
+  ]);
   const raw = {
     activity: get("activity").trim(),
     offer: get("offer").trim(),
@@ -87,6 +98,11 @@ export function parseProfileForm(
       title: title || url,
       selected: allRes.length > 0 ? onRes.has(url) : true,
     });
+  }
+
+  // Au moins une page à faire citer : l'accueil se décoche, mais jamais tout (chantier C).
+  if (resources.length > 0 && !resources.some((r) => r.selected)) {
+    return { status: "error", message: M.noPageSelected };
   }
 
   const personas: { label: string; sites: string; reason: string }[] = [];
