@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
 import { Compare } from "@/features/home/compare";
 import { Faq } from "@/features/home/faq";
-import { Features } from "@/features/home/features";
 import { FinalCta } from "@/features/home/final-cta";
 import { Hero } from "@/features/home/hero";
 import { HowItWorks } from "@/features/home/how-it-works";
 import { JsonLd } from "@/features/home/json-ld";
 import { getPublicPlans } from "@/features/home/plans";
 import { Pricing } from "@/features/home/pricing";
-import { Quality } from "@/features/home/quality";
 import { SiteFooter } from "@/features/home/site-footer";
 import { SiteHeader } from "@/features/home/site-header";
 import { Tactics } from "@/features/home/tactics";
@@ -37,8 +35,6 @@ export default async function Home() {
         <Tactics />
         <Proofs />
         <HowItWorks />
-        <Quality />
-        <Features />
         <Compare />
         <Pricing plans={plans} />
         <Faq />

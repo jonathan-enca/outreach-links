@@ -65,7 +65,7 @@ export function Pricing({ plans }: { plans: PublicPlan[] | null }) {
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{copy.tagline}</p>
+                  <p className="mt-1 text-sm text-muted-foreground lg:min-h-10">{copy.tagline}</p>
                   <p className="mt-5 flex items-baseline gap-1.5">
                     <span className="text-4xl font-bold tabular-nums">
                       {formatEuros(p.priceEurCents)}
