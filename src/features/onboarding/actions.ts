@@ -9,8 +9,10 @@ import { siteHref } from "@/features/shell/next-step";
 import { queryDeps, startDeps } from "./deps";
 import {
   launchJourney,
+  readMarket,
   saveCorrections,
   startFromUrl,
+  understandSite,
   type LaunchState,
   type StartState,
 } from "./service";
@@ -25,6 +27,26 @@ export async function startFromUrlAction(
     revalidatePath("/app", "layout");
     redirect(result.auditId ? siteHref.analyse(result.siteId) : siteHref.relecture(result.siteId));
   }
+  return result;
+}
+
+/**
+ * Étape 1, phase 1 (chantier B) : crée la campagne (site × pays) et lit l'accueil dans la langue
+ * choisie. Ne redirige pas : l'écran coche « page d'accueil lue », puis lance la phase 2.
+ */
+export async function startSiteAction(formData: FormData): Promise<StartState> {
+  const raw = typeof formData.get("url") === "string" ? (formData.get("url") as string) : "";
+  const result = await startFromUrl(await createClient(), raw, startDeps, readMarket(formData), {
+    profile: false,
+  });
+  if (result.status === "ok") revalidatePath("/app", "layout");
+  return result;
+}
+
+/** Étape 1, phase 2 : plan du site, pages et profil de marque dans la langue de la campagne. */
+export async function understandSiteAction(siteId: string): Promise<StartState> {
+  const result = await understandSite(await createClient(), siteId, startDeps);
+  if (result.status === "ok") revalidatePath("/app", "layout");
   return result;
 }
 

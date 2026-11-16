@@ -478,3 +478,57 @@ describe("persistance versionnée", () => {
     expect(noKey).toBeNull();
   });
 });
+
+describe("chantier C : accueil décochable, ajout manuel de pages", () => {
+  const ctx = { domain: DOMAIN, language: "fr" };
+  const base = () => {
+    const f = new FormData();
+    for (const [k, v] of Object.entries(profileToFields(PROFILE))) f.set(`profile_${k}`, v);
+    f.delete("profile_resources");
+    return f;
+  };
+
+  it("l'accueil est une page comme les autres : décochée, elle reste dans le profil, non choisie", async () => {
+    const f = base();
+    f.append("profile_res_all", `https://${DOMAIN}/ | Page d'accueil`);
+    f.append("profile_res_all", `https://${DOMAIN}/outil | Outil`);
+    f.append("profile_res_on", `https://${DOMAIN}/outil`);
+    const res = parseProfileForm(f, ctx);
+    expect(res.status).toBe("ok");
+    if (res.status !== "ok") return;
+    expect(res.profile.linkable_resources[0]).toMatchObject({ selected: false });
+    const { siteResources } = await import("@/features/findings/run");
+    // L'accueil décoché n'est plus proposé aux éditeurs.
+    expect(siteResources(DOMAIN, res.profile).map((r) => r.url)).toEqual([
+      `https://${DOMAIN}/outil`,
+    ]);
+  });
+
+  it("jamais tout décoché : une erreur lisible ; sans entrée d'accueil, il reste proposé", async () => {
+    const f = base();
+    f.append("profile_res_all", `https://${DOMAIN}/ | Page d'accueil`);
+    f.append("profile_res_all", `https://${DOMAIN}/outil | Outil`);
+    const res = parseProfileForm(f, ctx);
+    expect(res).toMatchObject({ status: "error" });
+    const { siteResources } = await import("@/features/findings/run");
+    expect(siteResources(DOMAIN, PROFILE).map((r) => r.url)[0]).toBe(`https://${DOMAIN}/`);
+  });
+
+  it("une page ajoutée à la main (déjà vérifiée) est cochée d'office", () => {
+    const f = base();
+    f.append("profile_res_all", `https://${DOMAIN}/ | Page d'accueil`);
+    f.append("profile_res_on", `https://${DOMAIN}/`);
+    const res = parseProfileForm(f, {
+      ...ctx,
+      added: [{ url: `https://${DOMAIN}/nouvelle`, title: "Nouvelle" }],
+    });
+    expect(res.status).toBe("ok");
+    if (res.status === "ok") {
+      expect(res.profile.linkable_resources.at(-1)).toEqual({
+        url: `https://${DOMAIN}/nouvelle`,
+        title: "Nouvelle",
+        selected: true,
+      });
+    }
+  });
+});

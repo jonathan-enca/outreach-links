@@ -508,6 +508,7 @@ describe("étapes réelles : rien n'est refait ni repayé", () => {
         backlinksBulkReferringDomains: paidCall,
         backlinksDomainIntersection: paidCall,
         contentAnalysisSearch: paidCall,
+        backlinksBacklinks: paidCall,
       }),
       brand: {
         readSite: async () => {

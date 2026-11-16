@@ -822,6 +822,32 @@ export const fr = {
     urlLabel: "Adresse de votre site",
     urlPlaceholder: "monsite.fr",
     urlHint: "Rien d'autre à renseigner pour commencer.",
+    market: {
+      country: "Pays visé",
+      countryHint:
+        "Chaque pays a sa propre campagne : son analyse, ses cibles, son contexte local. Vous pourrez en ajouter une autre pour le même site.",
+      language: "Langue du site",
+      languageAuto: "Détectée sur votre site",
+      languageHint:
+        "Si votre site existe en plusieurs langues, nous lisons la version de cette langue, sans rien traduire.",
+      goalLegend: "Votre objectif",
+      goalAuthority: "Faire ranker le site en général",
+      goalAuthorityBody: "Nous visons l'autorité de votre site : la page citée est votre accueil.",
+      goalPages: "Faire ranker des pages précises",
+      goalPagesBody: "Vous choisissez les pages de votre site à faire citer.",
+      addCountry: "Ajouter un pays",
+      campaignNote: "Une campagne = un site pour un pays. Vous pourrez en ajouter une par pays.",
+    },
+    reading: {
+      title: "Lecture de votre site",
+      estimate: "Environ 30 secondes. Vous pouvez rester sur cette page.",
+      home: "Page d'accueil lue",
+      homeDetail: (language: string, theme: string) =>
+        `Langue : ${language === "en" ? "anglais" : "français"}${theme ? ` · thème : ${theme}` : ""}`,
+      pages: "Plan du site et pages principales lus",
+      profile: "Activité et public compris",
+      failed: "Nous n'avons pas pu lire tout votre site : vous pourrez compléter à la main.",
+    },
     submit: "Analyser mon site",
     submitting: "Lecture de votre site…",
     advanced: "Vous préférez tout saisir vous-même ?",
@@ -859,7 +885,11 @@ export const fr = {
       resourcesNone:
         "Nous n'avons pas trouvé d'autre page à proposer : seule l'accueil sera citée. Vous pourrez affiner après l'audit.",
       homePage: "Page d'accueil",
-      homeAlways: "Toujours incluse",
+      homeAlways: "Proposée par défaut : décochez-la si vous préférez faire citer d'autres pages.",
+      addPage: "Ajouter une page de votre site",
+      addPageHint: "Collez l'adresse complète : nous vérifions qu'elle répond avant de l'ajouter.",
+      edit: "Modifier",
+      summaryEmpty: "Non renseigné",
       names: "Façons d'écrire votre nom",
       namesHint:
         "Une par ligne. Elles servent à retrouver les sites qui parlent de vous sans vous lier.",
@@ -868,6 +898,9 @@ export const fr = {
         "Les sites que personne ne sollicite et qui servent le même public que vous. Une ligne par profil : qui | où on les trouve | pourquoi ils vous citeraient.",
       tone: "Ton",
       messages: {
+        noPageSelected: "Cochez au moins une page de votre site à faire citer.",
+        addPageInvalid:
+          "Cette adresse n'est pas une page de votre site, ou elle ne répond pas (HTTP 200). Vérifiez-la et réessayez.",
         resourceInvalid:
           "Une page à faire citer n'est pas une adresse complète de votre site. Rechargez la page et réessayez.",
         personaInvalid:
@@ -969,6 +1002,8 @@ export const fr = {
       CA: "Canada",
       LU: "Luxembourg",
       MC: "Monaco",
+      GB: "Royaume-Uni",
+      US: "États-Unis",
     },
     languages: { fr: "Français", en: "Anglais" },
     save: "Enregistrer",

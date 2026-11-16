@@ -1,7 +1,17 @@
 import type { Tactic } from "@/features/queries/schema";
 
-/** D'où vient un candidat brut. */
-export const COLLECTION_SOURCES = ["intersection", "serp", "content", "mention"] as const;
+/**
+ * D'où vient un candidat brut. `lien_mort` : la page du candidat cite une page d'un CONCURRENT qui
+ * n'existe plus (404 / 410) ; dans la source, `query` = adresse de la page disparue et `persona` =
+ * domaine du concurrent (chantier D, tactique principale de MU.7).
+ */
+export const COLLECTION_SOURCES = [
+  "intersection",
+  "serp",
+  "content",
+  "mention",
+  "lien_mort",
+] as const;
 export type CollectionSource = (typeof COLLECTION_SOURCES)[number];
 
 /** Un candidat brut tel que trouvé par une source, avant fusion par domaine (MT.4 le qualifiera). */
@@ -29,6 +39,8 @@ export interface CollectionContext {
   /** Tous les concurrents de l'audit (retenus ou non) : jamais des cibles. */
   competitorDomains: string[];
   language: string;
+  /** Pays de la campagne (lieu des recherches Google). */
+  country?: string;
   theme: string;
   nameVariants: string[];
   targetKeywords: string[];

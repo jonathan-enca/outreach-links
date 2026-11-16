@@ -117,6 +117,21 @@ describe("étages gratuits 1 et 2", () => {
     );
   });
 
+  it("une page qui cite une page disparue d'un concurrent est lue d'abord (la preuve y est)", () => {
+    const dead = cand("asso.fr", {
+      sources: [
+        {
+          source: "lien_mort",
+          query: "https://rival.fr/x",
+          persona: "rival.fr",
+          rank: null,
+          pageType: null,
+        },
+      ],
+    });
+    expect(provisionalScore(dead)).toBeGreaterThan(provisionalScore(cand("asso.fr")));
+  });
+
   it("mesure l'effet d'un filtre « autorité > 0 » par source", () => {
     const m = authorityImpact([
       cand("a.fr", { domainRank: 0 }),

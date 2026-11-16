@@ -65,6 +65,7 @@ type Dfs = Pick<
   | "backlinksBulkReferringDomains"
   | "backlinksDomainIntersection"
   | "contentAnalysisSearch"
+  | "backlinksBacklinks"
 >;
 
 const E = t.analysis.errors;

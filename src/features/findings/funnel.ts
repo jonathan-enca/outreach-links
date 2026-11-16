@@ -115,7 +115,7 @@ export async function scanTarget(
     return { ...base, unreadableReason: read.status ? `HTTP ${read.status}` : "pas de réponse" };
 
   // Cible « mentions seulement » : ni liens morts ni liens inadaptés (aucune requête sur ses liens).
-  const toCheck = t.mentionOnly ? [] : linksToCheck(read);
+  const toCheck = t.mentionOnly ? [] : linksToCheck(read, undefined, ctx.competitorDomains);
   const { statuses, requests } = t.mentionOnly
     ? { statuses: new Map<string, number | null>(), requests: 0 }
     : await deps.checkStatuses(
@@ -124,7 +124,9 @@ export async function scanTarget(
       );
   const dead = toCheck.flatMap((l) => {
     const s = statuses.get(l.url);
-    return s !== null && s !== undefined && isDead(s) ? [toDeadHit(l, s, ctx.ownDomain)] : [];
+    return s !== null && s !== undefined && isDead(s)
+      ? [toDeadHit(l, s, ctx.ownDomain, ctx.competitorDomains)]
+      : [];
   });
   const deadUrls = new Set(dead.map((d) => d.url));
   const own = ownLinkState(read, ctx.ownDomain);
@@ -174,7 +176,11 @@ export function findingsOf(
   const res = (i: number) => ctx.resources[i] ?? ctx.resources[0]!;
   const mentionOnly = t.mentionOnly === true;
   // Lien mort : preuve constatée ; un lien vers une ancienne page du site d'abord.
-  const dead = [...scan.dead].sort((a, b) => Number(b.toOwnSite) - Number(a.toOwnSite))[0];
+  const dead = [...scan.dead].sort(
+    (a, b) =>
+      Number(b.toOwnSite) - Number(a.toOwnSite) ||
+      Number(b.toCompetitor ?? false) - Number(a.toCompetitor ?? false),
+  )[0];
   if (!mentionOnly && dead && ctx.resources.length > 0) {
     const pick = pickReplacement(dead, ctx.resources, t.resource);
     out.push(
@@ -193,6 +199,7 @@ export function findingsOf(
           replacementHow: pick.how,
           reason: `Le lien répond HTTP ${dead.status}.`,
           toOwnSite: dead.toOwnSite,
+          toCompetitor: dead.toCompetitor ?? false,
         },
         ctx,
       ),

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
-import { startFromUrlAction } from "@/features/onboarding/actions";
+import { startSiteAction, understandSiteAction } from "@/features/onboarding/actions";
 import { UrlForm } from "@/features/onboarding/url-form";
 import { JourneySteps } from "@/features/shell/journey-steps";
 import { t } from "@/lib/messages";
@@ -21,7 +21,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ s
       <JourneySteps current="site" />
       <PageHeader title={t.onboarding.title} description={t.onboarding.description} />
       <Card className="p-6">
-        <UrlForm action={startFromUrlAction} defaultUrl={defaultUrl} />
+        <UrlForm
+          startAction={startSiteAction}
+          understandAction={understandSiteAction}
+          defaultUrl={defaultUrl}
+        />
       </Card>
       <p className="mt-4 text-sm text-muted-foreground">
         {t.onboarding.advanced}{" "}

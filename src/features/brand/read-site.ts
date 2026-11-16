@@ -1,4 +1,9 @@
-import { createPageReader, type PageRead, type PageReader } from "@/features/triage/page-reader";
+import {
+  createPageReader,
+  languageVersionHref,
+  type PageRead,
+  type PageReader,
+} from "@/features/triage/page-reader";
 import type { PageFetcher } from "@/features/sites/verify";
 import { BRAND_LIMITS } from "./limits";
 import { pickPages } from "./pick-pages";
@@ -21,6 +26,11 @@ export interface ReadSiteDeps {
   now: () => number;
   /** Accueil déjà lu (évite de le relire) : ne compte pas dans les requêtes. */
   home?: PageRead | null;
+  /**
+   * Langue de la campagne (« fr », « en ») : un site à plusieurs langues est lu dans cette version
+   * (accueil, pages choisies, profil), jamais traduit.
+   */
+  language?: string | null;
 }
 
 const usable = (p: PageRead) => p.status === 200 && (p.text.length > 0 || p.title.length > 0);
@@ -42,7 +52,14 @@ export async function readSite(domain: string, deps: ReadSiteDeps): Promise<Site
   const expired = () => deps.now() - started > BRAND_LIMITS.readDeadlineMs;
   const origin = `https://${domain}`;
 
-  const home = deps.home && usable(deps.home) ? deps.home : await reader.read(`${origin}/`);
+  let home = deps.home && usable(deps.home) ? deps.home : await reader.read(`${origin}/`);
+  if (usable(home) && deps.language) {
+    const href = languageVersionHref(home, deps.language);
+    if (href) {
+      const alt = await reader.read(href).catch(() => null);
+      if (alt && usable(alt)) home = alt;
+    }
+  }
   const empty: SiteRead = {
     domain,
     home,
@@ -91,7 +108,7 @@ export async function readSite(domain: string, deps: ReadSiteDeps): Promise<Site
   const chosen = pickPages({
     home: home.url,
     candidates: [...homeLinks, ...sitemapUrls],
-    lang: home.lang,
+    lang: deps.language ?? home.lang,
     max: BRAND_LIMITS.maxExtraPages,
   });
 

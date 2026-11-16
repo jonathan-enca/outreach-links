@@ -101,7 +101,11 @@ export function LaunchPanel({
         </div>
       </Card>
 
-      <BrandFields key={preview.brand?.version ?? 0} brand={preview.brand} />
+      <BrandFields
+        key={preview.brand?.version ?? 0}
+        brand={preview.brand}
+        domain={preview.domain}
+      />
 
       {needsInput ? (
         <div className="flex flex-col gap-2">

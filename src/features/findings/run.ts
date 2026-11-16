@@ -34,12 +34,22 @@ export function siteResources(
     | undefined,
 ): { url: string; title: string }[] {
   const home = `https://${domain}/`;
-  return [
-    { url: home, title: `Accueil de ${p?.name_variants[0] ?? domain}` },
-    ...(p?.linkable_resources ?? [])
-      .filter((r) => r.selected !== false && /^https?:\/\//.test(r.url) && r.url !== home)
-      .map((r) => ({ url: r.url, title: r.title })),
-  ].slice(0, 6);
+  const same = (a: string, b: string) => a.replace(/\/+$/, "") === b.replace(/\/+$/, "");
+  const entries = p?.linkable_resources ?? [];
+  // L'accueil est proposé par défaut mais peut être décoché (chantier C) : il figure alors dans le
+  // profil avec `selected: false`. Sans aucune page cochée, on garde l'accueil plutôt que rien.
+  const homeEntry = entries.find((r) => same(r.url, home));
+  const homeOn = homeEntry ? homeEntry.selected !== false : true;
+  const others = entries
+    .filter((r) => r.selected !== false && /^https?:\/\//.test(r.url) && !same(r.url, home))
+    .map((r) => ({ url: r.url, title: r.title }));
+  const list = [
+    ...(homeOn || others.length === 0
+      ? [{ url: home, title: homeEntry?.title ?? `Accueil de ${p?.name_variants[0] ?? domain}` }]
+      : []),
+    ...others,
+  ];
+  return list.slice(0, 6);
 }
 
 /**

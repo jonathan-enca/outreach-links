@@ -6,6 +6,7 @@ import { COLLECTION_LIMITS, collectionTargetUsd, phaseBudgetUsd } from "./limits
 import {
   acceptDomain,
   fromContent,
+  fromDeadPages,
   fromSerp,
   intersectionCandidates,
   mergeCandidates,
@@ -16,11 +17,13 @@ import {
 import { buildCollectionPlan, distinctVariants, estimateCollection } from "./plan";
 import {
   beginCollection,
+  collectionPlanSchema,
   intersectionFilters,
   CollectionProgress,
   executeCollection,
   finalizeCollection,
   runContentCall,
+  runDeadPagesCall,
   runIntersectionPage,
   runSerpQuery,
   type CollectionRun,
@@ -335,7 +338,7 @@ describe("plan et coût annoncé", () => {
     for (const [phase, p] of Object.entries(est.phases)) {
       expect(p.worstUsd).toBeLessThanOrEqual(phaseBudgetUsd(phase as never) + 1e-9);
     }
-    expect(est.calls).toBe(1 + 2 + 2 + 33 + 4);
+    expect(est.calls).toBe(1 + 2 + 2 + 33 + 4 + 5); // + 5 concurrents pour les liens morts (chantier D)
   });
 
   it("moins de 2 concurrents : recoupement sauté et non facturé", () => {
@@ -419,6 +422,37 @@ function fakeDfs(opts: { freshUntil?: number } = {}) {
         taskId: null,
       };
     }),
+    backlinksBacklinks: vi.fn(async (p: { target: string }) => {
+      calls.push(`morts:${p.target}`);
+      return {
+        result: {
+          items_count: 2,
+          items: [
+            {
+              domain_from: `ecole-${p.target}.fr`,
+              url_from: `https://ecole-${p.target}.fr/liens`,
+              url_to: `https://${p.target}/vieille-page`,
+              anchor: "coloriages",
+              dofollow: true,
+              is_broken: true,
+              backlink_spam_score: 3,
+            },
+            {
+              domain_from: "spam.fr",
+              url_from: "https://spam.fr/x",
+              url_to: `https://${p.target}/autre`,
+              dofollow: true,
+              is_broken: true,
+              backlink_spam_score: 80,
+            },
+          ],
+        },
+        actualCostUsd: 0.027,
+        cacheHit: false,
+        estimatedCostUsd: 0.027,
+        taskId: null,
+      };
+    }),
     contentAnalysisSearch: vi.fn(async (p: { keyword: string; page_type?: string[] }) => {
       calls.push(`content:${p.keyword}:${p.page_type?.[0] ?? "-"}`);
       return {
@@ -444,7 +478,10 @@ function fakeDfs(opts: { freshUntil?: number } = {}) {
   return {
     dfs: dfs as unknown as Pick<
       DataForSeoClient,
-      "serpOrganicLive" | "backlinksDomainIntersection" | "contentAnalysisSearch"
+      | "serpOrganicLive"
+      | "backlinksDomainIntersection"
+      | "contentAnalysisSearch"
+      | "backlinksBacklinks"
     >,
     calls,
     mocks: dfs,
@@ -1011,5 +1048,97 @@ describe("chantier A : erreurs du fournisseur et lots parallèles", () => {
     );
     expect(progress.stats.serp.calls).toBeLessThanOrEqual(3);
     expect(progress.stats.serp.stoppedBy).toBe("budget_phase");
+  });
+});
+
+describe("chantier D : liens morts des concurrents", () => {
+  const direct = <T>(_id: string, fn: () => Promise<T>) => fn();
+
+  it("un appel Backlinks par concurrent, filtré sur les liens cassés suivis, un lien par domaine", async () => {
+    const { client } = fakeSupabase();
+    const { dfs, mocks } = fakeDfs();
+    const out = await runDeadPagesCall({ dfs, service: client }, makeRun(), "coloriez.com", 0);
+    expect(mocks.backlinksBacklinks).toHaveBeenCalledTimes(1);
+    const params = mocks.backlinksBacklinks.mock.calls[0]![0];
+    expect(params).toMatchObject({
+      target: "coloriez.com",
+      mode: "one_per_domain",
+      filters: [["url_to_status_code", "in", [404, 410]], "and", ["dofollow", "=", true]],
+    });
+    // Le lien d'un domaine à spam élevé est écarté ; le candidat est la page qui CITE, pas l'accueil.
+    expect(out.raws).toHaveLength(1);
+    expect(out.raws[0]).toMatchObject({
+      source: "lien_mort",
+      tactic: "ressources",
+      domain: "ecole-coloriez.com.fr",
+      url: "https://ecole-coloriez.com.fr/liens",
+      query: "https://coloriez.com/vieille-page",
+      persona: "coloriez.com",
+    });
+  });
+
+  it("jamais un concurrent, jamais le site lui-même, jamais un lien non suivi ou non cassé", () => {
+    const ok = {
+      sourceUrl: "https://asso.fr/liens",
+      sourceDomain: "asso.fr",
+      targetUrl: "https://coloriez.com/x",
+      dofollow: true,
+      isBroken: true,
+      spamScore: 2,
+      sourceRank: 10,
+    };
+    const rows = [
+      ok,
+      { ...ok, sourceDomain: "hugolescargot.com", sourceUrl: "https://hugolescargot.com/a" },
+      { ...ok, sourceDomain: "mega-coloring.com", sourceUrl: "https://mega-coloring.com/a" },
+      { ...ok, dofollow: false, sourceDomain: "nofollow.fr" },
+      { ...ok, isBroken: false, sourceDomain: "vivant.fr" },
+      { ...ok, targetUrl: "https://coloriez.com/img/a.png", sourceDomain: "image.fr" },
+      { ...ok, targetUrl: "https://img.coloriez.com/x", sourceDomain: "cdn.fr" },
+      { ...ok, targetUrl: null, sourceDomain: "sanscible.fr" },
+    ];
+    expect(fromDeadPages(rows, ctx, "coloriez.com").map((r) => r.domain)).toEqual(["asso.fr"]);
+  });
+
+  it("la fusion garde la page qui cite le lien mort, même si un autre candidat du domaine est venu avant", () => {
+    const serp = raw("asso.fr", { url: "https://asso.fr/", source: "serp" });
+    const mort = raw("asso.fr", {
+      url: "https://asso.fr/liens",
+      source: "lien_mort",
+      tactic: "ressources",
+      query: "https://coloriez.com/x",
+      persona: "coloriez.com",
+    });
+    const [merged] = mergeCandidates([serp, mort]);
+    expect(merged!.url).toBe("https://asso.fr/liens");
+    expect(merged!.tactics).toEqual(["inconnus", "ressources"]);
+    expect(merged!.sources.map((s) => s.source)).toEqual(["serp", "lien_mort"]);
+  });
+
+  it("un plan figé avant le chantier D (sans `deadPages`) reste lisible", () => {
+    const plan = {
+      intersectionTargets: [],
+      serp: [],
+      mentionSerp: [],
+      mentionKeywords: [],
+      content: [],
+    };
+    expect(collectionPlanSchema.parse(plan).deadPages).toEqual([]);
+  });
+
+  it("la phase est exécutée, comptée, et un appel manqué ne l'arrête pas", async () => {
+    const { client } = fakeSupabase();
+    const { dfs } = fakeDfs();
+    const progress = await executeCollection(() => ({ dfs, service: client }), makeRun(), direct);
+    expect(progress.stats.morts.calls).toBe(3);
+    expect(progress.raws.filter((r) => r.source === "lien_mort").length).toBe(3);
+    const { DataForSeoError } = await import("@/lib/dataforseo");
+    PROVIDER_RETRY.delaysMs = [0, 0];
+    dfs.backlinksBacklinks = vi
+      .fn()
+      .mockRejectedValue(new DataForSeoError("backlinks : HTTP 500", "http", 500)) as never;
+    const down = await executeCollection(() => ({ dfs, service: client }), makeRun(), direct);
+    expect(down.stats.morts.failures).toBe(3);
+    expect(down.stats.serp.calls).toBeGreaterThan(0);
   });
 });

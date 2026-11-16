@@ -7,7 +7,14 @@ import type { LlmClient } from "@/lib/llm/client";
 import { profileToFields } from "@/features/brand/form";
 import type { BrandProfile } from "@/features/brand/schema";
 import type { SiteRead } from "@/features/brand/read-site";
-import { getLaunchPreview, launchJourney, saveCorrections, startFromUrl } from "./service";
+import {
+  getLaunchPreview,
+  launchJourney,
+  readMarket,
+  saveCorrections,
+  startFromUrl,
+  urlChecker,
+} from "./service";
 
 // MU.1 : ces tests décrivent l'ANCIENNE chaîne (backlinks, profil, opportunités), conservée derrière
 // le réglage `LEGACY_CHAIN`. Le comportement par défaut (analyse unique) est testé dans
@@ -131,6 +138,7 @@ describe("startFromUrl", () => {
           id: "site-1",
           workspace_id: "ws-1",
           domain: "exemple-coloriage.fr",
+          country: "FR",
           niche: "x",
           priority_queries: ["abc"],
         },
@@ -152,6 +160,7 @@ describe("startFromUrl", () => {
           id: "site-1",
           workspace_id: "ws-1",
           domain: "exemple-coloriage.fr",
+          country: "FR",
           niche: "x",
           priority_queries: ["abc"],
         },
@@ -408,7 +417,7 @@ describe("profil de marque dans l'onboarding (MT.1)", () => {
     expect(res.status).toBe("ok");
     const row = user.tables.brand_profiles![0]!;
     expect(row).toMatchObject({ version: 1, source: "llm", cost_usd: 0.001, workspace_id: "ws-1" });
-    expect(b.deps.readSite).toHaveBeenCalledWith("exemple-coloriage.fr", PAGE); // accueil non relu
+    expect(b.deps.readSite).toHaveBeenCalledWith("exemple-coloriage.fr", PAGE, "fr"); // accueil non relu
     expect(user.tables.events!.map((e) => e.type)).toContain("brand_profile.created");
   });
 
@@ -681,5 +690,115 @@ describe("univers de requêtes au lancement (MT.2b)", () => {
       async () => ({}),
     );
     expect(res.status).toBe("ok");
+  });
+});
+
+describe("chantier B : marché et objectif dès l'étape 1, une campagne par pays", () => {
+  const home = { ...PAGE, lang: "fr" };
+  const deps = (llmLang: "fr" | "en" = "fr") => {
+    const { llm } = llmReturning({
+      theme: "coloriages",
+      language: llmLang,
+      queries: ["coloriage licorne"],
+    });
+    return {
+      readHomepage: vi.fn(async () => home),
+      makeLlm: () => llm,
+    };
+  };
+
+  it("lit pays, langue et objectif du formulaire ; une valeur inconnue retombe sur le défaut", () => {
+    const fd = new FormData();
+    fd.set("country", "BE");
+    fd.set("language", "en");
+    fd.set("goal", "mots_cles");
+    expect(readMarket(fd)).toEqual({ country: "BE", language: "en", goal: "mots_cles" });
+    const bad = new FormData();
+    bad.set("country", "ZZ");
+    bad.set("language", "de");
+    bad.set("goal", "x");
+    expect(readMarket(bad)).toEqual({ country: "FR", language: "auto", goal: "autorite_generale" });
+  });
+
+  it("crée la campagne avec le pays, la langue et l'objectif choisis, sans profil en phase 1", async () => {
+    const { user } = setup();
+    const d = deps();
+    const res = await startFromUrl(
+      user.client,
+      "exemple-coloriage.fr",
+      d,
+      { country: "BE", language: "en", goal: "mots_cles" },
+      { profile: false },
+    );
+    expect(res).toMatchObject({ status: "ok", needsProfile: true, language: "en" });
+    expect(d.readHomepage).toHaveBeenCalledWith("exemple-coloriage.fr", "en");
+    expect(user.tables.sites![0]).toMatchObject({
+      country: "BE",
+      language: "en",
+      goal: "mots_cles",
+    });
+  });
+
+  it("un même domaine dans un autre pays est une AUTRE campagne ; le même pays retrouve la première", async () => {
+    const { user } = setup();
+    const start = (country: "FR" | "BE") =>
+      startFromUrl(
+        user.client,
+        "exemple-coloriage.fr",
+        deps(),
+        {
+          country,
+          language: "auto",
+          goal: "autorite_generale",
+        },
+        { profile: false },
+      );
+    const fr = await start("FR");
+    const be = await start("BE");
+    const frAgain = await start("FR");
+    expect(user.tables.sites).toHaveLength(2);
+    expect(be.siteId).not.toBe(fr.siteId);
+    expect(frAgain.siteId).toBe(fr.siteId);
+    expect(user.tables.sites!.map((s) => s.country).sort()).toEqual(["BE", "FR"]);
+  });
+});
+
+describe("chantier C : ajout manuel d'une page, vérifiée en HTTP 200", () => {
+  const SITE2 = { ...SITE, id: "site-1" };
+  const send = async (add: string, status: number | null) => {
+    const { user } = setup({ sites: [SITE2] });
+    const spy = vi.spyOn(urlChecker, "status").mockResolvedValue(status);
+    try {
+      const f = new FormData();
+      f.set("theme", "coloriages");
+      f.set("profile_res_add", add);
+      f.append("profile_res_all", `https://${SITE2.domain}/ | Accueil`);
+      f.append("profile_res_on", `https://${SITE2.domain}/`);
+      f.set("profile_activity", "Un site de coloriages.");
+      f.set("profile_offer", "Des coloriages gratuits.");
+      f.set("profile_audience", "Parents");
+      f.set(
+        "profile_personas",
+        "Écoles | écoles primaires | elles utilisent des coloriages\nParents | blogs de parents | ils cherchent des activités",
+      );
+      const res = await saveCorrections(user.client, "site-1", f);
+      return { res, checked: spy.mock.calls.map((c) => c[0]) };
+    } finally {
+      spy.mockRestore();
+    }
+  };
+
+  it("une adresse du site qui répond 200 est acceptée", async () => {
+    const { res, checked } = await send(`${SITE2.domain}/ma-page`, 200);
+    expect(res).toMatchObject({ status: "ok" });
+    expect(checked).toEqual([`https://${SITE2.domain}/ma-page`]);
+  });
+
+  it("une adresse qui répond 404, injoignable ou d'un autre site est refusée", async () => {
+    expect((await send(`${SITE2.domain}/absente`, 404)).res.status).toBe("error");
+    expect((await send(`${SITE2.domain}/x`, null)).res.status).toBe("error");
+    const other = await send("https://autre-site.fr/page", 200);
+    expect(other.res.status).toBe("error");
+    expect(other.checked).toEqual([]);
   });
 });
