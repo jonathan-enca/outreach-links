@@ -975,3 +975,14 @@ Prochain sous-jalon : MH.2 (construction de la home).
 - **Dettes et pièges** : le code mort de `audit-detail.tsx` (blocs « en cours / échoué / terminé » de l'ancien écran) n'est plus atteint pour une analyse lancée, à retirer en MU.11 avec l'ancienne chaîne ; l'écran de relecture ne montre pas encore l'analyse du site en cours si le site a plusieurs audits (on lit le dernier) ; les premières cibles n'apparaissent qu'à la fin des contacts (la liste courte n'existe pas avant : une cible « prête » plus tôt demanderait de découper l'étape 5 et 6, MU.8) ; la durée annoncée reste celle du dev server local, à remesurer en production.
 - **Backlog** : capture automatique de l'écran de fin d'une vraie analyse ; email de fin avec le nom du produit dans l'expéditeur (réglage unique du nom) ; test Playwright d'un parcours complet.
 - **Prochain sous-jalon : MU.4** (onboarding 1/2 : adresse, lecture en direct, « ce que nous avons compris », marché).
+
+## Remarques d'essai de Jonathan après MU.3 (16/11/2026)
+
+Essai fait avec un compte neuf (l'ancien compte de Jonathan et son espace ont été supprimés à sa demande ; les comptes de test ont été gardés ; l'historique des coûts est conservé). Remarques, une à une, et ce qui en a été fait :
+
+1. **Marché dès l'étape 1** : viser un pays cible tout de suite, avec l'adresse. « Chaque pays fait l'objet d'une campagne différente, car le contexte local change » : indispensable. → **MU.4** (plan modifié dans `docs/jalon-mu.md`) : marché demandé avant toute lecture ; campagne = site × pays [À CONFIRMER, défaut appliqué].
+2. **Attente après l'adresse** : un bouton grisé muet n'est pas acceptable, il faut une animation ou une durée estimée. → **MU.4** (lecture en direct).
+3. **Noms de pages en anglais** (le site a une version anglaise, aucun marché n'avait été demandé). Même cause que 1. → **MU.4**.
+4. **Pages à faire citer** : l'accueil est normal en « autorité générale » mais doit pouvoir se décocher ; ajout manuel d'adresses. → **MU.5** (plan modifié).
+5. **Objectif (général ou pages précises) à poser à l'étape 1**, avant la fiche « ce que nous avons compris », qui en dépend. → **MU.4** ; **la décision D3 est inversée** (le choix revient).
+6. **Texte « Prêt à lancer l'analyse »** jugé faux → **réécrit** (« une quinzaine de minutes », rien ne part sans validation, « nous vous écrivons » seulement si l'email peut vraiment partir). **Email de fin d'analyse** avec lien : **déjà codé en MU.3**, mais **il ne part pas tant que `RESEND_API_KEY` n'est pas posée sur Vercel** (action à fournir). L'écran ne promet l'email que si la clé existe.

@@ -35,7 +35,7 @@ describe("AuditDetail", () => {
   it("estimé : une phrase, un bouton, aucun montant (décision D1)", () => {
     const html = render(base);
     expect(html).toContain("Lancer l&#x27;analyse");
-    expect(html).toContain("environ 15 minutes");
+    expect(html).toContain("quinzaine de minutes");
     expect(html).not.toMatch(/USD|\$|dollar|plafond|coloriage licorne/i);
   });
   it("confirmé : propose seulement de relancer l'envoi", () => {

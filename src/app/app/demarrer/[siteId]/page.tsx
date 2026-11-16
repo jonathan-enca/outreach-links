@@ -1,3 +1,4 @@
+import { env } from "@/env";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -37,6 +38,7 @@ async function Review({ params }: { params: Promise<{ siteId: string }> }) {
       preview={preview}
       action={launchJourneyAction.bind(null, siteId)}
       saveAction={saveCorrectionsAction.bind(null, siteId)}
+      emailEnabled={Boolean(env.RESEND_API_KEY)}
     />
   );
 }

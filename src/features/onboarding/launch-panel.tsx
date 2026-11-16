@@ -24,8 +24,11 @@ export function LaunchPanel({
   preview,
   action,
   saveAction,
+  emailEnabled = false,
 }: {
   preview: LaunchPreview;
+  /** Vrai quand l'email « vos cibles sont prêtes » peut réellement partir (clé Resend posée). */
+  emailEnabled?: boolean;
   action: (prev: LaunchState, formData: FormData) => Promise<LaunchState>;
   /** Utilisée tant qu'aucune recherche n'est connue : enregistre, puis l'écran affiche le coût. */
   saveAction: (prev: LaunchState, formData: FormData) => Promise<LaunchState>;
@@ -115,6 +118,10 @@ export function LaunchPanel({
         <Card className="flex flex-col gap-3 p-6">
           <h2 className="text-xl font-semibold">{r.launchCard.title}</h2>
           <p className="text-muted-foreground">{r.launchCard.body}</p>
+          <p className="text-muted-foreground">
+            {emailEnabled ? r.launchCard.closeWithEmail : r.launchCard.closeNoEmail}
+          </p>
+          <p className="text-sm text-muted-foreground">{r.launchCard.noSend}</p>
           <input type="hidden" name="acceptedUsd" value={preview.totalUsd} />
           <Button type="submit" disabled={pending} className="mt-1 h-12 self-start px-6 text-base">
             {pending ? r.launching : r.launch}
