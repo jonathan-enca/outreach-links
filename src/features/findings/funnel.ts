@@ -309,62 +309,88 @@ export async function executeFindings(
     (s) => s.read && ((s.mentions.length > 0 && !s.alreadyLinked) || s.linkCandidates.length > 0),
   );
   const worst = callWorstUsd(input.model);
-  for (const [k, s] of toJudge.entries()) {
-    if (stop !== "termine" || costUsd + worst > input.budgetUsd + 1e-9) {
-      if (stop === "termine") stop = "budget";
-      unjudged++;
-      continue;
+  // Jugement par groupes lancés de front (un step par groupe) : un appel par cible, à la suite,
+  // prenait près de trois minutes pour vingt cibles (mesuré le 17/11). Le budget et les plafonds durs
+  // sont contrôlés avant chaque groupe, pour tous ses appels.
+  let judgedDone = 0;
+  for (const [k, group] of chunks(toJudge, L.judgeConcurrency).entries()) {
+    let planned = 0;
+    if (stop === "termine") {
+      while (planned < group.length && costUsd + (planned + 1) * worst <= input.budgetUsd + 1e-9) {
+        planned++;
+      }
+      if (planned < group.length) stop = "budget";
     }
-    const res = await runStep(`judge-${k + 1}`, async () => {
+    unjudged += group.length - planned;
+    const doing = group.slice(0, planned);
+    if (doing.length === 0) continue;
+    const doneBefore = judgedDone;
+    const keptBefore = [...judgements.values()].filter(
+      (x) => x && (x.mention || x.unsuited),
+    ).length;
+    const spentBefore = costUsd;
+    const res = await runStep(`judge-lot-${k + 1}`, async () => {
       const d = deps();
       try {
-        await d.guard(worst);
+        await d.guard(worst * doing.length);
       } catch (e) {
-        if (e instanceof BudgetExceededError)
-          return { blocked: true, failed: false, costUsd: 0, j: null };
+        if (e instanceof BudgetExceededError) return { blocked: true, items: [] };
         throw e;
       }
-      const llm = d.llm(input.budgetUsd - costUsd);
-      if (!llm) return { blocked: false, failed: true, costUsd: 0, j: null };
-      try {
-        const out = await judgePage(
-          llm,
-          {
-            mentions: s.alreadyLinked ? [] : s.mentions,
-            links: s.linkCandidates,
-            pageTitle: s.pageTitle,
-            pageUrl: s.pageUrl,
-          },
-          input.ctx,
-          { workspaceId: input.workspaceId, auditId: input.auditId },
-        );
-        const j = await confirmForeign(d.readPage, out.judgement, input.ctx.language);
-        const kept = Boolean(j && (j.mention || j.unsuited));
-        await emit({
-          phase: "jugement",
-          done: k + 1,
-          total: toJudge.length,
-          found:
-            [...judgements.values()].filter((x) => x && (x.mention || x.unsuited)).length +
-            (kept ? 1 : 0),
-          example: kept ? (byId.get(s.targetId)?.domain ?? null) : null,
-        });
-        return { blocked: false, failed: false, costUsd: out.costUsd, j };
-      } catch (e) {
-        if (e instanceof LlmBudgetExceededError)
-          return { blocked: true, failed: false, costUsd: llm.spentUsd, j: null };
-        return { blocked: false, failed: true, costUsd: llm.spentUsd, j: null };
-      }
+      const items = await Promise.all(
+        doing.map(async (s) => {
+          const llm = d.llm(input.budgetUsd - spentBefore);
+          if (!llm) return { blocked: false, failed: true, costUsd: 0, j: null };
+          try {
+            const out = await judgePage(
+              llm,
+              {
+                mentions: s.alreadyLinked ? [] : s.mentions,
+                links: s.linkCandidates,
+                pageTitle: s.pageTitle,
+                pageUrl: s.pageUrl,
+              },
+              input.ctx,
+              { workspaceId: input.workspaceId, auditId: input.auditId },
+            );
+            const j = await confirmForeign(d.readPage, out.judgement, input.ctx.language);
+            return { blocked: false, failed: false, costUsd: out.costUsd, j };
+          } catch (e) {
+            if (e instanceof LlmBudgetExceededError)
+              return { blocked: true, failed: false, costUsd: llm.spentUsd, j: null };
+            return { blocked: false, failed: true, costUsd: llm.spentUsd, j: null };
+          }
+        }),
+      );
+      const kept = items.map((x) => Boolean(x.j && (x.j.mention || x.j.unsuited)));
+      const last = kept.lastIndexOf(true);
+      await emit({
+        phase: "jugement",
+        done: doneBefore + doing.length,
+        total: toJudge.length,
+        found: keptBefore + kept.filter(Boolean).length,
+        example: last >= 0 ? (byId.get(doing[last]!.targetId)?.domain ?? null) : null,
+      });
+      return { blocked: false, items };
     });
-    costUsd += res.costUsd;
+    judgedDone += doing.length;
     if (res.blocked) {
       stop = "plafond";
-      unjudged++;
+      unjudged += doing.length;
       continue;
     }
-    llmCalls++;
-    if (res.failed) llmFailures++;
-    judgements.set(s.targetId, res.j);
+    doing.forEach((s, i) => {
+      const r = res.items[i]!;
+      costUsd += r.costUsd;
+      if (r.blocked) {
+        stop = "plafond";
+        unjudged++;
+        return;
+      }
+      llmCalls++;
+      if (r.failed) llmFailures++;
+      judgements.set(s.targetId, r.j);
+    });
   }
 
   const findings = scans.flatMap((s) =>

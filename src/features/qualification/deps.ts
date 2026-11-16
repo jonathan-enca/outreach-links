@@ -27,8 +27,8 @@ const readUrl = (c: QualCandidate) => c.url ?? `https://${c.domain}/`;
 
 /**
  * Vérification légère du robots.txt d'un candidat (une seule requête, délai court) : « interdit » si
- * la page à lire est fermée à notre robot, « injoignable » si le site ne répond pas (même issue qu'à
- * la lecture, mais sans y dépenser une place de lecture).
+ * la page à lire est fermée à notre robot, « ok » si elle est ouverte (le fichier ne sera pas relu),
+ * « inconnu » sinon (la lecture tranchera).
  */
 export async function checkRobotsFor(
   fetchRobots: (url: string) => Promise<{ status: number; text: string } | null>,
@@ -41,7 +41,9 @@ export async function checkRobotsFor(
     return "inconnu";
   }
   const res = await fetchRobots(`${u.protocol}//${u.host}/robots.txt`);
-  if (!res || res.status >= 500) return "injoignable";
+  // Pas de réponse dans le délai court : on ne conclut RIEN ici (mesuré le 17/11 : un site lent mais
+  // valable était écarté). La lecture refera la demande, avec son délai normal.
+  if (!res || res.status >= 500) return "inconnu";
   const rules = robotsFromResponse(res, BOT_TOKEN);
   // « ok » seulement si la page ET l'accueil sont ouverts : la lecture peut retomber sur l'accueil.
   if (!rules.allowed(u.pathname + u.search)) return "interdit";

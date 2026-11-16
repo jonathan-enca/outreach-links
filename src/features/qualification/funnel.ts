@@ -24,7 +24,7 @@ import type {
 export type StepRunner = <T>(id: string, fn: () => Promise<T>) => Promise<T>;
 
 /** Résultat de la vérification légère du robots.txt, avant toute lecture. */
-export type RobotsCheck = "ok" | "interdit" | "injoignable" | "inconnu";
+export type RobotsCheck = "ok" | "interdit" | "inconnu";
 
 export interface QualDeps {
   /** `robotsOk` : le robots.txt a déjà été vérifié pour cette page ET l'accueil (il n'est pas relu). */
@@ -353,13 +353,6 @@ export async function executeQualification(
             stage: 2,
             reason: "robots",
             detail: "le robots.txt interdit la lecture",
-            preRead: true,
-          });
-        } else if (c === "injoignable") {
-          Object.assign(t, {
-            stage: 2,
-            reason: "injoignable",
-            detail: "le site ne répond pas",
             preRead: true,
           });
         }
