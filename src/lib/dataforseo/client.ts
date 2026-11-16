@@ -124,15 +124,22 @@ export function createDataForSeoClient(options: DataForSeoClientOptions) {
       },
       ...(spec.method === "POST" ? { body: JSON.stringify([spec.body!(params)]) } : {}),
     };
+    // Content Analysis (150 lignes) a répondu en 130 à 140 s au run réel du 17/11 : 60 s le tuait à tort.
+    const callTimeoutMs = spec.name.startsWith("content")
+      ? Math.max(timeoutMs, 240_000)
+      : timeoutMs;
     for (let attempt = 0; ; attempt++) {
       let res: Response | null = null;
       try {
-        res = await fetchImpl(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+        res = await fetchImpl(url, { ...init, signal: AbortSignal.timeout(callTimeoutMs) });
       } catch (e) {
         // Délai dépassé : pas de nouvelle tentative ici (trois fois 60 s = trois minutes dans UN step) ;
         // l'appelant décide (nouvelles tentatives espacées, puis appel « manqué »).
         if ((e as Error).name === "TimeoutError" || (e as Error).name === "AbortError") {
-          throw new DataForSeoError(`${spec.name} : délai dépassé (${timeoutMs / 1000} s)`, "http");
+          throw new DataForSeoError(
+            `${spec.name} : délai dépassé (${callTimeoutMs / 1000} s)`,
+            "http",
+          );
         }
         if (attempt >= maxRetries) {
           throw new DataForSeoError(`${spec.name} : réseau (${(e as Error).message})`, "http");
