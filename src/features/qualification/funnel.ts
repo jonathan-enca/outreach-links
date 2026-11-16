@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import type { ContactItem, ContactResult } from "@/features/contacts/types";
 import type { PageRead } from "@/features/triage/page-reader";
 import { mapByHost } from "@/lib/concurrency";
@@ -81,6 +82,8 @@ export interface FunnelStats {
   reserve: number;
   llmCalls: number;
   llmFailures: number;
+  /** Premier message d'erreur d'un lot non jugé (diagnostic). */
+  llmLastError?: string;
   costUsd: number;
   stop: QualStop;
   byReason: Partial<Record<ExclusionReason, number>>;
@@ -200,6 +203,7 @@ export async function executeQualification(
   let stop: QualStop = "termine";
   let llmCalls = 0;
   let llmFailures = 0;
+  let llmLastError: string | undefined;
   const toJudge = alive().sort(byScore);
   for (const t of toJudge.slice(L.maxLlmTargets)) {
     Object.assign(t, { stage: 4, reason: "hors_budget_llm", detail: "au-delà des cibles jugées" });
@@ -270,7 +274,10 @@ export async function executeQualification(
           return { blocked: true, failed: false, costUsd: llm.spentUsd, judgements: [] };
         }
         // Réponse illisible ou panne : le lot reste non qualifié (coût éventuel compté), on continue.
-        return { blocked: false, failed: true, costUsd: llm.spentUsd, judgements: [] };
+        // Jamais muet (essai du 17/11 : 11 lots sur 11 en échec sans aucune trace).
+        const error = e instanceof Error ? e.message.slice(0, 300) : String(e).slice(0, 300);
+        logger.warn("qualification : lot non jugé", { error });
+        return { blocked: false, failed: true, costUsd: llm.spentUsd, judgements: [], error };
       }
     });
     costUsd += res.costUsd;
@@ -285,7 +292,10 @@ export async function executeQualification(
       continue;
     }
     llmCalls++;
-    if (res.failed) llmFailures++;
+    if (res.failed) {
+      llmFailures++;
+      llmLastError ??= (res as { error?: string }).error ?? "client LLM absent";
+    }
     const got = new Map(res.judgements);
     batch.forEach((t, i) => {
       const j = got.get(`c${i + 1}`) ?? null;
@@ -441,6 +451,7 @@ export async function executeQualification(
       reserve: results.filter((r) => r.status === "reserve").length,
       llmCalls,
       llmFailures,
+      ...(llmLastError ? { llmLastError } : {}),
       costUsd: Math.round(costUsd * 1e6) / 1e6,
       stop,
       byReason,

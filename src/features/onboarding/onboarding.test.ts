@@ -720,6 +720,28 @@ describe("chantier B : marché et objectif dès l'étape 1, une campagne par pay
     expect(readMarket(bad)).toEqual({ country: "FR", language: "auto", goal: "autorite_generale" });
   });
 
+  it("langue « détectée » : la langue du pays visé est préférée (France : français)", async () => {
+    const { user } = setup();
+    const d = deps();
+    await startFromUrl(
+      user.client,
+      "exemple-coloriage.fr",
+      d,
+      { country: "FR", language: "auto", goal: "autorite_generale" },
+      { profile: false },
+    );
+    expect(d.readHomepage).toHaveBeenCalledWith("exemple-coloriage.fr", "fr");
+    const us = deps();
+    await startFromUrl(
+      user.client,
+      "exemple-coloriage.fr",
+      us,
+      { country: "US", language: "auto", goal: "autorite_generale" },
+      { profile: false },
+    );
+    expect(us.readHomepage).toHaveBeenCalledWith("exemple-coloriage.fr", "en");
+  });
+
   it("crée la campagne avec le pays, la langue et l'objectif choisis, sans profil en phase 1", async () => {
     const { user } = setup();
     const d = deps();

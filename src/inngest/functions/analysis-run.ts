@@ -71,6 +71,24 @@ export const analysisRun = inngest.createFunction(
         );
       });
       log.info("email de fin", { emailed });
+      // Trace durable du résultat (essai du 17/11 : aucun moyen de savoir pourquoi l'email n'était pas parti).
+      await step.run("email-fin-trace", async () => {
+        const service = createServiceClient();
+        const { data: audit } = await service
+          .from("audits")
+          .select("workspace_id")
+          .eq("id", auditId)
+          .maybeSingle();
+        if (audit) {
+          await service.from("events").insert({
+            workspace_id: audit.workspace_id,
+            actor_id: null,
+            type: "analysis.email_result",
+            payload: { audit_id: auditId, result: emailed },
+          });
+        }
+        return { traced: true };
+      });
     }
     log.info("analyse terminée", { ...outcome });
     return outcome;
