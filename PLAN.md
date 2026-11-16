@@ -5,21 +5,22 @@
 
 ## Vue d'ensemble
 
-| Jalon | Sujet                  | Sous-jalons      | Résultat visible                                            |
-| ----- | ---------------------- | ---------------- | ----------------------------------------------------------- |
-| M0    | Fondations             | 0.1 à 0.4        | App déployée, auth, base, Inngest, suivi des coûts          |
-| M1    | Audit et concurrents   | 1.1 à 1.6        | Audit gratuit public avec capture d'email                   |
-| M2    | Plan de liens          | 2.1 à 2.3        | Plan validable (opportunités, liens morts)                  |
-| M3    | Tri des cibles et lots | 3.1 à 3.4        | Lots de messages prêts à valider                            |
-| M4    | Envoi et relance       | 4.1 à 4.4        | Envois plafonnés, relance unique, lecture des réponses      |
-| M5    | Inbox et liens         | 5.1 à 5.4        | Réponses classées, liens vérifiés, tâches formulaires       |
-| M6    | Produit et paiement    | 6.1 à 6.4        | Stripe, garde-fous, digest, landing, anti-abus              |
-| M7    | Bêta et lancement      | 7.1 à 7.3        | Dogfooding, avis juridique, ouverture                       |
-| MA    | Refonte de l'audit     | A.1 à A.6        | Audit repensé sur la base des mesures réelles               |
-| MD    | Design du site global  | D.1 (à découper) | Identité visuelle et UX cohérentes, site entier             |
-| MN    | Nom, domaine, DA       | N.1, N.2         | **Prioritaire** : nom choisi, domaine, direction artistique |
-| MH    | Home page FR           | H.1 à H.3        | **Prioritaire** : home proche d'outlinkai.com, en français  |
-| MB    | Onboarding + test réel | B.1, B.2         | **Prioritaire** : campagne lancée depuis une URL, test réel |
+| Jalon | Sujet                  | Sous-jalons      | Résultat visible                                                              |
+| ----- | ---------------------- | ---------------- | ----------------------------------------------------------------------------- |
+| M0    | Fondations             | 0.1 à 0.4        | App déployée, auth, base, Inngest, suivi des coûts                            |
+| M1    | Audit et concurrents   | 1.1 à 1.6        | Audit gratuit public avec capture d'email                                     |
+| M2    | Plan de liens          | 2.1 à 2.3        | Plan validable (opportunités, liens morts)                                    |
+| M3    | Tri des cibles et lots | 3.1 à 3.4        | Lots de messages prêts à valider                                              |
+| M4    | Envoi et relance       | 4.1 à 4.4        | Envois plafonnés, relance unique, lecture des réponses                        |
+| M5    | Inbox et liens         | 5.1 à 5.4        | Réponses classées, liens vérifiés, tâches formulaires                         |
+| M6    | Produit et paiement    | 6.1 à 6.4        | Stripe, garde-fous, digest, landing, anti-abus                                |
+| M7    | Bêta et lancement      | 7.1 à 7.3        | Dogfooding, avis juridique, ouverture                                         |
+| MA    | Refonte de l'audit     | A.1 à A.6        | Audit repensé sur la base des mesures réelles                                 |
+| MD    | Design du site global  | D.1 (à découper) | Identité visuelle et UX cohérentes, site entier                               |
+| MN    | Nom, domaine, DA       | N.1, N.2         | **Prioritaire** : nom choisi, domaine, direction artistique                   |
+| MH    | Home page FR           | H.1 à H.3        | **Prioritaire** : home proche d'outlinkai.com, en français                    |
+| MB    | Onboarding + test réel | B.1, B.2         | **Prioritaire** : campagne lancée depuis une URL, test réel                   |
+| MU    | Espace client repensé  | U.0 à U.11       | **Prioritaire NOW** : un seul parcours, de l'inscription à la liste de cibles |
 
 Chemin critique pour un **premier test réel sur mega-coloring.com** : M0 → M1 → M2 → M3 → M4.1 à 4.3. Le reste peut suivre.
 
@@ -68,6 +69,8 @@ Trois chantiers passent devant le reste (M6.2 et suivants). Hypothèse : « DA �
   - **MT.6 Écran « Vos cibles » (fait le 16/11/2026, voir PROGRESS.md).** Liste courte classée (une carte par site : type, tactique, pourquoi, contact, demande en trois lignes), filtrable par tactique ; SERP des concurrents repliée ; bouton « Valider ces demandes » vers le lot.
   - **MT.7 Mesure par tactique et coût.** Tableau de bord interne du coût par audit, par phase et par utilisateur (obligation CLAUDE.md 4.5) ; coût par cible livrée. Contactés, réponses, liens posés, coût par lien, par tactique et par type de site.
   - Ordre : MT.0, puis MT.1 et MT.2, MT.3 (run réel borné pour valider les API), MT.4, relecture des cibles réelles par Jonathan, MT.5 et MT.6 ; MB.2 (envoi en dry run) peut s'intercaler dès MT.6. **Hors périmètre** : limites par palier, paiement (M6.x), vidéo, annuaires payants, guest posting.
+
+- **MU. Espace client repensé, de l'inscription à la liste de cibles (16/11/2026, demande de Jonathan après son essai en utilisateur lambda).** Diagnostic, parcours cible, moteur cible, décisions à confirmer et sous-jalons **MU.0 à MU.11** avec leur prompt à copier : tout est dans **`docs/jalon-mu.md`** (une session ne lit que les sections indiquées par son prompt et son sous-jalon). Résumé : un seul parcours (inscription → site → vérification → vous → analyse en cours → vos cibles), un seul moteur (l'ancienne chaîne backlinks / opportunités / plan de liens sort du parcours), progression en direct, résultats par tactique avec états vides honnêtes. MU **passe devant MB.2, MT.7 et M6.2** : MB.2 (test de bout en bout avec envoi en dry run) se fera après MU.11 ; MT.7 (mesure) est repris dans MU.11. Hors périmètre de MU : brouillons, lots, envoi, réponses, liens (partie « CRM »).
 
 Ordre conseillé : MN.1 (court, sans code) et MH.1 en parallèle, puis MN.2, MH.2, MH.3, et MB.1 puis MB.2 (le test réel peut démarrer avant la fin de la home).
 
