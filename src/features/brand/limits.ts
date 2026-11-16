@@ -11,7 +11,7 @@ export const BRAND_LIMITS = {
   /** Durée maximale de la lecture (ms) : au-delà, on s'arrête avec ce qui est lu. */
   readDeadlineMs: 25_000,
   /** Plafond de dépense LLM de tout le profil (USD) et par appel. */
-  llmBudgetUsd: 0.03,
+  llmBudgetUsd: 0.06,
   llmMaxCostPerCallUsd: 0.02,
   maxOutputTokens: 1_400,
   /** Extraits envoyés au modèle (caractères). */

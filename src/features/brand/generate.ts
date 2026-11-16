@@ -140,27 +140,43 @@ export async function generateBrandProfile(input: {
   workspaceId: string | null;
   /** Langue de la campagne : celle des textes du profil (défaut : français). */
   language?: string;
+  /** Appelé à chaque échec, avec sa cause (jamais muet : essai du 17/11, profil absent sans aucune trace). */
+  onError?: (message: string) => void;
 }): Promise<GeneratedProfile | null> {
   const { site, llm, workspaceId } = input;
   const h = site.home;
-  if (!llm || h.status !== 200 || (h.text.length === 0 && h.title.length === 0)) return null;
-  try {
-    const out = await llm.generate({
-      task: "brand_profile",
-      system: brandSystem(input.language),
-      prompt: buildBrandPrompt(site),
-      schema: brandGenerationSchema,
-      schemaName: "brand_profile",
-      maxOutputTokens: BRAND_LIMITS.maxOutputTokens,
-      temperature: 0.2,
-      workspaceId,
-    });
-    return {
-      profile: normalizeProfile(out.data, site),
-      pagesRead: [h, ...site.pages].map((p) => ({ url: p.url, title: p.title.slice(0, 160) })),
-      costUsd: out.costUsd,
-    };
-  } catch {
+  if (!llm) {
+    input.onError?.("aucun modèle configuré");
     return null;
   }
+  if (h.status !== 200 || (h.text.length === 0 && h.title.length === 0)) {
+    input.onError?.(`accueil illisible (HTTP ${h.status})`);
+    return null;
+  }
+  let costUsd = 0;
+  // Une sortie non conforme arrive (un champ trop long, une liste trop longue) : une seconde
+  // tentative, et une seule, plutôt qu'un site sans profil.
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const out = await llm.generate({
+        task: "brand_profile",
+        system: brandSystem(input.language),
+        prompt: buildBrandPrompt(site),
+        schema: brandGenerationSchema,
+        schemaName: "brand_profile",
+        maxOutputTokens: BRAND_LIMITS.maxOutputTokens,
+        temperature: attempt === 1 ? 0.2 : 0.4,
+        workspaceId,
+      });
+      return {
+        profile: normalizeProfile(out.data, site),
+        pagesRead: [h, ...site.pages].map((p) => ({ url: p.url, title: p.title.slice(0, 160) })),
+        costUsd: costUsd + out.costUsd,
+      };
+    } catch (e) {
+      costUsd = llm.spentUsd;
+      input.onError?.(`tentative ${attempt} : ${(e as Error).message}`.slice(0, 400));
+    }
+  }
+  return null;
 }

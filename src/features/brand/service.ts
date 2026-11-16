@@ -69,7 +69,7 @@ export async function saveBrandProfileVersion(
     pagesRead?: PageRef[];
     costUsd?: number;
   },
-): Promise<{ ok: true; version: number } | { ok: false }> {
+): Promise<{ ok: true; version: number } | { ok: false; error?: string }> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const { data: last } = await supabase
       .from("brand_profiles")
@@ -90,7 +90,7 @@ export async function saveBrandProfileVersion(
       created_by: input.userId,
     });
     if (!error) return { ok: true, version };
-    if (error.code !== "23505") return { ok: false };
+    if (error.code !== "23505") return { ok: false, error: `${error.code} ${error.message}` };
   }
   return { ok: false };
 }
@@ -128,11 +128,27 @@ export async function buildAndStoreBrandProfile(
     } catch {
       llm = null;
     }
+    // Trace durable de chaque échec (le site reste sans profil, mais on sait pourquoi).
+    const trace = (stage: string) => (message: string) => {
+      void supabase
+        .from("events")
+        .insert({
+          workspace_id: input.workspaceId,
+          actor_id: input.userId,
+          type: "brand_profile.failed",
+          payload: { site_id: input.siteId, stage, error: message },
+        })
+        .then(
+          () => undefined,
+          () => undefined,
+        );
+    };
     const generated = await generateBrandProfile({
       site,
       llm,
       workspaceId: input.workspaceId,
       language: input.language,
+      onError: trace("profil"),
     });
     if (!generated) return null;
     // Chantier H : types d'éditeurs à chercher (personas + voisins). Un échec n'empêche rien : les
@@ -144,6 +160,7 @@ export async function buildAndStoreBrandProfile(
       language: input.language ?? generated.profile.language,
       llm,
       workspaceId: input.workspaceId,
+      onError: trace("types"),
     });
     const saved = await saveBrandProfileVersion(supabase, {
       siteId: input.siteId,
@@ -160,7 +177,12 @@ export async function buildAndStoreBrandProfile(
       pagesRead: generated.pagesRead,
       costUsd: generated.costUsd + (publishers?.costUsd ?? 0),
     });
-    if (!saved.ok) return null;
+    if (!saved.ok) {
+      trace("enregistrement")(
+        `écriture du profil refusée : ${saved.error ?? "conflit de version"}`.slice(0, 300),
+      );
+      return null;
+    }
     return getLatestBrandProfile(supabase, input.siteId);
   } catch {
     return null;

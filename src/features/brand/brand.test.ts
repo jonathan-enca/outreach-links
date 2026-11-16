@@ -532,3 +532,80 @@ describe("chantier C : accueil décochable, ajout manuel de pages", () => {
     }
   });
 });
+
+describe("profil : jamais d'échec muet, une seconde tentative", () => {
+  const home = {
+    url: "https://exemple-atelier.fr/",
+    status: 200,
+    title: "Atelier Exemple",
+    description: "",
+    headings: [],
+    text: "Un atelier qui publie des guides pratiques.",
+    lang: "fr",
+  };
+  const site = {
+    domain: "exemple-atelier.fr",
+    home,
+    pages: [],
+    knownUrls: [],
+    requests: 1,
+    sitemapUsed: false,
+  };
+  const good = {
+    activity: "Atelier qui publie des guides pratiques.",
+    offer: "Guides et fiches gratuites.",
+    language: "fr",
+    audience: ["bricoleurs"],
+    linkable_resources: [],
+    name_variants: ["Atelier Exemple"],
+    tone: "simple",
+    personas: [
+      { label: "Clubs", sites: "sites de clubs", reason: "Ils partagent des guides." },
+      { label: "Blogs", sites: "blogs thématiques", reason: "Ils citent des fiches." },
+    ],
+  };
+
+  it("une sortie non conforme est retentée une fois ; chaque échec est rapporté", async () => {
+    const { generateBrandProfile } = await import("./generate");
+    let calls = 0;
+    const llm = {
+      spentUsd: 0.01,
+      generate: async () => {
+        calls++;
+        if (calls === 1)
+          throw new Error("anthropic : sortie non conforme au schéma (personas : too_big)");
+        return { data: good, costUsd: 0.01 };
+      },
+    };
+    const errors: string[] = [];
+    const out = await generateBrandProfile({
+      site: site as never,
+      llm: llm as never,
+      workspaceId: null,
+      onError: (m) => errors.push(m),
+    });
+    expect(calls).toBe(2);
+    expect(out?.profile.personas).toHaveLength(2);
+    expect(out?.costUsd).toBeCloseTo(0.02, 6);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("tentative 1");
+  });
+
+  it("deux échecs : pas de profil inventé, deux causes rapportées ; pas de modèle : dit aussi", async () => {
+    const { generateBrandProfile } = await import("./generate");
+    const errors: string[] = [];
+    const llm = {
+      spentUsd: 0,
+      generate: async () => Promise.reject(new Error("panne")),
+    };
+    const input = {
+      site: site as never,
+      workspaceId: null,
+      onError: (m: string) => errors.push(m),
+    };
+    expect(await generateBrandProfile({ ...input, llm: llm as never })).toBeNull();
+    expect(errors).toHaveLength(2);
+    expect(await generateBrandProfile({ ...input, llm: null })).toBeNull();
+    expect(errors[2]).toBe("aucun modèle configuré");
+  });
+});
