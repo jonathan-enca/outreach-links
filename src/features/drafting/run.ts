@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { DRAFT_LIMITS } from "./limits";
-import type { DraftContext, DraftItem, DraftResult } from "./types";
+import type { DraftBrief, DraftContext, DraftItem, DraftResult } from "./types";
 
 type Client = SupabaseClient<Database>;
 
@@ -38,7 +38,7 @@ export async function loadDraftInput(
   service: Client,
   run: DraftRun,
 ): Promise<{ items: DraftItem[]; skipped: number; ctx: DraftContext | null }> {
-  const [contactsRes, triageRes, itemsRes, siteRes] = await Promise.all([
+  const [contactsRes, triageRes, itemsRes, siteRes, briefsRes] = await Promise.all([
     service
       .from("target_contacts")
       .select("plan_item_id, status")
@@ -57,8 +57,17 @@ export async function loadDraftInput(
       .select("sites(domain, niche, language, offered_asset, signature_first_name)")
       .eq("id", run.auditId)
       .maybeSingle(),
+    service
+      .from("plan_item_briefs")
+      .select("plan_item_id, brief")
+      .eq("plan_id", run.planId)
+      .limit(500),
   ]);
   if (contactsRes.error) throw new Error(`loadDraftInput : ${contactsRes.error.message}`);
+  if (briefsRes.error) throw new Error(`loadDraftInput : ${briefsRes.error.message}`);
+  const briefs = new Map(
+    (briefsRes.data ?? []).map((b) => [b.plan_item_id, b.brief as unknown as DraftBrief]),
+  );
   const site = siteRes.data?.sites as unknown as {
     domain: string;
     niche: string | null;
@@ -83,6 +92,7 @@ export async function loadDraftInput(
     const tr = triage.get(c.plan_item_id);
     const it = planItems.get(c.plan_item_id);
     if (!tr || !it || !tr.resolved_url) continue;
+    const brief = briefs.get(c.plan_item_id) ?? null;
     const hook = tr.hook?.trim() || tr.page_title?.trim() || "";
     if (!hook) continue;
     all.push({
@@ -99,6 +109,7 @@ export async function loadDraftInput(
       pageUrl: tr.resolved_url,
       pageTitle: tr.page_title,
       hook,
+      brief,
       pos: it.position,
     });
   }

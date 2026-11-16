@@ -38,7 +38,7 @@ export function proposedSentence(sentence: string, matched: string, url: string)
 /**
  * Les trois lignes de la demande (quoi, point précis de la page, ce que la cible y gagne) et le
  * brief du rédacteur. Aucune promesse chiffrée, aucune invention : tout vient de la page ou du
- * jugement vérifié. La présentation honnête (fondateur du site) est une instruction au rédacteur.
+ * jugement vérifié. La présentation honnête (fondateur, équipe ou agence) dépend de la réponse de l'utilisateur et se fixe au pont vers le lot (MT.6) : `introduceAs` n'est que la valeur par défaut.
  */
 export function buildFinding(input: BuildInput, ctx: Pick<FindingContext, "brandName">): Finding {
   const res = input.resource;
@@ -58,7 +58,7 @@ export function buildFinding(input: BuildInput, ctx: Pick<FindingContext, "brand
       : [
           `Signaler le lien mort ${label} (${host(input.linkUrl ?? "")}, erreur ${input.httpStatus}) de ${pageName} et proposer « ${res.title} » (${res.url}) comme remplaçant.`,
           `Point précis : « ${clip(input.quote, 220)} » (${input.linkUrl}).`,
-          `Pour lui : un lien qui fonctionne pour ses lecteurs, signalé par quelqu'un qui se présente honnêtement comme le fondateur de ${ctx.brandName}.`,
+          `Pour lui : un lien qui fonctionne pour ses lecteurs, signalé par quelqu'un qui connaît le site proposé.`,
         ];
     opening = `Votre page ${pageName} contient un lien qui ne fonctionne plus : « ${clip(input.quote, 160)} ».`;
   } else if (input.kind === "lien_inadapte") {
@@ -66,7 +66,7 @@ export function buildFinding(input: BuildInput, ctx: Pick<FindingContext, "brand
     lines = [
       `Proposer « ${res.title} » (${res.url}) à la place, ou en complément, du lien ${label} vers ${host(input.linkUrl ?? "")} dans ${pageName}.`,
       `Point précis : « ${clip(input.quote, 220)} » (${input.linkUrl}).`,
-      `Pourquoi : ${clip(input.reason.replace(/\.$/, ""), 200)}. Se présenter honnêtement comme le fondateur de ${ctx.brandName}.`,
+      `Pourquoi : ${clip(input.reason.replace(/\.$/, ""), 200)}.`,
     ];
     opening = `Dans ${pageName}, vous renvoyez vers ${host(input.linkUrl ?? "")} : « ${clip(input.quote, 160)} ».`;
   } else {

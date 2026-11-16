@@ -96,21 +96,26 @@ export async function scanTarget(
   if (read.status !== 200)
     return { ...base, unreadableReason: read.status ? `HTTP ${read.status}` : "pas de réponse" };
 
-  const toCheck = linksToCheck(read);
-  const { statuses, requests } = await deps.checkStatuses(
-    toCheck.map((l) => l.url),
-    { maxRequests: FINDINGS_LIMITS.requestsPerTarget },
-  );
+  // Cible « mentions seulement » : ni liens morts ni liens inadaptés (aucune requête sur ses liens).
+  const toCheck = t.mentionOnly ? [] : linksToCheck(read);
+  const { statuses, requests } = t.mentionOnly
+    ? { statuses: new Map<string, number | null>(), requests: 0 }
+    : await deps.checkStatuses(
+        toCheck.map((l) => l.url),
+        { maxRequests: FINDINGS_LIMITS.requestsPerTarget },
+      );
   const dead = toCheck.flatMap((l) => {
     const s = statuses.get(l.url);
     return s !== null && s !== undefined && isDead(s) ? [toDeadHit(l, s, ctx.ownDomain)] : [];
   });
   const deadUrls = new Set(dead.map((d) => d.url));
   const own = ownLinkState(read, ctx.ownDomain);
-  const candidates = linkCandidates(
-    { url: read.url, outbound: read.outbound.filter((l) => !deadUrls.has(l.url)) },
-    ctx,
-  );
+  const candidates = t.mentionOnly
+    ? []
+    : linkCandidates(
+        { url: read.url, outbound: read.outbound.filter((l) => !deadUrls.has(l.url)) },
+        ctx,
+      );
   return {
     ...base,
     pageTitle: read.title,
@@ -149,9 +154,10 @@ export function findingsOf(
 ): Finding[] {
   const out: Finding[] = [];
   const res = (i: number) => ctx.resources[i] ?? ctx.resources[0]!;
+  const mentionOnly = t.mentionOnly === true;
   // Lien mort : preuve constatée ; un lien vers une ancienne page du site d'abord.
   const dead = [...scan.dead].sort((a, b) => Number(b.toOwnSite) - Number(a.toOwnSite))[0];
-  if (dead && ctx.resources.length > 0) {
+  if (!mentionOnly && dead && ctx.resources.length > 0) {
     const pick = pickReplacement(dead, ctx.resources, t.resource);
     out.push(
       buildFinding(
@@ -174,7 +180,7 @@ export function findingsOf(
       ),
     );
   }
-  if (judgement?.unsuited && ctx.resources.length > 0) {
+  if (!mentionOnly && judgement?.unsuited && ctx.resources.length > 0) {
     const u = judgement.unsuited;
     out.push(
       buildFinding(

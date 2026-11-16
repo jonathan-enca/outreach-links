@@ -179,6 +179,15 @@ export function AuditDetail({
           ) : audit.profile && audit.profile.status !== "termine" ? (
             <Card className="p-6 text-muted-foreground">{t.opportunities.needsProfile}</Card>
           ) : null}
+          <Card className="flex flex-wrap items-center justify-between gap-3 p-6">
+            <p className="text-muted-foreground">{t.targets.description}</p>
+            <Link
+              href={`/app/audit/${audit.id}/cibles`}
+              className="font-semibold underline underline-offset-4"
+            >
+              {t.targets.title}
+            </Link>
+          </Card>
           {audit.opportunities?.status === "termine" ? (
             <Card className="flex flex-wrap items-center justify-between gap-3 p-6">
               <p className="text-muted-foreground">{t.plan.description}</p>

@@ -1,0 +1,452 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
+import type { AuditActionState, SendEvent } from "@/features/audits/service";
+import { getLatestBrandProfile } from "@/features/brand/service";
+import { startDrafts } from "@/features/drafting/service";
+import { previewFindings, type FindingsPreview } from "@/features/findings/service";
+import { siteResources } from "@/features/findings/run";
+import { FINDING_KINDS } from "@/features/findings/types";
+import { previewQualification, type QualificationPreview } from "@/features/qualification/service";
+import { SITE_TYPES } from "@/features/qualification/types";
+import { TACTICS } from "@/features/queries/schema";
+import { t } from "@/lib/messages";
+import type { Database, Json } from "@/lib/supabase/database.types";
+import { buildBridge, type BridgeContext } from "./bridge";
+import {
+  isFounderRole,
+  type FindingView,
+  type FounderRole,
+  type TargetCard,
+  type TargetContact,
+  type TargetsRunView,
+} from "./types";
+
+type Client = SupabaseClient<Database>;
+const M = t.targets.messages;
+
+const OPENING = z.object({ opening: z.string() }).catch({ opening: "" });
+const RESOURCE = z.object({ resource: z.number().int().min(0).max(9) }).catch({ resource: 0 });
+
+const siteType = (v: string | null) =>
+  (SITE_TYPES as readonly string[]).includes(v ?? "") ? (v as TargetCard["siteType"]) : null;
+
+type QRow = Database["public"]["Tables"]["qualified_targets"]["Row"];
+type FRow = Database["public"]["Tables"]["target_findings"]["Row"];
+
+export function contactOf(
+  r: Pick<QRow, "contact_status" | "contact_email" | "contact_url" | "form_url">,
+): TargetContact {
+  if (r.contact_status === "email_verifie" && r.contact_email)
+    return { kind: "email", verified: true, email: r.contact_email, url: r.contact_url };
+  if (r.contact_status === "email_a_verifier" && r.contact_email)
+    return { kind: "email", verified: false, email: r.contact_email, url: r.contact_url };
+  const form = r.form_url ?? r.contact_url;
+  if (r.contact_status === "formulaire" && form)
+    return { kind: "formulaire", verified: false, email: null, url: form };
+  return { kind: "aucun", verified: false, email: null, url: null };
+}
+
+export function findingView(r: FRow): FindingView {
+  return {
+    id: r.id,
+    kind: r.kind as FindingView["kind"],
+    quote: r.quote,
+    pageUrl: r.page_url,
+    linkUrl: r.link_url,
+    httpStatus: r.http_status,
+    anchor: r.anchor,
+    resourceUrl: r.resource_url,
+    resourceTitle: r.resource_title,
+    proposedSentence: r.proposed_sentence,
+    reason: r.reason,
+    requestLines: r.request_lines,
+    opening: OPENING.parse(r.brief).opening,
+  };
+}
+
+/** Une ligne `qualified_targets` (+ constats) -> une carte. Pur : testable sans base. */
+export function toCard(
+  r: QRow,
+  findings: readonly FRow[],
+  resources: readonly { url: string; title: string }[],
+  validated: ReadonlySet<string>,
+): TargetCard {
+  const pageTitle = z.object({ title: z.string() }).safeParse(r.page).data?.title?.trim() || null;
+  const res = resources[RESOURCE.parse(r.judgement).resource];
+  return {
+    id: r.id,
+    rank: r.rank,
+    domain: r.domain,
+    pageUrl: r.url,
+    pageTitle,
+    siteType: siteType(r.site_type),
+    tactics: r.tactics.filter((x): x is TargetCard["tactics"][number] =>
+      (TACTICS as readonly string[]).includes(x),
+    ),
+    why: r.why,
+    hook: r.hook,
+    contact: contactOf(r),
+    requestLines: r.request_lines ?? [],
+    findings: findings
+      .filter((f) => f.target_id === r.id && (FINDING_KINDS as readonly string[]).includes(f.kind))
+      .map(findingView),
+    contactless: r.status !== "liste_courte",
+    domainRank: r.domain_rank === null ? null : Number(r.domain_rank),
+    platformHosted: r.platform_hosted,
+    alreadyValidated: validated.has(r.id),
+    resource: res ? { url: res.url, title: res.title } : null,
+  };
+}
+
+const runView = (
+  row: {
+    status: string;
+    actual_cost_usd: number | null;
+    stop_reason: string | null;
+    error_message: string | null;
+  } | null,
+): TargetsRunView =>
+  row
+    ? {
+        status: row.status as TargetsRunView["status"],
+        costUsd: row.actual_cost_usd === null ? null : Number(row.actual_cost_usd),
+        stop: row.stop_reason,
+        error: row.error_message,
+      }
+    : { status: "aucun", costUsd: null, stop: null, error: null };
+
+export interface TargetsView {
+  auditId: string;
+  siteId: string;
+  siteDomain: string;
+  founderRole: FounderRole | null;
+  hasSignature: boolean;
+  collectionDone: boolean;
+  qualification: TargetsRunView & { preview: QualificationPreview | null };
+  findings: TargetsRunView & { preview: FindingsPreview | null; count: number };
+  /** Liste courte, dans l'ordre du rang. */
+  cards: TargetCard[];
+  /** Cibles « mentions » sans contact (mention seulement) : visibles, jamais validées. */
+  contactless: TargetCard[];
+  competitors: { domain: string; queries: number; bestRank: number | null }[];
+}
+
+/**
+ * Tout ce que l'écran « Vos cibles » montre, lu avec les droits de l'utilisateur (RLS). Les coûts
+ * annoncés (`previewQualification` / `previewFindings`) viennent du client de service : ils ne
+ * lancent rien et ne facturent rien. Null si l'audit n'est pas visible par l'utilisateur.
+ */
+export async function loadTargets(
+  supabase: Client,
+  getServiceClient: () => Client,
+  auditId: string,
+  opts: { previews?: boolean } = {},
+): Promise<TargetsView | null> {
+  const { data: audit } = await supabase
+    .from("audits")
+    .select("id, workspace_id, site_id, sites(domain, founder_role, signature_first_name)")
+    .eq("id", auditId)
+    .maybeSingle();
+  if (!audit) return null;
+  const site = audit.sites as unknown as {
+    domain: string;
+    founder_role: string | null;
+    signature_first_name: string | null;
+  } | null;
+  if (!site) return null;
+
+  const [col, qrunRes, frunRes, comps] = await Promise.all([
+    supabase.from("candidate_collections").select("status").eq("audit_id", auditId).maybeSingle(),
+    supabase
+      .from("qualification_runs")
+      .select("id, status, actual_cost_usd, stop_reason, error_message")
+      .eq("audit_id", auditId)
+      .maybeSingle(),
+    supabase
+      .from("findings_runs")
+      .select("id, status, actual_cost_usd, stop_reason, error_message")
+      .eq("audit_id", auditId)
+      .maybeSingle(),
+    supabase
+      .from("competitors")
+      .select("domain, queries_count, best_rank, selected")
+      .eq("audit_id", auditId)
+      .order("queries_count", { ascending: false })
+      .limit(30),
+  ]);
+  const qrun = qrunRes.data;
+  const collectionDone = col.data?.status === "termine";
+
+  let cards: TargetCard[] = [];
+  let contactless: TargetCard[] = [];
+  let findingsCount = 0;
+  if (qrun && qrun.status === "termine") {
+    const [short, extra, fnd, profile] = await Promise.all([
+      supabase
+        .from("qualified_targets")
+        .select("*")
+        .eq("run_id", qrun.id)
+        .eq("status", "liste_courte")
+        .order("rank", { ascending: true })
+        .limit(100),
+      supabase
+        .from("qualified_targets")
+        .select("*")
+        .eq("run_id", qrun.id)
+        .eq("status", "exclu")
+        .contains("tactics", ["mentions"])
+        .limit(200),
+      supabase.from("target_findings").select("*").eq("audit_id", auditId).limit(500),
+      getLatestBrandProfile(supabase, audit.site_id),
+    ]);
+    const findings = fnd.data ?? [];
+    findingsCount = findings.length;
+    const ids = (short.data ?? []).map((r) => r.id);
+    const briefs = ids.length
+      ? await supabase.from("plan_item_briefs").select("target_id").in("target_id", ids)
+      : { data: [] as { target_id: string | null }[] };
+    const validated = new Set(
+      (briefs.data ?? []).flatMap((b) => (b.target_id ? [b.target_id] : [])),
+    );
+    const resources = siteResources(site.domain, profile?.profile);
+    cards = (short.data ?? []).map((r) => toCard(r, findings, resources, validated));
+    // Mentions sans contact : seulement celles où l'on a PROUVÉ une mention sans lien.
+    const withMention = new Set(
+      findings.filter((f) => f.kind === "mention_sans_lien").map((f) => f.target_id),
+    );
+    contactless = (extra.data ?? [])
+      .filter((r) => withMention.has(r.id))
+      .map((r) => toCard(r, findings, resources, validated));
+  }
+
+  // Coûts annoncés : seulement quand l'étape est possible et pas déjà en cours.
+  let qPreview: QualificationPreview | null = null;
+  let fPreview: FindingsPreview | null = null;
+  try {
+    if (opts.previews === false) throw new Error("sans aperçu");
+    const service = getServiceClient();
+    if (collectionDone && (!qrun || qrun.status !== "en_cours")) {
+      const p = await previewQualification(service, auditId);
+      if (p.ok) qPreview = p.preview;
+    }
+    if (qrun?.status === "termine" && frunRes.data?.status !== "en_cours") {
+      const p = await previewFindings(service, auditId);
+      if (p.ok) fPreview = p.preview;
+    }
+  } catch {
+    // Service indisponible : l'écran montre l'état sans le coût, et les boutons restent masqués.
+  }
+
+  return {
+    auditId,
+    siteId: audit.site_id,
+    siteDomain: site.domain,
+    founderRole: isFounderRole(site.founder_role) ? site.founder_role : null,
+    hasSignature: Boolean(site.signature_first_name?.trim()),
+    collectionDone,
+    qualification: { ...runView(qrun), preview: qPreview },
+    findings: { ...runView(frunRes.data), preview: fPreview, count: findingsCount },
+    cards,
+    contactless,
+    competitors: (comps.data ?? [])
+      .filter((c) => c.selected)
+      .map((c) => ({ domain: c.domain, queries: c.queries_count, bestRank: c.best_rank })),
+  };
+}
+
+/** Enregistre la réponse « comment vous présentez-vous » (jamais supposée). */
+export async function setFounderRole(
+  supabase: Client,
+  auditId: string,
+  rawRole: unknown,
+): Promise<AuditActionState> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { status: "error", message: M.unauthenticated };
+  if (!isFounderRole(rawRole)) return { status: "error", message: M.founderMissing };
+  const { data: audit } = await supabase
+    .from("audits")
+    .select("site_id")
+    .eq("id", auditId)
+    .maybeSingle();
+  if (!audit) return { status: "error", message: M.notFound };
+  const { data, error } = await supabase
+    .from("sites")
+    .update({ founder_role: rawRole, founder_confirmed_at: new Date().toISOString() })
+    .eq("id", audit.site_id)
+    .select("id");
+  if (error || !data?.length) return { status: "error", message: M.saveError };
+  return { status: "ok", auditId, message: M.founderSaved };
+}
+
+/**
+ * « Valider ces demandes » : crée un plan de liens depuis les cibles retenues (mêmes tables que M2.3, pour que
+ * contacts, rédaction et lots existants s'appliquent), enregistre le brief de chaque demande (point précis
+ * cité, ressource, ancre, présentation choisie par l'utilisateur) et lance la rédaction. Aucun envoi.
+ */
+export async function validateRequests(
+  supabase: Client,
+  auditId: string,
+  rawIds: readonly string[],
+  getServiceClient: () => Client,
+  sendEvent: SendEvent,
+): Promise<AuditActionState> {
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth.user?.id ?? null;
+  if (!userId) return { status: "error", message: M.unauthenticated };
+  const ids = [...new Set(rawIds)].slice(0, 100);
+  if (ids.length === 0) return { status: "error", message: M.nothingSelected };
+
+  const { data: audit } = await supabase
+    .from("audits")
+    .select(
+      "id, workspace_id, site_id, sites(domain, founder_role, offered_asset, signature_first_name)",
+    )
+    .eq("id", auditId)
+    .maybeSingle();
+  const site = audit?.sites as unknown as {
+    domain: string;
+    founder_role: string | null;
+    offered_asset: string | null;
+    signature_first_name: string | null;
+  } | null;
+  if (!audit || !site) return { status: "error", message: M.notFound };
+  if (!isFounderRole(site.founder_role)) return { status: "error", message: M.founderMissing };
+  if (!site.signature_first_name?.trim())
+    return { status: "error", message: t.drafts.messages.needSignature };
+
+  const view = await loadTargets(supabase, getServiceClient, auditId, { previews: false });
+  if (!view) return { status: "error", message: M.notFound };
+  const chosen = view.cards.filter((c) => ids.includes(c.id));
+  const profile = await getLatestBrandProfile(supabase, audit.site_id);
+  const ctx: BridgeContext = {
+    siteDomain: site.domain,
+    brandName: profile?.profile.name_variants[0] ?? site.domain,
+    resources: siteResources(site.domain, profile?.profile),
+    role: site.founder_role,
+    offeredAsset: site.offered_asset,
+  };
+  const { items, skipped } = buildBridge(chosen, ctx);
+  if (items.length === 0) return { status: "error", message: M.noneEligible };
+
+  let service: Client;
+  try {
+    service = getServiceClient();
+  } catch {
+    return { status: "error", message: M.unavailable };
+  }
+  const created = await service.rpc("create_link_plan", {
+    p_audit_id: auditId,
+    p_user_id: userId,
+    p_items: items.map((i) => i.planItem) as Json,
+  });
+  const planId = created.data?.[0]?.plan_id;
+  if (created.error || !planId) return { status: "error", message: M.planError };
+
+  const planItems = await service
+    .from("link_plan_items")
+    .select("id, position")
+    .eq("plan_id", planId)
+    .order("position", { ascending: true });
+  if (planItems.error || (planItems.data ?? []).length !== items.length)
+    return { status: "error", message: M.planError };
+  const wsId = audit.workspace_id;
+  const now = new Date().toISOString();
+  const rows = items.map((it, i) => ({ it, id: planItems.data![i]!.id }));
+
+  const writes = await Promise.all([
+    service.from("link_plan_triage_runs").insert({
+      plan_id: planId,
+      workspace_id: wsId,
+      status: "termine",
+      requested_by: userId,
+      finished_at: now,
+      stats: { origin: "cibles", targets: items.length } as unknown as Json,
+    }),
+    service.from("contact_runs").insert({
+      plan_id: planId,
+      workspace_id: wsId,
+      status: "termine",
+      requested_by: userId,
+      finished_at: now,
+      stats: { origin: "cibles", targets: items.length } as unknown as Json,
+    }),
+    service.from("link_target_triage").insert(
+      rows.map(({ it, id }) => ({
+        plan_item_id: id,
+        plan_id: planId,
+        workspace_id: wsId,
+        verdict: "ok",
+        reason: "Retenue par la qualification des cibles et validée par l'utilisateur.",
+        needs_review: false,
+        source: "llm",
+        resolved_url: it.triage.resolvedUrl,
+        url_status: 200,
+        url_origin: "recherche",
+        hook: it.triage.hook,
+        page_title: it.triage.pageTitle,
+      })),
+    ),
+    service.from("target_contacts").insert(
+      rows.map(({ it, id }) => ({
+        plan_item_id: id,
+        plan_id: planId,
+        workspace_id: wsId,
+        status: it.contact.status,
+        email: it.contact.email,
+        email_source: it.contact.email ? "page" : null,
+        verification: it.contact.verified ? "valide" : "non_verifie",
+        contact_url: it.contact.contactUrl,
+        form_url: it.contact.formUrl,
+        reason: "Contact trouvé à la qualification des cibles.",
+        sendable: it.contact.verified,
+      })),
+    ),
+    service.from("plan_item_briefs").insert(
+      rows.map(({ it, id }) => ({
+        plan_item_id: id,
+        plan_id: planId,
+        workspace_id: wsId,
+        target_id: it.card.id,
+        finding_id: it.request.finding?.id ?? null,
+        kind: it.request.kind,
+        quote: it.request.quote,
+        brief: it.brief as unknown as Json,
+        request_lines: it.request.lines,
+        presentation: ctx.role,
+      })),
+    ),
+  ]);
+  if (writes.some((w) => w.error)) return { status: "error", message: M.planError };
+
+  const forms = rows.filter(({ it }) => it.contact.status === "formulaire" && it.contact.formUrl);
+  if (forms.length > 0) {
+    const tasks = await service.from("manual_tasks").insert(
+      forms.map(({ it, id }) => ({
+        plan_item_id: id,
+        plan_id: planId,
+        workspace_id: wsId,
+        type: "formulaire",
+        form_url: it.contact.formUrl!,
+      })),
+    );
+    if (tasks.error) return { status: "error", message: M.planError };
+  }
+  await supabase.from("events").insert({
+    workspace_id: wsId,
+    actor_id: userId,
+    type: "targets.validated",
+    payload: { audit_id: auditId, plan_id: planId, items: items.length, presentation: ctx.role },
+  });
+
+  const n = String(items.length);
+  const drafts = await startDrafts(supabase, auditId, getServiceClient, sendEvent);
+  const extra = skipped.length ? ` ${M.skipped.replace("{n}", String(skipped.length))}` : "";
+  if (drafts.status === "error")
+    return {
+      status: "ok",
+      auditId,
+      message:
+        M.validatedNoDrafts.replace("{n}", n).replace("{reason}", drafts.message ?? "") + extra,
+    };
+  return { status: "ok", auditId, message: M.validated.replace("{n}", n) + extra };
+}
