@@ -6,10 +6,27 @@ import type { PageFetcher } from "@/features/sites/verify";
 /** Plafond du texte conservé par page (le LLM n'en reçoit qu'un extrait). */
 export const MAX_TEXT_CHARS = 12_000;
 const MAX_LINKS = 120;
+export const MAX_OUTBOUND = 80;
+const CHROME_SELECTOR =
+  "nav, header, footer, aside, [role='navigation'], [role='banner'], [role='contentinfo'], .menu, .widget, .sidebar, #sidebar, .footer, .header";
 
 export interface PageLink {
   href: string;
   text: string;
+}
+
+/** Lien sortant (autre hôte) d'une page, avec la phrase qui l'entoure (MT.5). */
+export interface PageOutbound {
+  url: string;
+  anchor: string;
+  /** Phrase ou passage autour du lien (peut être vide). */
+  context: string;
+  /** `body` : dans le contenu ; `chrome` : menu, en-tête, pied de page, colonne latérale. */
+  zone: "body" | "chrome";
+  /** Valeurs de `rel` (nofollow, sponsored, ugc...). */
+  rel: string[];
+  /** Le lien ne contient qu'une image (pas d'ancre texte). */
+  imageOnly: boolean;
 }
 
 export interface PageRead {
@@ -26,6 +43,8 @@ export interface PageRead {
   lang: string | null;
   /** Liens internes (même hôte), pour retrouver une page à partir d'une URL partielle. */
   links: PageLink[];
+  /** Liens vers d'autres hôtes (MT.5), au plus `MAX_OUTBOUND`, dans l'ordre du document. */
+  outbound: PageOutbound[];
   /** Adresses des liens `mailto:` de la page (M3.2). */
   mailtos: string[];
   /** La page contient un vrai formulaire de contact (zone de message, hors recherche et commentaires). */
@@ -78,6 +97,45 @@ export function parseHtml(html: string, url: string): Omit<PageRead, "status" | 
       } catch {
         /* lien invalide ignoré */
       }
+    });
+  }
+  const outbound: PageOutbound[] = [];
+  if (base) {
+    const own = base.hostname.replace(/^www\./, "");
+    const seenOut = new Set<string>();
+    $("a[href]").each((_, el) => {
+      if (outbound.length >= MAX_OUTBOUND) return false;
+      const raw = ($(el).attr("href") ?? "").trim();
+      if (!/^https?:/i.test(raw) && !raw.startsWith("//")) return;
+      let u: URL;
+      try {
+        u = new URL(raw, base);
+      } catch {
+        return;
+      }
+      if (u.protocol !== "http:" && u.protocol !== "https:") return;
+      if (u.hostname.replace(/^www\./, "") === own) return;
+      u.hash = "";
+      const key = u.toString();
+      if (seenOut.has(key)) return;
+      seenOut.add(key);
+      const a = $(el);
+      const anchor = collapse(a.text()).slice(0, 120);
+      const block = a.closest("p, li, td, dd, blockquote, h2, h3, h4, div").first();
+      const blockText = collapse(block.text());
+      const at = anchor ? blockText.indexOf(anchor) : -1;
+      const context =
+        at >= 0
+          ? blockText.slice(Math.max(0, at - 160), at + anchor.length + 160)
+          : blockText.slice(0, 240);
+      outbound.push({
+        url: key,
+        anchor,
+        context,
+        zone: a.closest(CHROME_SELECTOR).length > 0 ? "chrome" : "body",
+        rel: (a.attr("rel") ?? "").toLowerCase().split(/\s+/).filter(Boolean),
+        imageOnly: anchor.length === 0 && a.find("img").length > 0,
+      });
     });
   }
   const mailtos = $('a[href^="mailto:" i]')
@@ -133,6 +191,7 @@ export function parseHtml(html: string, url: string): Omit<PageRead, "status" | 
     text,
     lang,
     links,
+    outbound,
     mailtos: allMailtos,
     hasContactForm,
   };
@@ -186,6 +245,7 @@ const EMPTY = (url: string): PageRead => ({
   text: "",
   lang: null,
   links: [],
+  outbound: [],
   mailtos: [],
   hasContactForm: false,
   viaFallback: false,

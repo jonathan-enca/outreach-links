@@ -54,6 +54,7 @@ describe.skipIf(!live)("tri LLM : jeu d'évaluation réel", () => {
         lang: "fr",
         links: [],
         viaFallback: false,
+        outbound: [],
         ...c.page,
       } as PageRead;
       const item: TriageItem = {

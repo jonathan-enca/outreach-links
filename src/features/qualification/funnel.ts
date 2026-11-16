@@ -37,6 +37,13 @@ export interface QualInput {
   candidates: QualCandidate[];
   budgetUsd: number;
   model: string;
+  /** Réglages de volume ou de seuil pour une expérience mesurée (défaut : `QUALIFY_LIMITS`). */
+  tuning?: {
+    maxPagesRead?: number;
+    maxLlmTargets?: number;
+    maxContactTargets?: number;
+    minFit?: number;
+  };
 }
 
 export type QualStop = "termine" | "budget" | "plafond";
@@ -104,7 +111,7 @@ export async function executeQualification(
   input: QualInput,
   runStep: StepRunner,
 ): Promise<{ results: QualResult[]; stats: FunnelStats }> {
-  const L = QUALIFY_LIMITS;
+  const L = { ...QUALIFY_LIMITS, ...input.tuning };
   const tracks: Track[] = runFreeStages(input.candidates, input.ctx).map((free) => ({
     free,
     stage: free.stage,
@@ -221,7 +228,7 @@ export async function executeQualification(
         t.detail = "pas de jugement du modèle";
         return;
       }
-      const ex = judgementExclusion(j);
+      const ex = judgementExclusion(j, L.minFit);
       if (ex) Object.assign(t, { reason: ex.reason, detail: ex.detail });
     });
   }

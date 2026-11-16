@@ -24,6 +24,7 @@ const PAGE: PageRead = {
   mailtos: [],
   hasContactForm: false,
   viaFallback: false,
+  outbound: [],
 };
 
 function fakeLlm(impl: () => unknown) {

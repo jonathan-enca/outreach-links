@@ -1254,6 +1254,34 @@ export const fr = {
       plafond: "Arrêtée : un plafond de sécurité est atteint ; le reste est en réserve.",
     },
   },
+  findings: {
+    messages: {
+      unauthenticated: "Connectez-vous pour lancer l'analyse des pages.",
+      qualificationNotDone:
+        "L'analyse des pages devient disponible une fois la qualification des cibles terminée.",
+      noTargets: "Aucune cible dans la liste courte : rien à analyser.",
+      alreadyStarted: "L'analyse des pages est déjà en cours.",
+      overCap:
+        "Le coût maximal de l'analyse des pages dépasse ce qui reste du plafond de cet audit : rien n'est lancé.",
+      dailyCap:
+        "Le plafond de sécurité du jour est atteint : l'analyse est reportée, rien n'est facturé.",
+      saveError: "Impossible d'enregistrer l'analyse des pages. Réessayez.",
+      sendFailed: "L'analyse des pages est enregistrée mais n'a pas pu démarrer. Réessayez.",
+      started: "Analyse des pages lancée. Rien n'est contacté à cette étape.",
+    },
+    kinds: {
+      lien_mort: "Lien mort à remplacer",
+      lien_inadapte: "Lien peu utile à remplacer",
+      mention_sans_lien: "Mention sans lien",
+    },
+    stops: {
+      termine: "Toutes les pages de la liste courte ont été analysées.",
+      budget:
+        "Arrêtée : le budget d'analyse est atteint ; les pages restantes n'ont que les constats gratuits.",
+      plafond:
+        "Arrêtée : un plafond de sécurité est atteint ; les pages restantes n'ont que les constats gratuits.",
+    },
+  },
   opportunities: {
     title: "Opportunités de liens",
     body: "On cherche, à partir de votre écart de liens et de requêtes thématiques, les sites susceptibles de vous citer : mentions de marque, pages ressources, annuaires, sites que personne ne sollicite. Rien n'est contacté à cette étape.",

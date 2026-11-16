@@ -106,12 +106,12 @@ export interface QualificationEstimate {
  */
 export function estimateQualification(
   afterFree: number,
-  opts: { model?: string; budgetUsd?: number } = {},
+  opts: { model?: string; budgetUsd?: number; maxPages?: number } = {},
 ): QualificationEstimate {
   const L = QUALIFY_LIMITS;
   const model = opts.model ?? DEFAULT_MODELS.anthropic;
   const budgetUsd = opts.budgetUsd ?? qualificationBudgetUsd();
-  const pagesToRead = Math.min(afterFree, L.maxPagesRead);
+  const pagesToRead = Math.min(afterFree, opts.maxPages ?? L.maxPagesRead);
   const llmTargetsMax = Math.min(pagesToRead, L.maxLlmTargets);
   const llmTargetsExpected = Math.min(Math.round(pagesToRead * L.typicalAliveRate), llmTargetsMax);
   const cost = (n: number, per: (k: number, m: string) => number) => {

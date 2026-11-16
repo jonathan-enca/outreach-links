@@ -86,7 +86,10 @@ describe.skipIf(!live)("run réel : collecte puis qualification (mega-coloring.c
     const provider = process.env.LLM_PROVIDER === "anthropic" ? "anthropic" : "openai";
     const model = process.env.LLM_MODEL ?? DEFAULT_MODELS[provider];
     const afterFree = runFreeStages(candidates, ctx).filter((v) => v.reason === null).length;
-    const qualEstimate = estimateQualification(afterFree, { model });
+    const qualEstimate = estimateQualification(afterFree, {
+      model,
+      ...(process.env.QUALIFY_MAX_PAGES ? { maxPages: +process.env.QUALIFY_MAX_PAGES } : {}),
+    });
     console.log(
       `Qualification annoncée : ${afterFree} candidats après les filtres gratuits, attendu ${qualEstimate.expectedUsd} USD, pire cas ${qualEstimate.worstUsd} USD (budget ${qualEstimate.budgetUsd})`,
     );
@@ -126,6 +129,15 @@ describe.skipIf(!live)("run réel : collecte puis qualification (mega-coloring.c
         candidates,
         budgetUsd: qualEstimate.budgetUsd,
         model,
+        tuning: {
+          ...(process.env.QUALIFY_MAX_PAGES
+            ? { maxPagesRead: +process.env.QUALIFY_MAX_PAGES }
+            : {}),
+          ...(process.env.QUALIFY_MAX_CONTACTS
+            ? { maxContactTargets: +process.env.QUALIFY_MAX_CONTACTS }
+            : {}),
+          ...(process.env.QUALIFY_MIN_FIT ? { minFit: +process.env.QUALIFY_MIN_FIT } : {}),
+        },
       },
       (_id, fn) => fn(),
     );

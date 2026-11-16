@@ -22,6 +22,7 @@ const PAGE: PageRead = {
   mailtos: [],
   hasContactForm: false,
   viaFallback: false,
+  outbound: [],
 };
 
 function llmReturning(data: unknown) {

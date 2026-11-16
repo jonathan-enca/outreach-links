@@ -48,6 +48,7 @@ const read = (over: Partial<PageRead> = {}): PageRead => ({
   mailtos: [],
   hasContactForm: false,
   viaFallback: false,
+  outbound: [],
   ...over,
 });
 
