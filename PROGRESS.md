@@ -1008,6 +1008,7 @@ Essai fait avec un compte neuf (l'ancien compte de Jonathan et son espace ont é
 PR #101 (A), #102 (B, C, D), #104 (correctifs du run réel, E, F). Migrations appliquées en production : `analysis_restart`, `site_country_campaign`.
 
 ### A. Robustesse du moteur
+
 - **Erreur fournisseur non fatale** : `withProviderRetry` (`collection/run.ts`) : erreur de tâche, HTTP 5xx / 408 / 429, réseau ou délai dépassé → nouvelles tentatives à attente croissante (1,5 s puis 5 s, 200 s au plus), puis l'appel est « manqué » : compté (`counters.missed`), dit à l'écran (« 1 recherche n'a pas abouti : l'analyse continue avec le reste »). Les erreurs d'authentification et de paramètres (400/401/403) remontent. La recherche n'échoue que si elle ne trouve **aucun** site (message dédié). Même tolérance pour les recherches de concurrents (`concurrents:recherche-N`).
 - **Délai par appel** : 60 s (`timeoutMs` du client DataForSEO), **240 s pour Content Analysis** (mesuré : 130 à 143 s pour 150 lignes ; le premier réglage à 60 s était faux) ; `maxDuration = 300` sur la route Inngest.
 - **Reprise à partir d'une étape** : bouton « Reprendre à partir d'ici » sur chaque étape (analyse arrêtée ou terminée) ; `restartFromStep` (`analysis/restart.ts`) + fonction SQL `analysis_reset_steps` (transaction unique : efface les résultats dérivés de l'étape et des suivantes, garde ce qui précède, jamais les versions de profil) ; « contacts » refait le bloc du tri ; confirmation en deux clics. Testé sur base réelle (`supabase/tests/analysis-restart.test.ts`). Les appels refaits identiques retrouvent le cache du fournisseur (rien n'est repayé).
@@ -1017,6 +1018,7 @@ PR #101 (A), #102 (B, C, D), #104 (correctifs du run réel, E, F). Migrations ap
 - **Correctif** : « Reprendre » après un échec de la découverte des concurrents ne faisait rien (`confirmAudit` répondait « déjà lancée »).
 
 ### B. Étape 1 « Votre site »
+
 - Même écran : adresse, **pays** (FR BE CH CA LU MC GB US), **langue** (détectée ou fr / en), **objectif** (« faire ranker le site en général » / « des pages précises »). Texte : « Chaque pays a sa propre campagne ».
 - **Campagne = site × pays** : migration `unique (workspace_id, domain, country)`, `country` non nul. Liste des sites : pays affiché et lien « Ajouter un pays ». Même domaine + autre pays = nouvelle campagne ; même pays = retrouve la première.
 - **Lecture en direct** : deux appels serveur distincts (accueil, puis plan du site / pages / profil) ; la liste se coche à la fin de chaque phase réelle (accueil lu en 4 s, tout en 22 s en production), avec la durée estimée. Limite : les lignes « plan du site » et « activité comprise » se cochent ensemble (une seule phase serveur).
@@ -1025,24 +1027,28 @@ PR #101 (A), #102 (B, C, D), #104 (correctifs du run réel, E, F). Migrations ap
 - Limite connue : une campagne existante (même domaine et pays) n'est pas relue si l'utilisateur change la langue ensuite.
 
 ### C. Étape 2 « ce que nous avons compris »
+
 - Fiche en lecture d'abord, chaque bloc avec « Modifier » (les champs restent dans le formulaire). **Accueil = une page comme les autres, décochable** (jamais tout décoché ; sans entrée d'accueil dans le profil il reste proposé : `siteResources`, utilisé par la qualification et les constats). **Ajout d'une page** : adresse du site, vérifiée HTTP 200 avant d'être ajoutée (cochée d'office). Les deux objectifs affichent les mêmes cases.
 - Email de fin : le code est juste, la clé `RESEND_API_KEY` est posée (production et preview). **Au run réel du 17/11 aucun email n'est parti** (analyse à 0 cible, voir F) : cause non établie, le résultat est maintenant tracé (`events.type = analysis.email_result`).
 
 ### D. Liens morts des concurrents (tactique principale de MU.7)
+
 - Source de collecte `lien_mort` (phase `morts`, 20 % du budget de collecte) : un appel Backlinks par concurrent (5 au plus), filtre `url_to_status_code in (404, 410)` et `dofollow`, un lien par domaine source. Écarte images / fichiers / sous-domaines techniques, spam ≥ 30, concurrents, site lui-même. Le candidat est **la page qui cite**, lue en priorité (score provisoire × 1,4).
 - À l'étape des constats : les liens vers des domaines concurrents sont vérifiés **en premier** (jamais coupés par le plafond de 25 liens) ; un lien vers un concurrent répondant 404 / 410 donne un constat « lien mort » dont la demande dit « mène à une page de X qui n'existe plus (erreur 404) » et propose la page équivalente (jugement existant). **Jamais de lien déclaré mort sans 404 / 410 constaté par nous.**
 - **Run borné (16/11, 7 concurrents de mega-coloring.com, ≈ 0,18 USD)** : 3 concurrents sur 7 ont des pages disparues liées. Premier filtre `is_broken` : des 403 (blocage anti-robots, pas des pages mortes) ; filtre `404 / 410` : magnific.com 72 liens (presque tous des images), esle.io 4, reussiralecole.fr 2 (blogs, 410), toupty.com 1. **Rendement utile estimé : 3 à 8 pages par analyse pour ce thème** ; l'objectif « 10 cibles » n'est pas tenu pour ce site. Run réel complet : 3 appels, 108 lignes, 90 domaines nouveaux, 0,076 USD.
 - Non fait : pages ressources (a, b, d), faux 404.
 
 ### E. Qualité de la recherche (audit `3edd59a0…`, run du 16/11)
-| Source | Candidats | Cibles |
-|---|---|---|
-| contenu (Content Analysis) | 384 | 16 |
-| recherche Google (SERP) | 266 | 1 |
-| recoupement des concurrents | 91 | 1 |
-| mentions de marque | 25 | 0 |
-Par type : 11 blogs, 2 médias, 2 e-commerces, 1 association, 1 « autre » sur 17. Sorties du tri : 28 sans contact, 25 robots.txt, 25 hors langue, 17 injoignables, 16 éditeur introuvable, 16 hors sujet, 12 doublons ; 575 candidats jamais lus (au-delà de 150 pages). **Contenu fournit 94 % des cibles** (les blogs), le recoupement 91 candidats pour 1 cible. Fichier à juger : `docs/eval-qualite-recherche.md` (17 retenues + 20 écartées au hasard). Aucune règle de tri modifiée.
+
+| Source                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Candidats | Cibles |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------ |
+| contenu (Content Analysis)                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | 384       | 16     |
+| recherche Google (SERP)                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | 266       | 1      |
+| recoupement des concurrents                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | 91        | 1      |
+| mentions de marque                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | 25        | 0      |
+| Par type : 11 blogs, 2 médias, 2 e-commerces, 1 association, 1 « autre » sur 17. Sorties du tri : 28 sans contact, 25 robots.txt, 25 hors langue, 17 injoignables, 16 éditeur introuvable, 16 hors sujet, 12 doublons ; 575 candidats jamais lus (au-delà de 150 pages). **Contenu fournit 94 % des cibles** (les blogs), le recoupement 91 candidats pour 1 cible. Fichier à juger : `docs/eval-qualite-recherche.md` (17 retenues + 20 écartées au hasard). Aucune règle de tri modifiée. |
 
 ### F. Run réel en production (compte de test, mega-coloring.com, France, par l'interface)
+
 - Script : `scripts/shots/prod-run.mjs` (`pnpm shots:env && pnpm shots:seed`, puis `SHOTS_DIR=… node scripts/shots/prod-run.mjs`).
 - **Run 1 (17/11, 19:09 UTC, audit `c15cc42e-cd19-4846-b698-b662cbba147d`)** : 1 090 s (18 min), **0,659 USD** (DataForSEO 0,577 + LLM 0,082), 1 000 candidats lus (1 636 trouvés), 150 pages lues, **0 cible**. Causes : (1) site lu en anglais (voir B) ; (2) **11 lots de jugement sur 11 en échec sans trace** (cause inconnue, maintenant tracée dans `qualification_runs.stats.llmLastError` et les journaux) ; (3) deux appels Content Analysis ont dépassé 300 s (délai 60 s mal réglé, corrigé). L'écran a fonctionné sans rechargement (captures dans le dossier du script).

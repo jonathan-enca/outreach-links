@@ -56,8 +56,13 @@ await shot("analyse-debut");
 
 let middle = false;
 for (;;) {
-  const status = await page.getAttribute("[data-analysis-status]", "data-analysis-status").catch(() => null);
-  const pct = await page.locator('[role="progressbar"]').getAttribute("aria-valuenow").catch(() => null);
+  const status = await page
+    .getAttribute("[data-analysis-status]", "data-analysis-status")
+    .catch(() => null);
+  const pct = await page
+    .locator('[role="progressbar"]')
+    .getAttribute("aria-valuenow")
+    .catch(() => null);
   log("statut", status, pct ?? "");
   if (!middle && pct && Number(pct) >= 50) {
     middle = true;
