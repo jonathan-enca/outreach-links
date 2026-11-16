@@ -7,9 +7,11 @@ import {
 } from "@/features/deadlinks/hunt";
 import { createSafeFetcher } from "@/features/sites/verify";
 import { createJinaFallback, createPageReader } from "@/features/triage/page-reader";
-import type { LlmClient } from "@/lib/llm/client";
+import { assertCanSpend, spendLimitsFor } from "@/features/collection/guard";
+import { createLlmClientFromEnv, type LlmClient } from "@/lib/llm/client";
+import { createServiceClient } from "@/lib/supabase/service";
 import type { FindDeps } from "./funnel";
-import { FINDINGS_LIMITS } from "./limits";
+import { callWorstUsd, FINDINGS_LIMITS } from "./limits";
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -66,4 +68,31 @@ export function realFindDeps(opts: {
     llm: opts.llm,
     guard: opts.guard,
   };
+}
+
+/**
+ * Dépendances de PRODUCTION des constats (job `audit-findings` et analyse unique MU.1) : LLM de
+ * l'environnement plafonné au budget restant, plafonds durs lus en base avant chaque appel payant.
+ */
+export function productionFindDeps(run: {
+  auditId: string;
+  auditCapUsd: number;
+  model: string;
+}): FindDeps {
+  return realFindDeps({
+    llm: (remainingUsd) => {
+      if (!env.ANTHROPIC_API_KEY && !env.OPENAI_API_KEY && !env.LLM_PROXY_AUTH) return null;
+      if (remainingUsd <= 0) return null;
+      return createLlmClientFromEnv({
+        budgetUsd: remainingUsd,
+        maxCostPerCallUsd: callWorstUsd(run.model) * 1.5,
+      });
+    },
+    guard: (estimateUsd) =>
+      assertCanSpend(
+        createServiceClient(),
+        spendLimitsFor(run.auditId, run.auditCapUsd),
+        estimateUsd,
+      ),
+  });
 }

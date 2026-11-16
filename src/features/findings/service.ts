@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { env } from "@/env";
 import type { AuditActionState, SendEvent } from "@/features/audits/service";
+import type { PrepareResult } from "@/features/collection/service";
 import { configuredModel } from "@/features/qualification/service";
 import { dailyCapReached, totalCostForAudit } from "@/lib/costs";
 import { t } from "@/lib/messages";
@@ -78,9 +79,69 @@ export async function previewFindings(service: Client, auditId: string): Promise
 }
 
 /**
- * Lance l'analyse des pages après confirmation du coût annoncé : fige modèle, budget et limites, puis
- * envoie l'événement Inngest. Refuse sans rien facturer si le pire cas dépasse le plafond d'audit
- * restant ou si le plafond du jour est atteint. Aucun envoi, aucun achat.
+ * Fige modèle, budget et limites de l'analyse des pages (statut « confirme »), sans rien lancer.
+ * Refuse sans rien facturer si le pire cas dépasse le plafond d'audit restant ou si le plafond du jour
+ * est atteint. `resume` / `keepDone` : voir `prepareQualification`.
+ */
+export async function prepareFindings(
+  service: Client,
+  auditId: string,
+  actorId: string,
+  opts: { resume?: boolean; keepDone?: boolean } = {},
+): Promise<PrepareResult> {
+  const existing = await service
+    .from("findings_runs")
+    .select("id, status, created_at")
+    .eq("audit_id", auditId)
+    .maybeSingle();
+  if (existing.data?.status === "en_cours") {
+    return opts.resume
+      ? { status: "ready", nonce: existing.data.created_at }
+      : { status: "already" };
+  }
+  if (existing.data?.status === "termine" && opts.keepDone) return { status: "already" };
+  if (existing.data?.status === "confirme") {
+    return { status: "ready", nonce: existing.data.created_at };
+  }
+  const prev = await previewFindings(service, auditId);
+  if (!prev.ok) return { status: "error", message: prev.message };
+  const { estimate, remainingUsd } = prev.preview;
+  if (estimate.worstUsd > remainingUsd + 1e-9) return { status: "error", message: M.overCap };
+  if (await dailyCapReached(service, env.DAILY_COST_CAP_USD))
+    return { status: "error", message: M.dailyCap };
+  const nonce = new Date().toISOString();
+  const row = {
+    audit_id: auditId,
+    qualification_run_id: prev.qualificationRunId,
+    workspace_id: prev.workspaceId,
+    site_id: prev.siteId,
+    status: "confirme",
+    plan: {
+      model: estimate.model,
+      budgetUsd: estimate.budgetUsd,
+      limits: FINDINGS_LIMITS,
+      targets: estimate.targets,
+    } as unknown as Json,
+    expected_cost_usd: estimate.expectedUsd,
+    worst_case_usd: estimate.worstUsd,
+    budget_usd: estimate.budgetUsd,
+    actual_cost_usd: null,
+    stats: {} as Json,
+    stop_reason: null,
+    error_message: null,
+    confirmed_by: actorId,
+    created_at: nonce,
+    started_at: null,
+    finished_at: null,
+  };
+  const { error } = await service.from("findings_runs").upsert(row, { onConflict: "audit_id" });
+  if (error) return { status: "error", message: M.saveError };
+  return { status: "ready", nonce };
+}
+
+/**
+ * Lance l'analyse des pages après confirmation du coût annoncé : prépare la ligne (`prepareFindings`),
+ * puis envoie l'événement Inngest. Aucun envoi, aucun achat.
  */
 export async function startFindings(
   service: Client,
@@ -89,53 +150,12 @@ export async function startFindings(
   actorId: string | null,
 ): Promise<AuditActionState> {
   if (!actorId) return { status: "error", message: M.unauthenticated };
-  const existing = await service
-    .from("findings_runs")
-    .select("id, status, created_at")
-    .eq("audit_id", auditId)
-    .maybeSingle();
-  if (existing.data && existing.data.status === "en_cours") {
-    return { status: "ok", auditId, message: M.alreadyStarted };
-  }
-  let nonce = existing.data?.status === "confirme" ? existing.data.created_at : null;
-  if (!nonce) {
-    const prev = await previewFindings(service, auditId);
-    if (!prev.ok) return { status: "error", message: prev.message };
-    const { estimate, remainingUsd } = prev.preview;
-    if (estimate.worstUsd > remainingUsd + 1e-9) return { status: "error", message: M.overCap };
-    if (await dailyCapReached(service, env.DAILY_COST_CAP_USD))
-      return { status: "error", message: M.dailyCap };
-    nonce = new Date().toISOString();
-    const row = {
-      audit_id: auditId,
-      qualification_run_id: prev.qualificationRunId,
-      workspace_id: prev.workspaceId,
-      site_id: prev.siteId,
-      status: "confirme",
-      plan: {
-        model: estimate.model,
-        budgetUsd: estimate.budgetUsd,
-        limits: FINDINGS_LIMITS,
-        targets: estimate.targets,
-      } as unknown as Json,
-      expected_cost_usd: estimate.expectedUsd,
-      worst_case_usd: estimate.worstUsd,
-      budget_usd: estimate.budgetUsd,
-      actual_cost_usd: null,
-      stats: {} as Json,
-      stop_reason: null,
-      error_message: null,
-      confirmed_by: actorId,
-      created_at: nonce,
-      started_at: null,
-      finished_at: null,
-    };
-    const { error } = await service.from("findings_runs").upsert(row, { onConflict: "audit_id" });
-    if (error) return { status: "error", message: M.saveError };
-  }
+  const prep = await prepareFindings(service, auditId, actorId);
+  if (prep.status === "already") return { status: "ok", auditId, message: M.alreadyStarted };
+  if (prep.status === "error") return { status: "error", message: prep.message };
   try {
     await sendEvent({
-      id: `audit-findings-${auditId}-${nonce}`,
+      id: `audit-findings-${auditId}-${prep.nonce}`,
       name: FINDINGS_EVENT,
       data: { auditId },
     });

@@ -95,6 +95,15 @@ const schema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((v) => v === "true"),
+  /**
+   * MU.1 : "true" remet l'ANCIENNE chaîne dans le parcours (backlinks des concurrents, liste
+   * d'opportunités, chasseur 404 d'origine). Faux par défaut : une seule analyse, de bout en bout.
+   * Le code de l'ancienne chaîne est conservé jusqu'à MU.11.
+   */
+  LEGACY_CHAIN: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
   /** Plafond de sécurité des dépenses d'API de toute la plateforme sur 24 h glissantes (USD). */
   DAILY_COST_CAP_USD: z.coerce.number().positive().default(25),
   /** Aucun envoi d'email réel hors production, sauf décision explicite. */

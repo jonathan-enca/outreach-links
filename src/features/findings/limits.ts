@@ -14,7 +14,9 @@ export const FINDINGS_LIMITS = {
   /** Cibles « mentions » sans contact examinées en plus de la liste courte (mention seulement). */
   maxMentionOnly: 20,
   /** Cibles lues par step Inngest. */
-  targetsPerStep: 2,
+  targetsPerStep: 6,
+  /** MU.1 : pages de sites DIFFÉRENTS examinées de front dans un step. */
+  scanConcurrency: 6,
   /** Requêtes HTTP au plus par cible (robots.txt, page, liens). */
   requestsPerTarget: 70,
   /** Liens vérifiés (404/410) au plus par page. */

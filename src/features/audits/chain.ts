@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { estimateAnalysis } from "@/features/analysis/estimate";
 import { estimateBacklinks } from "@/features/backlinks/limits";
 import { startBacklinks } from "@/features/backlinks/service";
 import { estimateOpportunities } from "@/features/opportunities/limits";
@@ -25,6 +26,13 @@ export interface ChainEstimate {
   totalUsd: number;
   /** Étapes que le plafond ne couvre pas : elles restent à lancer à la main (jamais payées en plus). */
   uncovered: ChainStage[];
+  /**
+   * MU.1 : coût attendu de l'analyse unique après la découverte (recherche des sites, tri, contacts,
+   * constats). Présent = nouveau moteur : les trois étapes de l'ancienne chaîne valent alors 0.
+   */
+  analysisUsd?: number;
+  /** Pire cas de l'analyse unique, découverte comprise (budget entier de chaque étape). */
+  worstUsd?: number;
 }
 
 export type ChainStage = "backlinks" | "profile" | "opportunities";
@@ -74,6 +82,26 @@ export function estimateChain(input: {
   };
 }
 
+/** MU.1 : coût de l'analyse unique, dans la même forme que l'ancienne chaîne (écrans inchangés). */
+export function analysisChain(discoveryUsd: number): ChainEstimate {
+  const e = estimateAnalysis(discoveryUsd);
+  return {
+    discoveryUsd: e.discoveryUsd,
+    backlinksUsd: 0,
+    profileUsd: 0,
+    opportunitiesUsd: 0,
+    analysisUsd: e.analysisUsd,
+    worstUsd: e.worstUsd,
+    totalUsd: e.expectedUsd,
+    uncovered: [],
+  };
+}
+
+/** Réglage `LEGACY_CHAIN` : vrai = l'ancienne chaîne reste dans le parcours. Faux par défaut. */
+export function legacyChainEnabled(): boolean {
+  return env.LEGACY_CHAIN;
+}
+
 const startable = (status: string) => status === "aucun" || status === "confirme";
 
 /**
@@ -90,11 +118,16 @@ export async function advanceChain(
   const { data: audit } = await service
     .from("audits")
     .select(
-      "id, status, auto_chain, created_by, backlinks_status, profile_status, opportunities_status",
+      "id, status, auto_chain, created_by, analysis_status, backlinks_status, profile_status, opportunities_status",
     )
     .eq("id", auditId)
     .maybeSingle();
   if (!audit || !audit.auto_chain || audit.status !== "termine" || !audit.created_by) {
+    return { started: null };
+  }
+  // MU.1 : l'ancienne chaîne est sortie du parcours. Un audit lancé par l'analyse unique ne déclenche
+  // plus ni backlinks, ni profil, ni opportunités (leurs boutons et leur code restent, derrière le réglage).
+  if (!legacyChainEnabled() || (audit.analysis_status ?? "aucun") !== "aucun") {
     return { started: null };
   }
 

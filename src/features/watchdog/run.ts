@@ -135,6 +135,33 @@ export async function runWatchdog(
       if (done && def.table === "audits" && opts.onAuditRepaired) {
         await opts.onAuditRepaired(id);
       }
+      // MU.1 : une étape d'analyse bloquée entraîne son analyse (sauf l'étape parallèle).
+      const parent = def.parent;
+      const parentId = parent ? row[parent.refCol] : null;
+      if (
+        !done &&
+        parent &&
+        typeof parentId === "string" &&
+        !(parent.unless && row[parent.unless.col] === parent.unless.value)
+      ) {
+        const up = await db
+          .from(parent.table)
+          .update({
+            [parent.statusCol]: "echoue",
+            [parent.finishedCol]: now.toISOString(),
+            [parent.errorCol]: t.watchdog.stuck,
+          })
+          .eq("id", parentId)
+          .in(parent.statusCol, [...parent.running])
+          .select("id");
+        if (up.error) {
+          logger.error("chien de garde : parent non mis à jour", {
+            step: def.key,
+            id: parentId,
+            error: up.error.message,
+          });
+        }
+      }
     }
   }
   return report;

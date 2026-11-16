@@ -1,10 +1,7 @@
 import { z } from "zod";
-import { env } from "@/env";
 import { inngest } from "@/inngest/client";
-import { assertCanSpend, spendLimitsFor } from "@/features/collection/guard";
-import { realQualDeps } from "@/features/qualification/deps";
+import { productionQualDeps } from "@/features/qualification/deps";
 import { executeQualification, type StepRunner } from "@/features/qualification/funnel";
-import { batchWorstUsd, QUALIFY_LIMITS } from "@/features/qualification/limits";
 import {
   beginQualification,
   failQualification,
@@ -14,7 +11,6 @@ import {
   toInput,
 } from "@/features/qualification/run";
 import { logger } from "@/lib/logger";
-import { createLlmClientFromEnv } from "@/lib/llm/client";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export const qualificationEventSchema = z.object({ auditId: z.uuid() });
@@ -54,23 +50,7 @@ export const auditQualify = inngest.createFunction(
       return { ctx: l.ctx, candidates: l.candidates };
     });
     const runStep: StepRunner = (id, fn) => step.run(id, fn) as never;
-    const deps = () =>
-      realQualDeps(loaded.ctx, {
-        llm: (remainingUsd) => {
-          if (!env.ANTHROPIC_API_KEY && !env.OPENAI_API_KEY && !env.LLM_PROXY_AUTH) return null;
-          if (remainingUsd <= 0) return null;
-          return createLlmClientFromEnv({
-            budgetUsd: remainingUsd,
-            maxCostPerCallUsd: batchWorstUsd(QUALIFY_LIMITS.batchSize, run.model) * 1.5,
-          });
-        },
-        guard: (estimateUsd) =>
-          assertCanSpend(
-            createServiceClient(),
-            spendLimitsFor(run.auditId, run.auditCapUsd),
-            estimateUsd,
-          ),
-      });
+    const deps = () => productionQualDeps(loaded.ctx, run);
     const { results, stats } = await executeQualification(deps, toInput(run, loaded), runStep);
     const out = await step.run("finalize", async () =>
       finalizeQualification(createServiceClient(), run, results, stats),

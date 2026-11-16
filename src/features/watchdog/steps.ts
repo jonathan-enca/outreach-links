@@ -25,6 +25,23 @@ export interface StepDef {
   doneEvent?: string;
   /** Colonnes recopiées depuis la charge utile de l'événement à la réparation (colonne -> clé). */
   restore?: Record<string, string>;
+  /** Délai propre à l'étape pour le statut « en cours » (défaut : `WATCHDOG_LIMITS.runningMinutes`). */
+  runningMinutes?: number;
+  /**
+   * MU.1 : ligne parente à passer en échec avec l'étape (l'analyse d'un audit, quand une de ses
+   * étapes est bloquée), pour que « Reprendre » redevienne possible. `unless` : lignes qui ne
+   * touchent jamais leur parent (l'étape parallèle).
+   */
+  parent?: {
+    table: string;
+    /** Colonne de la ligne surveillée qui porte l'identifiant du parent. */
+    refCol: string;
+    statusCol: string;
+    running: readonly string[];
+    errorCol: string;
+    finishedCol: string;
+    unless?: { col: string; value: string };
+  };
 }
 
 const auditStep = (
@@ -68,6 +85,27 @@ export const WATCHED_STEPS: readonly StepDef[] = [
     restore: { opportunities_cost_usd: "cost_usd" },
   },
   auditStep("audit.deadlinks", "deadlinks_", undefined, ["en_cours"]),
+  // MU.1 : l'analyse unique. Le délai court depuis le dernier lancement (ou la dernière reprise).
+  {
+    ...auditStep("audit.analysis", "analysis_", "analysis.completed"),
+    startedCol: "analysis_confirmed_at",
+  },
+  // Une étape de l'analyse écrit sa progression à chaque step : « en cours » sans écriture depuis
+  // 15 minutes = job mort (docs/jalon-mu.md 3.3). L'étape et l'analyse passent en échec.
+  {
+    ...run("analysis.step", "analysis_steps", "id", ["en_cours"]),
+    startedCol: "updated_at",
+    runningMinutes: 15,
+    parent: {
+      table: "audits",
+      refCol: "audit_id",
+      statusCol: "analysis_status",
+      running: ["en_cours"],
+      errorCol: "analysis_error",
+      finishedCol: "analysis_finished_at",
+      unless: { col: "key", value: "etat_des_lieux" },
+    },
+  },
   run("collection", "candidate_collections", "id", ["confirme", "en_cours"]),
   run("qualification", "qualification_runs", "id", ["confirme", "en_cours"]),
   run("findings", "findings_runs", "id", ["confirme", "en_cours"]),
@@ -107,6 +145,8 @@ export function isStuck(def: StepDef, row: Row, nowMs: number): boolean {
   const ref = referenceTime(def, row);
   if (ref === null) return false; // sans date fiable, on ne touche à rien
   const minutes =
-    status === "confirme" ? WATCHDOG_LIMITS.confirmedMinutes : WATCHDOG_LIMITS.runningMinutes;
+    status === "confirme"
+      ? WATCHDOG_LIMITS.confirmedMinutes
+      : (def.runningMinutes ?? WATCHDOG_LIMITS.runningMinutes);
   return nowMs - ref > minutes * 60_000;
 }

@@ -25,6 +25,8 @@ export type CacheEntry = {
   response: unknown;
   /** Coût payé lors de l'appel d'origine, en USD. */
   costUsd: number;
+  /** Date de l'appel d'origine (ISO), si le cache la connaît. */
+  createdAt?: string;
 };
 
 export interface CacheStore {
@@ -37,13 +39,13 @@ export interface CacheStore {
 
 /** Cache en mémoire (tests, scripts). */
 export class MemoryCache implements CacheStore {
-  readonly entries = new Map<string, CacheEntry & { expiresAt: number }>();
+  readonly entries = new Map<string, CacheEntry & { expiresAt: number; createdAt: string }>();
   constructor(private readonly now: () => number = Date.now) {}
 
   async get(key: string) {
     const e = this.entries.get(key);
     if (!e || e.expiresAt <= this.now()) return null;
-    return { response: e.response, costUsd: e.costUsd };
+    return { response: e.response, costUsd: e.costUsd, createdAt: e.createdAt };
   }
 
   async set(
@@ -53,6 +55,7 @@ export class MemoryCache implements CacheStore {
     this.entries.set(key, {
       response: entry.response,
       costUsd: entry.costUsd,
+      createdAt: new Date(this.now()).toISOString(),
       expiresAt: this.now() + entry.ttlSeconds * 1000,
     });
   }
@@ -65,12 +68,14 @@ export class SupabaseCache implements CacheStore {
   async get(key: string): Promise<CacheEntry | null> {
     const { data, error } = await this.client
       .from("dataforseo_cache")
-      .select("response, cost_usd")
+      .select("response, cost_usd, created_at")
       .eq("cache_key", key)
       .gt("expires_at", new Date().toISOString())
       .maybeSingle();
     if (error) throw new Error(`dataforseo_cache (lecture) : ${error.message}`);
-    return data ? { response: data.response, costUsd: Number(data.cost_usd) } : null;
+    return data
+      ? { response: data.response, costUsd: Number(data.cost_usd), createdAt: data.created_at }
+      : null;
   }
 
   async set(

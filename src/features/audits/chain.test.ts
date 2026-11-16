@@ -1,8 +1,20 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { env } from "@/env";
 import { advanceChain, estimateChain } from "./chain";
 import { chainProgressView } from "./chain-progress";
 import { fakeSupabase } from "./fake-supabase";
 import { confirmAudit, createAudit } from "./service";
+
+// MU.1 : ces tests décrivent l'ANCIENNE chaîne (backlinks, profil, opportunités), conservée derrière
+// le réglage `LEGACY_CHAIN`. Le comportement par défaut (analyse unique) est testé dans
+// `src/features/analysis/analysis.test.ts`.
+const legacyEnv = env as { LEGACY_CHAIN: boolean };
+beforeAll(() => {
+  legacyEnv.LEGACY_CHAIN = true;
+});
+afterAll(() => {
+  legacyEnv.LEGACY_CHAIN = false;
+});
 
 const SITE = {
   domain: "mega-coloring.com",

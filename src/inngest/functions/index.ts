@@ -1,3 +1,5 @@
+import { analysisLinksState } from "./analysis-links-state";
+import { analysisRun } from "./analysis-run";
 import { auditBacklinks } from "./audit-backlinks";
 import { auditCollect } from "./audit-collect";
 import { auditDeadlinks } from "./audit-deadlinks";
@@ -30,6 +32,8 @@ export const functions = [
   auditCollect,
   auditQualify,
   auditFindings,
+  analysisRun,
+  analysisLinksState,
   planTriage,
   planContacts,
   planDrafts,

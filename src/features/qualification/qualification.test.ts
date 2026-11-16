@@ -348,6 +348,7 @@ interface FakeOpts {
 function fakeDeps(o: FakeOpts = {}) {
   const calls = { llm: 0, guard: 0, read: 0, contact: 0 };
   const deps = (): QualDeps => ({
+    sleep: async () => {},
     readPage: async (c) => {
       calls.read++;
       const e = QUAL_EVAL_CASES.find((x) => x.candidate.domain === c.domain);

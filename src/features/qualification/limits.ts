@@ -22,7 +22,9 @@ export const QUALIFY_LIMITS = {
   /** Pages lues au plus (les meilleurs candidats provisoires d'abord). */
   maxPagesRead: 150,
   /** Pages lues par step Inngest. */
-  pagesPerStep: 10,
+  pagesPerStep: 20,
+  /** MU.1 : sites DIFFÉRENTS lus de front dans un step (un même hôte reste lu en série, avec son délai). */
+  readConcurrency: 8,
   /** Requêtes HTTP par page (robots.txt + page + secours). */
   requestsPerPage: 4,
   hostDelayMs: 600,
@@ -40,7 +42,9 @@ export const QUALIFY_LIMITS = {
   // --- Étage 5 : contact ---
   /** Cibles dont on cherche le contact (dans l'ordre du score provisoire après LLM). */
   maxContactTargets: 60,
-  contactsPerStep: 3,
+  contactsPerStep: 8,
+  /** MU.1 : sites différents dont on cherche le contact de front. */
+  contactConcurrency: 8,
   /**
    * Appels payants du finder d'emails : 0 en MT.4 (budget 0,10 USD tenu par le seul LLM). Seuls les
    * emails publiés par la cible et les formulaires comptent ; à ouvrir avec une ligne de budget.

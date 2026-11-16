@@ -1,5 +1,6 @@
 import { isDead, type HuntLimits } from "@/features/deadlinks/hunt";
 import type { PageRead } from "@/features/triage/page-reader";
+import { mapByHost } from "@/lib/concurrency";
 import { BudgetExceededError } from "@/lib/dataforseo";
 import { LlmBudgetExceededError, type LlmClient } from "@/lib/llm/client";
 import { callWorstUsd, FINDINGS_LIMITS } from "./limits";
@@ -30,6 +31,8 @@ export interface FindDeps {
   llm: (remainingUsd: number) => LlmClient | null;
   /** Plafonds durs (audit, sécurité, jour) contrôlés AVANT chaque appel payant ; lève si dépassé. */
   guard: (estimateUsd: number) => Promise<void>;
+  /** Attente entre deux pages d'un même hôte (défaut : minuterie réelle). */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 export interface FindInput {
@@ -42,6 +45,21 @@ export interface FindInput {
 }
 
 export type FindStop = "termine" | "budget" | "plafond";
+
+/** Avancement des constats, émis DANS le step qui vient de travailler (MU.1). */
+export interface FindProgressEvent {
+  phase: "lecture" | "jugement";
+  done: number;
+  total: number;
+  /** Lecture : liens morts constatés ; jugement : mentions ou liens inadaptés retenus. */
+  found: number;
+  example: string | null;
+}
+
+export interface FindHooks {
+  /** Ne doit pas lever ; appelé une fois par step réellement exécuté. */
+  onProgress?: (e: FindProgressEvent) => Promise<void>;
+}
 
 export interface FindStats {
   targets: number;
@@ -237,17 +255,38 @@ export async function executeFindings(
   deps: () => FindDeps,
   input: FindInput,
   runStep: StepRunner,
+  hooks: FindHooks = {},
 ): Promise<{ findings: Finding[]; stats: FindStats }> {
   const L = FINDINGS_LIMITS;
+  const emit = async (e: FindProgressEvent) => {
+    if (hooks.onProgress) await hooks.onProgress(e);
+  };
   const targets = [...input.targets].sort((a, b) => a.rank - b.rank).slice(0, L.maxTargets);
   const byId = new Map(targets.map((t) => [t.targetId, t]));
 
   const scans: PageScan[] = [];
   for (const [k, chunk] of chunks(targets, L.targetsPerStep).entries()) {
+    const doneBefore = scans.length;
+    const deadBefore = scans.reduce((n, s) => n + s.dead.length, 0);
     const out = await runStep(`scan-${k + 1}`, async () => {
       const d = deps();
-      const res: PageScan[] = [];
-      for (const t of chunk) res.push(await scanTarget(d, input.ctx, t));
+      // MU.1 : pages de sites différents examinées de front ; un même hôte reste en série.
+      const res = await mapByHost(
+        chunk,
+        (t) => t.domain,
+        (t) => scanTarget(d, input.ctx, t),
+        { concurrency: L.scanConcurrency, sameHostDelayMs: L.hostDelayMs, sleep: d.sleep },
+      );
+      const withDead = res.filter((s) => s.dead.length > 0);
+      await emit({
+        phase: "lecture",
+        done: doneBefore + chunk.length,
+        total: targets.length,
+        found: deadBefore + res.reduce((n, s) => n + s.dead.length, 0),
+        example: withDead.length
+          ? (byId.get(withDead[withDead.length - 1]!.targetId)?.domain ?? null)
+          : null,
+      });
       return res;
     });
     scans.push(...out);
@@ -293,6 +332,16 @@ export async function executeFindings(
           { workspaceId: input.workspaceId, auditId: input.auditId },
         );
         const j = await confirmForeign(d.readPage, out.judgement, input.ctx.language);
+        const kept = Boolean(j && (j.mention || j.unsuited));
+        await emit({
+          phase: "jugement",
+          done: k + 1,
+          total: toJudge.length,
+          found:
+            [...judgements.values()].filter((x) => x && (x.mention || x.unsuited)).length +
+            (kept ? 1 : 0),
+          example: kept ? (byId.get(s.targetId)?.domain ?? null) : null,
+        });
         return { blocked: false, failed: false, costUsd: out.costUsd, j };
       } catch (e) {
         if (e instanceof LlmBudgetExceededError)
