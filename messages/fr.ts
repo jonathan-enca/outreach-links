@@ -913,7 +913,12 @@ export const fr = {
       },
       launchCard: {
         title: "Prêt à lancer l'analyse",
-        body: "Une analyse, environ 15 minutes. Vous pouvez fermer la page : l'analyse continue sans vous. Rien n'est envoyé à qui que ce soit.",
+        body: "Nous cherchons les sites qui peuvent vous citer, nous les trions, puis nous préparons une demande pour chacun. Comptez une quinzaine de minutes.",
+        closeWithEmail:
+          "Inutile de rester devant l'écran : vous pouvez fermer la page, nous vous écrivons dès que vos cibles sont prêtes.",
+        closeNoEmail:
+          "Inutile de rester devant l'écran : vous pouvez fermer la page et revenir plus tard, vos cibles seront ici.",
+        noSend: "Aucun message n'est envoyé aux sites sans que vous l'ayez validé.",
       },
       seeCost: "Enregistrer et continuer",
       launch: "Lancer l'analyse",
@@ -1049,7 +1054,7 @@ export const fr = {
     },
     estimate: {
       title: "Lancer l'analyse",
-      body: "L'analyse cherche les sites qui peuvent vous citer, les trie, trouve un contact et prépare une demande pour chacun. Elle dure environ 15 minutes et vous pouvez fermer la page. Rien n'est envoyé.",
+      body: "L'analyse cherche les sites qui peuvent vous citer, les trie, trouve un contact et prépare une demande pour chacun. Comptez une quinzaine de minutes : vous pouvez fermer la page. Aucun message n'est envoyé aux sites sans votre accord.",
       confirm: "Lancer l'analyse",
       confirming: "Lancement…",
       retrySend: "Relancer le démarrage de l'analyse",
