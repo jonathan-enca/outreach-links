@@ -8,6 +8,8 @@ import {
   finalizeDiscovery,
 } from "@/features/audits/run";
 import { DISCOVER_EVENT } from "@/features/audits/service";
+import { queryDeps } from "@/features/onboarding/deps";
+import { ensureQueryUniverse } from "@/features/queries/service";
 import { createDataForSeoClientFromEnv } from "@/lib/dataforseo";
 import { logger } from "@/lib/logger";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -49,6 +51,26 @@ export const auditDiscover = inngest.createFunction(
       log.warn("audit non exécutable (non confirmé ou déjà terminé)");
       return { skipped: true };
     }
+
+    // MU.0 : les requêtes par type d'éditeur sont garanties ici, quel que soit l'écran d'où l'audit a
+    // été lancé (un appel LLM court au plus, aucun si elles existent déjà). N'arrête jamais l'audit.
+    await step.run("query-universe", async () => {
+      const service = createServiceClient();
+      const { data } = await service
+        .from("audits")
+        .select("site_id, created_by")
+        .eq("id", auditId)
+        .maybeSingle();
+      if (!data) return { status: "impossible", reason: "audit_introuvable" };
+      const out = await ensureQueryUniverse(
+        service,
+        { siteId: data.site_id, userId: data.created_by },
+        queryDeps,
+      );
+      return out.status === "impossible"
+        ? { status: out.status, reason: out.reason }
+        : { status: out.status, queries: out.universe.queries.length };
+    });
 
     const perQuery = [];
     for (const [i, query] of audit.queries.entries()) {

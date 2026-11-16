@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getLatestBrandProfile } from "@/features/brand/service";
 import type { BrandProfile } from "@/features/brand/schema";
 import type { LlmClient } from "@/lib/llm/client";
+import { logger } from "@/lib/logger";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { generateRecipes } from "./generate";
 import { RECIPE_VERSION } from "./limits";
@@ -266,15 +267,40 @@ export async function buildAndStoreQueryUniverse(
   input: { siteId: string; userId: string | null },
   deps: QueryDeps,
 ): Promise<StoredQueryUniverse | null> {
+  const result = await storeQueryUniverse(supabase, input, deps);
+  if ("universe" in result) return result.universe;
+  // MU.0 : un échec ne bloque toujours rien, mais il n'est plus silencieux.
+  logger.warn("univers de requêtes non enregistré", {
+    siteId: input.siteId,
+    reason: result.reason,
+  });
+  return null;
+}
+
+/** Pourquoi un univers n'a pas pu être écrit (journalisé ; jamais montré tel quel à l'utilisateur). */
+export type UniverseFailure =
+  | "site_introuvable"
+  | "theme_absent"
+  | "profil_absent"
+  | "ecriture_refusee"
+  | "ligne_illisible"
+  | "erreur";
+
+async function storeQueryUniverse(
+  supabase: Client,
+  input: { siteId: string; userId: string | null },
+  deps: QueryDeps,
+): Promise<{ universe: StoredQueryUniverse } | { reason: UniverseFailure; detail?: string }> {
   try {
     const { data: site } = await supabase
       .from("sites")
       .select("id, workspace_id, domain, niche, language, goal, target_keywords")
       .eq("id", input.siteId)
       .maybeSingle();
-    if (!site || !site.niche) return null;
+    if (!site) return { reason: "site_introuvable" };
+    if (!site.niche) return { reason: "theme_absent" };
     const stored = await getLatestBrandProfile(supabase, input.siteId);
-    if (!stored) return null;
+    if (!stored) return { reason: "profil_absent" };
     const language = site.language === "en" ? "en" : "fr";
     const goal = site.goal === "mots_cles" ? "mots_cles" : "autorite_generale";
     const built = await buildUniverse(
@@ -305,7 +331,7 @@ export async function buildAndStoreQueryUniverse(
       })
       .select(COLUMNS)
       .maybeSingle();
-    if (error || !row) return null;
+    if (error || !row) return { reason: "ecriture_refusee", detail: error?.message };
     await supabase.from("events").insert({
       workspace_id: site.workspace_id,
       actor_id: input.userId,
@@ -319,8 +345,42 @@ export async function buildAndStoreQueryUniverse(
         goal,
       },
     });
-    return toStored(row);
-  } catch {
-    return null;
+    const universe = toStored(row);
+    return universe ? { universe } : { reason: "ligne_illisible" };
+  } catch (e) {
+    return { reason: "erreur", detail: (e as Error).message };
   }
+}
+
+export type EnsureUniverseResult =
+  | { status: "existant" | "cree"; universe: StoredQueryUniverse }
+  | { status: "impossible"; reason: UniverseFailure };
+
+/**
+ * MU.0 : garantit qu'un site a son univers de requêtes, quel que soit le chemin de lancement.
+ * L'univers n'était écrit qu'à l'écran de relecture (`launchJourney`) : un audit lancé depuis la liste
+ * des audits n'en avait jamais, et la collecte restait bloquée (« noUniverse »). Appelée par le job
+ * de découverte, avec le client de service. Un univers à jour (même version du profil de marque) est
+ * réutilisé tel quel : aucun appel LLM. Ne lève jamais.
+ */
+export async function ensureQueryUniverse(
+  supabase: Client,
+  input: { siteId: string; userId: string | null },
+  deps: QueryDeps,
+): Promise<EnsureUniverseResult> {
+  try {
+    const [latest, profile] = await Promise.all([
+      getLatestQueryUniverse(supabase, input.siteId),
+      getLatestBrandProfile(supabase, input.siteId),
+    ]);
+    if (latest && (!profile || latest.brandProfileVersion === profile.version)) {
+      return { status: "existant", universe: latest };
+    }
+  } catch {
+    // Lecture impossible : on tente la génération, qui dira pourquoi elle échoue.
+  }
+  const result = await storeQueryUniverse(supabase, input, deps);
+  if ("universe" in result) return { status: "cree", universe: result.universe };
+  logger.warn("univers de requêtes impossible", { siteId: input.siteId, ...result });
+  return { status: "impossible", reason: result.reason };
 }

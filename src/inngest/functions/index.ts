@@ -17,6 +17,7 @@ import { replyDrafts } from "./reply-drafts";
 import { replySendTick } from "./reply-send-tick";
 import { replyTick } from "./reply-tick";
 import { sendTick } from "./send-tick";
+import { stepWatchdog } from "./step-watchdog";
 
 /** Toutes les fonctions Inngest de l'application (ajouter ici les nouvelles). */
 export const functions = [
@@ -39,4 +40,5 @@ export const functions = [
   replyDrafts,
   replySendTick,
   linkCheckTick,
+  stepWatchdog,
 ];

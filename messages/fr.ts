@@ -2439,6 +2439,11 @@ export const fr = {
     retry: "Réessayer",
     reference: "Référence",
   },
+  watchdog: {
+    /** Écrit dans le message d'erreur d'une étape restée bloquée (MU.0). */
+    stuck:
+      "Cette étape s'est interrompue avant la fin. Rien de plus n'a été lancé : vous pouvez la relancer.",
+  },
 } as const;
 
 export type Messages = typeof fr;
