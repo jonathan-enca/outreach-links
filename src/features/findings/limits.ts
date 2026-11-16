@@ -26,7 +26,7 @@ export const FINDINGS_LIMITS = {
   maxMentions: 3,
   maxLinkCandidates: 8,
   /** Jetons de sortie d'un appel (borne du coût). */
-  outputTokens: 260,
+  outputTokens: 420,
   /** Part des cibles qui ont quelque chose à juger, pour le coût ATTENDU (le pire cas = toutes). */
   typicalJudgedRate: 0.7,
 } as const;
