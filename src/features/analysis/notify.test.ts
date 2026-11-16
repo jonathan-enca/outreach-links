@@ -93,6 +93,8 @@ describe("notifyAnalysisReady", () => {
         throw new Error("Resend 500");
       }),
     ).toBe("echec");
-    expect(inserted).toEqual([]);
+    // Aucun email_sent, mais la cause est tracée (sans adresse).
+    expect(inserted.map((e) => (e as { type: string }).type)).toEqual(["analysis.email_error"]);
+    expect(JSON.stringify(inserted)).not.toContain("@");
   });
 });
