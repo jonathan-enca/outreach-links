@@ -299,8 +299,7 @@ const REQUEST_TONE = {
  * sous le nom du site : la zone de contenu de l'application (56 rem) ne laisse pas la place d'une
  * colonne de plus sans écraser la raison.
  */
-const COLS =
-  "md:grid-cols-[1.25rem_1.5rem_minmax(10rem,1.2fr)_minmax(0,2.4fr)_8.75rem_6.75rem_2rem]";
+const COLS = "xl:grid-cols-[1.25rem_1.75rem_15.5rem_minmax(0,1fr)_9.5rem_7.5rem_2.25rem]";
 
 /**
  * Une cible = une ligne qui se déplie (retour de Jonathan, 18/11 : tableau dense, le détail au clic).
@@ -336,7 +335,7 @@ export function TargetRow({
   return (
     <li className="border-b border-border last:border-b-0" data-testid="target-row">
       <div
-        className={`grid cursor-pointer grid-cols-[1.25rem_minmax(0,1fr)_2.5rem] items-start gap-x-3 gap-y-1.5 px-3 py-3 hover:bg-muted/60 md:items-center md:px-4 md:py-2.5 ${COLS}`}
+        className={`grid cursor-pointer grid-cols-[1.25rem_minmax(0,1fr)_2.5rem] items-start gap-x-3 gap-y-1.5 px-3 py-3 hover:bg-muted/60 xl:items-center xl:px-4 xl:py-2.5 ${COLS}`}
         onClick={(e) => {
           // Un clic sur la case, un lien ou la flèche garde son propre effet.
           if ((e.target as HTMLElement).closest("input,a,button")) return;
@@ -349,14 +348,14 @@ export function TargetRow({
             checked={selected}
             onChange={() => onToggle(card.id)}
             aria-label={`${c.select} : ${card.domain}`}
-            className="mt-0.5 size-5 accent-primary md:mt-0 md:size-4"
+            className="mt-0.5 size-5 accent-primary xl:mt-0 xl:size-4"
           />
         ) : (
           <span aria-hidden="true" />
         )}
-        <span className="hidden text-sm tabular-nums text-muted-foreground md:block">{index}</span>
+        <span className="hidden text-sm tabular-nums text-muted-foreground xl:block">{index}</span>
         <div className="min-w-0">
-          <h3 className="break-words font-semibold">
+          <h3 className="break-words font-semibold xl:truncate">
             {card.domain}
             {isNew ? (
               <Badge tone="info" className="ml-2 align-middle">
@@ -365,22 +364,22 @@ export function TargetRow({
             ) : null}
           </h3>
           {type ? (
-            <p className="break-words text-xs text-muted-foreground md:line-clamp-2" title={type}>
+            <p className="break-words text-xs text-muted-foreground xl:truncate" title={type}>
               {type}
             </p>
           ) : null}
         </div>
         <p
-          className={`col-start-2 min-w-0 text-sm md:col-auto ${open ? "" : "line-clamp-2 md:line-clamp-1"}`}
+          className={`col-start-2 min-w-0 text-sm xl:col-auto xl:text-[13.5px] ${open ? "xl:line-clamp-1" : "line-clamp-2"}`}
         >
           {card.why ?? req.lines[0] ?? ""}
         </p>
-        <div className="col-start-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 md:contents">
+        <div className="col-start-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 xl:contents">
           <span>
             <Badge tone={REQUEST_TONE[req.kind]}>{TB.requestTags[req.kind]}</Badge>
           </span>
           <span className="text-sm text-muted-foreground">
-            <span aria-hidden="true" className="md:hidden">
+            <span aria-hidden="true" className="xl:hidden">
               ·{" "}
             </span>
             {contactShort(card)}
@@ -392,7 +391,7 @@ export function TargetRow({
           aria-controls={detailId}
           aria-label={`${open ? TB.close : TB.open} : ${card.domain}`}
           onClick={() => onOpen(card.id)}
-          className="col-start-3 row-start-1 flex size-10 items-center justify-center justify-self-end rounded-control text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring md:col-auto md:row-auto md:size-8"
+          className="col-start-3 row-start-1 flex size-10 items-center justify-center justify-self-end rounded-control text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring xl:col-auto xl:row-auto xl:size-8"
         >
           <svg
             viewBox="0 0 16 16"
@@ -413,76 +412,97 @@ export function TargetRow({
       {open ? (
         <div
           id={detailId}
-          className="grid gap-4 px-3 pb-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:gap-8 md:pb-5 md:pl-[5.25rem] md:pr-4"
+          className="flex flex-col gap-3 px-3 pb-4 xl:pb-5 xl:pl-[5.75rem] xl:pr-4"
         >
-          <div className="flex min-w-0 flex-col gap-4">
-            {card.findings.length > 0 ? (
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-medium">{c.findings}</p>
-                <ul className="flex flex-col gap-2">
-                  {card.findings.map((f) => (
-                    <FindingBlock key={f.id} f={f} />
-                  ))}
-                </ul>
-              </div>
-            ) : req.quote ? (
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-medium">{TB.quote}</p>
-                <blockquote className="border-l-2 border-primary pl-3 text-sm italic">
-                  « {req.quote} »
-                </blockquote>
-              </div>
-            ) : null}
-            <div className="flex flex-col gap-1">
+          {card.why ? (
+            <p className="hidden text-sm xl:block">
+              <strong>{TB.whyLead}</strong> {card.why}
+            </p>
+          ) : null}
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_minmax(0,1fr)] xl:gap-8">
+            <div className="flex min-w-0 flex-col gap-2">
+              {card.findings.length > 0 ? (
+                <>
+                  <p className="text-sm font-medium">{c.findings}</p>
+                  <ul className="flex flex-col gap-2">
+                    {card.findings.map((f) => (
+                      <FindingBlock key={f.id} f={f} />
+                    ))}
+                  </ul>
+                </>
+              ) : req.quote ? (
+                <>
+                  <p className="text-sm font-medium">{TB.quote}</p>
+                  <blockquote className="border-l-2 border-primary pl-3 text-sm italic">
+                    « {req.quote} »
+                  </blockquote>
+                </>
+              ) : null}
+            </div>
+            <div className="flex min-w-0 flex-col gap-2">
               <p className="text-sm font-medium">{c.request}</p>
               <ol className="list-decimal pl-5 text-sm">
                 {req.lines.map((l, i) => (
-                  <li key={i}>{l}</li>
+                  <li key={i} className="mb-1">
+                    {l}
+                  </li>
                 ))}
               </ol>
             </div>
-          </div>
-          <div className="flex min-w-0 flex-col gap-2">
-            <p className="text-sm font-medium">{TB.offer}</p>
-            <dl className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-[auto_minmax(0,1fr)]">
-              {resource ? (
-                <>
-                  <dt className="text-muted-foreground">{TB.resource}</dt>
-                  <dd className="break-words">
-                    {resource.title} <span className="break-all">({resource.url})</span>
-                  </dd>
-                </>
+            <div className="flex min-w-0 flex-col gap-2">
+              <p className="text-sm font-medium">{TB.offer}</p>
+              <dl className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-sm">
+                {resource ? (
+                  <>
+                    <dt className="text-muted-foreground">{TB.resource}</dt>
+                    <dd className="min-w-0">
+                      {resource.title}
+                      <a
+                        href={resource.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={resource.url}
+                        className="block truncate text-primary underline underline-offset-4"
+                      >
+                        {resource.url}
+                      </a>
+                    </dd>
+                  </>
+                ) : null}
+                <dt className="text-muted-foreground">{c.contact}</dt>
+                <dd className="min-w-0 break-words">{contactLine(card)}</dd>
+                {card.pageUrl ? (
+                  <>
+                    <dt className="text-muted-foreground">{TB.page}</dt>
+                    <dd className="min-w-0">
+                      <a
+                        href={card.pageUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={card.pageUrl}
+                        className="block truncate text-primary underline underline-offset-4"
+                      >
+                        {card.pageUrl}
+                      </a>
+                    </dd>
+                  </>
+                ) : null}
+                {others.length > 0 ? (
+                  <>
+                    <dt className="text-muted-foreground">{TB.alsoTitle}</dt>
+                    <dd>{others.map((x) => M.tacticLabels[x]).join(", ")}</dd>
+                  </>
+                ) : null}
+              </dl>
+              {card.platformHosted || card.alreadyValidated ? (
+                <div className="flex flex-wrap gap-2">
+                  {card.platformHosted ? <Badge tone="neutral">{c.hosted}</Badge> : null}
+                  {card.alreadyValidated ? (
+                    <Badge tone="success">{c.alreadyValidated}</Badge>
+                  ) : null}
+                </div>
               ) : null}
-              <dt className="text-muted-foreground">{c.contact}</dt>
-              <dd className="break-words">{contactLine(card)}</dd>
-              {card.pageUrl ? (
-                <>
-                  <dt className="text-muted-foreground">{TB.page}</dt>
-                  <dd className="break-all">
-                    <a
-                      href={card.pageUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline underline-offset-4"
-                    >
-                      {card.pageUrl}
-                    </a>
-                  </dd>
-                </>
-              ) : null}
-              {others.length > 0 ? (
-                <>
-                  <dt className="text-muted-foreground">{TB.alsoTitle}</dt>
-                  <dd>{others.map((x) => M.tacticLabels[x]).join(", ")}</dd>
-                </>
-              ) : null}
-            </dl>
-            {card.platformHosted || card.alreadyValidated ? (
-              <div className="flex flex-wrap gap-2">
-                {card.platformHosted ? <Badge tone="neutral">{c.hosted}</Badge> : null}
-                {card.alreadyValidated ? <Badge tone="success">{c.alreadyValidated}</Badge> : null}
-              </div>
-            ) : null}
+            </div>
           </div>
         </div>
       ) : null}
@@ -511,7 +531,7 @@ export function TargetsTable({
     <Card className="overflow-hidden p-0" data-testid="targets-table">
       <div
         aria-hidden="true"
-        className={`hidden gap-x-3 border-b border-border bg-muted px-4 py-2 text-xs font-semibold text-muted-foreground md:grid ${COLS}`}
+        className={`hidden gap-x-3 border-b border-border bg-muted px-4 py-2 text-xs font-semibold text-muted-foreground xl:grid ${COLS}`}
       >
         <span />
         <span>#</span>

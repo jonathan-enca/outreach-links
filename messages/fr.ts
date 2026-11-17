@@ -1614,6 +1614,7 @@ export const fr = {
       open: "Voir le détail",
       close: "Replier le détail",
       quote: "Ce que dit sa page",
+      whyLead: "Pourquoi ce site.",
       offer: "Ce que nous proposons",
       page: "Page lue",
       resource: "Votre page",

@@ -1,3 +1,4 @@
+import { ContentWidth } from "@/features/shell/content-width";
 import Link from "next/link";
 import { Suspense } from "react";
 import { AppNav } from "@/components/app-nav";
@@ -33,7 +34,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <Nav />
         </Suspense>
         <main id="contenu" className="flex-1 px-4 py-6 pb-24 md:px-8 md:pb-8">
-          <div className="mx-auto max-w-4xl">{children}</div>
+          <ContentWidth>{children}</ContentWidth>
         </main>
       </div>
     </div>

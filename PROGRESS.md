@@ -1585,4 +1585,7 @@ Branche `claude/email-recovery-targets-ma0fhv` (poussée, **non fusionnée** : J
 - **B. Suivi de la recherche** : bandeau `LiveBanner` (« La recherche continue », temps restant estimé `live.ts`, cibles ajoutées), pastille et filtre « Nouveau » (dernière visite lue dans le navigateur), cibles arrivées pendant la lecture mises de côté jusqu'au clic « N nouveaux sites, afficher » (la liste ne bouge pas). **Email de fin** déplacé à la fin DÉFINITIVE (`analysis/ready-email.ts`, appelé par `audit-qualify-more` à l'arrêt de l'arrière-plan, par `audit-qualify-auto-start` si rien à lire, et à l'échec) au lieu de la première liste.
 - **C. Réglages des messages** : la question « Comment vous présentez-vous » a quitté le haut de l'écran ; rôle et prénom de signature sont demandés une seule fois, au clic sur « Valider », juste avant la rédaction (`MessageSettingsForm`, `saveMessageSettings`). La validation des cibles n'exige plus rien avant.
 - Tests, lint et typecheck verts (1153 tests). Pas de capture avec de vraies données.
-- **À faire** : appliquer la maquette desktop v2 (largeur de la zone de contenu `max-w-4xl` dans `src/app/app/layout.tsx` à élargir pour cet écran, colonnes fixes, détail sur trois colonnes, liens tronqués), puis fusionner. Vérifier en production le premier `analysis.email_sent` à la fin définitive.
+
+### Maquette desktop v2 appliquée (accord de Jonathan)
+
+Zone de contenu élargie pour l'écran des cibles (`shell/content-width.tsx`, 96 rem au lieu de 56), tableau à colonnes fixes à partir de 1280 px (cartes en dessous), raison complète en bandeau dans le détail, détail sur trois colonnes, liens longs tronqués (lien complet au survol). Contrôlé par captures à 1500 px et 390 px : aucun défilement horizontal.
