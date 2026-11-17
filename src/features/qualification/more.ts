@@ -215,10 +215,33 @@ export function mergeStats(
   };
 }
 
+/** Rang final de toute la liste : les cibles déjà livrées et les nouvelles, par score puis par domaine (pur). */
+export function rankAll(
+  existing: readonly { id: string; domain: string; score: number; rank: number | null }[],
+  added: readonly { domain: string; score: number }[],
+): { rankOf: Map<string, number>; changed: { id: string; rank: number }[]; total: number } {
+  const fresh = new Set(added.map((a) => a.domain));
+  const all = [
+    ...existing
+      .filter((e) => !fresh.has(e.domain))
+      .map((e) => ({ ...e, id: e.id as string | null })),
+    ...added.map((a) => ({ id: null, domain: a.domain, score: a.score, rank: null })),
+  ].sort((a, b) => b.score - a.score || a.domain.localeCompare(b.domain));
+  const rankOf = new Map<string, number>();
+  const changed: { id: string; rank: number }[] = [];
+  all.forEach((r, i) => {
+    rankOf.set(r.domain, i + 1);
+    if (r.id && r.rank !== i + 1) changed.push({ id: r.id, rank: i + 1 });
+  });
+  return { rankOf, changed, total: all.length };
+}
+
 /**
- * Range le lot : les sites traités remplacent leur ligne « en stock » (les cibles déjà livrées ne
- * sont jamais touchées : mêmes identifiants, mêmes décisions), puis le rang de toute la liste est
- * recalculé par score. Les sites restés en stock gardent leur ligne.
+ * Range le lot. Chaque site traité REMPLACE sa ligne « en stock » en une seule écriture (jamais de
+ * suppression préalable : au premier essai en production, une écriture refusée après la suppression
+ * avait fait disparaître 82 sites de la réserve). Les cibles déjà livrées gardent leur identifiant et
+ * leurs décisions ; le rang de toute la liste est calculé AVANT d'écrire (une cible livrée a toujours
+ * un rang). Rejouable : un site qui n'est plus en stock n'est pas réécrit.
  */
 export async function finalizeMore(
   service: Client,
@@ -226,60 +249,64 @@ export async function finalizeMore(
   results: readonly QualResult[],
   stats: FunnelStats,
 ): Promise<{ added: number; shortlist: number; stock: number }> {
-  const processed = results.filter((r) => r.exclusionReason !== "hors_budget_lecture");
-  for (let i = 0; i < processed.length; i += 200) {
-    const chunk = processed.slice(i, i + 200);
-    const del = await service
+  const stock = new Set<string>();
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await service
       .from("qualified_targets")
-      .delete()
+      .select("domain")
       .eq("run_id", run.id)
       .in("exclusion_reason", [...STOCK_REASONS])
-      .in(
-        "domain",
-        chunk.map((r) => r.domain),
-      );
-    if (del.error) throw new Error(`finalizeMore : ${del.error.message}`);
-    // Le rang sera recalculé sur toute la liste : la ligne entre sans rang.
-    const ins = await service
-      .from("qualified_targets")
-      .insert(chunk.map((r) => ({ ...toRow(run, r), rank: null })));
-    if (ins.error) throw new Error(`finalizeMore : ${ins.error.message}`);
+      .range(from, from + 999);
+    if (error) throw new Error(`finalizeMore : ${error.message}`);
+    for (const r of data ?? []) stock.add(r.domain);
+    if ((data ?? []).length < 1000) break;
   }
+  const processed = results.filter(
+    (r) => r.exclusionReason !== "hors_budget_lecture" && stock.has(r.domain),
+  );
   const { data: scored, error } = await service
     .from("qualified_targets")
-    .select("id, domain, score, rank, status")
+    .select("id, domain, score, rank")
     .eq("run_id", run.id)
-    .is("exclusion_reason", null)
-    .not("score", "is", null)
+    .eq("status", "liste_courte")
     .limit(1000);
   if (error) throw new Error(`finalizeMore : ${error.message}`);
-  const ordered = [...(scored ?? [])].sort(
-    (a, b) => Number(b.score) - Number(a.score) || a.domain.localeCompare(b.domain),
+  const delivered = processed.filter((r) => r.status === "liste_courte" && r.score !== null);
+  const ranking = rankAll(
+    (scored ?? []).map((r) => ({
+      id: r.id,
+      domain: r.domain,
+      score: Number(r.score),
+      rank: r.rank,
+    })),
+    delivered.map((r) => ({ domain: r.domain, score: r.score! })),
   );
-  const changes = ordered.flatMap((r, i) =>
-    r.rank === i + 1 && r.status === "liste_courte" ? [] : [{ id: r.id, rank: i + 1 }],
-  );
-  for (let i = 0; i < changes.length; i += 20) {
+  for (let i = 0; i < processed.length; i += 200) {
+    const rows = processed.slice(i, i + 200).map((r) => ({
+      ...toRow(run, r),
+      rank: r.status === "liste_courte" ? (ranking.rankOf.get(r.domain) ?? null) : null,
+    }));
+    const up = await service
+      .from("qualified_targets")
+      .upsert(rows, { onConflict: "run_id,domain" });
+    if (up.error) throw new Error(`finalizeMore : ${up.error.message}`);
+  }
+  for (let i = 0; i < ranking.changed.length; i += 20) {
     const out = await Promise.all(
-      changes
+      ranking.changed
         .slice(i, i + 20)
-        .map((c) =>
-          service
-            .from("qualified_targets")
-            .update({ rank: c.rank, status: "liste_courte" })
-            .eq("id", c.id),
-        ),
+        .map((c) => service.from("qualified_targets").update({ rank: c.rank }).eq("id", c.id)),
     );
     const failed = out.find((o) => o.error);
     if (failed?.error) throw new Error(`finalizeMore : ${failed.error.message}`);
   }
-  const added = processed.filter((r) => r.status === "liste_courte").length;
+  const added = delivered.length;
   const { data: row } = await service
     .from("qualification_runs")
     .select("stats, actual_cost_usd")
     .eq("id", run.id)
     .maybeSingle();
-  const merged = mergeStats((row?.stats ?? {}) as Partial<FunnelStats>, stats, ordered.length);
+  const merged = mergeStats((row?.stats ?? {}) as Partial<FunnelStats>, stats, ranking.total);
   const up = await service
     .from("qualification_runs")
     .update({
@@ -290,7 +317,7 @@ export async function finalizeMore(
     })
     .eq("id", run.id);
   if (up.error) throw new Error(`finalizeMore : ${up.error.message}`);
-  return { added, shortlist: ordered.length, stock: stats.stock ?? 0 };
+  return { added, shortlist: ranking.total, stock: stats.stock ?? 0 };
 }
 
 export async function failMore(service: Client, auditId: string, message: string): Promise<void> {
