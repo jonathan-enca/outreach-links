@@ -1656,3 +1656,12 @@ Maquette validée par Jonathan (artefact « Maquette espace client » : menu, ac
 - **Inngest : 40 fonctions attendues** (était 39) : resynchroniser l'application après le déploiement.
 - Contrôlé par captures sur des données d'exemple (Vos messages, Notifications). Boîte d'envoi : non capturée (page serveur avec lecture DNS).
 - **Prochain** : connexion de la boîte par OAuth Google (décision de Jonathan), puis premier envoi réel de bout en bout.
+
+## Session du 17/11 : vérification de propriété du domaine retirée de l'écran
+
+- **Décision de Jonathan (17/11)** : pas de vérification de propriété du domaine. Son raisonnement : une campagne lancée pour le site d'un autre ne lui apporte que des backlinks, et la vraie sécurité est la boîte d'envoi connectée (SMTP + IMAP vérifiés, bientôt OAuth Google). `CLAUDE.md` (4.4) mis à jour.
+- Constat dans le code : `verified_at` n'était lu par **aucun** garde-fou d'envoi (ni lots, ni `sending`). L'encadré affirmait « exigée avant tout envoi » alors que rien ne l'exigeait.
+- Retiré : l'encadré « Vérifier la propriété du domaine » de `/app/site/[id]`, le badge « Propriété non vérifiée » de `/app/site`, `verification-panel.tsx`, `verifySiteAction`, les textes associés et les deux tests du composant.
+- **Conservé, inactif** : colonnes `sites.verification_token`, `verified_at`, `verification_method` et leur trigger (aucune migration), `verifySite` et `checkOwnership` (testés, sans appelant). `createSafeFetcher` dans `verify.ts` reste utilisé par les lecteurs de pages : ne pas supprimer ce fichier.
+- Risque résiduel accepté : un utilisateur peut écrire au nom d'une marque qui n'est pas la sienne depuis sa propre boîte. Si des abus apparaissent, la parade la plus légère est de comparer le domaine de la boîte d'envoi à celui du site (aucune action demandée à l'utilisateur).
+- Contrôle : typecheck, lint et tests verts. Pas de capture d'écran refaite.
