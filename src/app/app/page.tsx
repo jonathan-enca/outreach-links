@@ -45,7 +45,7 @@ async function Home() {
   if (o.campaigns.length === 0) redirect(START_HREF);
   const first = o.campaigns[0]!;
   const withTargets = o.campaigns.find((c) => c.step.kind === "cibles") ?? null;
-  const mailboxHref = `/app/site/${first.siteId}#boite-envoi`;
+  const mailboxHref = `/app/reglages/boite?site=${first.siteId}`;
   const steps = [
     {
       key: "campaign" as const,

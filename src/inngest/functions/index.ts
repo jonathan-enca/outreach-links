@@ -10,6 +10,7 @@ import { auditProfile } from "./audit-profile";
 import { auditQualify } from "./audit-qualify";
 import { auditQualifyAutoStart } from "./audit-qualify-auto-start";
 import { auditQualifyMore } from "./audit-qualify-more";
+import { notifyTick } from "./notify-tick";
 import { planContacts } from "./plan-contacts";
 import { planDrafts } from "./plan-drafts";
 import { linkCheckTick } from "./link-check-tick";
@@ -49,4 +50,5 @@ export const functions = [
   replySendTick,
   linkCheckTick,
   stepWatchdog,
+  notifyTick,
 ];

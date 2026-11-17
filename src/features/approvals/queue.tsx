@@ -269,7 +269,7 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
         <Card className="border-warning/40 bg-warning/5 p-4 text-sm">
           {V.noMailbox}{" "}
           <Link
-            href="/app/site"
+            href="/app/reglages/boite"
             className="font-semibold text-primary underline underline-offset-4"
           >
             {V.connect}

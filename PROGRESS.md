@@ -1636,6 +1636,27 @@ Maquette validée par Jonathan (artefact « Maquette espace client » : menu, ac
 - **Décision de Jonathan (18/11) : la connexion de la boîte doit être un clic OAuth Google** (le plus simple pour l'utilisateur). À cadrer : projet Google Cloud, écran de consentement, vérification des scopes (envoi = sensible ; lecture des réponses = restreint, audit de sécurité). Voir la prochaine session.
 - Reste : étape 3 (Conversations avec filtres, non lus, étiquettes), étape 4 (écrans de réglages).
 
+## Session du 18/11 (suite 14) : Conversations, le mini-CRM (étape 3 sur 4)
+
+- **`/app/inbox` devient « Conversations »** (`features/conversations/`) : tous les fils (un fil = un premier message réellement envoyé), toutes campagnes confondues. Liste à gauche, fil à droite (téléphone : l'un puis l'autre). Filtres combinables : campagne, lus / non lus, statut, étiquette, recherche.
+- **Statut d'un fil** (`status.ts`, testé) : à traiter, a répondu, relancé, envoyé, lien obtenu, refusé, message revenu en erreur. **Non lu** : une réponse plus récente que la dernière ouverture. **Étiquettes libres** (10 par fil, 30 caractères).
+- **Migration `2026120700000000_conversations.sql`** (tables `thread_reads`, `thread_tags`, RLS en lecture, écriture par le serveur) : **appliquée sur la vraie base** par l'API de gestion (contrôlé : RLS active, une politique par table). `database.types.ts` complété à la main.
+- Fil ouvert : pourquoi ce site, échanges dans l'ordre (nos messages, relance, leurs réponses, nos réponses), réponse proposée modifiable et approuvable sur place ; « Autres options de réponse » ouvre l'écran complet existant (`/app/inbox/[id]` : choix « c'est payant », prêt à insérer, correction de catégorie).
+- **Limites** : pas de réponse libre écrite de zéro depuis le fil (il faut une réponse proposée) ; les envois simulés (dry run) n'apparaissent pas ; contrôlé par capture sur des données d'exemple, jamais avec de vrais échanges.
+- Les sept vues de l'ancien inbox (Chaud, Tiède…) ne sont plus affichées ; le code reste (`inbox/views.ts`).
+- Reste : étape 4 (écrans de réglages), puis connexion OAuth Google.
+
+## Session du 18/11 (suite 15) : écrans de réglages (étape 4 sur 4, la maquette est entièrement codée)
+
+- **Boîte d'envoi** (`/app/reglages/boite`) : la boîte connectée ou le formulaire de connexion existant (mot de passe d'application), et les **contrôles anti-spam du domaine** (`settings/domain-auth.ts`, testé) : SPF et DMARC lus dans le DNS ; DKIM cherché sur les sélecteurs courants, « non trouvé automatiquement » sinon (jamais « absent » : le sélecteur ne se devine pas).
+- **Vos messages** (`/app/reglages/messages`) : prénom de signature, rôle, ce que vous offrez, aperçu de la signature. **Pas de réglage du ton ni du délai de relance** (présents dans la maquette, pas de colonne en base : la relance reste à J+10).
+- **Notifications** (`/app/reglages/notifications`) : six interrupteurs enregistrés (table `notification_prefs`, migration `2026120800000000` **appliquée sur la vraie base**). **Une seule notification part réellement : « Une réponse vous attend »** (fonction Inngest `notify-tick`, toutes les dix minutes, un email par espace, jamais deux fois pour la même réponse, trace `notify.reply_waiting`). Les cinq autres portent la pastille « Bientôt ».
+- **Abonnement** : le menu ouvre l'écran existant `/app/facturation` (pas redessiné comme la maquette).
+- Menu : entrées Boîte d'envoi, Vos messages, Notifications, Abonnement. La montée en charge 40 / 80 / 120 et l'arrêt à 5 % de la maquette ne sont **pas** affichés (chiffres non validés).
+- **Inngest : 40 fonctions attendues** (était 39) : resynchroniser l'application après le déploiement.
+- Contrôlé par captures sur des données d'exemple (Vos messages, Notifications). Boîte d'envoi : non capturée (page serveur avec lecture DNS).
+- **Prochain** : connexion de la boîte par OAuth Google (décision de Jonathan), puis premier envoi réel de bout en bout.
+
 ## Session du 17/11 : vérification de propriété du domaine retirée de l'écran
 
 - **Décision de Jonathan (17/11)** : pas de vérification de propriété du domaine. Son raisonnement : une campagne lancée pour le site d'un autre ne lui apporte que des backlinks, et la vraie sécurité est la boîte d'envoi connectée (SMTP + IMAP vérifiés, bientôt OAuth Google). `CLAUDE.md` (4.4) mis à jour.
