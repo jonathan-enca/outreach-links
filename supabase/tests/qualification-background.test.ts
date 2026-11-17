@@ -8,7 +8,14 @@ import {
   AUTO_LIMITS,
   startBackground,
 } from "@/features/qualification/background";
-import type { FunnelStats } from "@/features/qualification/funnel";
+import { EVAL_CONTEXT, evalCandidate, evalPage } from "@/features/qualification/eval-set";
+import {
+  executeQualification,
+  type FunnelStats,
+  type QualDeps,
+} from "@/features/qualification/funnel";
+import { z } from "zod";
+import { createAnthropicBatchClient } from "@/lib/llm/batch";
 import { beginMore, finalizeMore, requestMore, type MoreRun } from "@/features/qualification/more";
 import type { QualResult } from "@/features/qualification/types";
 import type { Database } from "@/lib/supabase/database.types";
@@ -291,6 +298,174 @@ describe.skipIf(!adminUrl)("lecture automatique de la réserve sur une vraie bas
     expect(Number(row.auto_cost_usd)).toBeCloseTo(0.09, 6);
     expect(row.more_status).toBe("demande");
     expect(row.auto_status).toBe("en_cours");
+  });
+
+  it("jugement par lots : coût journalisé une seule fois, même si les résultats sont relus ou le lot rejoué, et compté une seule fois par la chaîne", async () => {
+    await seed(10, 0);
+    // Faux serveur de l'API par lots : garde les requêtes reçues, répond avec un jugement par cible.
+    const sent = new Map<
+      string,
+      { custom_id: string; params: { messages: { content: string }[] } }[]
+    >();
+    let polls = 0;
+    const fetchImpl = (async (url: string, init: RequestInit = {}) => {
+      if (url.endsWith("/messages/batches") && init.method === "POST") {
+        const body = JSON.parse(init.body as string);
+        sent.set("msgbatch_db", body.requests);
+        return Response.json({ id: "msgbatch_db", processing_status: "in_progress" });
+      }
+      if (url.endsWith("/results")) {
+        const lines = sent.get("msgbatch_db")!.map((r) => {
+          const prompt = r.params.messages[0]!.content;
+          const data = JSON.parse(
+            prompt.split("<donnees_non_fiables>\n")[1]!.split("\n</donnees_non_fiables>")[0]!,
+          ) as { cibles: { id: string; titre: string }[] };
+          return JSON.stringify({
+            custom_id: r.custom_id,
+            result: {
+              type: "succeeded",
+              message: {
+                model: "claude-haiku-4-5",
+                stop_reason: "tool_use",
+                usage: { input_tokens: 4800, output_tokens: 660 },
+                content: [
+                  {
+                    type: "tool_use",
+                    input: {
+                      results: data.cibles.map((c) => ({
+                        id: c.id,
+                        site_type: "blog",
+                        fit: 0.8,
+                        fit_reason: "Même public.",
+                        sells_links: false,
+                        same_offer: false,
+                        unrealistic: false,
+                        hook: c.titre,
+                        resource: 0,
+                      })),
+                    },
+                  },
+                ],
+              },
+            },
+          });
+        });
+        return new Response(lines.join("\n"));
+      }
+      polls++;
+      return Response.json({
+        id: "msgbatch_db",
+        processing_status: polls >= 2 ? "ended" : "in_progress",
+      });
+    }) as unknown as typeof fetch;
+    const batch = createAnthropicBatchClient({
+      apiKey: () => "k",
+      model: "claude-haiku-4-5",
+      costClient: service,
+      fetchImpl,
+    });
+    const deps = (): QualDeps => ({
+      sleep: async () => {},
+      now: () => 0,
+      checkRobots: async () => "ok",
+      readPage: async (c) =>
+        evalPage(`https://${c.domain}/`, {
+          title: `Page ${c.domain}`,
+          text: "Activités pour les familles.",
+          links: [{ href: `https://${c.domain}/contact`, text: "Contact" }],
+        }),
+      guard: async () => {},
+      batch: () => batch,
+      llm: () => {
+        throw new Error("aucun appel direct attendu");
+      },
+      investigate: async (item) =>
+        ({
+          itemId: item.id,
+          status: "email_verifie",
+          email: `contact@${item.domain}`,
+          emailSource: "page",
+          verification: "valide",
+          verifier: "mx",
+          contactUrl: null,
+          formUrl: null,
+          reason: "",
+          sendable: true,
+          paidCalls: 0,
+        }) as never,
+    });
+    const candidates = Array.from({ length: 10 }, (_, i) =>
+      evalCandidate({
+        id: "t",
+        candidate: {
+          domain: `stock${i + 1}.fr`,
+          sources: [{ source: "content", query: null, persona: null, rank: null, pageType: null }],
+        },
+        page: null,
+        byRules: false,
+        keep: true,
+      }),
+    );
+    const memo = new Map<string, unknown>();
+    const memoStep = async <T>(id: string, fn: () => Promise<T>) => {
+      if (memo.has(id)) return memo.get(id) as T;
+      const out = await fn();
+      memo.set(id, JSON.parse(JSON.stringify(out)));
+      return out;
+    };
+    const input = {
+      workspaceId,
+      auditId,
+      ctx: EVAL_CONTEXT,
+      candidates,
+      budgetUsd: 0.15,
+      model: "claude-haiku-4-5",
+      tuning: { targetJudged: 40, pagesPerStep: 40 },
+    };
+    const hooks = { wait: async () => {} };
+    await startBackground(service, auditId);
+    const first = await executeQualification(deps, input, memoStep, hooks);
+    expect(first.stats).toMatchObject({ judgeMode: "lots", judged: 10, shortlist: 10 });
+    const ledger = async () =>
+      (
+        await db.query(
+          `select count(*)::int as n, coalesce(sum(actual_cost_usd), 0)::float as usd
+             from public.cost_ledger where audit_id = $1 and operation = 'llm.qualification.batch'`,
+          [auditId],
+        )
+      ).rows[0] as { n: number; usd: number };
+    // Deux groupes de cinq : deux lignes de coût, à demi-tarif (4 800 jetons en entrée, 660 en sortie, Haiku).
+    const after = await ledger();
+    expect(after.n).toBe(2);
+    expect(after.usd).toBeCloseTo(2 * ((4800 * 1 + 660 * 5) / 1e6) * 0.5, 5);
+    expect(first.stats.costUsd).toBeCloseTo(after.usd, 5);
+    // Étape « résultats » rejouée (relance après une panne en cours d'écriture) : rien n'est doublé.
+    await batch.results(
+      "msgbatch_db",
+      sent.get("msgbatch_db")!.map((r) => ({
+        customId: r.custom_id,
+        system: "",
+        prompt: r.params.messages[0]!.content,
+        schema: z.object({}).loose(),
+        schemaName: "qualification",
+        maxOutputTokens: 1,
+      })),
+      { workspaceId, auditId, task: "qualification" },
+    );
+    expect((await ledger()).n).toBe(2);
+    // Étapes déjà faites rejouées avec leur mémoire : aucune nouvelle requête au fournisseur.
+    const submitsBefore = sent.size;
+    await executeQualification(deps, input, memoStep, hooks);
+    expect(sent.size).toBe(submitsBefore);
+    expect((await ledger()).n).toBe(2);
+    // Rangement du lot et comptage de la chaîne : le coût compté est celui du journal, une seule fois.
+    const out = await finalizeMore(service, run(), first.results, first.stats);
+    expect(out.added).toBe(10);
+    await advanceBackground(service, run(), 1, first.stats, out.added);
+    await advanceBackground(service, run(), 1, first.stats, out.added);
+    const row = await auto();
+    expect(Number(row.auto_cost_usd)).toBeCloseTo(after.usd, 5);
+    expect(row.auto_added).toBe(10);
   });
 
   it("arrêt : deux lots de suite sous 5 cibles ajoutées (un bon lot remet le compteur à zéro)", async () => {

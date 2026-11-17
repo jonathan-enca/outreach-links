@@ -55,6 +55,12 @@ const schema = z.object({
   OPENAI_API_KEY: z.string().min(1).optional(),
   /** Force le fournisseur ; sinon Anthropic si sa clé existe, sinon OpenAI. */
   LLM_PROVIDER: z.enum(["anthropic", "openai"]).optional(),
+  /**
+   * Jugement des lots d'arrière-plan par l'API par lots d'Anthropic (50 % moins cher, réponse en
+   * différé). `off` = appels directs (interrupteur si le délai mesuré devient trop long). Sans effet
+   * hors Anthropic.
+   */
+  LLM_BATCH_JUDGEMENT: z.enum(["on", "off"]).default("on"),
   /** Remplace le modèle par défaut du fournisseur choisi. */
   LLM_MODEL: z.string().min(1).optional(),
   /**

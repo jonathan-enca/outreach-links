@@ -3,10 +3,12 @@ import type { ContactItem, ContactResult } from "@/features/contacts/types";
 import type { PageRead } from "@/features/triage/page-reader";
 import { mapByHost } from "@/lib/concurrency";
 import { BudgetExceededError } from "@/lib/dataforseo";
+import type { BatchOutcome, BatchRequest, LlmBatchClient } from "@/lib/llm/batch";
 import { LlmBudgetExceededError, type LlmClient } from "@/lib/llm/client";
+import { BATCH_DISCOUNT } from "@/lib/llm/pricing";
 import { authorityImpact, runFreeStages, type AuthorityImpact, type FreeVerdict } from "./free";
 import { batchWorstUsd, QUALIFY_LIMITS } from "./limits";
-import { judgeBatch, type BatchItem } from "./llm";
+import { batchSchema, judgeBatch, judgementRequest, toJudgements, type BatchItem } from "./llm";
 import { pageVerdict, type PageVerdict } from "./page";
 import { finalScore, judgementExclusion, preContactScore, requestAndWhy } from "./score";
 import type {
@@ -33,6 +35,11 @@ export interface QualDeps {
   checkRobots?: (c: QualCandidate) => Promise<RobotsCheck>;
   /** Client LLM plafonné à `remainingUsd` ; null sans clé (les cibles restent « non qualifiées »). */
   llm: (remainingUsd: number) => LlmClient | null;
+  /**
+   * Client de l'API par lots (jugement à demi-tarif, réponse en différé) ; absent ou null = appels
+   * directs. Utilisé seulement si l'appelant fournit aussi `hooks.wait` (lecture automatique de la réserve).
+   */
+  batch?: () => LlmBatchClient | null;
   /** Plafonds durs (audit, sécurité, jour) contrôlés AVANT chaque appel payant ; lève si dépassé. */
   guard: (estimateUsd: number) => Promise<void>;
   investigate: (item: ContactItem) => Promise<ContactResult>;
@@ -70,6 +77,8 @@ export interface QualInput {
     pagesPerStep?: number;
     shortlistSize?: number;
     preflightMax?: number;
+    batchPollMs?: number;
+    batchMaxWaitMs?: number;
   };
   /** Rendement déjà mesuré par source (lecture d'un lot supplémentaire du stock). */
   priorYield?: Record<string, { read: number; relevant: number }>;
@@ -94,6 +103,8 @@ export interface QualProgressEvent {
 export interface QualHooks {
   /** Ne doit pas lever ; appelé une fois par step réellement exécuté (jamais au rejeu d'un step mémorisé). */
   onProgress?: (e: QualProgressEvent) => Promise<void>;
+  /** Attente SANS requête bloquante (`step.sleep` d'Inngest), nécessaire au jugement par lots. */
+  wait?: (id: string, ms: number) => Promise<void>;
 }
 
 export interface FunnelStats {
@@ -129,6 +140,9 @@ export interface FunnelStats {
   /** Rendement par source de la recherche et par type d'éditeur cherché (candidats → cibles). */
   bySource?: Record<string, YieldRow>;
   byPersona?: Record<string, YieldRow>;
+  /** Jugement direct ou par l'API par lots, et ce que le lot a mesuré (délai réel, repli en appels directs). */
+  judgeMode?: "direct" | "lots";
+  batch?: { requests: number; waitMs: number; fallbacks: number; canceled: boolean };
 }
 
 interface Track {
@@ -375,6 +389,58 @@ export async function executeQualification(
   let judgeKept = 0;
   let dry = 0;
   let lots = 0;
+  type GroupOutcome = {
+    failed: boolean;
+    blocked: boolean;
+    costUsd: number;
+    judgements: [string, LlmJudgement][];
+    error?: string;
+  };
+  /** Range le résultat d'un groupe de cibles jugées (même règles pour l'appel direct et les lots). Renvoie le nombre de cibles pertinentes. */
+  const applyOutcome = (batch: Track[], r: GroupOutcome): number => {
+    let relevantHere = 0;
+    costUsd += r.costUsd;
+    if (r.blocked) {
+      stop = "plafond";
+      for (const t of batch) {
+        Object.assign(t, {
+          stage: 4,
+          reason: "hors_budget_llm",
+          detail: "plafond de sécurité atteint",
+        });
+      }
+      return 0;
+    }
+    llmCalls++;
+    if (r.failed) {
+      llmFailures++;
+      llmLastError ??= r.error ?? "client LLM absent";
+    }
+    const got = new Map(r.judgements);
+    batch.forEach((t, i) => {
+      const j = got.get(`c${i + 1}`) ?? null;
+      t.stage = 4;
+      t.judgement = j;
+      if (!j) {
+        t.reason = "non_qualifie";
+        t.detail = "pas de jugement du modèle";
+        return;
+      }
+      judgedCount++;
+      const ex = judgementExclusion(j, L.minFit);
+      if (ex) Object.assign(t, { reason: ex.reason, detail: ex.detail });
+      else {
+        judgeKept++;
+        relevantHere++;
+        yieldOf(t.lane).relevant++;
+      }
+    });
+    return relevantHere;
+  };
+  const batchClient: LlmBatchClient | null = hooks.wait ? (deps().batch?.() ?? null) : null;
+  const pending: Track[] = [];
+  let batchStats: FunnelStats["batch"];
+
   const plannedTotal = () =>
     Math.min(L.maxPagesRead, pagesRead + [...queues.values()].reduce((n, q) => n + q.length, 0));
 
@@ -385,7 +451,7 @@ export async function executeQualification(
       readStop = "epuise";
       break;
     }
-    if (judgedCount >= Math.min(L.targetJudged, L.maxLlmTargets)) {
+    if ((batchClient ? aliveAfterRead : judgedCount) >= Math.min(L.targetJudged, L.maxLlmTargets)) {
       readStop = "objectif";
       break;
     }
@@ -451,6 +517,11 @@ export async function executeQualification(
     const toJudge = lot.filter((t) => t.reason === null);
     aliveAfterRead += toJudge.length;
 
+    if (batchClient) {
+      // Mode lots : les pages lues attendent la fin de la lecture, puis un seul envoi à l'API par lots.
+      pending.push(...toJudge);
+      continue;
+    }
     // Jugement du lot : appels de 5 cibles, lancés de front, sous le budget de qualification.
     const room = Math.max(0, L.maxLlmTargets - judgedCount);
     for (const t of toJudge.slice(room)) {
@@ -559,47 +630,185 @@ export async function executeQualification(
         }
       } else {
         doing.forEach((batch, b) => {
-          const r = res.batches[b]!;
-          costUsd += r.costUsd;
-          if (r.blocked) {
-            stop = "plafond";
-            for (const t of batch) {
-              Object.assign(t, {
-                stage: 4,
-                reason: "hors_budget_llm",
-                detail: "plafond de sécurité atteint",
-              });
-            }
-            return;
-          }
-          llmCalls++;
-          if (r.failed) {
-            llmFailures++;
-            llmLastError ??= (r as { error?: string }).error ?? "client LLM absent";
-          }
-          const got = new Map(r.judgements);
-          batch.forEach((t, i) => {
-            const j = got.get(`c${i + 1}`) ?? null;
-            t.stage = 4;
-            t.judgement = j;
-            if (!j) {
-              t.reason = "non_qualifie";
-              t.detail = "pas de jugement du modèle";
-              return;
-            }
-            judgedCount++;
-            const ex = judgementExclusion(j, L.minFit);
-            if (ex) Object.assign(t, { reason: ex.reason, detail: ex.detail });
-            else {
-              judgeKept++;
-              lotRelevant++;
-              yieldOf(t.lane).relevant++;
-            }
-          });
+          lotRelevant += applyOutcome(batch, res.batches[b]!);
         });
       }
     }
     dry = lotRelevant <= L.dryLotMaxRelevant ? dry + 1 : 0;
+  }
+  // 4 bis. Jugement par l'API par lots (arrière-plan seulement) : un seul envoi pour toutes les pages
+  // lues, attente SANS requête bloquante (`hooks.wait`), même prompt, mêmes règles de tri.
+  if (batchClient && pending.length > 0) {
+    const room = Math.max(0, L.maxLlmTargets - judgedCount);
+    for (const t of pending.slice(room)) {
+      Object.assign(t, {
+        stage: 4,
+        reason: "hors_budget_llm",
+        detail: "au-delà des cibles jugées",
+      });
+    }
+    const groups = chunks(pending.slice(0, room), L.batchSize);
+    const worstOf = (n: number) => batchWorstUsd(n, input.model) * BATCH_DISCOUNT;
+    let planned = 0;
+    let plannedUsd = 0;
+    for (const g of groups) {
+      if (costUsd + plannedUsd + worstOf(g.length) > input.budgetUsd + 1e-9) break;
+      plannedUsd += worstOf(g.length);
+      planned++;
+    }
+    for (const g of groups.slice(planned)) {
+      stop = "budget";
+      for (const t of g) {
+        Object.assign(t, {
+          stage: 4,
+          reason: "hors_budget_llm",
+          detail: "budget de qualification atteint",
+        });
+      }
+    }
+    const doing = groups.slice(0, planned);
+    const itemsOf = (batch: Track[]): BatchItem[] =>
+      batch.map((t, i) => ({ id: `c${i + 1}`, candidate: t.free.candidate, page: t.page! }));
+    const requests: BatchRequest[] = doing.map((g, k) => ({
+      customId: `g${k}`,
+      ...judgementRequest(itemsOf(g), input.ctx),
+    }));
+    if (doing.length > 0) {
+      const sent = await runStep("judge-submit", async () => {
+        const d = deps();
+        try {
+          await d.guard(plannedUsd);
+        } catch (e) {
+          if (e instanceof BudgetExceededError) return { blocked: true, id: "", at: clock(d) };
+          throw e;
+        }
+        const { id } = await batchClient.submit(requests);
+        return { blocked: false, id, at: clock(d) };
+      });
+      lastAt = sent.at;
+      let groupOutcomes: GroupOutcome[] | null = null;
+      if (sent.blocked) {
+        stop = "plafond";
+        groupOutcomes = doing.map(() => ({
+          failed: false,
+          blocked: true,
+          costUsd: 0,
+          judgements: [],
+        }));
+      } else {
+        // Attente par pas : `step.sleep`, puis une lecture d'état. Au-delà du délai maximal, le lot est
+        // annulé et ce qui n'a pas de réponse est rejugé en appels directs (jamais de cible perdue).
+        let canceled = false;
+        let ended = false;
+        let doneAt = sent.at;
+        for (let k = 1; !ended; k++) {
+          await hooks.wait!(`judge-wait-${k}`, L.batchPollMs);
+          const st = await runStep(`judge-poll-${k}`, async () => {
+            const d = deps();
+            const status = await batchClient.status(sent.id);
+            const at = clock(d);
+            const late = at - sent.at >= L.batchMaxWaitMs;
+            if (status.state !== "termine" && late && !canceled) {
+              await batchClient.cancel(sent.id).catch(() => undefined);
+            }
+            return { ended: status.state === "termine", late, at };
+          });
+          doneAt = st.at;
+          if (st.late && !canceled) canceled = true;
+          // Après l'annulation, quelques lectures encore pour récupérer ce qui est déjà fait ; au-delà, repli direct.
+          ended = st.ended || (canceled && st.at - sent.at >= L.batchMaxWaitMs + 3 * L.batchPollMs);
+        }
+        const collected = await runStep("judge-collect", async () => {
+          const d = deps();
+          let outcomes = new Map<string, BatchOutcome>();
+          try {
+            outcomes = await batchClient.results(sent.id, requests, {
+              workspaceId: input.workspaceId,
+              auditId: input.auditId,
+              task: "qualification",
+            });
+          } catch (e) {
+            logger.warn("qualification : résultats du lot illisibles", {
+              error: e instanceof Error ? e.message.slice(0, 200) : String(e).slice(0, 200),
+            });
+          }
+          const out: GroupOutcome[] = [];
+          let fallbacks = 0;
+          let spent = 0;
+          for (const [k, g] of doing.entries()) {
+            const items = itemsOf(g);
+            const o = outcomes.get(`g${k}`);
+            if (o?.ok) {
+              const data = batchSchema.safeParse(o.data);
+              if (data.success) {
+                spent += o.costUsd;
+                out.push({
+                  failed: false,
+                  blocked: false,
+                  costUsd: o.costUsd,
+                  judgements: [...toJudgements(items, data.data, input.ctx)],
+                });
+                continue;
+              }
+            }
+            // Pas de réponse exploitable : un appel direct (prix plein) dans ce qui reste du budget.
+            fallbacks++;
+            const left = input.budgetUsd - costUsd - spent;
+            const llm = left > 0 ? d.llm(left) : null;
+            if (!llm) {
+              out.push({ failed: true, blocked: false, costUsd: 0, judgements: [] });
+              continue;
+            }
+            try {
+              const r = await judgeBatch(llm, items, input.ctx, {
+                workspaceId: input.workspaceId,
+                auditId: input.auditId,
+              });
+              spent += r.costUsd;
+              out.push({
+                failed: false,
+                blocked: false,
+                costUsd: r.costUsd,
+                judgements: [...r.judgements],
+              });
+            } catch (e) {
+              if (e instanceof LlmBudgetExceededError) {
+                out.push({ failed: false, blocked: true, costUsd: llm.spentUsd, judgements: [] });
+                continue;
+              }
+              const error = e instanceof Error ? e.message.slice(0, 300) : String(e).slice(0, 300);
+              logger.warn("qualification : lot non jugé (repli direct)", { error });
+              out.push({
+                failed: true,
+                blocked: false,
+                costUsd: llm.spentUsd,
+                judgements: [],
+                error,
+              });
+            }
+          }
+          return { out, fallbacks, at: clock(d) };
+        });
+        lastAt = collected.at;
+        groupOutcomes = collected.out;
+        batchStats = {
+          requests: doing.length,
+          waitMs: Math.max(0, doneAt - sent.at),
+          fallbacks: collected.fallbacks,
+          canceled,
+        };
+      }
+      doing.forEach((g, k) => {
+        applyOutcome(g, groupOutcomes![k]!);
+      });
+      await emit({
+        phase: "jugement",
+        done: judgedCount,
+        total: Math.max(L.targetJudged, judgedCount),
+        found: judgeKept,
+        example: null,
+      });
+    }
   }
   // Le stock : ce qui n'a pas été lu reste en réserve, avec son score, pour une lecture ultérieure.
   let stock = 0;
@@ -784,6 +993,8 @@ export async function executeQualification(
       llmCalls,
       llmFailures,
       ...(llmLastError ? { llmLastError } : {}),
+      ...(batchClient ? { judgeMode: "lots" as const } : {}),
+      ...(batchStats ? { batch: batchStats } : {}),
       costUsd: Math.round(costUsd * 1e6) / 1e6,
       stop,
       byReason,
