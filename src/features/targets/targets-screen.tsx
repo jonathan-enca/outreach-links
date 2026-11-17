@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -18,6 +18,7 @@ import {
   primaryRequest,
   primaryTactic,
 } from "./cards";
+import { newIds, remainingMinutes, roundedMinutes } from "./live";
 import { publisherTabs } from "./publishers";
 import {
   FOUNDER_ROLES,
@@ -41,54 +42,76 @@ function Message({ state }: { state: AuditActionState }) {
   ) : null;
 }
 
-/** Réponse à « comment vous présentez-vous » : jamais « fondateur » sans accord. */
-export function FounderQuestion({
+/**
+ * Réglages des messages (rôle de l'utilisateur + prénom de signature), demandés UNE fois, au moment de
+ * valider les cibles et avant la rédaction (retour de Jonathan, 18/11 : pas pendant la lecture de la
+ * liste). Jamais « fondateur » sans son accord.
+ */
+export function MessageSettingsForm({
   site,
-  current,
-  save,
+  role,
+  firstName,
+  count,
+  pending,
+  onSubmit,
+  onCancel,
 }: {
   site: string;
-  current: TargetsView["founderRole"];
-  save: FormAct;
+  role: TargetsView["founderRole"];
+  firstName: string | null;
+  count: number;
+  pending: boolean;
+  onSubmit: (fd: FormData) => void;
+  onCancel: () => void;
 }) {
-  const [state, action, pending] = useActionState(save, { status: "idle" } as AuditActionState);
-  const [editing, setEditing] = useState(current === null);
-  if (!editing && current)
-    return (
-      <Card className="flex flex-wrap items-center gap-3 p-4">
-        <p className="text-sm">
-          {M.founder.current.replace("{role}", M.founder.shortRoles[current])}
-        </p>
-        <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
-          {M.founder.change}
-        </Button>
-      </Card>
-    );
   return (
-    <Card className="p-6">
-      <form action={action} className="flex flex-col gap-3">
+    <Card className="p-4 md:p-6" data-testid="message-settings">
+      <form
+        className="flex flex-col gap-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit(new FormData(e.currentTarget));
+        }}
+      >
         <h2 className="font-display text-xl font-semibold">{M.founder.title}</h2>
         <p className="text-muted-foreground">{M.founder.body}</p>
-        <fieldset className="flex flex-col gap-2">
+        <label className="flex flex-col gap-1 text-sm font-medium" htmlFor="firstName">
+          {M.founder.firstName}
+          <input
+            id="firstName"
+            name="firstName"
+            type="text"
+            defaultValue={firstName ?? ""}
+            required
+            maxLength={60}
+            autoComplete="given-name"
+            className="h-11 rounded-control border border-border bg-card px-3 font-normal md:h-10 md:max-w-xs"
+          />
+        </label>
+        <fieldset className="flex flex-col gap-1">
           <legend className="sr-only">{M.founder.title}</legend>
           {FOUNDER_ROLES.map((r) => (
-            <label key={r} className="flex items-center gap-2">
+            <label key={r} className="flex min-h-11 items-center gap-2 md:min-h-8">
               <input
                 type="radio"
                 name="role"
                 value={r}
-                defaultChecked={current === r}
+                defaultChecked={role === r}
                 required
-                className="size-4 accent-primary"
+                className="size-5 accent-primary md:size-4"
               />
               <span>{M.founder.roles[r].replace("{site}", site)}</span>
             </label>
           ))}
         </fieldset>
-        <Button type="submit" disabled={pending} className="self-start">
-          {pending ? M.founder.saving : M.founder.save}
-        </Button>
-        <Message state={state} />
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="submit" disabled={pending} className="w-full md:w-auto">
+            {pending ? M.validate.busy : M.founder.saveAndValidate.replace("{n}", String(count))}
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+            {M.founder.cancel}
+          </Button>
+        </div>
       </form>
     </Card>
   );
@@ -252,6 +275,7 @@ function contactLine(card: TargetCard): string {
 }
 
 const TB = M.table;
+const NONE: ReadonlySet<string> = new Set();
 
 function contactShort(card: TargetCard): string {
   const k = card.contact;
@@ -275,8 +299,7 @@ const REQUEST_TONE = {
  * sous le nom du site : la zone de contenu de l'application (56 rem) ne laisse pas la place d'une
  * colonne de plus sans écraser la raison.
  */
-const COLS =
-  "md:grid-cols-[1.25rem_1.5rem_minmax(10rem,1.2fr)_minmax(0,2.4fr)_8.75rem_6.75rem_2rem]";
+const COLS = "xl:grid-cols-[1.25rem_1.75rem_15.5rem_minmax(0,1fr)_9.5rem_7.5rem_2.25rem]";
 
 /**
  * Une cible = une ligne qui se déplie (retour de Jonathan, 18/11 : tableau dense, le détail au clic).
@@ -288,6 +311,7 @@ export function TargetRow({
   index,
   open,
   selected,
+  isNew = false,
   onOpen,
   onToggle,
 }: {
@@ -295,6 +319,7 @@ export function TargetRow({
   index: number;
   open: boolean;
   selected: boolean;
+  isNew?: boolean;
   onOpen: (id: string) => void;
   onToggle: (id: string) => void;
 }) {
@@ -310,7 +335,7 @@ export function TargetRow({
   return (
     <li className="border-b border-border last:border-b-0" data-testid="target-row">
       <div
-        className={`grid cursor-pointer grid-cols-[1.25rem_minmax(0,1fr)_2.5rem] items-start gap-x-3 gap-y-1.5 px-3 py-3 hover:bg-muted/60 md:items-center md:px-4 md:py-2.5 ${COLS}`}
+        className={`grid cursor-pointer grid-cols-[1.25rem_minmax(0,1fr)_2.5rem] items-start gap-x-3 gap-y-1.5 px-3 py-3 hover:bg-muted/60 xl:items-center xl:px-4 xl:py-2.5 ${COLS}`}
         onClick={(e) => {
           // Un clic sur la case, un lien ou la flèche garde son propre effet.
           if ((e.target as HTMLElement).closest("input,a,button")) return;
@@ -323,31 +348,38 @@ export function TargetRow({
             checked={selected}
             onChange={() => onToggle(card.id)}
             aria-label={`${c.select} : ${card.domain}`}
-            className="mt-0.5 size-5 accent-primary md:mt-0 md:size-4"
+            className="mt-0.5 size-5 accent-primary xl:mt-0 xl:size-4"
           />
         ) : (
           <span aria-hidden="true" />
         )}
-        <span className="hidden text-sm tabular-nums text-muted-foreground md:block">{index}</span>
+        <span className="hidden text-sm tabular-nums text-muted-foreground xl:block">{index}</span>
         <div className="min-w-0">
-          <h3 className="break-words font-semibold">{card.domain}</h3>
+          <h3 className="break-words font-semibold xl:truncate">
+            {card.domain}
+            {isNew ? (
+              <Badge tone="info" className="ml-2 align-middle">
+                {M.live.newBadge}
+              </Badge>
+            ) : null}
+          </h3>
           {type ? (
-            <p className="break-words text-xs text-muted-foreground md:line-clamp-2" title={type}>
+            <p className="break-words text-xs text-muted-foreground xl:truncate" title={type}>
               {type}
             </p>
           ) : null}
         </div>
         <p
-          className={`col-start-2 min-w-0 text-sm md:col-auto ${open ? "" : "line-clamp-2 md:line-clamp-1"}`}
+          className={`col-start-2 min-w-0 text-sm xl:col-auto xl:text-[13.5px] ${open ? "xl:line-clamp-1" : "line-clamp-2"}`}
         >
           {card.why ?? req.lines[0] ?? ""}
         </p>
-        <div className="col-start-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 md:contents">
+        <div className="col-start-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 xl:contents">
           <span>
             <Badge tone={REQUEST_TONE[req.kind]}>{TB.requestTags[req.kind]}</Badge>
           </span>
           <span className="text-sm text-muted-foreground">
-            <span aria-hidden="true" className="md:hidden">
+            <span aria-hidden="true" className="xl:hidden">
               ·{" "}
             </span>
             {contactShort(card)}
@@ -359,7 +391,7 @@ export function TargetRow({
           aria-controls={detailId}
           aria-label={`${open ? TB.close : TB.open} : ${card.domain}`}
           onClick={() => onOpen(card.id)}
-          className="col-start-3 row-start-1 flex size-10 items-center justify-center justify-self-end rounded-control text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring md:col-auto md:row-auto md:size-8"
+          className="col-start-3 row-start-1 flex size-10 items-center justify-center justify-self-end rounded-control text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring xl:col-auto xl:row-auto xl:size-8"
         >
           <svg
             viewBox="0 0 16 16"
@@ -380,76 +412,97 @@ export function TargetRow({
       {open ? (
         <div
           id={detailId}
-          className="grid gap-4 px-3 pb-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:gap-8 md:pb-5 md:pl-[5.25rem] md:pr-4"
+          className="flex flex-col gap-3 px-3 pb-4 xl:pb-5 xl:pl-[5.75rem] xl:pr-4"
         >
-          <div className="flex min-w-0 flex-col gap-4">
-            {card.findings.length > 0 ? (
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-medium">{c.findings}</p>
-                <ul className="flex flex-col gap-2">
-                  {card.findings.map((f) => (
-                    <FindingBlock key={f.id} f={f} />
-                  ))}
-                </ul>
-              </div>
-            ) : req.quote ? (
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-medium">{TB.quote}</p>
-                <blockquote className="border-l-2 border-primary pl-3 text-sm italic">
-                  « {req.quote} »
-                </blockquote>
-              </div>
-            ) : null}
-            <div className="flex flex-col gap-1">
+          {card.why ? (
+            <p className="hidden text-sm xl:block">
+              <strong>{TB.whyLead}</strong> {card.why}
+            </p>
+          ) : null}
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_minmax(0,1fr)] xl:gap-8">
+            <div className="flex min-w-0 flex-col gap-2">
+              {card.findings.length > 0 ? (
+                <>
+                  <p className="text-sm font-medium">{c.findings}</p>
+                  <ul className="flex flex-col gap-2">
+                    {card.findings.map((f) => (
+                      <FindingBlock key={f.id} f={f} />
+                    ))}
+                  </ul>
+                </>
+              ) : req.quote ? (
+                <>
+                  <p className="text-sm font-medium">{TB.quote}</p>
+                  <blockquote className="border-l-2 border-primary pl-3 text-sm italic">
+                    « {req.quote} »
+                  </blockquote>
+                </>
+              ) : null}
+            </div>
+            <div className="flex min-w-0 flex-col gap-2">
               <p className="text-sm font-medium">{c.request}</p>
               <ol className="list-decimal pl-5 text-sm">
                 {req.lines.map((l, i) => (
-                  <li key={i}>{l}</li>
+                  <li key={i} className="mb-1">
+                    {l}
+                  </li>
                 ))}
               </ol>
             </div>
-          </div>
-          <div className="flex min-w-0 flex-col gap-2">
-            <p className="text-sm font-medium">{TB.offer}</p>
-            <dl className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-[auto_minmax(0,1fr)]">
-              {resource ? (
-                <>
-                  <dt className="text-muted-foreground">{TB.resource}</dt>
-                  <dd className="break-words">
-                    {resource.title} <span className="break-all">({resource.url})</span>
-                  </dd>
-                </>
+            <div className="flex min-w-0 flex-col gap-2">
+              <p className="text-sm font-medium">{TB.offer}</p>
+              <dl className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-sm">
+                {resource ? (
+                  <>
+                    <dt className="text-muted-foreground">{TB.resource}</dt>
+                    <dd className="min-w-0">
+                      {resource.title}
+                      <a
+                        href={resource.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={resource.url}
+                        className="block truncate text-primary underline underline-offset-4"
+                      >
+                        {resource.url}
+                      </a>
+                    </dd>
+                  </>
+                ) : null}
+                <dt className="text-muted-foreground">{c.contact}</dt>
+                <dd className="min-w-0 break-words">{contactLine(card)}</dd>
+                {card.pageUrl ? (
+                  <>
+                    <dt className="text-muted-foreground">{TB.page}</dt>
+                    <dd className="min-w-0">
+                      <a
+                        href={card.pageUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={card.pageUrl}
+                        className="block truncate text-primary underline underline-offset-4"
+                      >
+                        {card.pageUrl}
+                      </a>
+                    </dd>
+                  </>
+                ) : null}
+                {others.length > 0 ? (
+                  <>
+                    <dt className="text-muted-foreground">{TB.alsoTitle}</dt>
+                    <dd>{others.map((x) => M.tacticLabels[x]).join(", ")}</dd>
+                  </>
+                ) : null}
+              </dl>
+              {card.platformHosted || card.alreadyValidated ? (
+                <div className="flex flex-wrap gap-2">
+                  {card.platformHosted ? <Badge tone="neutral">{c.hosted}</Badge> : null}
+                  {card.alreadyValidated ? (
+                    <Badge tone="success">{c.alreadyValidated}</Badge>
+                  ) : null}
+                </div>
               ) : null}
-              <dt className="text-muted-foreground">{c.contact}</dt>
-              <dd className="break-words">{contactLine(card)}</dd>
-              {card.pageUrl ? (
-                <>
-                  <dt className="text-muted-foreground">{TB.page}</dt>
-                  <dd className="break-all">
-                    <a
-                      href={card.pageUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline underline-offset-4"
-                    >
-                      {card.pageUrl}
-                    </a>
-                  </dd>
-                </>
-              ) : null}
-              {others.length > 0 ? (
-                <>
-                  <dt className="text-muted-foreground">{TB.alsoTitle}</dt>
-                  <dd>{others.map((x) => M.tacticLabels[x]).join(", ")}</dd>
-                </>
-              ) : null}
-            </dl>
-            {card.platformHosted || card.alreadyValidated ? (
-              <div className="flex flex-wrap gap-2">
-                {card.platformHosted ? <Badge tone="neutral">{c.hosted}</Badge> : null}
-                {card.alreadyValidated ? <Badge tone="success">{c.alreadyValidated}</Badge> : null}
-              </div>
-            ) : null}
+            </div>
           </div>
         </div>
       ) : null}
@@ -462,12 +515,15 @@ export function TargetsTable({
   cards,
   open,
   selected,
+  fresh = NONE,
   onOpen,
   onToggle,
 }: {
   cards: readonly TargetCard[];
   open: ReadonlySet<string>;
   selected: ReadonlySet<string>;
+  /** Cibles arrivées depuis la dernière visite (pastille « Nouveau »). */
+  fresh?: ReadonlySet<string>;
   onOpen: (id: string) => void;
   onToggle: (id: string) => void;
 }) {
@@ -475,7 +531,7 @@ export function TargetsTable({
     <Card className="overflow-hidden p-0" data-testid="targets-table">
       <div
         aria-hidden="true"
-        className={`hidden gap-x-3 border-b border-border bg-muted px-4 py-2 text-xs font-semibold text-muted-foreground md:grid ${COLS}`}
+        className={`hidden gap-x-3 border-b border-border bg-muted px-4 py-2 text-xs font-semibold text-muted-foreground xl:grid ${COLS}`}
       >
         <span />
         <span>#</span>
@@ -493,6 +549,7 @@ export function TargetsTable({
             index={i + 1}
             open={open.has(c.id)}
             selected={selected.has(c.id)}
+            isNew={fresh.has(c.id)}
             onOpen={onOpen}
             onToggle={onToggle}
           />
@@ -519,32 +576,23 @@ export function MoreSites({
   const auto = more.auto;
   const running =
     more.status === "demande" || more.status === "en_cours" || auto.status === "en_cours";
-  // Pendant la lecture, l'écran se met à jour seul : les nouvelles cibles arrivent sans recharger.
-  useEffect(() => {
-    if (!running) return;
-    const id = setInterval(() => router.refresh(), 8000);
-    return () => clearInterval(id);
-  }, [running, router]);
+  // Le suivi de la recherche en cours est dans `LiveBanner` (bandeau du haut), qui rafraîchit l'écran.
+  if (running) return null;
   if (funnel.stock === 0 && more.status === "aucun" && auto.status === "aucun") return null;
   return (
     <Card className="flex flex-col gap-2 p-4" data-testid="more-sites">
       {auto.status === "aucun" && more.status === "termine" && more.added !== null ? (
         <p className="font-medium">{R.done(more.added)}</p>
       ) : null}
-      {auto.status === "termine" || auto.status === "echoue" ? (
+      {auto.status === "echoue" || (auto.status === "termine" && auto.stop === "erreur") ? (
         <p className="font-medium" data-testid="auto-done">
-          {auto.added > 0 ? `${R.auto.doneLine(auto.added)} ` : ""}
-          {R.auto.stop[auto.stop ?? "erreur"]}
+          {R.auto.stop.erreur}
         </p>
       ) : null}
       {more.status === "echoue" && auto.status === "aucun" ? (
         <p className="text-destructive">{R.failedLine}</p>
       ) : null}
-      {running ? (
-        <p role="status" className="font-medium" data-testid="auto-running">
-          {auto.status === "en_cours" ? R.auto.running(auto.added, funnel.stock) : R.running}
-        </p>
-      ) : funnel.stock > 0 ? (
+      {funnel.stock > 0 ? (
         <>
           <p>{R.stock(funnel.stock)}</p>
           <p className="text-sm text-muted-foreground">{R.hint}</p>
@@ -570,9 +618,91 @@ export function MoreSites({
   );
 }
 
+/**
+ * Bandeau de suivi de la recherche (retour de Jonathan, 18/11 : la liste passait de 53 à 70 sans
+ * explication). Tant que la lecture continue : dit qu'elle tourne, ce qui s'est ajouté, le temps
+ * restant estimé, et propose d'afficher les nouveaux sites sans faire sauter la liste. À la fin :
+ * « Recherche terminée ».
+ */
+export function LiveBanner({
+  view,
+  hidden,
+  onReveal,
+}: {
+  view: TargetsView;
+  /** Nombre de cibles arrivées pendant la lecture et pas encore affichées. */
+  hidden: number;
+  onReveal: () => void;
+}) {
+  const L = M.live;
+  const router = useRouter();
+  const auto = view.more.auto;
+  const running =
+    view.more.status === "demande" || view.more.status === "en_cours" || auto.status === "en_cours";
+  // Pendant la lecture, l'écran se met à jour seul ; les nouvelles cibles attendent le clic de l'utilisateur.
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => router.refresh(), 8000);
+    return () => clearInterval(id);
+  }, [running, router]);
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    const first = setTimeout(tick, 0);
+    const id = setInterval(tick, 30_000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
+  }, []);
+  if (!running && hidden === 0) {
+    return auto.status === "termine" && auto.added > 0 ? (
+      <p className="text-sm text-muted-foreground" data-testid="live-done">
+        {L.done(view.cards.length)}
+      </p>
+    ) : null;
+  }
+  const minutes =
+    running && auto.status === "en_cours" && auto.startedAt && now !== null
+      ? roundedMinutes(
+          remainingMinutes({
+            stock: view.funnel?.stock ?? 0,
+            costUsd: auto.costUsd,
+            startedAtMs: Date.parse(auto.startedAt),
+            nowMs: now,
+          }),
+        )
+      : null;
+  return (
+    <Card
+      className="flex flex-col gap-2 p-3 md:flex-row md:flex-wrap md:items-center md:gap-x-4 md:p-4"
+      data-testid="live-banner"
+    >
+      {running ? (
+        <div role="status" className="flex min-w-0 flex-1 items-start gap-3 md:min-w-[18rem]">
+          <span
+            aria-hidden="true"
+            className="mt-1.5 size-2.5 shrink-0 animate-pulse rounded-full bg-primary motion-reduce:animate-none"
+          />
+          <p className="text-sm">
+            <strong>{L.running}</strong> {minutes !== null ? L.runningBody(minutes) : null}
+            {auto.added > 0 ? ` ${L.added(auto.added)}` : ""}
+          </p>
+        </div>
+      ) : (
+        <p className="flex-1 text-sm">{L.done(view.cards.length + hidden)}</p>
+      )}
+      {hidden > 0 ? (
+        <Button type="button" variant="outline" size="sm" onClick={onReveal}>
+          {L.reveal(hidden)}
+        </Button>
+      ) : null}
+    </Card>
+  );
+}
+
 /** Filtres : une rangée qui défile au doigt sur téléphone, qui passe à la ligne sur écran large. */
 const CHIPS = "flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible md:pb-0";
-const NONE: ReadonlySet<string> = new Set();
 
 export function TargetsScreen({
   view,
@@ -588,15 +718,55 @@ export function TargetsScreen({
     startCollection: Act;
     startQualification: Act;
     startFindings: Act;
-    saveFounder: FormAct;
+    saveSettings: (fd: FormData) => Promise<AuditActionState>;
     validate: (ids: string[]) => Promise<AuditActionState>;
     readMore: Act;
   };
 }) {
+  // Cibles arrivées pendant la lecture d'arrière-plan : mises de côté jusqu'au clic de l'utilisateur, pour
+  // que la liste qu'il lit ne bouge pas sous ses yeux (retour de Jonathan, 18/11).
+  const [known] = useState<ReadonlySet<string>>(() => new Set(view.cards.map((x) => x.id)));
+  const [revealed, setRevealed] = useState<Set<string>>(() => new Set());
+  const cards = useMemo(
+    () => view.cards.filter((x) => known.has(x.id) || revealed.has(x.id)),
+    [view.cards, revealed, known],
+  );
+  const hiddenCards = view.cards.filter((x) => !known.has(x.id) && !revealed.has(x.id));
+  // Dernière visite de l'utilisateur sur cet écran (son navigateur) : sert à marquer « Nouveau ».
+  const [seenAt, setSeenAt] = useState<string | null>(null);
+  useEffect(() => {
+    const key = `targets-seen-${auditId}`;
+    const read = setTimeout(() => {
+      try {
+        setSeenAt(localStorage.getItem(key));
+      } catch {
+        /* stockage indisponible : aucune cible marquée nouvelle */
+      }
+    }, 0);
+    const save = () => {
+      try {
+        localStorage.setItem(key, new Date().toISOString());
+      } catch {
+        /* ignoré */
+      }
+    };
+    window.addEventListener("pagehide", save);
+    return () => {
+      clearTimeout(read);
+      save();
+      window.removeEventListener("pagehide", save);
+    };
+  }, [auditId]);
+  const fresh = useMemo(() => newIds(cards, seenAt, revealed), [cards, seenAt, revealed]);
+  const [onlyNew, setOnlyNew] = useState(false);
   const [filter, setFilter] = useState<TacticFilter>("toutes");
   /** Onglet de type d'éditeur : `undefined` = toutes, `null` = autres sites. */
   const [publisher, setPublisher] = useState<string | null | undefined>(undefined);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(eligibleIds(view.cards)));
+  const reveal = () => {
+    setRevealed(new Set(hiddenCards.map((x) => x.id)));
+    setSelected((prev) => new Set([...prev, ...eligibleIds(hiddenCards)]));
+  };
   // La première cible est ouverte d'emblée : on voit tout de suite le niveau de détail disponible.
   const [open, setOpen] = useState<Set<string>>(
     () => new Set(view.cards[0] ? [view.cards[0].id] : []),
@@ -609,27 +779,42 @@ export function TargetsScreen({
     });
   const [vState, setVState] = useState<AuditActionState>({ status: "idle" });
   const [vPending, startValidate] = useTransition();
-  const counts = useMemo(() => countByTactic(view.cards), [view.cards]);
+  const [askSettings, setAskSettings] = useState(false);
+  const settingsOk = view.founderRole !== null && view.hasSignature;
+  /** Valide les cibles retenues ; avec des réglages saisis, les enregistre d'abord (une seule fois). */
+  const runValidate = (fd?: FormData) =>
+    startValidate(async () => {
+      if (fd) {
+        const saved = await actions.saveSettings(fd);
+        if (saved.status === "error") {
+          setVState(saved);
+          return;
+        }
+      }
+      setVState(await actions.validate(chosen));
+      setAskSettings(false);
+    });
+  const counts = useMemo(() => countByTactic(cards), [cards]);
   const types = view.publisherTypes;
   const tabs = useMemo(
     () =>
       publisherTabs(
-        view.cards.map((c) => c.publisher ?? null),
+        cards.map((c) => c.publisher ?? null),
         types,
       ),
-    [view.cards, types],
+    [cards, types],
   );
   const shown = useMemo(() => {
-    const byTactic = filterCards(view.cards, filter);
+    const byTactic = filterCards(cards, filter).filter((x) => !onlyNew || fresh.has(x.id));
     if (publisher === undefined) return byTactic;
     const known = new Set(types.map((x) => x.label));
     return byTactic.filter((c) =>
       publisher === null ? !c.publisher || !known.has(c.publisher) : c.publisher === publisher,
     );
-  }, [view.cards, filter, publisher, types]);
+  }, [cards, filter, publisher, types, onlyNew, fresh]);
   const q = view.qualification;
   const f = view.findings;
-  const chosen = [...selected].filter((id) => view.cards.some((c) => c.id === id && isEligible(c)));
+  const chosen = [...selected].filter((id) => cards.some((c) => c.id === id && isEligible(c)));
   const toggle = (id: string) =>
     setSelected((prev) => {
       const next = new Set(prev);
@@ -642,12 +827,6 @@ export function TargetsScreen({
 
   return (
     <div className="flex flex-col gap-6">
-      <FounderQuestion
-        site={view.siteDomain}
-        current={view.founderRole}
-        save={actions.saveFounder}
-      />
-
       {showSteps ? (
         <>
           <CostStep
@@ -704,7 +883,7 @@ export function TargetsScreen({
             doneLine={
               qDone
                 ? m.qualify.done
-                    .replace("{n}", String(view.cards.length))
+                    .replace("{n}", String(cards.length))
                     .replace("{cost}", formatUsd(q.costUsd))
                 : null
             }
@@ -718,10 +897,7 @@ export function TargetsScreen({
               f.preview
                 ? m.findings.targets
                     .replace("{n}", String(f.preview.estimate.targets))
-                    .replace(
-                      "{m}",
-                      String(Math.max(0, f.preview.estimate.targets - view.cards.length)),
-                    )
+                    .replace("{m}", String(Math.max(0, f.preview.estimate.targets - cards.length)))
                 : null
             }
             run={f}
@@ -749,10 +925,13 @@ export function TargetsScreen({
 
       <section className="flex flex-col gap-4" aria-labelledby="short-list">
         <h2 id="short-list" className="font-display text-2xl font-semibold">
-          {view.cards.length > 0 ? M.list.heading(view.cards.length) : M.list.title}
+          {cards.length > 0 ? M.list.heading(cards.length) : M.list.title}
         </h2>
-        {view.cards.length > 0 ? <p className="text-muted-foreground">{M.list.lead}</p> : null}
-        {view.cards.length === 0 ? (
+        {cards.length > 0 ? <p className="text-muted-foreground">{M.list.lead}</p> : null}
+        {view.funnel ? (
+          <LiveBanner view={{ ...view, cards }} hidden={hiddenCards.length} onReveal={reveal} />
+        ) : null}
+        {cards.length === 0 ? (
           <Card className="p-6 text-muted-foreground">{M.list.empty}</Card>
         ) : (
           <>
@@ -765,13 +944,28 @@ export function TargetsScreen({
                     type="button"
                     size="sm"
                     className="shrink-0"
-                    variant={filter === k ? "default" : "outline"}
-                    aria-pressed={filter === k}
-                    onClick={() => setFilter(k)}
+                    variant={filter === k && !onlyNew ? "default" : "outline"}
+                    aria-pressed={filter === k && !onlyNew}
+                    onClick={() => {
+                      setFilter(k);
+                      setOnlyNew(false);
+                    }}
                   >
                     {M.filters[k]} ({counts[k]})
                   </Button>
                 ))}
+              {fresh.size > 0 ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  className="shrink-0"
+                  variant={onlyNew ? "default" : "outline"}
+                  aria-pressed={onlyNew}
+                  onClick={() => setOnlyNew(!onlyNew)}
+                >
+                  {M.live.newFilter} ({fresh.size})
+                </Button>
+              ) : null}
             </div>
             {types.length > 0 ? (
               <div className="flex flex-col gap-2">
@@ -790,7 +984,7 @@ export function TargetsScreen({
                     aria-pressed={publisher === undefined}
                     onClick={() => setPublisher(undefined)}
                   >
-                    {M.publishers.all} ({view.cards.length})
+                    {M.publishers.all} ({cards.length})
                   </Button>
                   {tabs
                     .filter((tab) => tab.count > 0)
@@ -825,6 +1019,7 @@ export function TargetsScreen({
                 cards={shown}
                 open={open}
                 selected={selected}
+                fresh={fresh}
                 onOpen={toggleOpen}
                 onToggle={toggle}
               />
@@ -844,18 +1039,25 @@ export function TargetsScreen({
             {view.funnel ? (
               <MoreSites funnel={view.funnel} more={view.more} start={actions.readMore} />
             ) : null}
+            {askSettings ? (
+              <MessageSettingsForm
+                site={view.siteDomain}
+                role={view.founderRole}
+                firstName={view.signatureFirstName}
+                count={chosen.length}
+                pending={vPending}
+                onSubmit={(fd) => runValidate(fd)}
+                onCancel={() => setAskSettings(false)}
+              />
+            ) : null}
             {/* Téléphone : le bouton prend toute la largeur, les actions secondaires tiennent sur une rangée. */}
             <Card className="sticky bottom-3 flex flex-col gap-2 p-3 md:bottom-4 md:p-4">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <Button
                   type="button"
                   className="w-full md:w-auto"
-                  disabled={vPending || chosen.length === 0 || view.founderRole === null}
-                  onClick={() =>
-                    startValidate(async () => {
-                      setVState(await actions.validate(chosen));
-                    })
-                  }
+                  disabled={vPending || chosen.length === 0}
+                  onClick={() => (settingsOk ? runValidate() : setAskSettings(true))}
                 >
                   {vPending
                     ? M.validate.busy
@@ -865,7 +1067,7 @@ export function TargetsScreen({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => setSelected(new Set(eligibleIds(view.cards)))}
+                  onClick={() => setSelected(new Set(eligibleIds(cards)))}
                 >
                   {M.list.selectAll}
                 </Button>
@@ -885,16 +1087,24 @@ export function TargetsScreen({
                 </Link>
               </div>
               <p
-                className={`text-xs text-muted-foreground ${
-                  view.founderRole !== null && chosen.length > 0 ? "hidden md:block" : ""
-                }`}
+                className={`text-xs text-muted-foreground ${chosen.length > 0 ? "hidden md:block" : ""}`}
               >
-                {view.founderRole === null
-                  ? M.validate.needFounder
-                  : chosen.length === 0
-                    ? M.validate.empty
-                    : M.validate.note}
+                {chosen.length === 0 ? M.validate.empty : M.validate.note}
               </p>
+              {settingsOk && view.founderRole ? (
+                <p className="hidden text-xs text-muted-foreground md:block">
+                  {M.founder.recap
+                    .replace("{name}", view.signatureFirstName ?? "")
+                    .replace("{role}", M.founder.shortRoles[view.founderRole])}{" "}
+                  <button
+                    type="button"
+                    className="underline underline-offset-4"
+                    onClick={() => setAskSettings(true)}
+                  >
+                    {M.founder.change}
+                  </button>
+                </p>
+              ) : null}
               <Message state={vState} />
             </Card>
           </>

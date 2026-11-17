@@ -11,7 +11,7 @@ import { JourneySteps } from "@/features/shell/journey-steps";
 import { loadSiteWithAudit, siteHref, UUID_RE } from "@/features/shell/next-step";
 import {
   readMoreAction,
-  setFounderRoleAction,
+  saveMessageSettingsAction,
   startCollectionAction,
   startFindingsAction,
   startQualificationAction,
@@ -69,7 +69,7 @@ async function Targets({ params }: { params: Promise<{ id: string }> }) {
           startCollection: startCollectionAction.bind(null, auditId),
           startQualification: startQualificationAction.bind(null, auditId),
           startFindings: startFindingsAction.bind(null, auditId),
-          saveFounder: setFounderRoleAction.bind(null, auditId),
+          saveSettings: saveMessageSettingsAction.bind(null, auditId),
           validate: validateRequestsAction.bind(null, auditId),
           readMore: readMoreAction.bind(null, auditId),
         }}

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { inngest } from "@/inngest/client";
 import { AUTO_EVENT, autoEventId, startBackground } from "@/features/qualification/background";
 import { MORE_EVENT } from "@/features/qualification/more";
+import { sendReadyEmail } from "@/features/analysis/ready-email";
 import { logger } from "@/lib/logger";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -23,6 +24,9 @@ export const auditQualifyAutoStart = inngest.createFunction(
       logger.info("arrière-plan non lancé (réserve vide, déjà en cours ou analyse non terminée)", {
         auditId,
       });
+      // Rien à lire en arrière-plan : la liste est définitive, on prévient maintenant (un seul essai,
+      // jamais bloquant).
+      await step.run("email-fin", async () => sendReadyEmail(createServiceClient(), auditId));
       return { started: false };
     }
     await step.sendEvent("first-lot", {

@@ -1577,3 +1577,15 @@ Maquette validée par Jonathan avant le code. Périmètre : session A sur trois 
 
 - **Session B** : bandeau « la recherche continue » avec temps restant, pastille et filtre « Nouveau », nouveaux sites insérés sans faire sauter la liste, email de fin envoyé à la fin définitive (à vérifier : aujourd'hui, à la première liste ou à la fin ?).
 - **Session C** : retirer « Comment vous présentez-vous » et le prénom de signature de cet écran ; les demander dans une étape « Réglages des messages » juste avant la rédaction. La validation des cibles ne doit plus rien exiger.
+
+## Session du 18/11 (suite 10) : sessions B et C écrites, pas encore fusionnées
+
+Branche `claude/email-recovery-targets-ma0fhv` (poussée, **non fusionnée** : Jonathan veut d'abord valider la maquette desktop v2 de l'écran des cibles, pleine largeur, voir l'artefact « Maquette Vos cibles »).
+
+- **B. Suivi de la recherche** : bandeau `LiveBanner` (« La recherche continue », temps restant estimé `live.ts`, cibles ajoutées), pastille et filtre « Nouveau » (dernière visite lue dans le navigateur), cibles arrivées pendant la lecture mises de côté jusqu'au clic « N nouveaux sites, afficher » (la liste ne bouge pas). **Email de fin** déplacé à la fin DÉFINITIVE (`analysis/ready-email.ts`, appelé par `audit-qualify-more` à l'arrêt de l'arrière-plan, par `audit-qualify-auto-start` si rien à lire, et à l'échec) au lieu de la première liste.
+- **C. Réglages des messages** : la question « Comment vous présentez-vous » a quitté le haut de l'écran ; rôle et prénom de signature sont demandés une seule fois, au clic sur « Valider », juste avant la rédaction (`MessageSettingsForm`, `saveMessageSettings`). La validation des cibles n'exige plus rien avant.
+- Tests, lint et typecheck verts (1153 tests). Pas de capture avec de vraies données.
+
+### Maquette desktop v2 appliquée (accord de Jonathan)
+
+Zone de contenu élargie pour l'écran des cibles (`shell/content-width.tsx`, 96 rem au lieu de 56), tableau à colonnes fixes à partir de 1280 px (cartes en dessous), raison complète en bandeau dans le détail, détail sur trois colonnes, liens longs tronqués (lien complet au survol). Contrôlé par captures à 1500 px et 390 px : aucun défilement horizontal.
