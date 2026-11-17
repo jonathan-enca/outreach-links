@@ -1406,8 +1406,12 @@ export const fr = {
       skipped: "{n} ignorées (déjà validées ou sans contact utilisable).",
     },
     founder: {
-      title: "Comment vous présentez-vous aux éditeurs ?",
-      body: "Vos messages sont signés de votre prénom. Pour rester honnête avec ceux qui les lisent, choisissez ce qui est vrai : on n'écrit jamais « fondateur » sans votre accord. Ce choix se change à tout moment.",
+      title: "Avant de rédiger vos messages",
+      body: "Vos messages sont signés de votre prénom. Pour rester honnête avec ceux qui les lisent, choisissez ce qui est vrai : on n'écrit jamais « fondateur » sans votre accord. Ces réglages se changent à tout moment.",
+      firstName: "Votre prénom de signature",
+      saveAndValidate: "Enregistrer et valider ({n} demandes)",
+      recap: "Messages signés {name}, présentés comme {role}.",
+      cancel: "Annuler",
       roles: {
         fondateur: "Je suis le fondateur de {site}",
         equipe: "Je fais partie de l'équipe de {site}",
@@ -1494,6 +1498,19 @@ export const fr = {
         autre: "autres motifs",
       } as Record<string, string>,
     },
+    /** Suivi de la recherche qui continue après la première liste (18/11). */
+    live: {
+      running: "La recherche continue.",
+      runningBody: (min: number) =>
+        `Nous lisons encore d'autres sites : fin estimée dans environ ${min} minutes. Vous pouvez déjà valider les cibles ci-dessous, ou fermer cette page : vous recevrez un email à la fin.`,
+      added: (n: number) =>
+        `${n} ${n > 1 ? "cibles ajoutées" : "cible ajoutée"} depuis la première liste.`,
+      reveal: (n: number) =>
+        `${n} ${n > 1 ? "nouveaux sites, afficher" : "nouveau site, afficher"}`,
+      done: (n: number) => `Recherche terminée : ${n} ${n > 1 ? "sites" : "site"} à contacter.`,
+      newBadge: "Nouveau",
+      newFilter: "Nouveaux",
+    },
     more: {
       stock: (n: number) =>
         `${n} ${n > 1 ? "autres sites trouvés par la recherche n'ont pas encore été lus" : "autre site trouvé par la recherche n'a pas encore été lu"}.`,
@@ -1517,7 +1534,7 @@ export const fr = {
             "Lecture arrêtée : le budget prévu pour la lecture automatique est atteint. Vous pouvez lire d'autres sites à la main.",
           rendement_faible:
             "Lecture arrêtée : les deux dernières lectures n'ont presque rien apporté, nous n'ajoutons rien pour faire du volume.",
-          duree: "Lecture arrêtée : la durée maximale de 15 minutes est atteinte.",
+          duree: "Lecture arrêtée : la durée maximale de 25 minutes est atteinte.",
           erreur: "La lecture automatique s'est arrêtée sur une erreur. Vous pouvez la relancer.",
         } as Record<string, string>,
       },
@@ -1655,7 +1672,6 @@ export const fr = {
       button: "Valider ces demandes ({n})",
       busy: "Validation…",
       note: "Les messages seront rédigés avec le point précis cité sur chaque page, puis réunis dans un lot que vous relisez et validez avant tout envoi. Rien n'est envoyé maintenant.",
-      needFounder: "Choisissez votre présentation ci-dessus pour valider.",
       empty: "Cochez au moins une demande.",
     },
   },

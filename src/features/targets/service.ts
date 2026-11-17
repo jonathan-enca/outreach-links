@@ -103,6 +103,7 @@ export function toCard(
     platformHosted: r.platform_hosted,
     alreadyValidated: validated.has(r.id),
     resource: res ? { url: res.url, title: res.title } : null,
+    addedAt: r.created_at,
   };
 }
 
@@ -138,6 +139,8 @@ export interface TargetsView {
   siteDomain: string;
   founderRole: FounderRole | null;
   hasSignature: boolean;
+  /** Prénom de signature enregistré (pré-remplit le réglage des messages). */
+  signatureFirstName: string | null;
   collectionDone: boolean;
   collection: TargetsRunView & { preview: CollectionPreview | null; skipped: SkippedView };
   qualification: TargetsRunView & { preview: QualificationPreview | null };
@@ -219,7 +222,7 @@ export async function loadTargets(
     supabase
       .from("qualification_runs")
       .select(
-        "id, status, actual_cost_usd, stop_reason, error_message, stats, more_status, more_stats, auto_status, auto_added, auto_lots, auto_stop",
+        "id, status, actual_cost_usd, stop_reason, error_message, stats, more_status, more_stats, auto_status, auto_added, auto_lots, auto_stop, auto_started_at, auto_cost_usd",
       )
       .eq("audit_id", auditId)
       .maybeSingle(),
@@ -361,6 +364,7 @@ export async function loadTargets(
     siteDomain: site.domain,
     founderRole: isFounderRole(site.founder_role) ? site.founder_role : null,
     hasSignature: Boolean(site.signature_first_name?.trim()),
+    signatureFirstName: site.signature_first_name?.trim() || null,
     collectionDone,
     collection: { ...runView(col.data), preview: cPreview, skipped: skippedOf(col.data?.plan) },
     qualification: { ...runView(qrun), preview: qPreview },
@@ -389,6 +393,8 @@ export async function loadTargets(
           : "aucun",
         added: qrun?.auto_added ?? 0,
         lots: qrun?.auto_lots ?? 0,
+        startedAt: qrun?.auto_started_at ?? null,
+        costUsd: Number(qrun?.auto_cost_usd ?? 0),
         stop: (qrun?.auto_stop as MoreView["auto"]["stop"]) ?? null,
       },
     },
@@ -413,6 +419,41 @@ export async function setFounderRole(
   const { data, error } = await supabase
     .from("sites")
     .update({ founder_role: rawRole, founder_confirmed_at: new Date().toISOString() })
+    .eq("id", audit.site_id)
+    .select("id");
+  if (error || !data?.length) return { status: "error", message: M.saveError };
+  return { status: "ok", auditId, message: M.founderSaved };
+}
+
+/**
+ * Réglages des messages (rôle de l'utilisateur et prénom de signature) : demandés une seule fois, au
+ * moment de valider les cibles et avant la rédaction, jamais pendant la lecture de la liste.
+ */
+export async function saveMessageSettings(
+  supabase: Client,
+  auditId: string,
+  rawRole: unknown,
+  rawFirstName: unknown,
+): Promise<AuditActionState> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { status: "error", message: M.unauthenticated };
+  if (!isFounderRole(rawRole)) return { status: "error", message: M.founderMissing };
+  const name = typeof rawFirstName === "string" ? rawFirstName.trim() : "";
+  if (name.length < 1 || name.length > 60)
+    return { status: "error", message: t.sites.validation.signatureFirstName };
+  const { data: audit } = await supabase
+    .from("audits")
+    .select("site_id")
+    .eq("id", auditId)
+    .maybeSingle();
+  if (!audit) return { status: "error", message: M.notFound };
+  const { data, error } = await supabase
+    .from("sites")
+    .update({
+      founder_role: rawRole,
+      founder_confirmed_at: new Date().toISOString(),
+      signature_first_name: name,
+    })
     .eq("id", audit.site_id)
     .select("id");
   if (error || !data?.length) return { status: "error", message: M.saveError };

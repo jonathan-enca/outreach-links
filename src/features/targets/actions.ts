@@ -10,7 +10,7 @@ import { startQualification } from "@/features/qualification/service";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { setFounderRole, validateRequests } from "./service";
+import { saveMessageSettings, validateRequests } from "./service";
 
 const M = t.targets.messages;
 const refresh = () => revalidatePath("/app", "layout");
@@ -63,12 +63,17 @@ export async function readMoreAction(auditId: string): Promise<AuditActionState>
   return r;
 }
 
-export async function setFounderRoleAction(
+/** Rôle et prénom de signature, enregistrés ensemble (appelé juste avant la validation des cibles). */
+export async function saveMessageSettingsAction(
   auditId: string,
-  _prev: AuditActionState,
   formData: FormData,
 ): Promise<AuditActionState> {
-  const r = await setFounderRole(await createClient(), auditId, formData.get("role"));
+  const r = await saveMessageSettings(
+    await createClient(),
+    auditId,
+    formData.get("role"),
+    formData.get("firstName"),
+  );
   refresh();
   return r;
 }

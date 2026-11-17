@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { inngest } from "@/inngest/client";
+import { sendReadyEmail } from "@/features/analysis/ready-email";
 import { productionQualDeps } from "@/features/qualification/deps";
 import { executeQualification, type StepRunner } from "@/features/qualification/funnel";
 import { advanceBackground, autoEventId } from "@/features/qualification/background";
@@ -38,6 +39,14 @@ export const auditQualifyMore = inngest.createFunction(
       const parsed = eventSchema.safeParse(original);
       if (!parsed.success) return;
       await failMore(createServiceClient(), parsed.data.auditId, error.message);
+      // Lecture automatique interrompue : la liste actuelle est la liste définitive, on prévient quand même.
+      if (parsed.data.auto) {
+        try {
+          await sendReadyEmail(createServiceClient(), parsed.data.auditId);
+        } catch {
+          /* jamais bloquant */
+        }
+      }
     },
   },
   async ({ event, step }) => {
@@ -80,6 +89,10 @@ export const auditQualifyMore = inngest.createFunction(
         name: MORE_EVENT,
         data: { auditId, auto: { lot: next.lot } },
       });
+    }
+    if (!next.continue) {
+      // Fin définitive de l'analyse : c'est maintenant que la liste est complète. Un seul essai.
+      await step.run("email-fin", async () => sendReadyEmail(createServiceClient(), auditId));
     }
     log.info("arrière-plan", { lot: auto.lot, ...next });
     return { ...out, next };

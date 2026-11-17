@@ -4,7 +4,6 @@ import { productionAnalysisDeps } from "@/features/analysis/deps";
 import { runAnalysis, type StepRunner } from "@/features/analysis/orchestrate";
 import { failAnalysis, realOrchestration } from "@/features/analysis/run";
 import { AUTO_EVENT } from "@/features/qualification/background";
-import { notifyAnalysisReady } from "@/features/analysis/notify";
 import { ANALYSIS_EVENT, LINKS_STATE_EVENT } from "@/features/analysis/service";
 import { logger } from "@/lib/logger";
 import { t } from "@/lib/messages";
@@ -53,48 +52,8 @@ export const analysisRun = inngest.createFunction(
       // Arrière-plan : la première liste est affichée ; la réserve de sites se lit maintenant toute seule,
       // lot par lot (un événement par lot, jamais une requête directe). Jamais bloquant.
       await step.sendEvent("lecture-arriere-plan", { name: AUTO_EVENT, data: { auditId } });
-      // D7 : un seul essai, jamais bloquant (sans service d'email, l'écran suffit). Étape mémorisée :
-      // un rejeu du job ne renvoie pas l'email.
-      const emailed = await step.run("email-fin", async () => {
-        const service = createServiceClient();
-        const { data: audit } = await service
-          .from("audits")
-          .select("workspace_id, site_id, created_by, sites(domain)")
-          .eq("id", auditId)
-          .maybeSingle();
-        const site = audit?.sites as unknown as { domain: string } | null;
-        if (!audit || !site || !audit.created_by) return "sans_adresse";
-        return notifyAnalysisReady(
-          service,
-          {
-            auditId,
-            workspaceId: audit.workspace_id,
-            siteId: audit.site_id,
-            domain: site.domain,
-            actorId: audit.created_by,
-          },
-          outcome.shortlist,
-        );
-      });
-      log.info("email de fin", { emailed });
-      // Trace durable du résultat (essai du 17/11 : aucun moyen de savoir pourquoi l'email n'était pas parti).
-      await step.run("email-fin-trace", async () => {
-        const service = createServiceClient();
-        const { data: audit } = await service
-          .from("audits")
-          .select("workspace_id")
-          .eq("id", auditId)
-          .maybeSingle();
-        if (audit) {
-          await service.from("events").insert({
-            workspace_id: audit.workspace_id,
-            actor_id: null,
-            type: "analysis.email_result",
-            payload: { audit_id: auditId, result: emailed },
-          });
-        }
-        return { traced: true };
-      });
+      // L'email « vos cibles sont prêtes » part à la fin DÉFINITIVE (fin de l'arrière-plan), pas ici :
+      // voir `sendReadyEmail`, appelé par `audit-qualify-auto-start` et `audit-qualify-more`.
     }
     log.info("analyse terminée", { ...outcome });
     return outcome;

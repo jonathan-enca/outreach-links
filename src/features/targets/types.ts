@@ -66,6 +66,8 @@ export interface TargetCard {
   resource: { url: string; title: string } | null;
   /** Type d'éditeur cherché auquel la cible correspond (chantier H) ; null = autres sites. */
   publisher?: string | null;
+  /** Date d'ajout à la liste (sert à repérer les cibles nouvelles depuis la dernière visite). */
+  addedAt?: string | null;
 }
 
 /** Ce que l'analyse a examiné, en chiffres lisibles (chantier G). */
@@ -93,6 +95,9 @@ export interface MoreView {
     /** Cibles ajoutées depuis la première liste. */
     added: number;
     lots: number;
+    /** Début de la lecture automatique et coût déjà dépensé (estimation du temps restant). */
+    startedAt: string | null;
+    costUsd: number;
     stop: "reserve_epuisee" | "budget" | "rendement_faible" | "duree" | "erreur" | null;
   };
 }
