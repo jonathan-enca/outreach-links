@@ -1626,3 +1626,12 @@ Maquette validée par Jonathan (artefact « Maquette espace client » : menu, ac
 
 - Chiffres posés dans la maquette sans validation : montée en charge 40 / 80 / 120 messages par jour, arrêt à 5 % de rebonds, contenu des offres.
 - **Envoi réel** : toujours jamais testé avec une vraie boîte. Voir la discussion sur la connexion (mot de passe d'application ou OAuth Google / Microsoft).
+
+## Session du 18/11 (suite 13) : file « À valider » (étape 2 sur 4 de l'espace client)
+
+- **`/app/a-valider`** est maintenant la file unique de la maquette (`features/approvals/`) : réponses proposées, premiers messages (email ou formulaire) et formulaires à remplir, toutes campagnes confondues. Sur chaque carte : approuver, modifier sur place (relu par le linter), « Plus tard » (masque pour la visite, rien n'est supprimé). « Tout approuver (N) » pour les messages prêts.
+- **Approuver un premier message** = le placer dans un lot validé (`approveMessages`) : même mécanisme et mêmes garde-fous en base que la validation par lot ; un lot encore ouvert du plan est réutilisé et ne garde que les messages approuvés. Un email sans contact vérifié n'entre pas dans la file. Un message pour formulaire approuvé devient une tâche (« Formulaire à remplir »), jamais un envoi.
+- Réponses : approbation, modification et refus par les services existants de l'inbox. Formulaires : copier, ouvrir, marquer comme fait.
+- Contrôlé par captures sur des données d'exemple (1280 px et 390 px). Jamais exercé avec de vraies données ni un vrai envoi.
+- **Décision de Jonathan (18/11) : la connexion de la boîte doit être un clic OAuth Google** (le plus simple pour l'utilisateur). À cadrer : projet Google Cloud, écran de consentement, vérification des scopes (envoi = sensible ; lecture des réponses = restreint, audit de sécurité). Voir la prochaine session.
+- Reste : étape 3 (Conversations avec filtres, non lus, étiquettes), étape 4 (écrans de réglages).
