@@ -15,10 +15,20 @@ export const AUTO_EVENT = "audit/qualification.auto.requested";
  * première liste) : budget de jugement total de l'arrière-plan, durée, rendement.
  */
 export const AUTO_LIMITS = {
-  /** Durée maximale de tout l'arrière-plan (depuis la fin de la première liste). */
-  maxMs: 15 * 60_000,
-  /** Budget de jugement TOTAL de l'arrière-plan (USD) : environ trois lots mesurés à 0,09. */
-  budgetUsd: 0.25,
+  /**
+   * Durée maximale de tout l'arrière-plan (depuis la fin de la première liste). 25 minutes depuis le
+   * jugement par lots (18/11/2026) : chaque lot attend sa réponse environ 3 minutes (mesuré : 183 s pour
+   * 8 requêtes, 154 s pour 5), en plus d'environ 1 min 30 de lecture.
+   */
+  maxMs: 25 * 60_000,
+  /**
+   * Budget de jugement TOTAL de l'arrière-plan (USD), au tarif des lots. Recalé le 18/11/2026 sur les
+   * mesures pour que l'analyse COMPLÈTE reste sous 1,00 USD : première liste mesurée 0,92 USD + au plus
+   * 0,07 = 0,99. Mesuré : 0,0041 USD par requête de 5 cibles (0,0079 en appel direct), soit environ
+   * 17 requêtes, 85 pages jugées, 15 à 25 cibles ajoutées. Passer à 0,15 double à peu près le gain
+   * (environ 1,07 USD au total) : décision de produit, un seul chiffre à changer ici.
+   */
+  budgetUsd: 0.07,
   /** Un lot « rapporte peu » s'il ajoute moins de cibles que cela. */
   minAdded: 5,
   /** Arrêt après ce nombre de lots de suite qui rapportent peu. */
@@ -29,8 +39,8 @@ export const AUTO_LIMITS = {
   minLotMs: 60_000,
 } as const;
 
-/** Part du budget d'arrière-plan attendue dépensée (mesure : 228 sites en réserve = 3 lots à 0,09). */
-export const AUTO_EXPECTED_SHARE = 0.7;
+/** Part du budget d'arrière-plan attendue dépensée (mesure du 18/11 : 0,054 USD dépensés, réserve épuisée, sur 0,07). */
+export const AUTO_EXPECTED_SHARE = 0.8;
 
 export type AutoStop = "reserve_epuisee" | "budget" | "rendement_faible" | "duree" | "erreur";
 

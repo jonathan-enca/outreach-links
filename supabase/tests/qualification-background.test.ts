@@ -237,12 +237,12 @@ describe.skipIf(!adminUrl)("lecture automatique de la réserve sur une vraie bas
   });
 
   it("un lot automatique est borné par ce qui reste du budget et du temps", async () => {
-    const started = await startBackground(service, auditId, new Date(Date.now() - 12 * 60_000));
-    await db.query("update public.qualification_runs set auto_cost_usd = 0.2 where id = $1", [
+    const started = await startBackground(service, auditId, new Date(Date.now() - 22 * 60_000));
+    await db.query("update public.qualification_runs set auto_cost_usd = 0.04 where id = $1", [
       runId,
     ]);
     const r = await beginMore(service, auditId, { lot: started!.lot });
-    expect(r!.budgetUsd).toBeCloseTo(0.05, 6);
+    expect(r!.budgetUsd).toBeCloseTo(AUTO_LIMITS.budgetUsd - 0.04, 6);
     expect(r!.maxReadMs).toBeLessThanOrEqual(3 * 60_000 + 2_000);
     expect(r!.maxReadMs).toBeGreaterThan(2 * 60_000);
   });
@@ -287,15 +287,15 @@ describe.skipIf(!adminUrl)("lecture automatique de la réserve sur une vraie bas
   it("enchaînement complet : les lots avancent, les compteurs ne comptent jamais deux fois un lot rejoué", async () => {
     const s = await startBackground(service, auditId);
     expect(s?.lot).toBe(1);
-    const a1 = await advanceBackground(service, run(), 1, lotStats(0.09), 12);
+    const a1 = await advanceBackground(service, run(), 1, lotStats(0.03), 12);
     expect(a1).toMatchObject({ continue: true, lot: 2 });
     // Rejeu du même lot : même décision, aucun compteur doublé.
-    const a1bis = await advanceBackground(service, run(), 1, lotStats(0.09), 12);
+    const a1bis = await advanceBackground(service, run(), 1, lotStats(0.03), 12);
     expect(a1bis).toMatchObject({ continue: true, lot: 2 });
     const row = await auto();
     expect(row.auto_lots).toBe(1);
     expect(row.auto_added).toBe(12);
-    expect(Number(row.auto_cost_usd)).toBeCloseTo(0.09, 6);
+    expect(Number(row.auto_cost_usd)).toBeCloseTo(0.03, 6);
     expect(row.more_status).toBe("demande");
     expect(row.auto_status).toBe("en_cours");
   });
@@ -470,23 +470,23 @@ describe.skipIf(!adminUrl)("lecture automatique de la réserve sur une vraie bas
 
   it("arrêt : deux lots de suite sous 5 cibles ajoutées (un bon lot remet le compteur à zéro)", async () => {
     await startBackground(service, auditId);
-    expect(await advanceBackground(service, run(), 1, lotStats(0.02), 4)).toMatchObject({
+    expect(await advanceBackground(service, run(), 1, lotStats(0.005), 4)).toMatchObject({
       continue: true,
     });
-    expect(await advanceBackground(service, run(), 2, lotStats(0.02), 9)).toMatchObject({
+    expect(await advanceBackground(service, run(), 2, lotStats(0.005), 9)).toMatchObject({
       continue: true,
     });
     expect((await auto()).auto_low_streak).toBe(0);
-    expect(await advanceBackground(service, run(), 3, lotStats(0.02), 1)).toMatchObject({
+    expect(await advanceBackground(service, run(), 3, lotStats(0.005), 1)).toMatchObject({
       continue: true,
     });
-    const last = await advanceBackground(service, run(), 4, lotStats(0.02), 2);
+    const last = await advanceBackground(service, run(), 4, lotStats(0.005), 2);
     expect(last).toEqual({ continue: false, stop: "rendement_faible" });
     const row = await auto();
     expect(row.auto_status).toBe("termine");
     expect(row.auto_stop).toBe("rendement_faible");
     // Un lot en retard après l'arrêt ne relance rien.
-    expect(await advanceBackground(service, run(), 5, lotStats(0.02), 20)).toEqual({
+    expect(await advanceBackground(service, run(), 5, lotStats(0.005), 20)).toEqual({
       continue: false,
       stop: "rendement_faible",
     });
@@ -494,10 +494,10 @@ describe.skipIf(!adminUrl)("lecture automatique de la réserve sur une vraie bas
 
   it("arrêt : budget total de jugement de l'arrière-plan atteint", async () => {
     await startBackground(service, auditId);
-    expect(await advanceBackground(service, run(), 1, lotStats(0.12), 15)).toMatchObject({
+    expect(await advanceBackground(service, run(), 1, lotStats(0.04), 15)).toMatchObject({
       continue: true,
     });
-    const out = await advanceBackground(service, run(), 2, lotStats(0.11), 15);
+    const out = await advanceBackground(service, run(), 2, lotStats(0.03), 15);
     expect(out).toEqual({ continue: false, stop: "budget" });
     expect(Number((await auto()).auto_cost_usd)).toBeLessThanOrEqual(AUTO_LIMITS.budgetUsd + 0.2);
   });
@@ -520,15 +520,15 @@ describe.skipIf(!adminUrl)("lecture automatique de la réserve sur une vraie bas
     });
   });
 
-  it("arrêt : durée maximale de 15 minutes", async () => {
-    await startBackground(service, auditId, new Date(Date.now() - 14.5 * 60_000));
+  it("arrêt : durée maximale de 25 minutes", async () => {
+    await startBackground(service, auditId, new Date(Date.now() - 24.5 * 60_000));
     const out = await advanceBackground(service, run(), 1, lotStats(0.02), 20);
     expect(out).toEqual({ continue: false, stop: "duree" });
     expect((await auto()).auto_stop).toBe("duree");
   });
 
   it("redémarrage d'une chaîne terminée : compteurs remis à zéro", async () => {
-    await startBackground(service, auditId, new Date(Date.now() - 20 * 60_000));
+    await startBackground(service, auditId, new Date(Date.now() - 26 * 60_000));
     await advanceBackground(service, run(), 1, lotStats(0.02), 20);
     expect((await auto()).auto_status).toBe("termine");
     await db.query("update public.qualification_runs set more_status = 'termine' where id = $1", [
