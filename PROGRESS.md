@@ -1635,3 +1635,13 @@ Maquette validée par Jonathan (artefact « Maquette espace client » : menu, ac
 - Contrôlé par captures sur des données d'exemple (1280 px et 390 px). Jamais exercé avec de vraies données ni un vrai envoi.
 - **Décision de Jonathan (18/11) : la connexion de la boîte doit être un clic OAuth Google** (le plus simple pour l'utilisateur). À cadrer : projet Google Cloud, écran de consentement, vérification des scopes (envoi = sensible ; lecture des réponses = restreint, audit de sécurité). Voir la prochaine session.
 - Reste : étape 3 (Conversations avec filtres, non lus, étiquettes), étape 4 (écrans de réglages).
+
+## Session du 18/11 (suite 14) : Conversations, le mini-CRM (étape 3 sur 4)
+
+- **`/app/inbox` devient « Conversations »** (`features/conversations/`) : tous les fils (un fil = un premier message réellement envoyé), toutes campagnes confondues. Liste à gauche, fil à droite (téléphone : l'un puis l'autre). Filtres combinables : campagne, lus / non lus, statut, étiquette, recherche.
+- **Statut d'un fil** (`status.ts`, testé) : à traiter, a répondu, relancé, envoyé, lien obtenu, refusé, message revenu en erreur. **Non lu** : une réponse plus récente que la dernière ouverture. **Étiquettes libres** (10 par fil, 30 caractères).
+- **Migration `2026120700000000_conversations.sql`** (tables `thread_reads`, `thread_tags`, RLS en lecture, écriture par le serveur) : **appliquée sur la vraie base** par l'API de gestion (contrôlé : RLS active, une politique par table). `database.types.ts` complété à la main.
+- Fil ouvert : pourquoi ce site, échanges dans l'ordre (nos messages, relance, leurs réponses, nos réponses), réponse proposée modifiable et approuvable sur place ; « Autres options de réponse » ouvre l'écran complet existant (`/app/inbox/[id]` : choix « c'est payant », prêt à insérer, correction de catégorie).
+- **Limites** : pas de réponse libre écrite de zéro depuis le fil (il faut une réponse proposée) ; les envois simulés (dry run) n'apparaissent pas ; contrôlé par capture sur des données d'exemple, jamais avec de vrais échanges.
+- Les sept vues de l'ancien inbox (Chaud, Tiède…) ne sont plus affichées ; le code reste (`inbox/views.ts`).
+- Reste : étape 4 (écrans de réglages), puis connexion OAuth Google.
