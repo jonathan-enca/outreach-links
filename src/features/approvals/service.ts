@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AuditActionState } from "@/features/audits/service";
 import { lintMessage } from "@/features/drafting/lint";
+import { missingDrafts } from "@/features/drafting/service";
 import type { LintIssue } from "@/features/drafting/types";
 import { listTasks } from "@/features/tasks/service";
 import { t } from "@/lib/messages";
@@ -53,6 +54,9 @@ export interface QueueView {
   replies: PendingReply[];
   forms: PendingForm[];
   hasMailbox: boolean;
+  /** Cibles validées sans message (plafond de rédaction atteint), et rédaction en cours. */
+  missing: number;
+  drafting: boolean;
 }
 
 /**
@@ -70,7 +74,7 @@ export function isApprovable(d: {
 
 /** Tout ce qui attend l'accord de la personne, toutes campagnes confondues (RLS). */
 export async function loadQueue(supabase: Client): Promise<QueueView> {
-  const [drafts, replyDrafts, tasks, boxes] = await Promise.all([
+  const [drafts, replyDrafts, tasks, boxes, missing] = await Promise.all([
     supabase
       .from("target_drafts")
       .select(
@@ -89,6 +93,7 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
       .from("mailboxes")
       .select("id", { count: "exact", head: true })
       .eq("status", "verifiee"),
+    missingDrafts(supabase),
   ]);
   const d = drafts.data ?? [];
   const itemIds = d.map((x) => x.plan_item_id);
@@ -202,6 +207,8 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
         body: x.message,
       })),
     hasMailbox: (boxes.count ?? 0) > 0,
+    missing: missing.total,
+    drafting: missing.running,
   };
 }
 
