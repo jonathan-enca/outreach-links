@@ -3,6 +3,7 @@ import { inngest } from "@/inngest/client";
 import { productionAnalysisDeps } from "@/features/analysis/deps";
 import { runAnalysis, type StepRunner } from "@/features/analysis/orchestrate";
 import { failAnalysis, realOrchestration } from "@/features/analysis/run";
+import { AUTO_EVENT } from "@/features/qualification/background";
 import { notifyAnalysisReady } from "@/features/analysis/notify";
 import { ANALYSIS_EVENT, LINKS_STATE_EVENT } from "@/features/analysis/service";
 import { logger } from "@/lib/logger";
@@ -49,6 +50,9 @@ export const analysisRun = inngest.createFunction(
     );
     const outcome = await runAnalysis(orchestration, auditId, runStep);
     if (outcome.status === "termine") {
+      // Arrière-plan : la première liste est affichée ; la réserve de sites se lit maintenant toute seule,
+      // lot par lot (un événement par lot, jamais une requête directe). Jamais bloquant.
+      await step.sendEvent("lecture-arriere-plan", { name: AUTO_EVENT, data: { auditId } });
       // D7 : un seul essai, jamais bloquant (sans service d'email, l'écran suffit). Étape mémorisée :
       // un rejeu du job ne renvoie pas l'email.
       const emailed = await step.run("email-fin", async () => {

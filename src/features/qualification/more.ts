@@ -5,37 +5,16 @@ import { t } from "@/lib/messages";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import type { FunnelStats, QualInput } from "./funnel";
 import { loadQualificationInput, toRow, type QualRunRow } from "./run";
+import { AUTO_LIMITS, failBackground } from "./background";
+import { countStock, MORE_LIMITS, STOCK_REASONS } from "./reserve";
 import type { QualCandidate, QualContext, QualResult } from "./types";
+
+export { countStock, MORE_LIMITS, STOCK_REASONS };
 
 type Client = SupabaseClient<Database>;
 const M = t.targets.more;
 
 export const MORE_EVENT = "audit/qualification.more.requested";
-
-/**
- * « Lire d'autres sites » (chantier G, le stock) : les candidats jamais lus restent en base avec leur
- * score ; ce lot supplémentaire en lit et en juge une partie, sans refaire la recherche. Bornes d'un
- * lot : pages jugées, durée, budget de jugement (les plafonds durs de l'analyse restent contrôlés).
- */
-export const MORE_LIMITS = {
-  targetJudged: 40,
-  maxReadMs: 5 * 60_000,
-  budgetUsd: 0.15,
-  preflightMax: 150,
-} as const;
-
-/** Motifs « en stock » : jamais lus, ou lus mais pas encore jugés faute de budget. */
-export const STOCK_REASONS = ["hors_budget_lecture", "hors_budget_llm"] as const;
-
-/** Nombre de sites encore en stock pour cette analyse (lecture avec les droits de l'appelant). */
-export async function countStock(supabase: Client, runId: string): Promise<number> {
-  const { count } = await supabase
-    .from("qualified_targets")
-    .select("id", { count: "exact", head: true })
-    .eq("run_id", runId)
-    .in("exclusion_reason", [...STOCK_REASONS]);
-  return count ?? 0;
-}
 
 /**
  * Demande la lecture d'un lot du stock. `supabase` porte les droits de l'utilisateur (il doit voir
@@ -50,13 +29,15 @@ export async function requestMore(
 ): Promise<AuditActionState> {
   const { data: run } = await supabase
     .from("qualification_runs")
-    .select("id, status, more_status")
+    .select("id, status, more_status, auto_status")
     .eq("audit_id", auditId)
     .maybeSingle();
   if (!run || run.status !== "termine") return { status: "error", message: M.notReady };
   if (run.more_status === "demande" || run.more_status === "en_cours") {
     return { status: "ok", auditId, message: M.already };
   }
+  // La lecture automatique enchaîne les lots : un clic entre deux lots ne doit jamais en lancer un second.
+  if (run.auto_status === "en_cours") return { status: "ok", auditId, message: M.autoRunning };
   if ((await countStock(supabase, run.id)) === 0) return { status: "error", message: M.empty };
   const at = new Date().toISOString();
   const { data, error } = await getServiceClient()
@@ -64,6 +45,7 @@ export async function requestMore(
     .update({ more_status: "demande", more_requested_at: at })
     .eq("id", run.id)
     .in("more_status", ["aucun", "termine", "echoue"])
+    .neq("auto_status", "en_cours")
     .select("id");
   if (error) return { status: "error", message: M.failed };
   if (!data?.length) return { status: "ok", auditId, message: M.already };
@@ -86,10 +68,19 @@ export async function requestMore(
 export interface MoreRun extends QualRunRow {
   /** Rendement déjà mesuré par source, pour composer le premier lot. */
   priorYield: Record<string, { read: number; relevant: number }>;
+  /** Durée maximale de la lecture de ce lot (ms) ; 5 minutes si absent. */
+  maxReadMs?: number;
+  /** Lecture automatique : numéro du lot et début de la chaîne. */
+  auto?: { lot: number; startedAt: string } | null;
 }
 
 /** demande -> en_cours (idempotent pour une nouvelle tentative). Null si rien n'est demandé. */
-export async function beginMore(service: Client, auditId: string): Promise<MoreRun | null> {
+export async function beginMore(
+  service: Client,
+  auditId: string,
+  auto?: { lot: number } | null,
+  now: Date = new Date(),
+): Promise<MoreRun | null> {
   const { data: row, error } = await service
     .from("qualification_runs")
     .select("*")
@@ -97,6 +88,9 @@ export async function beginMore(service: Client, auditId: string): Promise<MoreR
     .maybeSingle();
   if (error) throw new Error(`beginMore : ${error.message}`);
   if (!row || row.status !== "termine") return null;
+  // Lot automatique : seulement si la chaîne est en cours et que c'est bien le lot attendu (un
+  // événement rejoué ou en retard ne relance jamais un lot déjà fait).
+  if (auto && (row.auto_status !== "en_cours" || row.auto_lots !== auto.lot - 1)) return null;
   if (row.more_status === "demande") {
     const { error: uErr } = await service
       .from("qualification_runs")
@@ -116,13 +110,30 @@ export async function beginMore(service: Client, auditId: string): Promise<MoreR
     priorYield[src] = { read: y.read, relevant: y.relevant };
   }
   const plan = (row.plan ?? {}) as { model?: string };
+  const startedAt = row.auto_started_at;
+  // Plafonds durs de l'arrière-plan : ce qui reste du budget total et du temps total.
+  const budgetUsd = auto
+    ? Math.min(
+        MORE_LIMITS.budgetUsd,
+        Math.max(0, AUTO_LIMITS.budgetUsd - Number(row.auto_cost_usd)),
+      )
+    : MORE_LIMITS.budgetUsd;
+  const maxReadMs =
+    auto && startedAt
+      ? Math.min(
+          MORE_LIMITS.maxReadMs,
+          Math.max(0, AUTO_LIMITS.maxMs - (now.getTime() - Date.parse(startedAt))),
+        )
+      : MORE_LIMITS.maxReadMs;
   return {
     id: row.id,
     auditId,
     collectionId: row.collection_id,
     workspaceId: row.workspace_id,
     siteId: row.site_id,
-    budgetUsd: MORE_LIMITS.budgetUsd,
+    budgetUsd,
+    maxReadMs,
+    auto: auto && startedAt ? { lot: auto.lot, startedAt } : null,
     model: plan.model ?? "",
     auditCapUsd: Number(audit?.cost_cap_usd ?? 0),
     priorYield,
@@ -168,7 +179,7 @@ export function toMoreInput(
     model: run.model,
     tuning: {
       targetJudged: MORE_LIMITS.targetJudged,
-      maxReadMs: MORE_LIMITS.maxReadMs,
+      maxReadMs: run.maxReadMs ?? MORE_LIMITS.maxReadMs,
       preflightMax: MORE_LIMITS.preflightMax,
     },
     priorYield: run.priorYield,
@@ -327,4 +338,6 @@ export async function failMore(service: Client, auditId: string, message: string
     .eq("audit_id", auditId)
     .in("more_status", ["demande", "en_cours"]);
   if (error) logger.error("lot supplémentaire : échec non enregistré", { auditId });
+  // Un lot automatique en échec arrête la chaîne : l'écran le dit, le bouton reste utilisable.
+  await failBackground(service, auditId);
 }

@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { ANALYSIS_EMAIL_VERIFIED } from "@/features/analysis/email-promise";
 import { env } from "@/env";
 import { AnalysisProgress } from "@/features/analysis/analysis-progress";
 import { loadAnalysisSnapshot } from "@/features/analysis/status";
@@ -67,7 +68,7 @@ export async function AuditContent({
           resumeAction={confirmAuditAction.bind(null, audit.id)}
           restartAction={restartFromStepAction.bind(null, audit.id)}
           relaunchAction={relaunchStalledAction.bind(null, audit.id)}
-          emailEnabled={Boolean(env.RESEND_API_KEY)}
+          emailEnabled={ANALYSIS_EMAIL_VERIFIED && Boolean(env.RESEND_API_KEY)}
           autoOpen={!showSteps}
         />
       </>

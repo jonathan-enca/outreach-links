@@ -87,6 +87,14 @@ export interface MoreView {
   status: "aucun" | "demande" | "en_cours" | "termine" | "echoue";
   /** Cibles ajoutées par le dernier lot. */
   added: number | null;
+  /** Lecture automatique de la réserve après la première liste. */
+  auto: {
+    status: "aucun" | "en_cours" | "termine" | "echoue";
+    /** Cibles ajoutées depuis la première liste. */
+    added: number;
+    lots: number;
+    stop: "reserve_epuisee" | "budget" | "rendement_faible" | "duree" | "erreur" | null;
+  };
 }
 
 export interface TargetsRunView {
