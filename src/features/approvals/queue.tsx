@@ -1,0 +1,406 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import type { AuditActionState } from "@/features/audits/service";
+import { t } from "@/lib/messages";
+import type { PendingForm, PendingMessage, PendingReply, QueueView } from "./service";
+
+const V = t.toValidate;
+type Result = Promise<AuditActionState>;
+type Edit = (id: string, input: { subject: string; body: string }) => Result;
+
+export interface QueueActions {
+  approveMessages: (ids: string[]) => Result;
+  editMessage: Edit;
+  approveReply: (id: string) => Result;
+  editReply: Edit;
+  rejectReply: (id: string) => Result;
+  completeForm: (id: string) => Result;
+}
+
+type Filter = "tout" | "messages" | "reponses" | "formulaires";
+
+const LABEL = "text-[11px] font-semibold uppercase tracking-wider text-muted-foreground";
+
+/** Corps d'un message : lecture, ou modification sur place (objet + texte). */
+function Body({
+  subject,
+  body,
+  editing,
+  withSubject,
+  onChange,
+}: {
+  subject: string | null;
+  body: string;
+  editing: boolean;
+  withSubject: boolean;
+  onChange: (s: string, b: string) => void;
+}) {
+  if (!editing)
+    return (
+      <>
+        {subject ? <p className="font-semibold">{subject}</p> : null}
+        <p className="whitespace-pre-line rounded-control bg-muted px-3 py-2.5 text-sm">{body}</p>
+      </>
+    );
+  return (
+    <div className="flex flex-col gap-2">
+      {withSubject ? (
+        <input
+          aria-label={V.subject}
+          defaultValue={subject ?? ""}
+          onChange={(e) => onChange(e.target.value, body)}
+          className="h-10 rounded-control border border-border bg-card px-3 text-sm font-semibold"
+        />
+      ) : null}
+      <textarea
+        aria-label={V.body}
+        defaultValue={body}
+        rows={8}
+        onChange={(e) => onChange(subject ?? "", e.target.value)}
+        className="rounded-control border border-border bg-card px-3 py-2 text-sm"
+      />
+    </div>
+  );
+}
+
+/** Une carte de la file : en-tête, message, encadré d'explication, actions. */
+function Item({
+  tone,
+  tag,
+  to,
+  campaign,
+  subject,
+  body,
+  withSubject,
+  aside,
+  issues,
+  primary,
+  secondary,
+  onEdit,
+  onLater,
+  extra,
+}: {
+  tone: "info" | "warning" | "neutral";
+  tag: string;
+  to: string | null;
+  campaign?: string;
+  subject: string | null;
+  body: string;
+  withSubject: boolean;
+  aside: { title: string; text: string }[];
+  issues?: string[];
+  primary: { label: string; run: () => Result; disabled?: boolean } | null;
+  secondary?: { label: string; run: () => Result };
+  onEdit?: Edit extends (id: string, i: infer I) => Result ? (i: I) => Result : never;
+  onLater: () => void;
+  extra?: React.ReactNode;
+}) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({ subject: subject ?? "", body });
+  const [state, setState] = useState<AuditActionState>({ status: "idle" });
+  const [pending, start] = useTransition();
+  const run = (fn: () => Result, after?: () => void) =>
+    start(async () => {
+      const r = await fn();
+      setState(r);
+      if (r.status !== "error") {
+        after?.();
+        router.refresh();
+      }
+    });
+  return (
+    <Card className="grid gap-x-6 gap-y-3 p-4 md:p-5 xl:grid-cols-[minmax(0,1fr)_17rem]">
+      <div className="flex min-w-0 flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone={tone}>{tag}</Badge>
+          <span className="min-w-0 break-all text-sm text-muted-foreground">
+            {to ? `${V.to} ${to}` : ""}
+            {campaign ? ` · ${campaign}` : ""}
+          </span>
+        </div>
+        <Body
+          subject={subject}
+          body={body}
+          editing={editing}
+          withSubject={withSubject}
+          onChange={(s, b) => setDraft({ subject: s, body: b })}
+        />
+        {issues && issues.length > 0 ? (
+          <ul className="list-disc pl-5 text-sm text-danger">
+            {issues.map((i) => (
+              <li key={i}>{i}</li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+      <aside className="flex min-w-0 flex-col gap-2 text-sm text-muted-foreground">
+        {aside.map((a) => (
+          <div key={a.title}>
+            <p className={LABEL}>{a.title}</p>
+            <p className="break-words">{a.text}</p>
+          </div>
+        ))}
+      </aside>
+      <div className="flex flex-wrap items-center gap-2 xl:col-span-2">
+        {editing && onEdit ? (
+          <>
+            <Button
+              type="button"
+              size="sm"
+              disabled={pending}
+              onClick={() =>
+                run(
+                  () => onEdit(draft),
+                  () => setEditing(false),
+                )
+              }
+            >
+              {pending ? V.saving : V.save}
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
+              {V.cancel}
+            </Button>
+          </>
+        ) : (
+          <>
+            {primary ? (
+              <Button
+                type="button"
+                size="sm"
+                className="w-full md:w-auto"
+                disabled={pending || primary.disabled}
+                onClick={() => run(primary.run)}
+              >
+                {pending ? V.busy : primary.label}
+              </Button>
+            ) : null}
+            {extra}
+            {onEdit ? (
+              <Button type="button" size="sm" variant="outline" onClick={() => setEditing(true)}>
+                {V.edit}
+              </Button>
+            ) : null}
+            {secondary ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={pending}
+                onClick={() => run(secondary.run)}
+              >
+                {secondary.label}
+              </Button>
+            ) : null}
+            <Button type="button" size="sm" variant="ghost" onClick={onLater}>
+              {V.later}
+            </Button>
+          </>
+        )}
+        {state.message ? (
+          <p
+            role="status"
+            className={`w-full text-sm ${state.status === "error" ? "text-danger" : "text-success"}`}
+          >
+            {state.message}
+          </p>
+        ) : null}
+      </div>
+    </Card>
+  );
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [done, setDone] = useState(false);
+  return (
+    <Button
+      type="button"
+      size="sm"
+      className="w-full md:w-auto"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setDone(true);
+        } catch {
+          setDone(false);
+        }
+      }}
+    >
+      {done ? V.copied : V.copy}
+    </Button>
+  );
+}
+
+/**
+ * File « À valider » (maquette validée le 18/11) : premiers messages, réponses proposées et formulaires
+ * dans une seule liste. Chaque élément s'approuve, se modifie ou se remet à plus tard sur place.
+ * « Plus tard » masque l'élément pour cette visite seulement : rien n'est supprimé.
+ */
+export function ApprovalQueue({ view, actions }: { view: QueueView; actions: QueueActions }) {
+  const router = useRouter();
+  const [filter, setFilter] = useState<Filter>("tout");
+  const [later, setLater] = useState<Set<string>>(() => new Set());
+  const [bulk, setBulk] = useState<AuditActionState>({ status: "idle" });
+  const [pending, start] = useTransition();
+  const hide = (id: string) => setLater((prev) => new Set(prev).add(id));
+  const msgs = view.messages.filter((m) => !later.has(m.id));
+  const replies = view.replies.filter((r) => !later.has(r.id));
+  const forms = view.forms.filter((f) => !later.has(f.id));
+  const ready = msgs.filter((m) => m.ready);
+  const total = msgs.length + replies.length + forms.length;
+  const chips: [Filter, string, number][] = [
+    ["tout", V.filters.all, total],
+    ["reponses", V.filters.replies, replies.length],
+    ["messages", V.filters.messages, msgs.length],
+    ["formulaires", V.filters.forms, forms.length],
+  ];
+  const show = (f: Filter) => filter === "tout" || filter === f;
+  if (view.messages.length + view.replies.length + view.forms.length === 0)
+    return <Card className="p-6 text-muted-foreground">{V.none}</Card>;
+  return (
+    <div className="flex flex-col gap-4">
+      {!view.hasMailbox && view.messages.some((m) => m.channel === "email") ? (
+        <Card className="border-warning/40 bg-warning/5 p-4 text-sm">
+          {V.noMailbox}{" "}
+          <Link
+            href="/app/site"
+            className="font-semibold text-primary underline underline-offset-4"
+          >
+            {V.connect}
+          </Link>
+        </Card>
+      ) : null}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div role="group" aria-label={V.filters.label} className="flex gap-2 overflow-x-auto pb-1">
+          {chips
+            .filter(([k, , n]) => k === "tout" || n > 0)
+            .map(([k, label, n]) => (
+              <Button
+                key={k}
+                type="button"
+                size="sm"
+                className="shrink-0"
+                variant={filter === k ? "default" : "outline"}
+                aria-pressed={filter === k}
+                onClick={() => setFilter(k)}
+              >
+                {label} ({n})
+              </Button>
+            ))}
+        </div>
+        {ready.length > 1 ? (
+          <Button
+            type="button"
+            disabled={pending}
+            onClick={() =>
+              start(async () => {
+                setBulk(await actions.approveMessages(ready.map((m) => m.id)));
+                router.refresh();
+              })
+            }
+          >
+            {pending ? V.busy : V.approveAll(ready.length)}
+          </Button>
+        ) : null}
+      </div>
+      {bulk.message ? (
+        <p role="status" className={bulk.status === "error" ? "text-danger" : "text-success"}>
+          {bulk.message}
+        </p>
+      ) : null}
+      {total === 0 ? <Card className="p-6 text-muted-foreground">{V.allLater}</Card> : null}
+      <ul className="flex flex-col gap-4">
+        {show("reponses")
+          ? replies.map((r: PendingReply) => (
+              <li key={r.id}>
+                <Item
+                  tone="warning"
+                  tag={V.tags.reply}
+                  to={r.to}
+                  subject={r.subject}
+                  body={r.body}
+                  withSubject={r.subject !== null}
+                  aside={[{ title: V.aside.theirs, text: `« ${r.theirs} »` }]}
+                  primary={{ label: V.approve, run: () => actions.approveReply(r.id) }}
+                  secondary={{ label: V.noReply, run: () => actions.rejectReply(r.id) }}
+                  onEdit={(i) => actions.editReply(r.id, i)}
+                  onLater={() => hide(r.id)}
+                  extra={
+                    r.classificationId ? (
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={`/app/inbox/${r.classificationId}`}>{V.openThread}</Link>
+                      </Button>
+                    ) : null
+                  }
+                />
+              </li>
+            ))
+          : null}
+        {show("messages")
+          ? msgs.map((m: PendingMessage) => (
+              <li key={m.id}>
+                <Item
+                  tone={m.channel === "email" ? "info" : "neutral"}
+                  tag={m.channel === "email" ? V.tags.message : V.tags.formMessage}
+                  to={m.to}
+                  campaign={m.campaign}
+                  subject={m.subject}
+                  body={m.body}
+                  withSubject={m.channel === "email"}
+                  aside={[
+                    { title: V.aside.hook, text: m.hook },
+                    {
+                      title: V.aside.then,
+                      text: m.channel === "email" ? V.aside.thenEmail : V.aside.thenForm,
+                    },
+                  ]}
+                  issues={m.issues.map((i) => i.message)}
+                  primary={{
+                    label: m.channel === "email" ? V.approve : V.approveForm,
+                    run: () => actions.approveMessages([m.id]),
+                    disabled: !m.ready,
+                  }}
+                  onEdit={(i) => actions.editMessage(m.id, i)}
+                  onLater={() => hide(m.id)}
+                />
+              </li>
+            ))
+          : null}
+        {show("formulaires")
+          ? forms.map((f: PendingForm) => (
+              <li key={f.id}>
+                <Item
+                  tone="neutral"
+                  tag={V.tags.form}
+                  to={f.domain}
+                  subject={V.formSubject}
+                  body={f.body}
+                  withSubject={false}
+                  aside={[{ title: V.aside.todo, text: V.aside.todoForm }]}
+                  primary={null}
+                  secondary={{ label: V.markDone, run: () => actions.completeForm(f.id) }}
+                  onLater={() => hide(f.id)}
+                  extra={
+                    <>
+                      <CopyButton text={f.body} />
+                      <Button asChild size="sm" variant="outline">
+                        <a href={f.formUrl} target="_blank" rel="noreferrer">
+                          {V.openForm}
+                        </a>
+                      </Button>
+                    </>
+                  }
+                />
+              </li>
+            ))
+          : null}
+      </ul>
+    </div>
+  );
+}

@@ -2532,23 +2532,64 @@ export const fr = {
     title: "À valider",
     description: "Tout ce qui attend votre accord avant de partir. Rien n'est envoyé sans vous.",
     none: "Rien à valider pour l'instant. Les messages apparaissent ici dès que vous validez des cibles.",
-    drafts: {
-      title: "Premiers messages",
-      body: (n: number) =>
-        `${n} ${n > 1 ? "messages sont prêts" : "message est prêt"} : relisez-les, modifiez-les si besoin, puis validez le lot.`,
-      cta: "Relire les messages",
+    allLater: "Tout est remis à plus tard pour cette visite. Rechargez la page pour les revoir.",
+    noMailbox:
+      "Aucune boîte d'envoi n'est connectée : vous pouvez approuver vos messages, ils partiront quand elle le sera.",
+    connect: "Connecter une boîte",
+    to: "À :",
+    subject: "Objet",
+    body: "Message",
+    approve: "Approuver et envoyer",
+    approveForm: "Approuver ce message",
+    approveAll: (n: number) => `Tout approuver (${n})`,
+    edit: "Modifier",
+    save: "Enregistrer",
+    saving: "Enregistrement…",
+    cancel: "Annuler",
+    later: "Plus tard",
+    busy: "En cours…",
+    noReply: "Ne pas répondre",
+    openThread: "Voir la conversation",
+    copy: "Copier le message",
+    copied: "Copié",
+    openForm: "Ouvrir le formulaire",
+    markDone: "Marquer comme fait",
+    formSubject: "Message prêt à coller dans leur formulaire",
+    filters: {
+      label: "Filtrer par nature",
+      all: "Tout",
+      replies: "Réponses",
+      messages: "Premiers messages",
+      forms: "Formulaires",
     },
-    replies: {
-      title: "Réponses à approuver",
-      body: (n: number) =>
-        `${n} ${n > 1 ? "réponses proposées attendent" : "réponse proposée attend"} votre accord.`,
-      cta: "Ouvrir les conversations",
+    tags: {
+      reply: "Réponse à approuver",
+      message: "Premier message",
+      formMessage: "Message pour un formulaire",
+      form: "Formulaire à remplir",
     },
-    forms: {
-      title: "Formulaires à remplir",
-      body: (n: number) =>
-        `${n} ${n > 1 ? "sites n'ont" : "site n'a"} pas d'email : le message est prêt à coller dans leur formulaire.`,
-      cta: "Voir les formulaires",
+    aside: {
+      theirs: "Ce qu'ils ont écrit",
+      hook: "S'appuie sur",
+      then: "Ensuite",
+      thenEmail:
+        "Le message part de votre boîte, au rythme prévu. Une seule relance, dix jours après, sans réponse.",
+      thenForm:
+        "Ce site n'a pas d'email. Une fois approuvé, le message vous attend ici, prêt à coller dans son formulaire.",
+      todo: "À faire",
+      todoForm: "Ouvrez le formulaire du site, collez le message, puis marquez-le comme fait.",
+    },
+    messages: {
+      unauthenticated: "Connectez-vous pour continuer.",
+      nothing: "Aucun message choisi.",
+      notFound: "Message introuvable.",
+      notReady: "Ce message n'est pas prêt : corrigez les points signalés avant de l'approuver.",
+      unavailable: "Service indisponible. Réessayez dans un instant.",
+      saveError: "Enregistrement impossible. Réessayez.",
+      approved: (n: number) =>
+        `${n} ${n > 1 ? "messages approuvés" : "message approuvé"}. Rien d'autre à faire : les emails partent au rythme prévu.`,
+      saved: "Message enregistré.",
+      savedNotReady: "Message enregistré, mais des points restent à corriger avant de l'approuver.",
     },
   },
   overview: {
