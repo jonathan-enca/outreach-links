@@ -24,6 +24,14 @@
   /* Surligneur du hook : fond ambre clair, texte toujours en encre. */
   --highlight: #fde68a;
   --highlight-foreground: #0e1a2b;
+  /* Menu de l'espace client : toujours sombre (maquette validée le 18/11). */
+  --sidebar: #0b1b2e;
+  --sidebar-foreground: #c9d6e3;
+  --sidebar-border: #1c3550;
+  --sidebar-hover: #0f2740;
+  --sidebar-active: #12304a;
+  --sidebar-label: #6f859c;
+  --sidebar-accent: #5eead4;
   color-scheme: light;
 }
 
@@ -83,6 +91,13 @@
   --color-danger: var(--danger);
   --color-highlight: var(--highlight);
   --color-highlight-foreground: var(--highlight-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-label: var(--sidebar-label);
+  --color-sidebar-accent: var(--sidebar-accent);
   --font-sans: var(--font-body);
   --font-display: var(--font-body);
   /* Rayons hiérarchisés : contrôle, carte, panneau. */

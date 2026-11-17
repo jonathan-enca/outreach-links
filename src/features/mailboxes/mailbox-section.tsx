@@ -119,7 +119,7 @@ export function MailboxSection({ siteId, boxes }: { siteId: string; boxes: Mailb
     status: "idle",
   } as MailboxState);
   return (
-    <Card className="flex flex-col gap-4 p-6">
+    <Card id="boite-envoi" className="flex scroll-mt-4 flex-col gap-4 p-6">
       <h2 className="text-lg font-semibold">{m.title}</h2>
       <p>{m.body}</p>
       {boxes.map((b) => (

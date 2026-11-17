@@ -1,79 +1,165 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/page-header";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  homeDestination,
-  loadSiteSnapshots,
-  nextStep,
-  siteHref,
-  START_HREF,
-} from "@/features/shell/next-step";
+import { siteHref, START_HREF } from "@/features/shell/next-step";
+import { loadOverview } from "@/features/shell/overview";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 
+const H = t.shell.home;
+
+function Stat({
+  label,
+  value,
+  hint,
+  first,
+}: {
+  label: string;
+  value: number;
+  hint: string;
+  first?: boolean;
+}) {
+  return (
+    <Card className={`p-4 ${first ? "border-t-[3px] border-t-primary" : ""}`}>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </p>
+      <p className="text-3xl font-bold leading-tight tabular-nums">{value}</p>
+      <p className="text-sm text-muted-foreground">{hint}</p>
+    </Card>
+  );
+}
+
 /**
- * Accueil (MU.2, revu le 18/11). Pas de site : étape 1. Sinon la liste des sites, chacun avec son état,
- * sa prochaine étape et, une fois les cibles prêtes, un lien pour revoir l'analyse.
+ * Accueil (maquette validée le 18/11) : quatre compteurs, la liste « Vos premiers liens » (une action par
+ * étape, cochée quand elle est faite) et ce qui attend la personne. Sans aucun site : étape 1.
  */
 async function Home() {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/connexion");
-  const sites = await loadSiteSnapshots(supabase);
-  const destination = homeDestination(sites);
-  if (destination) redirect(destination);
-  const h = t.shell.home;
+  const o = await loadOverview(supabase);
+  if (o.campaigns.length === 0) redirect(START_HREF);
+  const first = o.campaigns[0]!;
+  const withTargets = o.campaigns.find((c) => c.step.kind === "cibles") ?? null;
+  const mailboxHref = `/app/site/${first.siteId}#boite-envoi`;
+  const steps = [
+    {
+      key: "campaign" as const,
+      done: withTargets !== null,
+      href: first.step.href,
+      label: [H.steps.campaign, H.steps.campaignDone],
+      hint: H.steps.campaignHint,
+    },
+    {
+      key: "validate" as const,
+      done: o.totals.validated > 0,
+      href: withTargets ? siteHref.cibles(withTargets.siteId) : first.step.href,
+      label: [H.steps.validate, H.steps.validateDone],
+      hint: H.steps.validateHint,
+    },
+    {
+      key: "mailbox" as const,
+      done: o.hasMailbox,
+      href: mailboxHref,
+      label: [H.steps.mailbox, H.steps.mailboxDone],
+      hint: H.steps.mailboxHint,
+    },
+    {
+      key: "send" as const,
+      done: o.totals.contacted > 0,
+      href: "/app/a-valider",
+      label: [H.steps.send, H.steps.sendDone],
+      hint: H.steps.sendHint,
+    },
+  ];
+  const doneCount = steps.filter((s) => s.done).length;
+  const nextKey = steps.find((s) => !s.done)?.key ?? null;
+  const pct =
+    o.totals.contacted > 0 ? Math.round((o.totals.replies / o.totals.contacted) * 100) : null;
+  const todo = [
+    { n: o.pending.replies, text: H.todo.replies, href: "/app/inbox" },
+    { n: o.pending.drafts, text: H.todo.drafts, href: "/app/a-valider" },
+    { n: o.pending.forms, text: H.todo.forms, href: "/app/taches" },
+  ].filter((x) => x.n > 0);
   return (
-    <>
-      <PageHeader title={h.title} description={h.description} />
-      <ul className="flex flex-col gap-3">
-        {sites.map((s) => {
-          const step = nextStep(s);
-          return (
-            <li key={s.id}>
-              <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
-                <div className="flex flex-col gap-1">
-                  <strong>
-                    {s.domain}
-                    {s.country
-                      ? ` · ${t.sites.countries[s.country as keyof typeof t.sites.countries] ?? s.country}`
-                      : ""}
-                  </strong>
-                  <span className="text-sm text-muted-foreground">{h.state[step.kind]}</span>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold">{H.hello}</h1>
+          <p className="text-muted-foreground">{H.lead}</p>
+        </div>
+        <Button asChild>
+          <Link href={START_HREF}>+ {H.newCampaign}</Link>
+        </Button>
+      </div>
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <Stat
+          first
+          label={H.stats.targets}
+          value={o.totals.targets}
+          hint={H.stats.targetsHint(o.totals.validated)}
+        />
+        <Stat label={H.stats.sent} value={o.totals.contacted} hint={H.stats.sentHint} />
+        <Stat label={H.stats.replies} value={o.totals.replies} hint={H.stats.repliesHint(pct)} />
+        <Stat label={H.stats.links} value={o.totals.links} hint={H.stats.linksHint} />
+      </div>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+        <Card className="px-5 py-2">
+          <div className="flex items-center justify-between gap-3 py-3">
+            <h2 className="font-semibold">{H.steps.title}</h2>
+            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+              {H.steps.progress(doneCount, steps.length)}
+            </span>
+          </div>
+          <ol>
+            {steps.map((s, i) => (
+              <li key={s.key} className="flex items-center gap-4 border-t border-border py-3.5">
+                <span
+                  className={`grid size-7 shrink-0 place-items-center rounded-full text-sm font-bold ${
+                    s.done ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {s.done ? <Check aria-hidden className="size-4" /> : i + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold">{s.label[s.done ? 1 : 0]}</p>
+                  <p className="text-sm text-muted-foreground">{s.hint}</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <Link
-                    href={`${START_HREF}?site=${encodeURIComponent(s.domain)}`}
-                    className="text-sm text-primary underline underline-offset-4"
-                  >
-                    {t.onboarding.market.addCountry}
-                  </Link>
-                  {step.kind === "cibles" ? (
-                    <Link
-                      href={`${siteHref.analyse(s.id)}?etapes=1`}
-                      className="text-sm text-primary underline underline-offset-4"
-                    >
-                      {h.review}
-                    </Link>
-                  ) : null}
-                  <Button asChild>
-                    <Link href={step.href}>{h.action[step.kind]}</Link>
+                {!s.done ? (
+                  <Button asChild size="sm" variant={s.key === nextKey ? "default" : "outline"}>
+                    <Link href={s.href}>{H.steps.go[s.key]}</Link>
                   </Button>
-                </div>
-              </Card>
-            </li>
-          );
-        })}
-      </ul>
-      <p className="mt-4">
-        <Link href={START_HREF} className="text-primary underline underline-offset-4">
-          {h.add}
-        </Link>
-      </p>
-    </>
+                ) : null}
+              </li>
+            ))}
+          </ol>
+        </Card>
+        <Card className="p-5">
+          <h2 className="mb-2 font-semibold">{H.todo.title}</h2>
+          {todo.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{H.todo.none}</p>
+          ) : (
+            <ul>
+              {todo.map((x) => (
+                <li
+                  key={x.href}
+                  className="flex items-center justify-between gap-3 border-b border-border py-2.5 last:border-b-0"
+                >
+                  <span className="text-sm">{x.text(x.n)}</span>
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={x.href}>{H.todo.open}</Link>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+    </div>
   );
 }
 
