@@ -2,6 +2,7 @@ import { z } from "zod";
 import { inngest } from "@/inngest/client";
 import { productionQualDeps } from "@/features/qualification/deps";
 import { executeQualification, type StepRunner } from "@/features/qualification/funnel";
+import { advanceBackground, autoEventId } from "@/features/qualification/background";
 import {
   beginMore,
   failMore,
@@ -14,7 +15,11 @@ import { logger } from "@/lib/logger";
 import { createServiceClient } from "@/lib/supabase/service";
 import { safeStep } from "@/lib/well-formed";
 
-const eventSchema = z.object({ auditId: z.uuid() });
+const eventSchema = z.object({
+  auditId: z.uuid(),
+  /** Lecture automatique de la réserve : numéro du lot (absent = clic sur « Lire d'autres sites »). */
+  auto: z.object({ lot: z.number().int().min(1) }).optional(),
+});
 
 /**
  * Job `audit.qualify.more` (chantier G, « Lire d'autres sites ») : lit et juge un lot supplémentaire
@@ -26,7 +31,8 @@ export const auditQualifyMore = inngest.createFunction(
     id: "audit-qualify-more",
     triggers: [{ event: MORE_EVENT }],
     retries: 1,
-    concurrency: { limit: 2 },
+    // Jamais deux lots en même temps pour une même analyse (en plus du verrou en base).
+    concurrency: [{ limit: 2 }, { key: "event.data.auditId", limit: 1 }],
     onFailure: async ({ event, error }) => {
       const original = (event.data as { event?: { data?: unknown } }).event?.data;
       const parsed = eventSchema.safeParse(original);
@@ -35,9 +41,11 @@ export const auditQualifyMore = inngest.createFunction(
     },
   },
   async ({ event, step }) => {
-    const { auditId } = eventSchema.parse(event.data);
+    const { auditId, auto } = eventSchema.parse(event.data);
     const log = logger.child({ fn: "audit-qualify-more", auditId });
-    const run = await step.run("begin", async () => beginMore(createServiceClient(), auditId));
+    const run = await step.run("begin", async () =>
+      beginMore(createServiceClient(), auditId, auto ?? null),
+    );
     if (!run) {
       log.warn("lot supplémentaire non exécutable (rien de demandé)");
       return { skipped: true };
@@ -58,6 +66,20 @@ export const auditQualifyMore = inngest.createFunction(
       finalizeMore(createServiceClient(), run, results, stats),
     );
     log.info("lot supplémentaire terminé", { ...out, readStop: stats.readStop });
-    return out;
+    if (!auto || !run.auto) return out;
+    // Lecture automatique : on compte le lot, on décide, et au plus UN événement pour le lot suivant
+    // (identifiant fixe par lot : un rejeu n'en crée pas un second).
+    const next = await step.run("advance", async () =>
+      advanceBackground(createServiceClient(), run, auto.lot, stats, out.added),
+    );
+    if (next.continue) {
+      await step.sendEvent("next-lot", {
+        id: autoEventId(auditId, next.startedAt, next.lot),
+        name: MORE_EVENT,
+        data: { auditId, auto: { lot: next.lot } },
+      });
+    }
+    log.info("arrière-plan", { lot: auto.lot, ...next });
+    return { ...out, next };
   },
 );

@@ -3,6 +3,7 @@ import { PLAN_LIMITS } from "@/features/audits/plans";
 import { SIZE_SPARES } from "@/features/backlinks/limits";
 import { collectionTargetUsd } from "@/features/collection/limits";
 import { findingsBudgetUsd } from "@/features/findings/limits";
+import { AUTO_EXPECTED_SHARE, AUTO_LIMITS } from "@/features/qualification/background";
 import { qualificationBudgetUsd } from "@/features/qualification/limits";
 import { PRICING } from "@/lib/dataforseo/endpoints";
 
@@ -65,8 +66,15 @@ export function estimateAnalysis(discoveryUsd: number): AnalysisEstimate {
     fixed +
     collectionTargetUsd() * EXPECTED_SHARE.collection +
     qualificationBudgetUsd() * EXPECTED_SHARE.qualification +
-    findingsBudgetUsd() * EXPECTED_SHARE.findings;
-  const worstRest = fixed + collectionTargetUsd() + qualificationBudgetUsd() + findingsBudgetUsd();
+    findingsBudgetUsd() * EXPECTED_SHARE.findings +
+    // Lecture de la réserve en arrière-plan : budget de jugement propre, ajouté aux plafonds durs.
+    AUTO_LIMITS.budgetUsd * AUTO_EXPECTED_SHARE;
+  const worstRest =
+    fixed +
+    collectionTargetUsd() +
+    qualificationBudgetUsd() +
+    findingsBudgetUsd() +
+    AUTO_LIMITS.budgetUsd;
   return {
     discoveryUsd: r6(discoveryUsd),
     analysisUsd: r6(expectedRest),

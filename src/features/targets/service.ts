@@ -204,7 +204,7 @@ export async function loadTargets(
     supabase
       .from("qualification_runs")
       .select(
-        "id, status, actual_cost_usd, stop_reason, error_message, stats, more_status, more_stats",
+        "id, status, actual_cost_usd, stop_reason, error_message, stats, more_status, more_stats, auto_status, auto_added, auto_lots, auto_stop",
       )
       .eq("audit_id", auditId)
       .maybeSingle(),
@@ -355,6 +355,14 @@ export async function loadTargets(
         typeof (qrun?.more_stats as { added?: unknown } | null)?.added === "number"
           ? ((qrun!.more_stats as { added: number }).added ?? null)
           : null,
+      auto: {
+        status: (["en_cours", "termine", "echoue"] as const).includes(qrun?.auto_status as never)
+          ? (qrun!.auto_status as MoreView["auto"]["status"])
+          : "aucun",
+        added: qrun?.auto_added ?? 0,
+        lots: qrun?.auto_lots ?? 0,
+        stop: (qrun?.auto_stop as MoreView["auto"]["stop"]) ?? null,
+      },
     },
   };
 }

@@ -1506,9 +1506,25 @@ export const fr = {
         n > 0
           ? `${n} ${n > 1 ? "nouvelles cibles ajoutées" : "nouvelle cible ajoutée"} à la liste.`
           : "Aucune nouvelle cible dans ce lot : nous n'ajoutons rien pour faire du volume.",
+      auto: {
+        running: (added: number, stock: number) =>
+          `Nous continuons à lire les autres sites trouvés. ${added} ${added > 1 ? "cibles ajoutées" : "cible ajoutée"} depuis la première liste, ${stock} ${stock > 1 ? "sites restent à lire" : "site reste à lire"}. Cette liste se met à jour toute seule.`,
+        doneLine: (added: number) =>
+          `${added} ${added > 1 ? "cibles ont été ajoutées" : "cible a été ajoutée"} après la première liste.`,
+        stop: {
+          reserve_epuisee: "Lecture terminée : tous les sites trouvés ont été lus.",
+          budget:
+            "Lecture arrêtée : le budget prévu pour la lecture automatique est atteint. Vous pouvez lire d'autres sites à la main.",
+          rendement_faible:
+            "Lecture arrêtée : les deux dernières lectures n'ont presque rien apporté, nous n'ajoutons rien pour faire du volume.",
+          duree: "Lecture arrêtée : la durée maximale de 15 minutes est atteinte.",
+          erreur: "La lecture automatique s'est arrêtée sur une erreur. Vous pouvez la relancer.",
+        } as Record<string, string>,
+      },
       failedLine: "La lecture s'est arrêtée avant la fin. Vous pouvez la relancer.",
       notReady: "Les cibles ne sont pas encore prêtes.",
       already: "Une lecture est déjà en cours.",
+      autoRunning: "La lecture des sites restants est déjà en cours : elle continue toute seule.",
       empty: "Tous les sites trouvés ont déjà été lus.",
       failed: "Impossible de lancer la lecture. Réessayez.",
       started: "Lecture lancée : les nouvelles cibles s'ajouteront à la liste.",

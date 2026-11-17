@@ -8,6 +8,7 @@ import { auditDiscover } from "./audit-discover";
 import { auditOpportunities } from "./audit-opportunities";
 import { auditProfile } from "./audit-profile";
 import { auditQualify } from "./audit-qualify";
+import { auditQualifyAutoStart } from "./audit-qualify-auto-start";
 import { auditQualifyMore } from "./audit-qualify-more";
 import { planContacts } from "./plan-contacts";
 import { planDrafts } from "./plan-drafts";
@@ -33,6 +34,7 @@ export const functions = [
   auditCollect,
   auditQualify,
   auditQualifyMore,
+  auditQualifyAutoStart,
   auditFindings,
   analysisRun,
   analysisLinksState,

@@ -132,6 +132,14 @@ export async function prepareQualification(
     more_status: "aucun",
     more_requested_at: null,
     more_stats: {} as Json,
+    // ... et sans lecture automatique de la réserve.
+    auto_status: "aucun",
+    auto_started_at: null,
+    auto_lots: 0,
+    auto_low_streak: 0,
+    auto_added: 0,
+    auto_cost_usd: 0,
+    auto_stop: null,
   };
   // Relance (après échec ou nouvelle collecte) : la ligne repart de zéro.
   const { error } = await service

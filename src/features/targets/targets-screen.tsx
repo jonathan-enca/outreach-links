@@ -355,23 +355,33 @@ export function MoreSites({
   const router = useRouter();
   const [state, setState] = useState<AuditActionState>({ status: "idle" });
   const [pending, begin] = useTransition();
-  const running = more.status === "demande" || more.status === "en_cours";
+  const auto = more.auto;
+  const running =
+    more.status === "demande" || more.status === "en_cours" || auto.status === "en_cours";
   // Pendant la lecture, l'écran se met à jour seul : les nouvelles cibles arrivent sans recharger.
   useEffect(() => {
     if (!running) return;
     const id = setInterval(() => router.refresh(), 8000);
     return () => clearInterval(id);
   }, [running, router]);
-  if (funnel.stock === 0 && more.status === "aucun") return null;
+  if (funnel.stock === 0 && more.status === "aucun" && auto.status === "aucun") return null;
   return (
     <Card className="flex flex-col gap-2 p-4" data-testid="more-sites">
-      {more.status === "termine" && more.added !== null ? (
+      {auto.status === "aucun" && more.status === "termine" && more.added !== null ? (
         <p className="font-medium">{R.done(more.added)}</p>
       ) : null}
-      {more.status === "echoue" ? <p className="text-destructive">{R.failedLine}</p> : null}
+      {auto.status === "termine" || auto.status === "echoue" ? (
+        <p className="font-medium" data-testid="auto-done">
+          {auto.added > 0 ? `${R.auto.doneLine(auto.added)} ` : ""}
+          {R.auto.stop[auto.stop ?? "erreur"]}
+        </p>
+      ) : null}
+      {more.status === "echoue" && auto.status === "aucun" ? (
+        <p className="text-destructive">{R.failedLine}</p>
+      ) : null}
       {running ? (
-        <p role="status" className="font-medium">
-          {R.running}
+        <p role="status" className="font-medium" data-testid="auto-running">
+          {auto.status === "en_cours" ? R.auto.running(auto.added, funnel.stock) : R.running}
         </p>
       ) : funnel.stock > 0 ? (
         <>
