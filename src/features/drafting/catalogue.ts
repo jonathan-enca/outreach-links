@@ -25,7 +25,7 @@ export interface CatalogueDeps {
 const SKIP_EXT = /\.(pdf|jpe?g|png|gif|webp|svg|ico|zip|xml|json|css|js|mp4|mp3|txt|rss)$/i;
 /** Pages qu'on ne propose jamais à un éditeur : légal, compte, panier, tarifs, pagination. */
 const SKIP_PATH =
-  /(^|\/)(wp-admin|wp-login|wp-json|cart|panier|checkout|commande|login|connexion|inscription|register|signup|compte|account|mon-compte|feed|tag|tags|author|search|recherche|mentions-legales|legal|cgu|cgv|conditions|terms|privacy|confidentialite|cookies?|politique[^/]*|tarifs?|pricing|prix|page\/\d+)(\/|$)/i;
+  /(^|\/)(wp-admin|wp-login|wp-json|cart|panier|checkout|commande|login|connexion|inscription|register|signup|compte|account|mon-compte|feed|tag|tags|author|search|recherche|mentions-legales|legal|cgu|cgv|conditions|terms|privacy|confidentialite|cookies?|politique[^/]*|tarifs?|pricing|prix|page[\/-]\d+)(\/|$)/i;
 const LOCALE = /^[a-z]{2}(-[a-z]{2})?$/i;
 
 const bareHost = (h: string) => h.replace(/^www\./, "").toLowerCase();
