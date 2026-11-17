@@ -10,9 +10,9 @@ import {
 } from "@/features/signature/signature";
 import type { AuditActionState } from "@/features/audits/service";
 import { lintMessage } from "@/features/drafting/lint";
+import { completeTask } from "@/features/tasks/service";
 import { missingDrafts } from "@/features/drafting/service";
 import type { LintIssue } from "@/features/drafting/types";
-import { listTasks } from "@/features/tasks/service";
 import { t } from "@/lib/messages";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -70,13 +70,21 @@ export interface PendingReply {
   theirs: string;
 }
 
-/** Un formulaire de contact à remplir à la main (message déjà validé). */
+/**
+ * Un formulaire de contact à remplir à la main. Pas d'approbation : on ne « mail » pas un formulaire.
+ * La personne copie le message, ouvre le formulaire, le colle, puis clique « C'est fait ».
+ */
 export interface PendingForm {
   kind: "formulaire";
+  /** Le brouillon du message (modifiable). */
   id: string;
+  taskId: string;
   domain: string;
+  campaign: string;
   formUrl: string;
   body: string;
+  ready: boolean;
+  issues: LintIssue[];
 }
 
 export interface QueueView {
@@ -118,16 +126,24 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
       .eq("status", "brouillon")
       .order("created_at", { ascending: false })
       .limit(100),
-    listTasks(supabase),
+    supabase
+      .from("manual_tasks")
+      .select("id, plan_id, plan_item_id, form_url")
+      .eq("status", "a_faire")
+      .limit(500),
     supabase
       .from("mailboxes")
       .select("id", { count: "exact", head: true })
       .eq("status", "verifiee"),
     missingDrafts(supabase),
   ]);
-  const d = drafts.data ?? [];
-  const itemIds = d.map((x) => x.plan_item_id);
-  const planIds = [...new Set(d.map((x) => x.plan_id))];
+  // Les formulaires ne passent pas par l'approbation : ils vont directement dans « Formulaires à remplir ».
+  const d = (drafts.data ?? []).filter((x) => x.channel === "email");
+  const taskRows = tasks.data ?? [];
+  const itemIds = [
+    ...new Set([...d.map((x) => x.plan_item_id), ...taskRows.map((x) => x.plan_item_id)]),
+  ];
+  const planIds = [...new Set([...d.map((x) => x.plan_id), ...taskRows.map((x) => x.plan_id)])];
   const r = replyDrafts.data ?? [];
   const [items, contacts, plans, inbound, sent, cls] = await Promise.all([
     itemIds.length
@@ -234,6 +250,16 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
       void pos;
       return rest;
     });
+  // Message de chaque formulaire à remplir (brouillon ou déjà validé), sans condition de lot.
+  const formItemIds = taskRows.map((x) => x.plan_item_id);
+  const formDrafts = formItemIds.length
+    ? ((
+        await supabase
+          .from("target_drafts")
+          .select("id, plan_item_id, body, ready, lint_issues")
+          .in("plan_item_id", formItemIds)
+      ).data ?? [])
+    : [];
   const inMap = new Map((inbound.data ?? []).map((i) => [i.id, i.body_excerpt]));
   const toMap = new Map((sent.data ?? []).map((s) => [s.id, s.to_email]));
   const sentPlan = new Map((sent.data ?? []).map((s) => [s.id, s.plan_id]));
@@ -254,15 +280,24 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
       ),
       theirs: inMap.get(x.inbound_message_id) ?? "",
     })),
-    forms: tasks
-      .filter((x) => x.status === "a_faire")
-      .map((x) => ({
-        kind: "formulaire",
-        id: x.id,
-        domain: x.domain,
-        formUrl: x.formUrl,
-        body: x.message,
-      })),
+    forms: formDrafts
+      .map((f): PendingForm | null => {
+        const task = taskRows.find((x) => x.plan_item_id === f.plan_item_id);
+        const it = itemMap.get(f.plan_item_id);
+        if (!task || !it) return null;
+        return {
+          kind: "formulaire",
+          id: f.id,
+          taskId: task.id,
+          domain: it.source_domain,
+          campaign: campaignMap.get(task.plan_id) ?? "",
+          formUrl: task.form_url,
+          body: f.body,
+          ready: f.ready,
+          issues: (Array.isArray(f.lint_issues) ? f.lint_issues : []) as unknown as LintIssue[],
+        };
+      })
+      .filter((x): x is PendingForm => x !== null),
     hasMailbox: (boxes.count ?? 0) > 0,
     missing: missing.total,
     drafting: missing.running,
@@ -458,4 +493,29 @@ export async function editPendingMessage(
     .eq("status", "brouillon");
   if (error) return { status: "error", message: M.saveError };
   return { status: "ok", message: ready ? M.saved : M.savedNotReady };
+}
+
+/**
+ * « C'est fait » pour un formulaire : le message collé dans le formulaire du site. Si le message n'a pas
+ * encore été validé, il l'est ici (même mécanisme que les emails, garde-fous de la base compris), puis la
+ * tâche est marquée faite et la relance prévue à J+10. Un message qui n'est pas prêt ne peut pas l'être.
+ */
+export async function completeForm(
+  supabase: Client,
+  getServiceClient: () => Client,
+  draftId: string,
+  taskId: string,
+): Promise<AuditActionState> {
+  const { data: draft } = await supabase
+    .from("target_drafts")
+    .select("id, status, ready")
+    .eq("id", draftId)
+    .maybeSingle();
+  if (!draft) return { status: "error", message: M.notFound };
+  if (draft.status === "brouillon") {
+    if (!draft.ready) return { status: "error", message: M.notReady };
+    const r = await approveMessages(supabase, getServiceClient, [draftId]);
+    if (r.status === "error") return r;
+  }
+  return completeTask(supabase, getServiceClient, taskId);
 }

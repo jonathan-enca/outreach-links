@@ -1692,3 +1692,11 @@ Maquette validée par Jonathan avant le code (canvas « Réglages · Vos message
 - **Migration `2026120900000000_signature_settings.sql`** (additive, **appliquée sur la vraie base**) : colonnes `sites.signature_last_name`, `signature_show_site`, `signature_linkedin_url`, `signature_phone`, `signature_logo_token`, `counterparts` ; table `site_logos`.
 - **Contrôlé** : 1 191 tests verts ; parcours réel avec le compte de test sur la vraie base (enregistrement, rechargement, logo servi en 240 x 96, retrait du logo, erreur LinkedIn) ; captures bureau et mobile (`pnpm shots`, écrans 24 et 25 ajoutés). **Non contrôlé** : la signature dans « À valider » avec de vrais messages (file vide dans le jeu de test) ; aucun envoi réel, donc le rendu du logo dans Gmail ou Outlook n'est pas constaté.
 - **Dettes et pièges** : `offered_asset` reste en base et dans le formulaire de l'ancienne fiche `/app/site/[id]` (champ obligatoire devenu inutile : à retirer) ; si le prénom change, modifier un message déjà rédigé demande de retaper le nouveau prénom en fin de message (linter) ; « Fondateur » n'a pas de féminin ; le logo est une image distante, que certaines messageries masquent tant que le destinataire ne l'autorise pas.
+
+## Session du 18/11 (suite 18) : les formulaires sortent de l'approbation
+
+Retour de Jonathan : « je comprends pas comment on peut mailer un formulaire » ; le vocabulaire d'« Approuver » mélangeait emails et formulaires.
+
+- **« À valider » ne contient plus de message de formulaire à approuver.** Deux natures claires : **Emails à envoyer** (approuver et envoyer, boîte d'envoi exigée) et **Formulaires à remplir** (copier le message, ouvrir le formulaire, « C'est fait »). Le bouton groupé ne concerne que les emails (« Approuver et envoyer les N emails prêts », absent sans boîte).
+- **« C'est fait » sur un formulaire** valide le message au passage (même mécanisme et mêmes garde-fous en base que les emails : lot validé), marque la tâche faite et prévoit la relance à J+10 (`completeForm` dans `approvals/service.ts`). Un message pas prêt (linter) ne peut pas être marqué fait. Le message reste modifiable.
+- Les compteurs du menu et de l'accueil suivent la file : emails à envoyer + réponses + formulaires.
