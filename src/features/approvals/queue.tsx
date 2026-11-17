@@ -20,7 +20,7 @@ export interface QueueActions {
   approveReply: (id: string) => Result;
   editReply: Edit;
   rejectReply: (id: string) => Result;
-  completeForm: (id: string) => Result;
+  completeForm: (id: string, taskId: string) => Result;
   draftMissing: () => Result;
 }
 
@@ -293,8 +293,8 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
   const msgs = view.messages.filter((m) => !later.has(m.id));
   const replies = view.replies.filter((r) => !later.has(r.id));
   const forms = view.forms.filter((f) => !later.has(f.id));
-  // Sans boîte d'envoi vérifiée, seuls les messages pour formulaire peuvent être approuvés.
-  const ready = msgs.filter((m) => m.ready && (m.channel === "formulaire" || view.hasMailbox));
+  // Approbation groupée : les emails prêts, et seulement avec une boîte d'envoi connectée.
+  const ready = view.hasMailbox ? msgs.filter((m) => m.ready) : [];
   const total = msgs.length + replies.length + forms.length;
   const chips: [Filter, string, number][] = [
     ["tout", V.filters.all, total],
@@ -386,11 +386,7 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
               })
             }
           >
-            {pending
-              ? V.busy
-              : view.hasMailbox
-                ? V.approveAll(ready.length)
-                : V.approveForms(ready.length)}
+            {pending ? V.busy : V.approveAll(ready.length)}
           </Button>
         ) : null}
       </div>
@@ -432,31 +428,24 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
           ? msgs.map((m: PendingMessage) => (
               <li key={m.id}>
                 <Item
-                  tone={m.channel === "email" ? "info" : "neutral"}
-                  tag={m.channel === "email" ? V.tags.message : V.tags.formMessage}
+                  tone="info"
+                  tag={V.tags.message}
                   to={m.to}
                   campaign={m.campaign}
                   subject={m.subject}
                   body={m.body}
                   signed={m.signed}
-                  withSubject={m.channel === "email"}
+                  withSubject
                   aside={[
                     { title: V.aside.hook, text: m.hook },
-                    {
-                      title: V.aside.then,
-                      text: m.channel === "email" ? V.aside.thenEmail : V.aside.thenForm,
-                    },
+                    { title: V.aside.then, text: V.aside.thenEmail },
                   ]}
                   issues={m.issues.map((i) => i.message)}
                   primary={{
-                    label: m.channel === "email" ? V.approve : V.approveForm,
+                    label: V.approve,
                     run: () => actions.approveMessages([m.id]),
-                    disabled: !m.ready || (m.channel === "email" && !view.hasMailbox),
-                    hint: !m.ready
-                      ? V.hintNotReady
-                      : m.channel === "email" && !view.hasMailbox
-                        ? V.hintMailbox
-                        : undefined,
+                    disabled: !m.ready || !view.hasMailbox,
+                    hint: !m.ready ? V.hintNotReady : !view.hasMailbox ? V.hintMailbox : undefined,
                   }}
                   onEdit={(i) => actions.editMessage(m.id, i)}
                   onLater={() => hide(m.id)}
@@ -471,12 +460,18 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
                   tone="neutral"
                   tag={V.tags.form}
                   to={f.domain}
+                  campaign={f.campaign}
                   subject={V.formSubject}
                   body={f.body}
                   withSubject={false}
                   aside={[{ title: V.aside.todo, text: V.aside.todoForm }]}
+                  issues={f.issues.map((i) => i.message)}
                   primary={null}
-                  secondary={{ label: V.markDone, run: () => actions.completeForm(f.id) }}
+                  secondary={{
+                    label: V.markDone,
+                    run: () => actions.completeForm(f.id, f.taskId),
+                  }}
+                  onEdit={(i) => actions.editMessage(f.id, { subject: "", body: i.body })}
                   onLater={() => hide(f.id)}
                   extra={
                     <>
