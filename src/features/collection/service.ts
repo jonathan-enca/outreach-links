@@ -36,7 +36,7 @@ export async function previewCollection(service: Client, auditId: string): Promi
   const { data: audit } = await service
     .from("audits")
     .select(
-      "id, status, workspace_id, cost_cap_usd, sites(id, domain, niche, goal, target_keywords)",
+      "id, status, workspace_id, cost_cap_usd, sites(id, domain, niche, language, goal, target_keywords)",
     )
     .eq("id", auditId)
     .maybeSingle();
@@ -46,6 +46,7 @@ export async function previewCollection(service: Client, auditId: string): Promi
     id: string;
     domain: string;
     niche: string | null;
+    language: string;
     goal: string;
     target_keywords: string[];
   } | null;
@@ -56,7 +57,7 @@ export async function previewCollection(service: Client, auditId: string): Promi
     getLatestBrandProfile(service, site.id),
     service
       .from("competitors")
-      .select("domain, selected, score")
+      .select("domain, selected, score, referring_domains, sample_url")
       .eq("audit_id", auditId)
       .eq("selected", true)
       .order("score", { ascending: false }),
@@ -66,6 +67,12 @@ export async function previewCollection(service: Client, auditId: string): Promi
   const plan = buildCollectionPlan({
     queries: universe.queries,
     competitorDomains: (comps.data ?? []).map((c) => c.domain),
+    competitors: (comps.data ?? []).map((c) => ({
+      domain: c.domain,
+      referringDomains: c.referring_domains,
+      sampleUrl: c.sample_url,
+    })),
+    language: site.language,
     theme: site.niche ?? "",
     nameVariants: profile?.profile.name_variants ?? [],
     domain: site.domain,

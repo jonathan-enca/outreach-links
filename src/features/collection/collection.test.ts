@@ -42,7 +42,7 @@ const ctx: CollectionContext = {
   competitorDomains: ["coloriez.com", "hugolescargot.com"],
   language: "fr",
   theme: "coloriages à imprimer",
-  nameVariants: ["Mega Coloring", "mega-coloring", "megacoloring"],
+  nameVariants: ["Atelier Plumeau", "atelier-plumeau", "atelierplumeau"],
   targetKeywords: [],
 };
 
@@ -275,15 +275,15 @@ describe("rendement décroissant et fusion", () => {
 describe("plan et coût annoncé", () => {
   const queries = [
     ...Array.from({ length: 33 }, (_, i) => query(i + 3)),
-    query(1, { q: '"Mega Coloring" -site:mega-coloring.com', tactic: "mentions", persona: null }),
-    query(2, { q: '"megacoloring" -site:mega-coloring.com', tactic: "mentions", persona: null }),
+    query(1, { q: '"Atelier Plumeau" -site:mega-coloring.com', tactic: "mentions", persona: null }),
+    query(2, { q: '"atelierplumeau" -site:mega-coloring.com', tactic: "mentions", persona: null }),
   ];
   const base = {
     queries,
     competitorDomains: Array.from({ length: 12 }, (_, i) => `concurrent${i}.fr`),
     theme: "coloriages à imprimer",
-    nameVariants: ["Mega Coloring", "mega-coloring", "megacoloring"],
-    domain: "mega-coloring.com",
+    nameVariants: ["Atelier Plumeau", "atelier-plumeau", "atelierplumeau"],
+    domain: "atelier-plumeau.fr",
     goal: "autorite_generale" as const,
     targetKeywords: [] as string[],
   };
@@ -299,7 +299,7 @@ describe("plan et coût annoncé", () => {
       "message-boards",
       "ecommerce",
     ]);
-    expect(plan.mentionKeywords).toEqual(['"Mega Coloring"', '"megacoloring"']);
+    expect(plan.mentionKeywords).toEqual(['"Atelier Plumeau"', '"atelierplumeau"']);
   });
 
   it("objectif mots-clés : 2 types de pages en plus par mot-clé, pas de doublon avec le thème", () => {
@@ -359,12 +359,16 @@ function makeRun(over: Partial<CollectionRun> = {}): CollectionRun {
   const plan = buildCollectionPlan({
     queries: [
       ...Array.from({ length: 12 }, (_, i) => query(i + 3)),
-      query(1, { q: '"Mega Coloring" -site:mega-coloring.com', tactic: "mentions", persona: null }),
+      query(1, {
+        q: '"Atelier Plumeau" -site:mega-coloring.com',
+        tactic: "mentions",
+        persona: null,
+      }),
     ],
     competitorDomains: ["coloriez.com", "hugolescargot.com", "tete-a-modeler.com"],
     theme: ctx.theme,
     nameVariants: ctx.nameVariants,
-    domain: "mega-coloring.com",
+    domain: "atelier-plumeau.fr",
     goal: "autorite_generale",
     targetKeywords: [],
   });
@@ -652,7 +656,7 @@ describe("executeCollection : orchestration complète", () => {
     expect(calls.some((c) => c === "inter:500")).toBe(false);
     expect(progress.stats.intersection.stoppedBy).toBe("budget_phase");
     const firstSerp = calls.findIndex((c) => c.startsWith("serp:"));
-    const firstContentMention = calls.findIndex((c) => c.startsWith('content:"Mega Coloring"'));
+    const firstContentMention = calls.findIndex((c) => c.startsWith('content:"Atelier Plumeau"'));
     expect(firstSerp).toBeGreaterThan(-1);
     // Content Analysis part en même temps que les recherches Google ; ses résultats entrent après.
     expect(calls.some((c) => /^content:coloriages à imprimer:/.test(c))).toBe(true);
@@ -796,7 +800,11 @@ describe("service : coût annoncé puis lancement", () => {
     llm_cost_usd: 0.0004,
     queries: [
       ...Array.from({ length: 10 }, (_, i) => query(i + 2)),
-      query(1, { q: '"Mega Coloring" -site:mega-coloring.com', tactic: "mentions", persona: null }),
+      query(1, {
+        q: '"Atelier Plumeau" -site:mega-coloring.com',
+        tactic: "mentions",
+        persona: null,
+      }),
     ],
     recipes: { cache: 0, generated: 4, fallback: 0 },
     created_at: "2026-11-15T20:00:00Z",
