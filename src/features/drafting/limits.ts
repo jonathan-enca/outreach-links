@@ -15,8 +15,8 @@ export const DRAFT_LIMITS = {
   triageMaxCostPerCallUsd: 0.03,
   writerMaxCostPerCallUsd: 0.35,
   /** Jetons de sortie, réflexion du modèle comprise. */
-  triageMaxOutputTokens: 2_000,
-  writerMaxOutputTokens: 6_000,
+  triageMaxOutputTokens: 4_000,
+  writerMaxOutputTokens: 8_000,
   /** Texte de la page de la cible envoyé aux modèles (caractères). */
   targetPageChars: 16_000,
   /** Pages du site à promouvoir lues pour le catalogue, et texte gardé pour chacune. */
