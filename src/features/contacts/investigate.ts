@@ -8,6 +8,8 @@ import {
   contactCandidates,
   extractEmails,
   isOwnDomainEmail,
+  isWebmail,
+  publisherWebmail,
   rankEmails,
   sitemapLinks,
 } from "./extract";
@@ -180,7 +182,11 @@ export async function investigateItem(
         /* repli sur la vérification gratuite */
       }
     }
-    if (deps.freeVerifier && source === "page" && isOwnDomainEmail(email, domain)) {
+    if (
+      deps.freeVerifier &&
+      source === "page" &&
+      (isOwnDomainEmail(email, domain) || isWebmail(email))
+    ) {
       try {
         const v = await deps.freeVerifier.verify(email);
         if (v !== "non_verifie") verifiedBy = deps.freeVerifier.name;
@@ -222,7 +228,9 @@ export async function investigateItem(
         sendable: true,
         reason:
           verifier === "mx"
-            ? "Email publié par le site sur son propre domaine, domaine de messagerie vérifié (DNS). Vérification gratuite : un rebond éventuel arrêtera les envois."
+            ? isWebmail(email)
+              ? "Adresse de messagerie grand public publiée par l'éditeur du site (contact ou mentions légales). Domaine vérifié (DNS), boîte non prouvée : un rebond éventuel arrêtera les envois."
+              : "Email publié par le site sur son propre domaine, domaine de messagerie vérifié (DNS). Vérification gratuite : un rebond éventuel arrêtera les envois."
             : source === "page"
               ? "Email visible sur le site, vérifié valide."
               : "Email trouvé par recherche, vérifié valide.",
@@ -255,8 +263,20 @@ export async function investigateItem(
   };
 
   // 2. Email visible (de préférence celui du domaine de la cible).
+  // Une adresse invalide ne fait jamais perdre un formulaire : on retombe sur le formulaire (4).
+  const usable = async (email: string | undefined): Promise<ContactResult | null> => {
+    if (!email) return null;
+    const r = await finish(email, "page");
+    return r.status === "email_invalide" && formPage ? null : r;
+  };
   const own = emails.find((e) => isOwnDomainEmail(e, domain));
-  if (own) return finish(own, "page");
+  const ownResult = await usable(own);
+  if (ownResult) return ownResult;
+
+  // 2 bis. Adresse de messagerie grand public publiée par l'éditeur lui-même (page de contact,
+  //    mentions légales, lien mailto) : c'est son contact, même sans domaine propre (gratuit).
+  const webmailResult = await usable(publisherWebmail(pages) ?? undefined);
+  if (webmailResult) return webmailResult;
 
   // 3. Finder payant (seulement si configuré et dans le plafond d'appels).
   if (deps.provider && deps.paidCallsLeft - paid > 0) {

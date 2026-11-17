@@ -1488,15 +1488,15 @@ Branche `claude/controle-run-reel-etape-6-7i5qhe`. **Run réel NON lancé : 0 US
 
 Site `afb08915…`, audit `b229254e…`, mega-coloring.com France, compte de test, par l'interface (`prod-run.mjs`). Préparation : mot de passe du compte remis par l'API d'administration, **seule la campagne mega-coloring.com FR supprimée** (pas de `shots:seed`, les 3 autres sites de démo intacts).
 
-| Mesure | Résultat | Critère |
-| --- | --- | --- |
-| Première liste prête en base | **9 min 32 s** après le clic (10:51:56) ; l'écran passe « terminé » à **13 min 17 s** (10:55:44) | ≤ 13 min : **limite dépassée de 17 s à l'écran** |
-| Cibles à la première liste | **61** (84 moins 23 ajoutées ensuite) | |
-| Cibles à la fin de l'arrière-plan (11:05, 2 lots, arrêt « budget ») | **84**, dont 41 contactables par mail | ≥ 100 : **non atteint** |
-| Coût total | **0,977 USD** (DataForSEO 0,550 ; LLM 0,353 ; arrière-plan 0,073) | ≤ 1,00 : atteint |
-| Coût par cible | 0,0116 USD (avant : 0,017 pour 54 cibles) | |
-| Types | blog 54, école 7, association 7, annuaire 5, média 5, forum modéré 3, e-commerce 2, autre 1 (194 en réserve non jugées) | |
-| Tranches (rang 1-30 / 31-60 / 61+) | 30 / 30 / 24 cibles ; adéquation moyenne 0,78 / 0,78 / 0,67 ; accueils 4 / 9 / 9 | |
+| Mesure                                                              | Résultat                                                                                                                | Critère                                          |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Première liste prête en base                                        | **9 min 32 s** après le clic (10:51:56) ; l'écran passe « terminé » à **13 min 17 s** (10:55:44)                        | ≤ 13 min : **limite dépassée de 17 s à l'écran** |
+| Cibles à la première liste                                          | **61** (84 moins 23 ajoutées ensuite)                                                                                   |                                                  |
+| Cibles à la fin de l'arrière-plan (11:05, 2 lots, arrêt « budget ») | **84**, dont 41 contactables par mail                                                                                   | ≥ 100 : **non atteint**                          |
+| Coût total                                                          | **0,977 USD** (DataForSEO 0,550 ; LLM 0,353 ; arrière-plan 0,073)                                                       | ≤ 1,00 : atteint                                 |
+| Coût par cible                                                      | 0,0116 USD (avant : 0,017 pour 54 cibles)                                                                               |                                                  |
+| Types                                                               | blog 54, école 7, association 7, annuaire 5, média 5, forum modéré 3, e-commerce 2, autre 1 (194 en réserve non jugées) |                                                  |
+| Tranches (rang 1-30 / 31-60 / 61+)                                  | 30 / 30 / 24 cibles ; adéquation moyenne 0,78 / 0,78 / 0,67 ; accueils 4 / 9 / 9                                        |                                                  |
 
 **Pourquoi 84 et pas 100** : 104 sites jugés pertinents sur 250 jugés, mais la liste courte retient 84 ; l'arrière-plan s'est arrêté sur son budget (0,08 USD) avec 194 sites encore en réserve non jugés (`hors_budget_lecture`). Le gain de volume est réel (54 → 84 cibles, +55 %, à coût par cible −32 %) mais pas le double. Le levier restant est le budget d'arrière-plan : il y a ~0,12 USD de marge sous 1,10 USD, soit environ 10 cibles de plus, pas 16. Atteindre 100 demande de dépasser 1,00 USD ou de rendre la lecture moins chère (116 s de lecture sur 250 sites jugés : 37 injoignables, 58 hors langue, 41 concurrents).
 Qualité : la part « bonne » par tranche n'est pas mesurée (pas d'avis de Jonathan sur ces cibles) ; seul l'indice d'adéquation est donné, en baisse au bas de la liste (0,67), comme à l'étape 5.
@@ -1508,3 +1508,41 @@ Dépense réelle de l'étape 6 : **0,977 USD** sur 1,10. Prochain : étape 7.
 - Les 194 sites en réserve restent disponibles à la demande (« Lire d'autres sites »).
 - Nouveau critère de suivi : **cibles contactables** (41 sur 84 ici) pour un coût donné.
 - Étape 7 : comprendre pourquoi 43 cibles sur 84 n'ont pas d'email trouvé et en récupérer sans payer plus (finder payant toujours non) ; email de fin d'analyse (clé Resend invalide) ; pas de nouveau run réel sauf besoin (budget 0,50 USD).
+
+## Session du 18/11 (suite 6) : étape 7, contacts récupérés gratuitement et email de fin
+
+Branche `claude/email-recovery-targets-ma0fhv`. 0 USD dépensé (lectures HTTP polies, DNS-over-HTTPS pour la mesure, SQL en lecture). Aucune migration, aucune fonction Inngest, aucune règle de tri modifiée. Tests (1040 sous `src/features`), lint et typecheck verts.
+
+### Pourquoi 43 cibles sur 84 n'avaient pas d'email (audit `b229254e…`)
+
+- **32 « formulaire »** : le site n'a qu'un formulaire ; l'enquête (rejouée à l'identique sur les 43) ne trouve aucune adresse sur le domaine. Pour la plupart c'est vrai : pas d'email public.
+- **11 « email_a_verifier »** : l'adresse visible n'était pas sur le domaine de la cible (gmail, orange, free, domaine « frère »), donc jamais envoyable.
+- **Cause nouvelle sur ces 43** : plusieurs sites **publient leur adresse d'éditeur en messagerie grand public** (mentions légales, page contact) ; elle était écartée parce que ce n'est pas le domaine du site, et ignorée dès qu'un formulaire existait.
+
+### Ce qui change (`extract.ts`, `investigate.ts`)
+
+1. **Domaine frère** : `bloghoptoys.fr` / `hoptoys.fr`, `aniapp.fr` / `aniapps.fr`, `paperblog.fr` / `.com` (marque de 5 lettres au moins contenue dans l'autre ; jamais pour une plateforme de blogs).
+2. **Messagerie grand public publiée par l'éditeur** (`publisherWebmail`) : retenue seulement sur une page contact / mentions légales / à propos, ou dans un lien `mailto:` ; jamais une adresse vue dans un article ; plus de 2 adresses distinctes = ambigu, aucune. Hébergeurs et agences (ovh, ikoula, slateways, declit-it, flatprod) restent exclus.
+3. Vérification gratuite DNS (`mx`) aussi pour ces adresses, avec un motif lisible : « domaine vérifié, boîte non prouvée, un rebond arrêtera les envois ».
+4. Une adresse **invalide ne fait plus perdre un formulaire** (retombe sur la tâche manuelle).
+
+### Mesure (43 cibles, enquête réelle, vérificateur MX par DoH)
+
+|                                | Avant | Après                                                                             |
+| ------------------------------ | ----- | --------------------------------------------------------------------------------- |
+| Contactables par mail (sur 84) | 41    | **52** (+12 récupérées, −1 : lumieredestoiles.com sans MX, repasse en formulaire) |
+| Formulaire seul                | 32    | 26                                                                                |
+| À vérifier                     | 11    | 4 (declit-it, flatprod, perenniallabs, lesoutilsweb : prestataires ou autre site) |
+
+Les cibles déjà en base ne sont pas modifiées : le gain vaut pour les prochaines analyses (ou une relance de l'enquête).
+
+### Points à savoir
+
+- **Adresses de particuliers** (gmail d'un blogueur) : à inclure dans l'avis juridique prévu (prospection, RGPD). Un cas à surveiller : `culture-13.fr` → `agencebfirst@gmail.com`, publiée par le site comme contact, éditeur et webmaster à la fois, mais qui ressemble à celle de l'agence.
+- Le DNS direct est bloqué dans le conteneur de dev (`ENODATA`) : `demo:contacts-measure` accepte `CONTACT_MEASURE_MX=1` (résolveur DoH).
+
+### Email de fin d'analyse : **non constaté, phrase maintenue retirée**
+
+`events` : 5 `analysis.email_error` (dernier 17/11 10:55, `Resend 401 validation_error`), **0 `analysis.email_sent`**. La clé reste invalide ; l'écran affiche « vous pouvez fermer cette page » sans promesse d'email (`ANALYSIS_EMAIL_VERIFIED = false`). Reste à Jonathan : poser une clé Resend valide (voir « À fournir par Jonathan »), puis passer la constante à `true` après un premier envoi constaté.
+
+Prochain : à décider par Jonathan (relancer l'enquête sur les audits existants ?).
