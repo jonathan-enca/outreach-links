@@ -353,7 +353,11 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
               })
             }
           >
-            {pending ? V.busy : V.approveAll(ready.length)}
+            {pending
+              ? V.busy
+              : view.hasMailbox
+                ? V.approveAll(ready.length)
+                : V.approveForms(ready.length)}
           </Button>
         ) : null}
       </div>

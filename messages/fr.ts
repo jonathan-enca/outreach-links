@@ -2704,7 +2704,9 @@ export const fr = {
     body: "Message",
     approve: "Approuver et envoyer",
     approveForm: "Approuver ce message",
-    approveAll: (n: number) => `Tout approuver (${n})`,
+    /** Le nombre est celui des messages approuvables maintenant, d'où un libellé qui le dit. */
+    approveAll: (n: number) => `Approuver les ${n} messages prêts`,
+    approveForms: (n: number) => `Approuver les ${n} messages pour formulaire`,
     edit: "Modifier",
     save: "Enregistrer",
     saving: "Enregistrement…",
