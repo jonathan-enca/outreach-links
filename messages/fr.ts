@@ -2696,6 +2696,8 @@ export const fr = {
     missing: (n: number) =>
       `${n} ${n > 1 ? "cibles validées n'ont" : "cible validée n'a"} pas encore de message.`,
     missingCta: "Rédiger les messages manquants",
+    hintMailbox: "Connectez d'abord une boîte d'envoi pour approuver et envoyer ce message.",
+    hintNotReady: "Corrigez d'abord les points signalés en rouge.",
     drafting: "Rédaction en cours : les nouveaux messages apparaissent ici dans quelques minutes.",
     to: "À :",
     subject: "Objet",
