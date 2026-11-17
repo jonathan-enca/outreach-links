@@ -29,8 +29,12 @@ export const QUALIFY_LIMITS = {
   pagesPerStep: 40,
   /** MU.1 : sites DIFFÉRENTS lus de front dans un step (un même hôte reste lu en série, avec son délai). */
   readConcurrency: 12,
-  /** Lecture adaptative : on s'arrête quand ce nombre de pages utilisables a été jugé. */
-  targetJudged: 120,
+  /**
+   * Lecture adaptative : on s'arrête quand ce nombre de pages utilisables a été jugé. 150 (120 au
+   * départ) : mesuré le 17/11/2026, 137 puis 142 pages jugées donnent 46 puis 40 cibles ; l'objectif
+   * est de 40 à 50 cibles par analyse.
+   */
+  targetJudged: 150,
   /** Durée maximale de la lecture et du jugement (12 minutes). */
   maxReadMs: 12 * 60_000,
   /** Rendement décroissant : arrêt après ce nombre de lots de suite presque sans page pertinente. */

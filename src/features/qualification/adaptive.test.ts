@@ -239,8 +239,10 @@ describe("lecture adaptative par lots", () => {
     const cands = many(400, "content", "blog");
     const { results, stats } = await executeQualification(deps, input(cands), step);
     expect(stats.readStop).toBe("objectif");
-    expect(stats.judged).toBe(QUALIFY_LIMITS.targetJudged);
-    expect(stats.pagesRead).toBe(QUALIFY_LIMITS.targetJudged);
+    // L'objectif est contrôlé entre deux lots : le lot en cours est toujours fini.
+    const lots = Math.ceil(QUALIFY_LIMITS.targetJudged / QUALIFY_LIMITS.pagesPerStep);
+    expect(stats.judged).toBe(lots * QUALIFY_LIMITS.pagesPerStep);
+    expect(stats.pagesRead).toBe(stats.judged);
     expect(calls.read).toBe(stats.pagesRead);
     expect(stats.stock).toBe(400 - stats.pagesRead);
     const stock = results.filter((r) => r.exclusionReason === "hors_budget_lecture");
@@ -248,7 +250,7 @@ describe("lecture adaptative par lots", () => {
     expect(stock.every((r) => r.status === "reserve" && r.provisionalScore > 0)).toBe(true);
     expect(results).toHaveLength(400);
     // Aucun plafond arbitraire sur la liste : tout ce qui passe le seuil avec un contact est livré.
-    expect(stats.shortlist).toBe(QUALIFY_LIMITS.targetJudged);
+    expect(stats.shortlist).toBe(Math.min(stats.judged, QUALIFY_LIMITS.shortlistSize));
   });
 
   it("candidats épuisés : tout est lu", async () => {
