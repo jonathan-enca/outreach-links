@@ -1501,3 +1501,10 @@ Site `afb08915…`, audit `b229254e…`, mega-coloring.com France, compte de tes
 **Pourquoi 84 et pas 100** : 104 sites jugés pertinents sur 250 jugés, mais la liste courte retient 84 ; l'arrière-plan s'est arrêté sur son budget (0,08 USD) avec 194 sites encore en réserve non jugés (`hors_budget_lecture`). Le gain de volume est réel (54 → 84 cibles, +55 %, à coût par cible −32 %) mais pas le double. Le levier restant est le budget d'arrière-plan : il y a ~0,12 USD de marge sous 1,10 USD, soit environ 10 cibles de plus, pas 16. Atteindre 100 demande de dépasser 1,00 USD ou de rendre la lecture moins chère (116 s de lecture sur 250 sites jugés : 37 injoignables, 58 hors langue, 41 concurrents).
 Qualité : la part « bonne » par tranche n'est pas mesurée (pas d'avis de Jonathan sur ces cibles) ; seul l'indice d'adéquation est donné, en baisse au bas de la liste (0,67), comme à l'étape 5.
 Dépense réelle de l'étape 6 : **0,977 USD** sur 1,10. Prochain : étape 7.
+
+### Décision de Jonathan (17/11, après le run de contrôle) : 84 cibles suffisent en v1
+
+- Le critère « 100 cibles pour 1 USD » est abandonné : **84 cibles à 0,98 USD, avec l'adéquation mesurée, est la qualité présentée en v1**. On ne force pas le volume (coût et qualité en bas de liste).
+- Les 194 sites en réserve restent disponibles à la demande (« Lire d'autres sites »).
+- Nouveau critère de suivi : **cibles contactables** (41 sur 84 ici) pour un coût donné.
+- Étape 7 : comprendre pourquoi 43 cibles sur 84 n'ont pas d'email trouvé et en récupérer sans payer plus (finder payant toujours non) ; email de fin d'analyse (clé Resend invalide) ; pas de nouveau run réel sauf besoin (budget 0,50 USD).
