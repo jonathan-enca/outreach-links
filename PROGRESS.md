@@ -1474,3 +1474,12 @@ Branche `claude/gallant-gates-7ooyc4`. Aucune migration, aucune fonction Inngest
 - **E.4** Tableau par tranche dans `docs/eval-qualite-recherche.md` §3. Avant / après identiques (rien n'a changé).
 - Backlog : lire l'accueil des cibles jugées sur une page intérieure pour y chercher une vente de liens (attrape 1 site sur 5 ici, une lecture de plus par cible) ; à décider avec l'avis de Jonathan.
 - Prochain : étape 6 (chantier F, run réel de contrôle ; budget restant 0,60 USD dont rien n'est consommé).
+
+## Session du 18/11 (matin, suite 5) : run réel de contrôle (prompt maître n° 3, chantier F, étape 6 sur 7)
+
+Branche `claude/controle-run-reel-etape-6-7i5qhe`. **Run réel NON lancé : 0 USD dépensé.**
+
+- Raison : le budget fixé pour cette étape est 0,60 USD. Une analyse complète de mega-coloring.com France coûte 0,92 USD (première liste, mesuré) + 0,08 USD (arrière-plan) = environ 1,00 USD (voir « Décision de produit : budget d'arrière-plan »). Le cache DataForSEO n'est jamais lu sur le site de test (MA.8) : aucune économie possible. Lancer le run aurait dépassé le budget ou l'aurait coupé avant la fin, sans donner de mesure valable pour le critère (100 cibles, 1 USD, 13 minutes).
+- Vérifié gratuitement : production répond (200), Inngest `outreach-links` à 39 fonctions, synchronisé le 17/11, chantiers A à E fusionnés dans `main` (dernier : #127).
+- Pour faire le run : budget d'au moins 1,10 USD, puis `pnpm shots:env` (sans `shots:seed` si un audit est à garder), supprimer la campagne mega-coloring.com France du compte de test, `SHOTS_BASE_URL=https://outreach-links.vercel.app SHOTS_DIR=<dossier> NODE_USE_ENV_PROXY=1 node scripts/shots/prod-run.mjs`. Noter : cibles et durée à la première liste puis en fin d'arrière-plan, coût total et par cible, types, qualité par tranche.
+- Prochain : étape 7 ; le run de contrôle reste à faire avec le budget.
