@@ -23,6 +23,7 @@ import {
   type FounderRole,
   type FunnelView,
   type MoreView,
+  type SkippedView,
   type TargetCard,
   type TargetContact,
   type TargetsRunView,
@@ -105,6 +106,15 @@ export function toCard(
   };
 }
 
+/** Ce que le plan figé n'a pas lancé (absent des plans d'avant le 18/11/2026 : rien d'écarté). */
+function skippedOf(plan: unknown): SkippedView {
+  const sk = (plan as { skipped?: Partial<SkippedView> } | null)?.skipped;
+  return {
+    mentions: typeof sk?.mentions === "string" ? sk.mentions : null,
+    deadPages: Array.isArray(sk?.deadPages) ? sk.deadPages : [],
+  };
+}
+
 const runView = (
   row: {
     status: string;
@@ -129,7 +139,7 @@ export interface TargetsView {
   founderRole: FounderRole | null;
   hasSignature: boolean;
   collectionDone: boolean;
-  collection: TargetsRunView & { preview: CollectionPreview | null };
+  collection: TargetsRunView & { preview: CollectionPreview | null; skipped: SkippedView };
   qualification: TargetsRunView & { preview: QualificationPreview | null };
   findings: TargetsRunView & { preview: FindingsPreview | null; count: number };
   /** Liste courte, dans l'ordre du rang. */
@@ -198,7 +208,7 @@ export async function loadTargets(
   const [col, qrunRes, frunRes, comps] = await Promise.all([
     supabase
       .from("candidate_collections")
-      .select("status, actual_cost_usd, stop_reason, error_message")
+      .select("status, actual_cost_usd, stop_reason, error_message, plan")
       .eq("audit_id", auditId)
       .maybeSingle(),
     supabase
@@ -335,7 +345,7 @@ export async function loadTargets(
     founderRole: isFounderRole(site.founder_role) ? site.founder_role : null,
     hasSignature: Boolean(site.signature_first_name?.trim()),
     collectionDone,
-    collection: { ...runView(col.data), preview: cPreview },
+    collection: { ...runView(col.data), preview: cPreview, skipped: skippedOf(col.data?.plan) },
     qualification: { ...runView(qrun), preview: qPreview },
     findings: { ...runView(frunRes.data), preview: fPreview, count: findingsCount },
     cards,

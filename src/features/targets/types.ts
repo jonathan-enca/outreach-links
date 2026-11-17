@@ -97,6 +97,12 @@ export interface MoreView {
   };
 }
 
+/** Ce que la collecte n'a PAS lancé faute de chance de résultat (dit tel quel à l'écran). */
+export interface SkippedView {
+  mentions: string | null;
+  deadPages: { domain: string; reason: string }[];
+}
+
 export interface TargetsRunView {
   status: "aucun" | "confirme" | "en_cours" | "termine" | "echoue";
   costUsd: number | null;

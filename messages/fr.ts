@@ -1597,6 +1597,11 @@ export const fr = {
       empty:
         "Vos cibles apparaissent ici quand l'analyse est terminée. Rien n'est contacté à cette étape.",
       emptyFiltered: "Aucune cible pour cette tactique.",
+      /** Tactique cherchée sans résultat, ou non lancée faute de chance (chantier C, 18/11/2026). */
+      tacticNone: "Cette recherche a été faite : elle n'a trouvé aucune cible pour votre site.",
+      mentionsSkipped: "Cette recherche n'a pas été lancée : {reason}.",
+      deadPagesSkipped:
+        "Les pages disparues de {n} concurrent(s) n'ont pas été cherchées (site trop gros ou d'une autre langue) : {names}.",
       selectAll: "Tout retenir",
       selectNone: "Tout écarter",
       selected: "{n} demandes retenues",

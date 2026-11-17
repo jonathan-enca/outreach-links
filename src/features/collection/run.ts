@@ -63,6 +63,13 @@ export const collectionPlanSchema = z.object({
     .max(20),
   /** Concurrents dont on cherche les pages disparues (absent des plans figés avant le chantier D). */
   deadPages: z.array(z.string()).max(10).default([]),
+  /** Ce qui n'est pas lancé faute de chance de résultat (absent des plans figés avant le 18/11/2026). */
+  skipped: z
+    .object({
+      deadPages: z.array(z.object({ domain: z.string(), reason: z.string() })).default([]),
+      mentions: z.string().nullable().default(null),
+    })
+    .default({ deadPages: [], mentions: null }),
 });
 
 export interface CollectionRun {

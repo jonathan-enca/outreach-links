@@ -11,6 +11,13 @@ import {
   phaseBudgetUsd,
   type CollectionPhase,
 } from "./limits";
+import {
+  brandMentionPlan,
+  deadPagesSkipReason,
+  queryHasBrand,
+  type CompetitorFacts,
+  type Skipped,
+} from "./worth";
 
 const r6 = (n: number) => Math.round(n * 1e6) / 1e6;
 
@@ -32,6 +39,8 @@ export interface CollectionPlan {
   content: ContentCall[];
   /** Concurrents dont on cherche les pages disparues qui reçoivent encore des liens (chantier D). */
   deadPages: string[];
+  /** Ce qui n'est PAS lancé faute de chance de résultat, avec la raison (chantier C du 18/11/2026). */
+  skipped: Skipped;
 }
 
 export interface PlanInput {
@@ -43,6 +52,10 @@ export interface PlanInput {
   domain: string;
   goal: "autorite_generale" | "mots_cles";
   targetKeywords: readonly string[];
+  /** Langue de la campagne (« fr ») : sert à écarter les concurrents d'une autre langue. */
+  language?: string;
+  /** Taille et adresse connues des concurrents ; sans elles, aucun concurrent n'est écarté. */
+  competitors?: readonly CompetitorFacts[];
 }
 
 /** Écritures distinctes du nom (« Mega Coloring » et « mega-coloring » = une, « megacoloring » = une autre). */
@@ -63,12 +76,16 @@ export function distinctVariants(variants: readonly string[], domain: string): s
 
 export function buildCollectionPlan(input: PlanInput): CollectionPlan {
   const ordered = [...input.queries].sort((a, b) => a.rank - b.rank);
-  const mentionSerp = ordered
-    .filter((q) => q.tactic === "mentions")
-    .slice(0, COLLECTION_LIMITS.mentions.maxSerpQueries);
   const serp = ordered
     .filter((q) => q.tactic !== "mentions")
     .slice(0, COLLECTION_LIMITS.serp.maxQueries);
+
+  // Mentions de marque : seulement les écritures qui ne sont pas descriptives du thème.
+  const themeWords = [input.theme, ...input.targetKeywords];
+  const brand = brandMentionPlan(distinctVariants(input.nameVariants, input.domain), themeWords);
+  const mentionSerp = ordered
+    .filter((q) => q.tactic === "mentions" && queryHasBrand(q.q, brand.variants))
+    .slice(0, COLLECTION_LIMITS.mentions.maxSerpQueries);
 
   const content: ContentCall[] = COLLECTION_LIMITS.content.pageTypes.map((pageType) => ({
     keyword: input.theme,
@@ -84,16 +101,31 @@ export function buildCollectionPlan(input: PlanInput): CollectionPlan {
       }
     }
   }
+
+  // Liens morts : parmi les plus gros concurrents retenus, seuls ceux de la même langue et qui ne
+  // sont pas des géants. Aucun remplaçant n'est pris : l'économie est le but.
+  const facts = new Map((input.competitors ?? []).map((c) => [c.domain, c]));
+  const top = [...input.competitorDomains].slice(0, COLLECTION_LIMITS.deadPages.maxCompetitors);
+  const deadPages: string[] = [];
+  const skippedDead: { domain: string; reason: string }[] = [];
+  for (const domain of top) {
+    const f = facts.get(domain);
+    const reason = f && input.language ? deadPagesSkipReason(f, input.language) : null;
+    if (reason) skippedDead.push({ domain, reason });
+    else deadPages.push(domain);
+  }
+
   return {
     intersectionTargets: [...input.competitorDomains].slice(
       0,
       COLLECTION_LIMITS.intersection.maxTargets,
     ),
     serp,
-    mentionSerp,
-    mentionKeywords: distinctVariants(input.nameVariants, input.domain).map((v) => `"${v}"`),
+    mentionSerp: brand.variants.length > 0 ? mentionSerp : [],
+    mentionKeywords: brand.variants.map((v) => `"${v}"`),
     content,
-    deadPages: [...input.competitorDomains].slice(0, COLLECTION_LIMITS.deadPages.maxCompetitors),
+    deadPages,
+    skipped: { deadPages: skippedDead, mentions: brand.skipReason },
   };
 }
 

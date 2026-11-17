@@ -633,7 +633,11 @@ export function TargetsScreen({
               <p className="text-muted-foreground">
                 {publisher !== undefined && publisher !== null
                   ? M.publishers.emptyTab
-                  : M.list.emptyFiltered}
+                  : filter === "mentions"
+                    ? view.collection.skipped.mentions
+                      ? M.list.mentionsSkipped.replace("{reason}", view.collection.skipped.mentions)
+                      : M.list.tacticNone
+                    : M.list.emptyFiltered}
               </p>
             ) : (
               <ul className="flex flex-col gap-4">
@@ -647,6 +651,18 @@ export function TargetsScreen({
                 ))}
               </ul>
             )}
+            {filter === "ressources" && view.collection.skipped.deadPages.length > 0 ? (
+              <p className="text-sm text-muted-foreground" data-testid="dead-pages-skipped">
+                {M.list.deadPagesSkipped
+                  .replace("{n}", String(view.collection.skipped.deadPages.length))
+                  .replace(
+                    "{names}",
+                    view.collection.skipped.deadPages
+                      .map((d) => `${d.domain} (${d.reason})`)
+                      .join(", "),
+                  )}
+              </p>
+            ) : null}
             {view.funnel ? (
               <MoreSites funnel={view.funnel} more={view.more} start={actions.readMore} />
             ) : null}
