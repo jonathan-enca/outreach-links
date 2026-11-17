@@ -1920,6 +1920,8 @@ export const fr = {
     test: "Tester la connexion",
     testing: "Test en cours…",
     remove: "Supprimer la boîte",
+    removeConfirm:
+      "Supprimer cette boîte ? Les messages déjà envoyés restent dans votre historique, mais les réponses lues depuis cette boîte sont supprimées avec elle. Vos messages approuvés attendront qu'une boîte soit reconnectée.",
     status: {
       en_attente: "À tester",
       verifiee: "Connexion vérifiée",
@@ -1955,6 +1957,8 @@ export const fr = {
       testFail: "Connexion en échec : {detail}",
       removed: "Boîte supprimée.",
       scheduleSaved: "Horaires enregistrés.",
+      scheduleOpenNow: "Les envois sont ouverts en ce moment.",
+      scheduleNext: (when: string) => `Prochaine ouverture : ${when}.`,
       scheduleInvalid: "Choisissez au moins un jour, et une heure de fin après l'heure de début.",
     },
     schedule: {
@@ -1964,6 +1968,7 @@ export const fr = {
         "Conseillé : du lundi au vendredi, de 9 h à 18 h. Un message reçu aux heures de bureau paraît plus naturel et a plus de chances d'être lu.",
       days: "Jours d'envoi",
       dayNames: ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"],
+      allDay: "24 h sur 24",
       from: "De",
       to: "à",
       hour: (h: number) => `${h} h`,
@@ -2766,6 +2771,10 @@ export const fr = {
       edit: "Modifier les horaires",
       ouvert: (n: number) =>
         `${n} ${n > 1 ? "emails approuvés attendent" : "email approuvé attend"} leur tour : les envois sont en cours.`,
+      plafondJour: (n: number, cap: number, when: string) =>
+        `Pour ménager votre boîte, ${cap} ${cap > 1 ? "emails" : "email"} au plus partent par 24 heures pendant les premières semaines : ${n} ${n > 1 ? "attendent" : "attend"} cette limite, le prochain part ${when}.`,
+      plafondHeure: (n: number, cap: number, when: string) =>
+        `${cap} ${cap > 1 ? "emails" : "email"} au plus partent par heure : ${n} ${n > 1 ? "attendent" : "attend"} cette limite, le prochain part ${when}.`,
       ferme: (n: number, when: string) =>
         `${n} ${n > 1 ? "emails approuvés partiront" : "email approuvé partira"} à la reprise des envois, ${when}.`,
       sans_boite: (n: number) =>
@@ -2816,6 +2825,12 @@ export const fr = {
       queued: "Message approuvé. Il partira de votre boîte d'envoi au rythme prévu.",
       queuedAt: (when: string) =>
         `Message approuvé. Départ prévu ${when}, depuis votre boîte d'envoi.`,
+      queuedClosed: (when: string) =>
+        `Message approuvé. Il part ${when} : vos horaires d'envoi sont fermés d'ici là.`,
+      queuedDayCap: (when: string, cap: number) =>
+        `Message approuvé. Limite de ${cap} ${cap > 1 ? "emails" : "email"} par 24 heures atteinte (rythme progressif des premières semaines, pour ménager votre boîte). Départ prévu ${when}.`,
+      queuedHourCap: (when: string, cap: number) =>
+        `Message approuvé. Limite de ${cap} ${cap > 1 ? "emails" : "email"} par heure atteinte. Départ prévu ${when}.`,
       followUpPlanned: (date: string) => `Relance prévue le ${date} sans réponse.`,
       system: {
         rebond: "Le message est revenu en erreur : cette adresse ne sera plus utilisée.",

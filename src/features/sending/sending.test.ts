@@ -20,7 +20,7 @@ import {
   nextSendStart,
   planSendTimes,
 } from "./schedule";
-import { formatSendTime, queueNoteText } from "./queue-note";
+import { formatSendTime, queueNoteText, queuedMessageText } from "./queue-note";
 import { runSendTick, type SendDeps } from "./service";
 
 const W = { timezone: "Europe/Paris", startHour: 9, endHour: 18 };
@@ -72,21 +72,25 @@ describe("fenêtre d'envoi et échauffement", () => {
   });
   it("heures de départ probables : un passage sur six minutes, échauffement de cinq par jour", () => {
     const base = { window: W, recent: [], firstSendAt: null, dailyCap: 20, hourlyCap: 10 };
+    const iso = (h: string, d = "18") => new Date(`2026-11-${d}T${h}:00+01:00`).toISOString();
     // Mardi 22 h 14 : rien avant mercredi 9 h, puis un message toutes les six minutes.
     const night = planSendTimes(new Date("2026-11-17T22:14:00+01:00"), 7, base);
-    expect(night.slice(0, 5).map((d) => d!.toISOString())).toEqual(
-      ["09:00", "09:06", "09:12", "09:18", "09:24"].map((h) =>
-        new Date(`2026-11-18T${h}:00+01:00`).toISOString(),
-      ),
+    expect(night.slice(0, 5).map((d) => d.at!.toISOString())).toEqual(
+      ["09:00", "09:06", "09:12", "09:18", "09:24"].map((h) => iso(h)),
     );
-    // Première semaine : cinq par 24 heures. Le sixième attend le lendemain, à la même heure.
-    expect(night[5]!.toISOString()).toBe(new Date("2026-11-19T09:06:00+01:00").toISOString());
-    expect(formatSendTime(night[1]!, "Europe/Paris", false)).toBe(
+    // Le premier attend l'ouverture des horaires ; les suivants partent à la suite, sans raison à donner.
+    expect(night[0]!.reason).toEqual({ kind: "horaires" });
+    expect(night[1]!.reason).toBeNull();
+    // Première semaine : cinq par 24 heures. Le sixième attend la limite, pas les horaires.
+    expect(night[5]!.at!.toISOString()).toBe(iso("09:06", "19"));
+    expect(night[5]!.reason).toEqual({ kind: "jour", cap: 5 });
+    expect(formatSendTime(night[1]!.at!, "Europe/Paris", false)).toBe(
       "mercredi 18 novembre vers 9 h 06",
     );
     // En pleine journée, le prochain passage est le bon.
     const day = planSendTimes(new Date("2026-11-18T10:01:00+01:00"), 1, base);
-    expect(day[0]!.toISOString()).toBe(new Date("2026-11-18T10:06:00+01:00").toISOString());
+    expect(day[0]!.at!.toISOString()).toBe(iso("10:06"));
+    expect(day[0]!.reason).toBeNull();
     // Plafond horaire atteint : on attend que l'heure glisse.
     const busy = planSendTimes(new Date("2026-11-18T10:01:00+01:00"), 1, {
       ...base,
@@ -94,11 +98,59 @@ describe("fenêtre d'envoi et échauffement", () => {
       firstSendAt: new Date("2026-09-01T09:00:00+02:00"),
       recent: [new Date("2026-11-18T09:54:00+01:00")],
     });
-    expect(busy[0]!.toISOString()).toBe(new Date("2026-11-18T10:54:00+01:00").toISOString());
+    expect(busy[0]!.at!.toISOString()).toBe(iso("10:54"));
+    expect(busy[0]!.reason).toEqual({ kind: "heure", cap: 1 });
     // Fuseau inconnu : aucune estimation, jamais d'heure inventée.
     expect(
       planSendTimes(new Date(), 2, { ...base, window: { ...W, timezone: "Nulle/Part" } }),
-    ).toEqual([null, null]);
+    ).toEqual([
+      { at: null, reason: null },
+      { at: null, reason: null },
+    ]);
+  });
+  it("24 h sur 24, 7 jours sur 7 : tout part au prochain passage, la limite du jour seule retient", () => {
+    // Cas réel du 17/11/2026 : horaires 9 h à 23 h, il est 23 h 04 à Paris, un envoi déjà parti.
+    const always = {
+      timezone: "Europe/Paris",
+      startHour: 0,
+      endHour: 24,
+      days: [1, 2, 3, 4, 5, 6, 7],
+    };
+    expect(isInSendWindow(new Date("2026-11-17T23:04:00+01:00"), always)).toBe(true);
+    expect(isInSendWindow(new Date("2026-11-22T03:00:00+01:00"), always)).toBe(true); // dimanche, 3 h
+    expect(describeWindow(always)).toBe("tous les jours, 24 h sur 24");
+    expect(describeWindow({ ...always, days: [1, 2, 3, 4, 5] })).toBe(
+      "du lundi au vendredi, 24 h sur 24",
+    );
+    const slots = planSendTimes(new Date("2026-11-17T23:04:00+01:00"), 5, {
+      window: always,
+      recent: [new Date("2026-11-17T22:54:00+01:00")],
+      firstSendAt: new Date("2026-11-17T22:54:00+01:00"),
+      dailyCap: 20,
+      hourlyCap: 10,
+    });
+    // Quatre places restent aujourd'hui (5 par 24 h, un déjà parti) : départ immédiat, un par passage.
+    expect(slots.slice(0, 4).map((x) => x.at!.toISOString())).toEqual(
+      ["23:06", "23:12", "23:18", "23:24"].map((h) =>
+        new Date(`2026-11-17T${h}:00+01:00`).toISOString(),
+      ),
+    );
+    expect(slots.slice(0, 4).every((x) => x.reason === null)).toBe(true);
+    // Le cinquième attend que le premier envoi ait plus de 24 heures (premier passage ensuite), et le dit.
+    expect(slots[4]!.at!.toISOString()).toBe(new Date("2026-11-18T23:00:00+01:00").toISOString());
+    expect(slots[4]!.reason).toEqual({ kind: "jour", cap: 5 });
+    expect(
+      queuedMessageText({ at: slots[4]!.at!, timezone: "Europe/Paris", reason: slots[4]!.reason }),
+    ).toBe(
+      "Message approuvé. Limite de 5 emails par 24 heures atteinte (rythme progressif des premières semaines, pour ménager votre boîte). Départ prévu mercredi 18 novembre vers 23 h.",
+    );
+    expect(
+      queuedMessageText({
+        at: slots[0]!.at!,
+        timezone: "Europe/Paris",
+        reason: { kind: "horaires" },
+      }),
+    ).toMatch(/horaires d'envoi sont fermés/);
   });
   it("échauffement 5, 10, 15 par jour puis le plafond de la boîte", () => {
     const now = new Date("2026-12-01T10:00:00Z");

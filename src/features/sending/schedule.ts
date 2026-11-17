@@ -77,38 +77,71 @@ export interface SendPlanInput {
   hourlyCap: number;
 }
 
+/** Pourquoi un message ne part pas au prochain passage : horaires fermés, ou limite d'envoi atteinte. */
+export type DelayReason =
+  { kind: "horaires" } | { kind: "jour"; cap: number } | { kind: "heure"; cap: number } | null;
+
+export interface SendSlot {
+  /** Heure de départ probable ; `null` si elle ne peut pas être estimée. */
+  at: Date | null;
+  reason: DelayReason;
+}
+
 /**
- * Heures de départ probables des `count` prochains messages d'une boîte, dans l'ordre de la file.
+ * Créneaux de départ probables des `count` prochains messages d'une boîte, dans l'ordre de la file.
  * Rejoue les règles du moteur : un message par passage, horaires d'envoi, plafond par heure, plafond
  * par 24 heures avec échauffement. C'est une estimation (une relance ou une réponse peut prendre un
- * passage) : l'écran dit « vers ». Au-delà de trois semaines, `null`.
+ * passage) : l'écran dit « vers ». `reason` dit ce qui retarde le message (la limite d'envoi passe avant
+ * les horaires). Au-delà de trois semaines, `at` vaut `null`.
  */
-export function planSendTimes(now: Date, count: number, p: SendPlanInput): (Date | null)[] {
+export function planSendTimes(now: Date, count: number, p: SendPlanInput): SendSlot[] {
   const tick = SEND_TICK_MINUTES * 60_000;
   const horizon = now.getTime() + 21 * 86_400_000;
   const sent = p.recent.map((d) => d.getTime());
   let first = p.firstSendAt;
-  const out: (Date | null)[] = [];
+  const out: SendSlot[] = [];
+  let closed = false;
+  let dayHit: number | null = null;
+  let hourHit: number | null = null;
   let at = Math.floor(now.getTime() / tick) * tick + tick;
   while (out.length < count && at <= horizon) {
     const when = new Date(at);
     if (!isInSendWindow(when, p.window)) {
       const next = nextSendStart(when, p.window);
       if (!next) break;
+      closed = true;
       at = next.getTime();
       continue;
     }
     const inHour = sent.filter((x) => x > at - 3_600_000).length;
     // Mêmes bornes que le moteur : l'heure glissante est stricte, les 24 heures sont incluses.
     const inDay = sent.filter((x) => x >= at - 86_400_000).length;
-    if (inHour < p.hourlyCap && inDay < effectiveDailyCap(p.dailyCap, first, when)) {
-      out.push(when);
+    const dayCap = effectiveDailyCap(p.dailyCap, first, when);
+    if (inHour < p.hourlyCap && inDay < dayCap) {
+      out.push({
+        at: when,
+        reason:
+          dayHit !== null
+            ? { kind: "jour", cap: dayHit }
+            : hourHit !== null
+              ? { kind: "heure", cap: hourHit }
+              : closed
+                ? { kind: "horaires" }
+                : null,
+      });
       sent.push(at);
       first ??= when;
+      closed = false;
+      dayHit = null;
+      hourHit = null;
+    } else if (inDay >= dayCap) {
+      dayHit = dayCap;
+    } else {
+      hourHit = p.hourlyCap;
     }
     at += tick;
   }
-  while (out.length < count) out.push(null);
+  while (out.length < count) out.push({ at: null, reason: null });
   return out;
 }
 
@@ -125,5 +158,7 @@ export function describeWindow(w: Pick<SendWindow, "days" | "startHour" | "endHo
       : days.length >= 3 && run
         ? `du ${names[0]} au ${names.at(-1)}`
         : `le ${names.length > 1 ? `${names.slice(0, -1).join(", ")} et ${names.at(-1)}` : names[0]}`;
-  return `${label}, de ${w.startHour} h à ${w.endHour} h`;
+  return w.startHour === 0 && w.endHour === 24
+    ? `${label}, 24 h sur 24`
+    : `${label}, de ${w.startHour} h à ${w.endHour} h`;
 }
