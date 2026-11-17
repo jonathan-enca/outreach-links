@@ -21,9 +21,22 @@ export function cardTactics(card: Pick<TargetCard, "tactics" | "findings">): Tac
   return [...set];
 }
 
+/**
+ * LA catégorie d'une cible à l'écran : celle de la demande qui sera faite (le constat le plus probant,
+ * sinon la tactique la plus précise de la collecte). Une seule par cible, pour que les compteurs des
+ * filtres s'additionnent exactement (retour de Jonathan, 18/11 : « 57 + 15 n'est pas égal à 61 »).
+ */
+export function primaryTactic(card: Pick<TargetCard, "tactics" | "findings">): Tactic {
+  const f = sortFindings(card.findings)[0];
+  if (f) return tacticOfFinding(f.kind);
+  if (card.tactics.includes("mentions")) return "mentions";
+  if (card.tactics.includes("ressources")) return "ressources";
+  return "inconnus";
+}
+
 export function filterCards(cards: readonly TargetCard[], filter: TacticFilter): TargetCard[] {
   if (filter === "toutes") return [...cards];
-  return cards.filter((c) => cardTactics(c).includes(filter));
+  return cards.filter((c) => primaryTactic(c) === filter);
 }
 
 export function countByTactic(cards: readonly TargetCard[]): Record<TacticFilter, number> {
@@ -33,7 +46,7 @@ export function countByTactic(cards: readonly TargetCard[]): Record<TacticFilter
     ressources: 0,
     mentions: 0,
   };
-  for (const c of cards) for (const t of cardTactics(c)) out[t]++;
+  for (const c of cards) out[primaryTactic(c)]++;
   return out;
 }
 
