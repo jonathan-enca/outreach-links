@@ -308,6 +308,64 @@ Ordre conseillé : MN.1 (court, sans code) et MH.1 en parallèle, puis MN.2, MH.
 
 ---
 
+## MC. Recherche de cibles « avec angle » (ajouté le 17/11/2026)
+
+**Pourquoi.** Depuis que le rédacteur refuse d'écrire sans raison honnête, 2 messages sur 20 relus méritaient d'être envoyés. Le problème est en amont. Mesuré sur la campagne remove-me.io du 17/11 (1 366 candidats, 80 cibles retenues) :
+
+- Les 80 pages retenues sont 32 pages légales (politiques de confidentialité), 27 pages d'accueil, 1 rubrique et seulement 20 pages intérieures. Les 2 seuls angles honnêtes étaient 2 de ces 20 articles.
+- Toutes les recherches partent du THÈME du site (« école protection des données personnelles », un seul mot-clé de contenu, « protection données personnelles », qui a fourni 39 des 80 cibles). Une page qui contient ces mots est le plus souvent une politique de confidentialité.
+- Aucune recherche ne part des 65 articles précis du site (fuite de données Free, démarchage téléphonique après le 11 août 2026, supprimer son compte LinkedIn...).
+- La qualification note la proximité du sujet sur un extrait de 1 200 caractères. Elle ne demande jamais si un lien aurait sa place sur la page ni si quelqu'un la modifiera.
+- 498 candidats n'ont jamais été lus (budget de lecture), dont 150 sites qui lient déjà des concurrents.
+- Les « concurrents » recoupés étaient fr.norton.com, senat.fr, studyrama.com... : des sites qui parlent du thème, pas des pages comparables aux nôtres.
+- Constats concrets (lien mort, mention sans lien) : 4 sur 80.
+
+**Principe.** Inverser la recherche : partir de chaque page précise du site et chercher les pages d'autres sites qui traitent exactement ce point. Puis ne garder qu'une page où un lien a sa place, et le vérifier avant de dépenser quoi que ce soit en contact et en rédaction.
+
+Un sous-jalon = une session. Chaque sous-jalon se termine par une mesure sur remove-me.io et mega-coloring.com, comparée à la référence (10 % de cibles avec angle).
+
+### MC.0 Mesurer avant de construire (essai sans code produit)
+
+- Prendre 6 pages précises de remove-me.io. Pour chacune, écrire 3 recherches « de sujet » (ce qu'un article voisin viserait) et lire les 20 premiers résultats (≈ 0,11 USD de DataForSEO).
+- Retirer par l'adresse les pages d'accueil, légales, commerciales et les rubriques, puis passer le reste au tri d'angle du rédacteur.
+- Critère : au moins 30 % de pages avec angle après le filtre gratuit (référence : 10 %). En dessous, revoir le principe avant de coder la suite.
+- Sortie : tableau par type de recherche (pages lues, angles trouvés, coût), noté dans `PROGRESS.md`.
+
+### MC.1 Filtre gratuit par nature de page
+
+- Écarter avant toute lecture payante : page d'accueil, page légale (politique de confidentialité, mentions, CGU, cookies), page commerciale (tarifs, fiche de formation ou de produit, panier), rubrique, étiquette, pagination, recherche interne. Par l'adresse d'abord, puis par la page lue (peu de texte éditorial, formulaire d'achat, date de publication).
+- Exception : une page d'accueil reste candidate pour une mention sans lien ou un lien mort constaté.
+- Motif d'exclusion lisible, compté dans l'entonnoir. Jeu d'essai annoté (les 80 cibles du 17/11 : 60 doivent tomber, les 2 bonnes doivent rester).
+
+### MC.2 Recherches à partir des pages du site
+
+- Réutiliser le catalogue du rédacteur (`site_pages`). Pour chaque page précise, le modèle écrit 2 à 4 recherches de sujet et, s'il y en a, le « fait nouveau » que la page connaît et que d'anciens articles ignorent (exemple : la fin de Bloctel au 11 août 2026).
+- Ces recherches remplacent la majorité des recherches par thème dans l'univers de requêtes ; le coût annoncé avant lancement ne change pas d'ordre de grandeur (0,006 USD par recherche).
+- Chaque candidat garde la page du site qui l'a fait trouver : le rédacteur part de cette page au lieu de la deviner.
+
+### MC.3 Qui cite déjà une page comme la nôtre
+
+- Pour chaque page du site, repérer les 3 à 5 pages concurrentes les mieux placées sur ses recherches, puis lire QUI les cite (backlinks de la page, pas du domaine). Une page qui cite déjà un guide équivalent est la meilleure cible : le lien a déjà sa place.
+- Même lecture pour les pages concurrentes disparues (404) encore citées : remplacement de lien mort, l'angle le plus solide.
+- Remplace le recoupement par domaine actuel (concurrents mal choisis). Coût à annoncer et à plafonner : mesuré le 16/11, 0,05 USD par appel de backlinks.
+
+### MC.4 La qualification juge l'angle, pas le sujet
+
+- Remplacer la note de proximité par le tri d'angle du rédacteur, sur la page lue en entier, avec le petit modèle de génération actuelle (≈ 0,001 USD par page contre 0,007 USD aujourd'hui pour un extrait).
+- Avec ce prix, lire aussi la réserve (498 candidats jamais lus le 17/11) : objectif 500 à 600 pages jugées par campagne pour moins de 1 USD.
+- Le verdict et la page proposée sont gardés : le rédacteur ne refait pas le tri, il rejuge et écrit. La recherche de contact ne se fait plus que pour les cibles avec angle.
+- Classement de la liste courte par force de l'angle (lien mort ou fait périmé, puis manque explicite, puis liste de ressources tenue), avant l'autorité du site.
+
+### MC.5 Rendement par source et pilotage
+
+- Entonnoir par source et par type de recherche : candidats, pages lues, angles, messages prêts, puis réponses et liens obtenus.
+- Le budget d'une campagne va d'abord aux sources qui donnent des angles ; une source sous 5 % après 40 pages lues est arrêtée.
+- Écran de campagne : « N pages lues, N avec une raison de demander un lien, N messages prêts », et les cibles écartées avec leur motif.
+
+**Objectifs (à confirmer après MC.0).** 30 à 40 messages envoyables par campagne (10 aujourd'hui avec le filtre), coût total d'une campagne sous 5 USD, aucune cible de la liste courte sans angle.
+
+**Hors périmètre.** Recherche du bon destinataire (auteur de l'article plutôt que l'adresse générale), exemples de messages de Jonathan, presse et journalistes : à traiter après.
+
 ## Plus tard (hors plan v1)
 
 OAuth Gmail/Outlook, extension navigateur pour formulaires et badges SERP, module annuaires, serveur MCP, marque blanche, autres langues.
