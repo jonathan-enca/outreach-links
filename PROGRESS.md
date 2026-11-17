@@ -1724,3 +1724,13 @@ Retour de Jonathan : boîte Gmail connectée et vérifiée, 5 emails approuvés,
 - **Heure de départ affichée** : dans Conversations, chaque email approuvé porte « Départ prévu mercredi 18 novembre vers 9 h 06 », et un bandeau dit pourquoi la file attend (horaires fermés, pas de boîte, simulation) avec un lien « Modifier les horaires ». `planSendTimes` (`sending/schedule.ts`) rejoue les règles du moteur (un message par passage de six minutes, plafond horaire, plafond par 24 heures avec échauffement) ; `loadSendQueue` (`sending/queue-note.ts`) suit l'ordre du moteur (lots validés par date, puis position). C'est une estimation : relances et réponses peuvent prendre un passage.
 - **Pièges** : le fuseau n'est pas réglable (toutes les boîtes sont à l'heure de Paris, le formulaire l'écrit en dur) ; l'estimation ignore les réponses en attente d'envoi ; la page Facturation affichera « 100 envois » à un espace sans abonnement pendant la bêta.
 - **À faire avant l'ouverture au public** : refermer l'envoi sans abonnement (couper `BETA_MODE` ou brancher Stripe), avis juridique sur la prospection (section 8).
+
+## Session du 17/11 (soir, suite 2) : réglages accessibles sur téléphone
+
+Retour de Jonathan : sur téléphone, il n'accède pas à tous les réglages. Cause : la barre du bas n'avait qu'un onglet « Réglages », qui ouvrait seulement « Vos messages » ; Boîte d'envoi, Notifications et Liens obtenus n'étaient atteignables de nulle part, et aucune page de réglages n'offrait de retour.
+
+- **Nouvelle page `/app/reglages`** (hub) : toutes les pages rangées en Envoi (boîte d'envoi, vos messages, notifications, garde-fous), Suivi (liens obtenus, tâches à la main) et Compte (vos sites, abonnement), avec une ligne d'explication chacune, l'adresse de la personne et « Se déconnecter ». Liste unique dans `features/shell/settings-links.ts` (testée : chaque lien mène à une page qui existe).
+- **Barre du bas** : l'onglet « Réglages » ouvre ce hub et reste actif sur toutes les pages qu'il propose (`mobileOnly` : il n'apparaît pas dans le menu latéral de l'ordinateur, qui liste déjà chaque page).
+- **Retour** : sur téléphone, chaque page de réglages affiche « ‹ Réglages » en haut (`features/shell/mobile-back.tsx`).
+- `/app/compte` redirige vers le hub ; le lien « Compte » de l'en-tête du téléphone aussi.
+- **Contrôlé** : captures à 390 px du hub avec la barre du bas (sans débordement), 1 220 tests verts. **Non contrôlé** : les pages connectées elles-mêmes, faute de compte de test ici (l'outil `pnpm shots` écrit dans la vraie base, non lancé).

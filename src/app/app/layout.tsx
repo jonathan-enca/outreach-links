@@ -2,6 +2,7 @@ import { ContentWidth } from "@/features/shell/content-width";
 import Link from "next/link";
 import { Suspense } from "react";
 import { AppNav } from "@/components/app-nav";
+import { MobileBack } from "@/features/shell/mobile-back";
 import { loadOverview } from "@/features/shell/overview";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
@@ -39,7 +40,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <Link href="/app" className="font-display text-lg font-semibold text-white">
           {t.app.name}
         </Link>
-        <Link href="/app/compte" className="text-sm text-sidebar-foreground underline">
+        <Link href="/app/reglages" className="text-sm text-sidebar-foreground underline">
           {t.shell.nav.account}
         </Link>
       </header>
@@ -48,6 +49,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <Nav />
         </Suspense>
         <main id="contenu" className="min-w-0 flex-1 bg-muted/40 px-4 py-6 pb-24 md:px-8 md:pb-8">
+          <MobileBack />
           <ContentWidth>{children}</ContentWidth>
         </main>
       </div>
