@@ -13,6 +13,7 @@ import {
   isPlatformUserSite,
   registrableDomain,
 } from "@/features/collection/hosts";
+import { normalizeKey } from "@/features/queries/plan";
 import { QUALIFY_LIMITS } from "./limits";
 import { preReadLanguage } from "./prefilter";
 import type { ExclusionReason, QualCandidate, QualContext } from "./types";
@@ -209,3 +210,27 @@ export function authorityImpact(cands: readonly QualCandidate[]): AuthorityImpac
 
 /** Hôte de plateforme (pour l'affichage) : « over-blog.com » pour monblog.over-blog.com. */
 export const platformLabel = (domain: string) => blogPlatformOf(domain);
+
+/** Longueur de la racine comparée (« coloriages » et « coloring » partagent « color »). */
+const THEME_STEM = 5;
+
+/**
+ * Vrai si le NOM de domaine porte un mot du thème de la campagne (18/11/2026, chantier D.4) : sur
+ * l'audit de référence, 16 des 60 concurrents jugés en avaient un, contre 2 cibles sur 72. Ce n'est
+ * pas une preuve (jamais un motif d'exclusion) : le site passe en fin de file de lecture. Les mots
+ * viennent du thème de la campagne, rien n'est écrit en dur pour un sujet.
+ */
+export function nameCarriesTheme(domain: string, theme: string): boolean {
+  const stems = new Set(
+    normalizeKey(theme)
+      .split(/[^a-z0-9]+/)
+      .filter((w) => w.length >= THEME_STEM)
+      .map((w) => w.slice(0, THEME_STEM)),
+  );
+  if (stems.size === 0) return false;
+  const label = normalizeKey(registrableDomain(hostOf(domain)).replace(/\.[a-z.]+$/, "")).replace(
+    /[^a-z0-9]/g,
+    "",
+  );
+  return [...stems].some((st) => label.includes(st));
+}

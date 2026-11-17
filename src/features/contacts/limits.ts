@@ -12,5 +12,7 @@ export const CONTACT_LIMITS = {
   maxContactPages: 10,
   /** Appels payants (finder + vérificateur) par exécution. */
   maxPaidCallsPerRun: 60,
+  /** Pages de contact usuelles sondées quand le menu n'en montre aucune (arrêt dès qu'un contact apparaît). */
+  probePaths: ["/contact", "/nous-contacter", "/mentions-legales", "/a-propos"],
   hostDelayMs: 1000,
 } as const;

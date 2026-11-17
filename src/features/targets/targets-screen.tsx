@@ -731,6 +731,35 @@ export function TargetsScreen({
         </section>
       ) : null}
 
+      {view.noContact.length > 0 ? (
+        <details className="rounded-card border border-border bg-card p-4">
+          <summary className="cursor-pointer font-medium">
+            {M.noContact.title.replace("{n}", String(view.noContact.length))}
+          </summary>
+          <p className="mt-2 text-sm text-muted-foreground">{M.noContact.body}</p>
+          <ul className="mt-2 flex flex-col gap-2 text-sm">
+            {view.noContact.map((c) => (
+              <li key={c.id} className="flex flex-col gap-0.5">
+                <span className="font-medium">{c.domain}</span>
+                {(c.hook ?? c.why) ? (
+                  <span className="text-muted-foreground">{c.hook ?? c.why}</span>
+                ) : null}
+                {c.pageUrl ? (
+                  <a
+                    href={c.pageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-fit underline underline-offset-4"
+                  >
+                    {M.noContact.open}
+                  </a>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+
       <details className="rounded-card border border-border bg-card p-4">
         <summary className="cursor-pointer font-medium">{M.serp.title}</summary>
         <p className="mt-2 text-sm text-muted-foreground">{M.serp.body}</p>

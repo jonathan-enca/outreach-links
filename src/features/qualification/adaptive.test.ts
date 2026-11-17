@@ -85,8 +85,8 @@ describe("robots.txt vérifié avant lecture", () => {
     const disallow = async () => ({ status: 200, text: "User-agent: *\nDisallow: /" });
     expect(await checkRobotsFor(disallow, c)).toBe("interdit");
     // Pas de réponse dans le délai court : rien n'est conclu, la lecture tranchera.
-    expect(await checkRobotsFor(async () => null, c)).toBe("inconnu");
-    expect(await checkRobotsFor(async () => ({ status: 503, text: "" }), c)).toBe("inconnu");
+    expect(await checkRobotsFor(async () => null, c)).toBe("muet");
+    expect(await checkRobotsFor(async () => ({ status: 503, text: "" }), c)).toBe("muet");
     expect(await checkRobotsFor(async () => ({ status: 404, text: "" }), c)).toBe("ok");
     const partial = async () => ({ status: 200, text: "User-agent: *\nDisallow: /prive/" });
     expect(await checkRobotsFor(partial, c)).toBe("ok");
@@ -366,5 +366,95 @@ describe("lecture adaptative par lots", () => {
     expect(replay.calls).toMatchObject({ read: 0, llm: 0, robots: 0 });
     expect(second.stats).toEqual(first.stats);
     expect(second.results.map((r) => r.domain)).toEqual(first.results.map((r) => r.domain));
+  });
+});
+
+describe("pertes gratuites (chantier D)", () => {
+  it("robots.txt muet et nom de domaine du thème : lus en dernier, jamais écartés", async () => {
+    const { deps } = fakeDeps({ robots: (d) => (d.startsWith("muet") ? "muet" : "ok") });
+    const order: string[] = [];
+    const wrapped = () => {
+      const d = deps();
+      const read = d.readPage;
+      return {
+        ...d,
+        readPage: async (c: QualCandidate, o?: { robotsOk?: boolean }) => {
+          order.push(c.domain);
+          return read(c, o);
+        },
+      };
+    };
+    const cands = [
+      ...many(3, "content", "muet"),
+      ...many(3, "content", "coloriages-fan"),
+      ...many(3, "content", "ecole"),
+    ];
+    const { results, stats } = await executeQualification(
+      wrapped,
+      input(cands, { tuning: { pagesPerStep: 3 } }),
+      step,
+    );
+    const rank = (re: RegExp) => order.map((d, i) => (re.test(d) ? i : -1)).filter((i) => i >= 0);
+    expect(Math.max(...rank(/^ecole/))).toBeLessThan(Math.min(...rank(/^muet/)));
+    expect(Math.max(...rank(/^ecole/))).toBeLessThan(Math.min(...rank(/^coloriages-fan/)));
+    // Aucun n'est écarté pour cela : tous sont lus, jugés et livrés.
+    expect(order).toHaveLength(9);
+    expect(results.filter((r) => r.exclusionReason === "robots")).toHaveLength(0);
+    expect(stats.lostFree).toMatchObject({ robotsSilent: 3, nameTail: 3 });
+  });
+
+  it("« éditeur introuvable » sur une page intérieure : l'accueil est lu avant d'écarter", async () => {
+    const { deps } = fakeDeps();
+    const reads: string[] = [];
+    const wrapped = () => ({
+      ...deps(),
+      readPage: async (c: QualCandidate) => {
+        reads.push(c.url ?? "(accueil)");
+        // Page d'article sans contact ni auteur ; l'accueil porte « Contact » dans son menu.
+        const home = c.url === null;
+        return evalPage(c.url ?? `https://${c.domain}/`, {
+          title: `Page ${c.domain}`,
+          text: "Activités pour les familles.",
+          links: home ? [{ href: `https://${c.domain}/contact`, text: "Contact" }] : [],
+        });
+      },
+    });
+    const cands = [
+      cand("avec-accueil.fr", {
+        url: "https://avec-accueil.fr/un-article",
+        sources: from("content"),
+      }),
+    ];
+    const { results, stats } = await executeQualification(wrapped, input(cands), step);
+    expect(reads).toEqual(["https://avec-accueil.fr/un-article", "(accueil)"]);
+    expect(stats.lostFree).toMatchObject({ homeTried: 1, homeRescued: 1 });
+    expect(results[0]!.exclusionReason).toBeNull();
+    // La page jugée reste l'article, pas l'accueil.
+    expect(results[0]!.page?.url).toBe("https://avec-accueil.fr/un-article");
+  });
+
+  it("accueil sans éditeur non plus : toujours « éditeur introuvable » ; accueil vendeur de liens : ce vrai motif", async () => {
+    const { deps } = fakeDeps();
+    const wrapped = () => ({
+      ...deps(),
+      readPage: async (c: QualCandidate) =>
+        evalPage(c.url ?? `https://${c.domain}/`, {
+          title: `Page ${c.domain}`,
+          text:
+            c.url === null && c.domain.startsWith("vend")
+              ? "Articles sponsorisés : publiez votre article invité sur notre blog."
+              : "Activités pour les familles.",
+          links: [],
+        }),
+    });
+    const cands = [
+      cand("rien.fr", { url: "https://rien.fr/article", sources: from("content") }),
+      cand("vend.fr", { url: "https://vend.fr/article", sources: from("content") }),
+    ];
+    const { results, stats } = await executeQualification(wrapped, input(cands), step);
+    const by = (d: string) => results.find((r) => r.domain === d)!;
+    expect(by("rien.fr").exclusionReason).toBe("editeur_introuvable");
+    expect(by("vend.fr").exclusionReason).toBe("vend_des_liens");
+    expect(stats.lostFree).toMatchObject({ homeTried: 2, homeRescued: 0 });
   });
 });

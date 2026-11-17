@@ -1610,6 +1610,11 @@ export const fr = {
       title: "Mentions sans lien, sans contact trouvé",
       body: "Ces pages nomment déjà votre site sans le lier (vérifié). Aucun email ni formulaire n'a été trouvé : cherchez l'éditeur dans les mentions légales, ou laissez-les de côté. Elles ne sont pas incluses dans la validation.",
     },
+    noContact: {
+      title: "Sites pertinents sans contact trouvé ({n})",
+      body: "Ces sites ont été jugés pertinents, mais aucun email ni formulaire n'a pu être trouvé. Ils ne sont pas perdus : ouvrez la page, cherchez l'éditeur dans les mentions légales ou les réseaux du site. Ils ne sont pas inclus dans la validation.",
+      open: "Ouvrir la page",
+    },
     serp: {
       title: "Ce que Google classe devant vous",
       body: "Les concurrents de la SERP servent à écarter les mauvaises cibles et à recouper les sites qui les citent. Ce ne sont pas des cibles.",

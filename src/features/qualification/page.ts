@@ -118,3 +118,41 @@ export async function readCandidate(
   }
   return first;
 }
+
+/**
+ * Chantier D.2 : « éditeur introuvable » vu sur UNE page (un article, un forum) ne veut pas dire que
+ * le site n'a pas d'éditeur : son accueil, lui, porte souvent le menu « Contact » ou « À propos ».
+ * Avant d'écarter, on lit l'accueil. Ce qu'il prouve compte : un accueil parqué, piraté, vendeur de
+ * liens ou derrière une connexion écarte le site pour ce vrai motif ; un accueil qui montre un
+ * éditeur sauve le site (la page jugée reste la page d'origine, avec les signaux de l'accueil). Aucune
+ * règle de tri ne change : seul l'éditeur est cherché au bon endroit.
+ */
+export function rescueFromHome(
+  v: PageVerdict,
+  home: PageRead,
+  c: QualCandidate,
+  ctx: QualContext,
+): { verdict: PageVerdict; rescued: boolean } {
+  if (v.reason !== "editeur_introuvable" || !v.page) return { verdict: v, rescued: false };
+  if (home.status !== 200 || home.blockedByRobots) return { verdict: v, rescued: false };
+  const hv = pageVerdict(home, c, ctx);
+  if (hv.reason !== null && hv.reason !== "editeur_introuvable") {
+    return { verdict: { ...hv, page: v.page }, rescued: false };
+  }
+  const signals = publisherSignals(home);
+  if (signals.length === 0) return { verdict: v, rescued: false };
+  return {
+    verdict: { page: { ...v.page, publisherSignals: signals }, reason: null, detail: null },
+    rescued: true,
+  };
+}
+
+/** Vrai si l'adresse est déjà l'accueil du site (inutile de le relire). */
+export function isHomeUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return (u.pathname === "/" || u.pathname === "") && u.search === "";
+  } catch {
+    return false;
+  }
+}
