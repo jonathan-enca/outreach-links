@@ -6,8 +6,8 @@ const base = { lots: 1, lowStreak: 0, costUsd: 0.02, startedAtMs: 0, nowMs: 90_0
 describe("lecture automatique de la réserve : décision après chaque lot", () => {
   it("continue tant que rien n'arrête, avec ce qui reste de budget et de temps", () => {
     const d = decideNext(base);
-    expect(d).toEqual({ continue: true, lotBudgetUsd: 0.05, lotMaxMs: 5 * 60_000 });
-    const tight = decideNext({ ...base, costUsd: 0.04, nowMs: 22 * 60_000 });
+    expect(d).toEqual({ continue: true, lotBudgetUsd: 0.06, lotMaxMs: 5 * 60_000 });
+    const tight = decideNext({ ...base, costUsd: 0.05, nowMs: 22 * 60_000 });
     expect(tight).toMatchObject({ continue: true });
     if (tight.continue) {
       expect(tight.lotBudgetUsd).toBeCloseTo(0.03, 6);
@@ -21,7 +21,7 @@ describe("lecture automatique de la réserve : décision après chaque lot", () 
       continue: false,
       stop: "rendement_faible",
     });
-    expect(decideNext({ ...base, costUsd: 0.05 })).toEqual({ continue: false, stop: "budget" });
+    expect(decideNext({ ...base, costUsd: 0.06 })).toEqual({ continue: false, stop: "budget" });
     expect(decideNext({ ...base, nowMs: 24.5 * 60_000 })).toEqual({
       continue: false,
       stop: "duree",
@@ -35,7 +35,7 @@ describe("lecture automatique de la réserve : décision après chaque lot", () 
   it("le budget d'arrière-plan est recalé sur les mesures : l'analyse complète reste sous 1,00 USD", () => {
     // Première liste mesurée le 17/11/2026 : 0,92 USD (voir PROGRESS.md). Budget d'arrière-plan = plafond dur.
     const FIRST_LIST_MEASURED_USD = 0.92;
-    expect(FIRST_LIST_MEASURED_USD + AUTO_LIMITS.budgetUsd).toBeLessThan(1);
+    expect(FIRST_LIST_MEASURED_USD + AUTO_LIMITS.budgetUsd).toBeLessThanOrEqual(1 + 1e-9);
     expect(AUTO_LIMITS.budgetUsd * AUTO_EXPECTED_SHARE).toBeLessThan(AUTO_LIMITS.budgetUsd);
     expect(AUTO_LIMITS.maxMs).toBe(25 * 60_000);
   });

@@ -27,8 +27,11 @@ export const AUTO_LIMITS = {
    * 0,07 = 0,99. Mesuré : 0,0041 USD par requête de 5 cibles (0,0079 en appel direct), soit environ
    * 17 requêtes, 85 pages jugées, 15 à 25 cibles ajoutées. Passer à 0,15 double à peu près le gain
    * (environ 1,07 USD au total) : décision de produit, un seul chiffre à changer ici.
+   * Étape 3 (18/11/2026) : 0,07 → 0,08. Les économies mesurées (mentions de marque non lancées : 0,033 USD
+   * quand le nom est descriptif) ne valent que pour certains sites ; pour un nom distinctif, 0,92 + 0,08
+   * = 1,00 USD, la limite. Plus haut dépasserait 1,00 USD dans ce cas.
    */
-  budgetUsd: 0.07,
+  budgetUsd: 0.08,
   /** Un lot « rapporte peu » s'il ajoute moins de cibles que cela. */
   minAdded: 5,
   /** Arrêt après ce nombre de lots de suite qui rapportent peu. */

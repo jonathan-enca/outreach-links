@@ -40,9 +40,9 @@ export function sizesUsd(maxCompetitors: number = PLAN_LIMITS.payant.maxCompetit
  * (17/11, Claude Haiku), soit environ 0,20 USD pour l'objectif de 120 pages, sur 0,40 ; constats
  * 0,0014 sur 0,05. Le pire cas reste le budget entier de chaque étape. Recalage du 18/11/2026 : le réel
  * mesuré de la première liste était 0,92 USD pour 0,82 annoncés ; la qualification mesurée à 0,29 USD
- * sur 0,40 (soit 0,73) comble l'écart. [HYPOTHÈSE à recaler en MU.11.]
+ * sur 0,40 (soit 0,73) comble l'écart. Recalage de l'étape 3 (18/11/2026) : collecte mesurée à 0,357 USD sur 0,55 (0,65) pour un nom de marque distinctif ; l'économie des mentions (0,033 USD, nom descriptif seulement) n'est pas comptée, par prudence. [HYPOTHÈSE à recaler en MU.11.]
  */
-const EXPECTED_SHARE = { collection: 0.56, qualification: 0.73, findings: 0.2 } as const;
+const EXPECTED_SHARE = { collection: 0.65, qualification: 0.73, findings: 0.2 } as const;
 
 /** Lecture du site et requêtes par type d'éditeur : deux appels LLM courts (mesurés ~0,001 USD). */
 const SMALL_LLM_USD = 0.003;
