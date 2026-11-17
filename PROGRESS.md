@@ -1483,3 +1483,21 @@ Branche `claude/controle-run-reel-etape-6-7i5qhe`. **Run réel NON lancé : 0 US
 - Vérifié gratuitement : production répond (200), Inngest `outreach-links` à 39 fonctions, synchronisé le 17/11, chantiers A à E fusionnés dans `main` (dernier : #127).
 - Pour faire le run : budget d'au moins 1,10 USD, puis `pnpm shots:env` (sans `shots:seed` si un audit est à garder), supprimer la campagne mega-coloring.com France du compte de test, `SHOTS_BASE_URL=https://outreach-links.vercel.app SHOTS_DIR=<dossier> NODE_USE_ENV_PROXY=1 node scripts/shots/prod-run.mjs`. Noter : cibles et durée à la première liste puis en fin d'arrière-plan, coût total et par cible, types, qualité par tranche.
 - Prochain : étape 7 ; le run de contrôle reste à faire avec le budget.
+
+### Run réel de contrôle (chantier F) : fait, budget accordé 1,10 USD
+
+Site `afb08915…`, audit `b229254e…`, mega-coloring.com France, compte de test, par l'interface (`prod-run.mjs`). Préparation : mot de passe du compte remis par l'API d'administration, **seule la campagne mega-coloring.com FR supprimée** (pas de `shots:seed`, les 3 autres sites de démo intacts).
+
+| Mesure | Résultat | Critère |
+| --- | --- | --- |
+| Première liste prête en base | **9 min 32 s** après le clic (10:51:56) ; l'écran passe « terminé » à **13 min 17 s** (10:55:44) | ≤ 13 min : **limite dépassée de 17 s à l'écran** |
+| Cibles à la première liste | **61** (84 moins 23 ajoutées ensuite) | |
+| Cibles à la fin de l'arrière-plan (11:05, 2 lots, arrêt « budget ») | **84**, dont 41 contactables par mail | ≥ 100 : **non atteint** |
+| Coût total | **0,977 USD** (DataForSEO 0,550 ; LLM 0,353 ; arrière-plan 0,073) | ≤ 1,00 : atteint |
+| Coût par cible | 0,0116 USD (avant : 0,017 pour 54 cibles) | |
+| Types | blog 54, école 7, association 7, annuaire 5, média 5, forum modéré 3, e-commerce 2, autre 1 (194 en réserve non jugées) | |
+| Tranches (rang 1-30 / 31-60 / 61+) | 30 / 30 / 24 cibles ; adéquation moyenne 0,78 / 0,78 / 0,67 ; accueils 4 / 9 / 9 | |
+
+**Pourquoi 84 et pas 100** : 104 sites jugés pertinents sur 250 jugés, mais la liste courte retient 84 ; l'arrière-plan s'est arrêté sur son budget (0,08 USD) avec 194 sites encore en réserve non jugés (`hors_budget_lecture`). Le gain de volume est réel (54 → 84 cibles, +55 %, à coût par cible −32 %) mais pas le double. Le levier restant est le budget d'arrière-plan : il y a ~0,12 USD de marge sous 1,10 USD, soit environ 10 cibles de plus, pas 16. Atteindre 100 demande de dépasser 1,00 USD ou de rendre la lecture moins chère (116 s de lecture sur 250 sites jugés : 37 injoignables, 58 hors langue, 41 concurrents).
+Qualité : la part « bonne » par tranche n'est pas mesurée (pas d'avis de Jonathan sur ces cibles) ; seul l'indice d'adéquation est donné, en baisse au bas de la liste (0,67), comme à l'étape 5.
+Dépense réelle de l'étape 6 : **0,977 USD** sur 1,10. Prochain : étape 7.
