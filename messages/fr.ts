@@ -1377,7 +1377,7 @@ export const fr = {
   },
   targets: {
     title: "Vos cibles",
-    reviewSteps: "Revoir les étapes de l'analyse ou en reprendre une",
+    reviewSteps: "Voir le détail de l'analyse",
     description:
       "La liste courte, classée : pour chaque site, la demande à faire et pourquoi. Rien n'est envoyé avant que vous ayez validé un lot de messages.",
     back: "Retour à l'analyse",
@@ -1514,8 +1514,8 @@ export const fr = {
     more: {
       stock: (n: number) =>
         `${n} ${n > 1 ? "autres sites trouvés par la recherche n'ont pas encore été lus" : "autre site trouvé par la recherche n'a pas encore été lu"}.`,
-      hint: "Nous lisons les suivants avec les mêmes exigences, sans refaire la recherche. Comptez quelques minutes.",
-      button: "Lire d'autres sites",
+      hint: "Un clic lit le lot suivant (jusqu'à 150 sites, environ 5 minutes), avec les mêmes exigences. Les bonnes cibles trouvées s'ajoutent à votre liste. Vous pouvez recommencer tant qu'il reste des sites.",
+      button: "Lire le lot suivant",
       busy: "Lancement…",
       running:
         "Lecture en cours : les nouvelles cibles s'ajouteront à cette liste dans quelques minutes. Vous pouvez rester ici ou revenir plus tard.",
@@ -1666,10 +1666,10 @@ export const fr = {
       open: "Ouvrir la page",
     },
     serp: {
-      title: "Ce que Google classe devant vous",
-      body: "Les concurrents de la SERP servent à écarter les mauvaises cibles et à recouper les sites qui les citent. Ce ne sont pas des cibles.",
-      empty: "Aucun concurrent retenu pour cet audit.",
-      row: "{queries} requêtes · meilleure position {rank}",
+      title: "Vos concurrents sur Google",
+      body: "Ces sites apparaissent avant vous sur Google pour vos recherches. Nous ne les contactons pas : nous regardons qui fait des liens vers eux, pour trouver des sites qui pourraient aussi en faire un vers vous.",
+      empty: "Aucun concurrent trouvé pour ce site.",
+      row: "présent sur {queries} de vos recherches · meilleure place : {rank}",
     },
     validate: {
       button: "Valider ces demandes ({n})",
@@ -2414,8 +2414,9 @@ export const fr = {
     },
     home: {
       title: "Vos sites",
-      description: "Chaque site a une seule prochaine étape.",
+      description: "Où en est chacun de vos sites, et quoi faire ensuite.",
       add: "Ajouter un site",
+      review: "Voir le détail de l'analyse",
       state: {
         onboarding: "À vérifier avant l'analyse",
         analyse: "Analyse en cours",

@@ -159,9 +159,10 @@ export function buildAnalysisView(s: AnalysisSnapshot, now: Date = new Date()): 
       canRestart: false,
     };
   });
-  const stopped = s.status === "echoue" || s.status === "termine";
+  // Reprendre à partir d'une étape : seulement après un ÉCHEC. Sur une analyse terminée, le bouton effaçait
+  // les cibles déjà livrées et repayait les étapes suivantes (retour de Jonathan, 18/11) : retiré.
+  const stopped = s.status === "echoue";
   for (const step of steps) {
-    // Reprendre à partir d'une étape : analyse à l'arrêt, étape commencée, hors étape parallèle.
     step.canRestart = stopped && step.status !== "attente" && step.key !== PARALLEL_STEP;
   }
 

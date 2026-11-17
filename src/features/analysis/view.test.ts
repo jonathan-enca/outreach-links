@@ -197,7 +197,7 @@ describe("chantier A : appels manqués, reprise par étape, démarrage lent", ()
     expect(none.steps.find((s) => s.key === "recherche")!.missed).toBeNull();
   });
 
-  it("« Reprendre à partir d'ici » : seulement quand l'analyse est à l'arrêt, sur les étapes commencées", () => {
+  it("« Reprendre à partir d'ici » : seulement après un échec, sur les étapes commencées", () => {
     const rows = [
       row("comprendre", "termine"),
       row("concurrents", "termine"),
@@ -209,6 +209,9 @@ describe("chantier A : appels manqués, reprise par étape, démarrage lent", ()
       "concurrents",
       "recherche",
     ]);
+    // Analyse terminée : aucune reprise proposée (elle effacerait les cibles livrées).
+    const done = buildAnalysisView(withSteps(rows, { status: "termine" }));
+    expect(done.steps.some((s) => s.canRestart)).toBe(false);
     const running = buildAnalysisView(withSteps(rows, { status: "en_cours" }));
     expect(running.steps.some((s) => s.canRestart)).toBe(false);
     const etat = buildAnalysisView(

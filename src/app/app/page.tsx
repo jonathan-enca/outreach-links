@@ -8,14 +8,15 @@ import {
   homeDestination,
   loadSiteSnapshots,
   nextStep,
+  siteHref,
   START_HREF,
 } from "@/features/shell/next-step";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Accueil = prochaine étape (MU.2). Pas de site : étape 1. Un seul site : on va à son écran. Plusieurs
- * sites : la liste, chacun avec son état et son unique bouton.
+ * Accueil (MU.2, revu le 18/11). Pas de site : étape 1. Sinon la liste des sites, chacun avec son état,
+ * sa prochaine étape et, une fois les cibles prêtes, un lien pour revoir l'analyse.
  */
 async function Home() {
   const supabase = await createClient();
@@ -50,6 +51,14 @@ async function Home() {
                   >
                     {t.onboarding.market.addCountry}
                   </Link>
+                  {step.kind === "cibles" ? (
+                    <Link
+                      href={`${siteHref.analyse(s.id)}?etapes=1`}
+                      className="text-sm text-primary underline underline-offset-4"
+                    >
+                      {h.review}
+                    </Link>
+                  ) : null}
                   <Button asChild>
                     <Link href={step.href}>{h.action[step.kind]}</Link>
                   </Button>
