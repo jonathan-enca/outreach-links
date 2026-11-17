@@ -25,7 +25,7 @@ async function Site({ params }: { params: Promise<{ id: string }> }) {
   const { data: rows } = await supabase
     .from("mailboxes")
     .select(
-      "id, email, status, smtp_ok, imap_ok, last_error, smtp_host, health, hourly_cap, daily_cap",
+      "id, email, status, smtp_ok, imap_ok, last_error, smtp_host, health, hourly_cap, daily_cap, send_days, send_window_start, send_window_end",
     )
     .eq("site_id", site.id)
     .order("created_at");
@@ -40,6 +40,9 @@ async function Site({ params }: { params: Promise<{ id: string }> }) {
     health: (r.health as MailboxView["health"]) ?? null,
     hourlyCap: r.hourly_cap,
     dailyCap: r.daily_cap,
+    sendDays: r.send_days,
+    windowStart: r.send_window_start,
+    windowEnd: r.send_window_end,
   }));
   return (
     <div className="flex flex-col gap-6">

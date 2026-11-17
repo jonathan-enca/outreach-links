@@ -4,7 +4,7 @@ import { t } from "@/lib/messages";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { decryptSecret, encryptSecret, parseKeyRing, type KeyRing } from "./crypto";
 import { checkDomainHealth, type HealthReport } from "./health";
-import { mailboxSchema } from "./schema";
+import { mailboxSchema, scheduleSchema } from "./schema";
 import { sendSmtp, verifyImap, verifySmtp, type TransportOptions } from "./transport";
 
 type Client = SupabaseClient<Database>;
@@ -194,6 +194,50 @@ export async function testMailbox(
     status: "ok",
     message: sent ? M.testOkSent : deps.realSendingAllowed() ? M.testOk : M.testOkDryRun,
   };
+}
+
+/**
+ * Enregistre les jours et heures d'envoi d'une boîte. La personne doit voir la boîte (RLS) ; l'écriture
+ * passe par le serveur, comme tout le reste de la table.
+ */
+export async function updateSendSchedule(
+  supabase: Client,
+  mailboxId: string,
+  formData: FormData,
+  deps: Pick<MailboxDeps, "getServiceClient">,
+): Promise<MailboxState> {
+  const u = await user(supabase);
+  if (!u) return { status: "error", message: M.unauthenticated };
+  const parsed = scheduleSchema.safeParse({
+    days: formData.getAll("days"),
+    startHour: formData.get("startHour"),
+    endHour: formData.get("endHour"),
+  });
+  if (!parsed.success) return { status: "error", message: M.scheduleInvalid };
+  const { data: visible } = await supabase
+    .from("mailboxes")
+    .select("id, workspace_id")
+    .eq("id", mailboxId)
+    .maybeSingle();
+  if (!visible) return { status: "error", message: M.notFound };
+  const { error } = await deps
+    .getServiceClient()
+    .from("mailboxes")
+    .update({
+      send_days: parsed.data.days,
+      send_window_start: parsed.data.startHour,
+      send_window_end: parsed.data.endHour,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", mailboxId);
+  if (error) return { status: "error", message: M.saveError };
+  await supabase.from("events").insert({
+    workspace_id: visible.workspace_id,
+    actor_id: u.id,
+    type: "mailbox.schedule_updated",
+    payload: { mailbox_id: mailboxId, ...parsed.data },
+  });
+  return { status: "ok", message: M.scheduleSaved };
 }
 
 export async function removeMailbox(

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { betaEnabled } from "@/features/audits/beta";
 import { env as appEnv } from "@/env";
 import { decryptSecret, parseKeyRing, type KeyRing } from "@/features/mailboxes/crypto";
 import { sendOutreachMail, type TransportOptions } from "@/features/mailboxes/transport";
@@ -93,7 +94,7 @@ async function sendNext(db: Client, box: MailboxRow, deps: SendDeps): Promise<Ma
   // M6.1 : un envoi RÉEL exige un abonnement actif et respecte le plafond mensuel du plan.
   // Le dry run (simulation) n'est pas soumis au plan.
   if (!dry) {
-    const allowance = await checkSendAllowance(db, box.workspace_id, now);
+    const allowance = await checkSendAllowance(db, box.workspace_id, now, betaEnabled());
     if (!allowance.allowed) return { ...base, result: allowance.reason };
   }
 
@@ -102,6 +103,7 @@ async function sendNext(db: Client, box: MailboxRow, deps: SendDeps): Promise<Ma
       timezone: box.timezone,
       startHour: box.send_window_start,
       endHour: box.send_window_end,
+      days: box.send_days,
     })
   ) {
     return { ...base, result: "hors_fenetre" };

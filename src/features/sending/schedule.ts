@@ -1,12 +1,19 @@
 import { SEND_LIMITS } from "./limits";
 
+/** Jours conseillés : du lundi au vendredi (numérotation ISO, 1 = lundi … 7 = dimanche). */
+export const DEFAULT_SEND_DAYS: readonly number[] = [1, 2, 3, 4, 5];
+
 export interface SendWindow {
   timezone: string;
   startHour: number;
   endHour: number;
+  /** Jours d'envoi (ISO). Absent : les jours conseillés. */
+  days?: readonly number[] | null;
 }
 
-/** Heures ouvrées : du lundi au vendredi, de `startHour` (inclus) à `endHour` (exclu), fuseau de la boîte. */
+const ISO_DAY: Record<string, number> = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+
+/** Horaires d'envoi : les jours choisis, de `startHour` (inclus) à `endHour` (exclu), fuseau de la boîte. */
 export function isInSendWindow(now: Date, w: SendWindow): boolean {
   let parts: Intl.DateTimeFormatPart[];
   try {
@@ -19,11 +26,26 @@ export function isInSendWindow(now: Date, w: SendWindow): boolean {
   } catch {
     return false; // fuseau inconnu : on n'envoie pas
   }
-  const weekday = parts.find((p) => p.type === "weekday")?.value;
+  const day = ISO_DAY[parts.find((p) => p.type === "weekday")?.value ?? ""];
   const hour = Number(parts.find((p) => p.type === "hour")?.value);
-  if (!weekday || Number.isNaN(hour)) return false;
-  if (weekday === "Sat" || weekday === "Sun") return false;
+  if (!day || Number.isNaN(hour)) return false;
+  if (!(w.days ?? DEFAULT_SEND_DAYS).includes(day)) return false;
   return hour >= w.startHour && hour < w.endHour;
+}
+
+/**
+ * Prochaine ouverture de la fenêtre d'envoi, ou `null` si elle est ouverte maintenant (ou si le fuseau
+ * est inconnu). Cherche d'heure en heure, sur huit jours : de quoi couvrir une semaine à un seul jour d'envoi.
+ */
+export function nextSendStart(now: Date, w: SendWindow): Date | null {
+  if (isInSendWindow(now, w)) return null;
+  const hour = 3_600_000;
+  const first = Math.floor(now.getTime() / hour) * hour + hour;
+  for (let i = 0; i < 24 * 8; i++) {
+    const at = new Date(first + i * hour);
+    if (isInSendWindow(at, w)) return at;
+  }
+  return null;
 }
 
 /**
@@ -40,4 +62,68 @@ export function effectiveDailyCap(dailyCap: number, firstSendAt: Date | null, no
 
 export function addDays(d: Date, days: number): Date {
   return new Date(d.getTime() + days * 86_400_000);
+}
+
+/** Le moteur passe toutes les six minutes et envoie au plus un message par boîte (voir `send-tick`). */
+export const SEND_TICK_MINUTES = 6;
+
+export interface SendPlanInput {
+  window: SendWindow;
+  /** Envois déjà comptés pour cette boîte (les dernières 24 heures suffisent). */
+  recent: readonly Date[];
+  /** Premier envoi de la boîte : point de départ de l'échauffement. */
+  firstSendAt: Date | null;
+  dailyCap: number;
+  hourlyCap: number;
+}
+
+/**
+ * Heures de départ probables des `count` prochains messages d'une boîte, dans l'ordre de la file.
+ * Rejoue les règles du moteur : un message par passage, horaires d'envoi, plafond par heure, plafond
+ * par 24 heures avec échauffement. C'est une estimation (une relance ou une réponse peut prendre un
+ * passage) : l'écran dit « vers ». Au-delà de trois semaines, `null`.
+ */
+export function planSendTimes(now: Date, count: number, p: SendPlanInput): (Date | null)[] {
+  const tick = SEND_TICK_MINUTES * 60_000;
+  const horizon = now.getTime() + 21 * 86_400_000;
+  const sent = p.recent.map((d) => d.getTime());
+  let first = p.firstSendAt;
+  const out: (Date | null)[] = [];
+  let at = Math.floor(now.getTime() / tick) * tick + tick;
+  while (out.length < count && at <= horizon) {
+    const when = new Date(at);
+    if (!isInSendWindow(when, p.window)) {
+      const next = nextSendStart(when, p.window);
+      if (!next) break;
+      at = next.getTime();
+      continue;
+    }
+    const inHour = sent.filter((x) => x > at - 3_600_000).length;
+    // Mêmes bornes que le moteur : l'heure glissante est stricte, les 24 heures sont incluses.
+    const inDay = sent.filter((x) => x >= at - 86_400_000).length;
+    if (inHour < p.hourlyCap && inDay < effectiveDailyCap(p.dailyCap, first, when)) {
+      out.push(when);
+      sent.push(at);
+      first ??= when;
+    }
+    at += tick;
+  }
+  while (out.length < count) out.push(null);
+  return out;
+}
+
+const DAY_NAMES = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
+
+/** Horaires en clair : « du lundi au vendredi, de 9 h à 18 h ». */
+export function describeWindow(w: Pick<SendWindow, "days" | "startHour" | "endHour">): string {
+  const days = [...new Set(w.days ?? DEFAULT_SEND_DAYS)].sort((a, b) => a - b);
+  const names = days.map((d) => DAY_NAMES[d - 1]!);
+  const run = days.every((d, i) => i === 0 || d === days[i - 1]! + 1);
+  const label =
+    days.length === 7
+      ? "tous les jours"
+      : days.length >= 3 && run
+        ? `du ${names[0]} au ${names.at(-1)}`
+        : `le ${names.length > 1 ? `${names.slice(0, -1).join(", ")} et ${names.at(-1)}` : names[0]}`;
+  return `${label}, de ${w.startHour} h à ${w.endHour} h`;
 }

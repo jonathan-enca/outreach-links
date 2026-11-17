@@ -1954,6 +1954,23 @@ export const fr = {
       testOkSent: "Connexion vérifiée. Un message de test a été envoyé à votre adresse.",
       testFail: "Connexion en échec : {detail}",
       removed: "Boîte supprimée.",
+      scheduleSaved: "Horaires enregistrés.",
+      scheduleInvalid: "Choisissez au moins un jour, et une heure de fin après l'heure de début.",
+    },
+    schedule: {
+      title: "Jours et heures d'envoi",
+      body: "Vos messages ne partent que pendant ces horaires, un par un. Un message approuvé en dehors attend la prochaine ouverture.",
+      advice:
+        "Conseillé : du lundi au vendredi, de 9 h à 18 h. Un message reçu aux heures de bureau paraît plus naturel et a plus de chances d'être lu.",
+      days: "Jours d'envoi",
+      dayNames: ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"],
+      from: "De",
+      to: "à",
+      hour: (h: number) => `${h} h`,
+      timezone: "Heure de Paris.",
+      save: "Enregistrer les horaires",
+      saving: "Enregistrement…",
+      current: (hours: string) => `Horaires actuels : ${hours}.`,
     },
   },
   batches: {
@@ -2723,6 +2740,21 @@ export const fr = {
     empty:
       "Aucune conversation pour l'instant. Elles apparaissent ici dès qu'un premier message est parti.",
     noMatch: "Aucun fil pour ces filtres.",
+    // Pourquoi un email approuvé n'est pas encore parti (retour de Jonathan, 17/11).
+    queue: {
+      rhythm: (hours: string) =>
+        `Vos horaires d'envoi : ${hours}. Un email part toutes les six minutes environ, et pas plus de cinq par jour la première semaine, pour ménager votre boîte.`,
+      edit: "Modifier les horaires",
+      ouvert: (n: number) =>
+        `${n} ${n > 1 ? "emails approuvés attendent" : "email approuvé attend"} leur tour : les envois sont en cours.`,
+      ferme: (n: number, when: string) =>
+        `${n} ${n > 1 ? "emails approuvés partiront" : "email approuvé partira"} à la reprise des envois, ${when}.`,
+      sans_boite: (n: number) =>
+        `${n} ${n > 1 ? "emails approuvés attendent" : "email approuvé attend"} : aucune boîte d'envoi n'est connectée et vérifiée.`,
+      simulation: (n: number) =>
+        `${n} ${n > 1 ? "emails approuvés attendent" : "email approuvé attend"} : ce serveur est en mode simulation, aucun email réel n'en part.`,
+      connect: "Connecter la boîte d'envoi",
+    },
     list: "Fils de discussion",
     back: "Retour à la liste",
     you: "Vous",
@@ -2763,6 +2795,8 @@ export const fr = {
       emptyTag: "Écrivez une étiquette.",
       tooManyTags: "Dix étiquettes au plus par conversation.",
       queued: "Message approuvé. Il partira de votre boîte d'envoi au rythme prévu.",
+      queuedAt: (when: string) =>
+        `Message approuvé. Départ prévu ${when}, depuis votre boîte d'envoi.`,
       followUpPlanned: (date: string) => `Relance prévue le ${date} sans réponse.`,
       system: {
         rebond: "Le message est revenu en erreur : cette adresse ne sera plus utilisée.",

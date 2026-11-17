@@ -43,17 +43,26 @@ export async function effectivePlan(
   return data.plan;
 }
 
+/** Pendant la bêta, un espace sans abonnement envoie comme ce plan (décision de Jonathan, 17/11/2026). */
+export const BETA_SEND_PLAN: PaidPlanKey = "starter";
+
 /**
  * Autorise (ou non) UN envoi réel. Appliqué côté serveur, au moteur d'envoi : un workspace gratuit
  * n'envoie rien ; un abonné est plafonné par `plans.monthly_send_cap` (emails + réponses du mois).
  * Une lecture impossible du plan refuse (jamais d'envoi par défaut).
+ *
+ * `beta` (réglage `BETA_MODE`, lu par l'appelant) : tant que le paiement n'est pas ouvert, un espace
+ * sans abonnement peut envoyer, plafonné comme `BETA_SEND_PLAN`. Les protections d'envoi (fenêtre,
+ * rythme, échauffement, validation, liste de suppression) ne changent pas.
  */
 export async function checkSendAllowance(
   db: Client,
   workspaceId: string,
   now: Date,
+  beta = false,
 ): Promise<SendDecision> {
-  const plan = await effectivePlan(db, workspaceId, now);
+  const subscribed = await effectivePlan(db, workspaceId, now);
+  const plan = subscribed === "gratuit" && beta ? BETA_SEND_PLAN : subscribed;
   if (plan === "gratuit") return { allowed: false, reason: "abonnement_requis", plan };
   const { data: p } = await db
     .from("plans")

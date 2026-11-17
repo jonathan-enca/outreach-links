@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { betaEnabled } from "@/features/audits/beta";
 import { checkSendAllowance } from "@/features/billing/plans";
 import { decryptSecret } from "@/features/mailboxes/crypto";
 import { logger } from "@/lib/logger";
@@ -66,7 +67,7 @@ async function sendNextReply(db: Client, box: MailboxRow, deps: SendDeps): Promi
 
   // M6.1 : même contrôle de plan que l'envoi initial (envoi réel seulement).
   if (!dry) {
-    const allowance = await checkSendAllowance(db, box.workspace_id, now);
+    const allowance = await checkSendAllowance(db, box.workspace_id, now, betaEnabled());
     if (!allowance.allowed) return { ...base, result: allowance.reason };
   }
 
@@ -104,6 +105,7 @@ async function sendNextReply(db: Client, box: MailboxRow, deps: SendDeps): Promi
       timezone: box.timezone,
       startHour: box.send_window_start,
       endHour: box.send_window_end,
+      days: box.send_days,
     })
   ) {
     return { ...base, result: "hors_fenetre" };

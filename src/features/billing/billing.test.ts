@@ -93,6 +93,31 @@ describe("plafonds d'envoi appliqués côté serveur", () => {
     const d = await checkSendAllowance(client, "ws1", NOW);
     expect(d).toEqual({ allowed: false, reason: "abonnement_requis", plan: "gratuit" });
   });
+  it("bêta : sans abonnement, l'envoi est permis et plafonné comme le plan Starter", async () => {
+    const row = {
+      workspace_id: "ws1",
+      dry_run: false,
+      status: "envoye",
+      claimed_at: NOW.toISOString(),
+    };
+    const one = fakeSupabase({ plans: PLANS, sent_messages: [row], reply_sends: [] });
+    expect(await checkSendAllowance(one.client, "ws1", NOW, true)).toEqual({
+      allowed: true,
+      plan: "starter",
+      used: 1,
+      cap: 2,
+    });
+    const full = fakeSupabase({ plans: PLANS, sent_messages: [row, row], reply_sends: [] });
+    expect(await checkSendAllowance(full.client, "ws1", NOW, true)).toMatchObject({
+      allowed: false,
+      reason: "quota_mensuel",
+    });
+    // Hors bêta, rien ne change : pas d'abonnement, pas d'envoi.
+    expect(await checkSendAllowance(one.client, "ws1", NOW, false)).toMatchObject({
+      allowed: false,
+      reason: "abonnement_requis",
+    });
+  });
   it("un abonnement annulé, impayé-incomplet ou expiré revient au gratuit", async () => {
     for (const over of [
       { status: "canceled" },

@@ -124,6 +124,7 @@ Réponse de la cible demandant de l'argent : trois options présentées à l'uti
 ### 4.4 Garde-fous (ouverture au public)
 
 - Plafonds d'envoi par boîte et par jour, échauffement progressif, fenêtre d'envoi. **Défaut : 10 emails/heure max, heures ouvrées** (configurable à la baisse seulement en gratuit/starter).
+- **Décision de Jonathan (17/11/2026)** : les jours et heures d'envoi sont un réglage de la boîte, modifiable librement par l'utilisateur (Réglages > Boîte d'envoi). Défaut conseillé : du lundi au vendredi, de 9 h à 18 h. Tout email approuvé affiche son heure de départ prévue : on ne laisse jamais un email « en attente » sans dire pourquoi.
 - **Plafonds d'envoi intégrés au pricing** (paliers de volume et de crédits).
 - Validation de lot obligatoire ; autopilot désactivé par défaut.
 - Liste de suppression globale et par utilisateur ; lien de désinscription ; `List-Unsubscribe`.
@@ -146,6 +147,8 @@ Répartition des accès [HYPOTHÈSE proposée, à confirmer] :
 - **Starter 19,90 €** : 1 site, 1 audit complet par mois, 100 envois par mois, 1 boîte.
 - **Pro 39,90 €** (recommandé) : 3 sites, 3 audits, 300 envois, 2 boîtes, réponses prêtes à insérer.
 - **Business 99,90 €** : 10 sites, 10 audits, 1 000 envois, 5 boîtes, tout Pro.
+
+**Bêta (décision de Jonathan, 17/11/2026)** : tant que `BETA_MODE` est actif, l'envoi réel est ouvert à tout inscrit sans abonnement, plafonné comme Starter (100 envois par mois). À refermer à l'ouverture du paiement.
 
 Carte demandée au premier envoi réel (comme Outlink). Paliers différenciés par valeur (sites, audits, réponses prêtes à insérer), pas seulement par volume d'emails. Marque blanche et offre agence : plus tard. Remboursement à définir.
 

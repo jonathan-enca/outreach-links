@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { betaEnabled } from "@/features/audits/beta";
 import type { Database } from "@/lib/supabase/database.types";
 import { checkSendAllowance, effectivePlan, isPaidPlan, type BillingPlanKey } from "./plans";
 import type { BillingProvider } from "./stripe";
@@ -44,7 +45,7 @@ export async function getBillingOverview(
     supabase.from("credits_ledger").select("delta").eq("workspace_id", ws.id),
   ]);
   const plan = await effectivePlan(supabase, ws.id, now);
-  const allowance = await checkSendAllowance(supabase, ws.id, now);
+  const allowance = await checkSendAllowance(supabase, ws.id, now, betaEnabled());
   return {
     workspaceId: ws.id,
     plan,

@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { fakeSupabase } from "@/features/audits/fake-supabase";
 import { parseKeyRing, decryptSecret } from "./crypto";
-import { connectMailbox, removeMailbox, testMailbox, type MailboxDeps } from "./service";
+import {
+  connectMailbox,
+  removeMailbox,
+  testMailbox,
+  updateSendSchedule,
+  type MailboxDeps,
+} from "./service";
 
 const ring = parseKeyRing(`v1:${Buffer.alloc(32, 7).toString("base64")}`);
 const form = (over: Record<string, string> = {}) => {
@@ -119,5 +125,36 @@ describe("service boîte d'envoi", () => {
     const r = await removeMailbox(f.client, String(f.tables.mailboxes![0]!.id), deps);
     expect(r.status).toBe("ok");
     expect(f.tables.mailboxes).toHaveLength(0);
+  });
+  it("horaires d'envoi : enregistre les jours et heures choisis, refuse un réglage incohérent", async () => {
+    const { f, deps } = setup();
+    await connectMailbox(f.client, "s1", form(), deps);
+    const id = String(f.tables.mailboxes![0]!.id);
+    const schedule = (days: string[], start: string, end: string) => {
+      const fd = new FormData();
+      for (const d of days) fd.append("days", d);
+      fd.set("startHour", start);
+      fd.set("endHour", end);
+      return fd;
+    };
+    const ok = await updateSendSchedule(f.client, id, schedule(["6", "2", "2"], "8", "20"), deps);
+    expect(ok.status).toBe("ok");
+    expect(f.tables.mailboxes![0]).toMatchObject({
+      send_days: [2, 6],
+      send_window_start: 8,
+      send_window_end: 20,
+    });
+    // Aucun jour, heures inversées, jour inconnu : rien n'est écrit.
+    for (const bad of [
+      schedule([], "9", "18"),
+      schedule(["1"], "18", "9"),
+      schedule(["8"], "9", "18"),
+    ]) {
+      expect((await updateSendSchedule(f.client, id, bad, deps)).status).toBe("error");
+    }
+    expect(f.tables.mailboxes![0]).toMatchObject({ send_days: [2, 6], send_window_start: 8 });
+    expect(
+      (await updateSendSchedule(f.client, "inconnue", schedule(["1"], "9", "18"), deps)).status,
+    ).toBe("error");
   });
 });

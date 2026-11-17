@@ -7,7 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { t } from "@/lib/messages";
-import { connectMailboxAction, removeMailboxAction, testMailboxAction } from "./actions";
+import { DEFAULT_SEND_DAYS, describeWindow } from "@/features/sending/schedule";
+import {
+  connectMailboxAction,
+  removeMailboxAction,
+  testMailboxAction,
+  updateScheduleAction,
+} from "./actions";
 import { explainMailboxError } from "./explain-error";
 import { healthWarnings } from "./health-warnings";
 import {
@@ -33,6 +39,10 @@ export interface MailboxView {
   health: { spf: boolean; dkim: boolean; dmarc: boolean } | null;
   hourlyCap: number;
   dailyCap: number;
+  /** Jours (ISO, 1 = lundi) et heures d'envoi choisis ; absents : les horaires conseillés. */
+  sendDays?: number[] | null;
+  windowStart?: number | null;
+  windowEnd?: number | null;
 }
 
 const m = t.mailboxes;
@@ -129,7 +139,85 @@ function Row({ siteId, box }: { siteId: string; box: MailboxView }) {
       </div>
       <Status state={testState} />
       <Status state={rmState} />
+      <ScheduleForm siteId={siteId} box={box} />
     </div>
+  );
+}
+
+const HOURS = Array.from({ length: 25 }, (_, h) => h);
+
+/** Jours et heures d'envoi de la boîte : conseillés par défaut, modifiables par la personne. */
+function ScheduleForm({ siteId, box }: { siteId: string; box: MailboxView }) {
+  const sc = m.schedule;
+  const [state, save, saving] = useActionState(updateScheduleAction.bind(null, siteId, box.id), {
+    status: "idle",
+  } as MailboxState);
+  const days = box.sendDays ?? DEFAULT_SEND_DAYS;
+  const start = box.windowStart ?? 9;
+  const end = box.windowEnd ?? 18;
+  const selectClass = inputClass.replace("w-full ", "");
+  return (
+    <form action={save} className="mt-2 flex flex-col gap-3 border-t border-border pt-4">
+      <div>
+        <h3 className="font-semibold">{sc.title}</h3>
+        <p className="text-sm text-muted-foreground">{sc.body}</p>
+      </div>
+      <fieldset>
+        <legend className="mb-1.5 text-sm font-medium">{sc.days}</legend>
+        <div className="flex flex-wrap gap-x-4 gap-y-2">
+          {sc.dayNames.map((name, i) => (
+            <label key={name} className="inline-flex items-center gap-1.5 text-sm">
+              <input
+                type="checkbox"
+                name="days"
+                value={i + 1}
+                defaultChecked={days.includes(i + 1)}
+                className="size-4 accent-primary"
+              />
+              {name}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <label htmlFor={`start-${box.id}`} className="font-medium">
+          {sc.from}
+        </label>
+        <select
+          id={`start-${box.id}`}
+          name="startHour"
+          defaultValue={start}
+          className={selectClass}
+        >
+          {HOURS.slice(0, 24).map((h) => (
+            <option key={h} value={h}>
+              {sc.hour(h)}
+            </option>
+          ))}
+        </select>
+        <label htmlFor={`end-${box.id}`} className="font-medium">
+          {sc.to}
+        </label>
+        <select id={`end-${box.id}`} name="endHour" defaultValue={end} className={selectClass}>
+          {HOURS.slice(1).map((h) => (
+            <option key={h} value={h}>
+              {sc.hour(h)}
+            </option>
+          ))}
+        </select>
+        <span className="text-muted-foreground">{sc.timezone}</span>
+      </div>
+      <p className="text-sm text-muted-foreground">{sc.advice}</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" variant="outline" disabled={saving}>
+          {saving ? sc.saving : sc.save}
+        </Button>
+        <span className="text-sm text-muted-foreground">
+          {sc.current(describeWindow({ days, startHour: start, endHour: end }))}
+        </span>
+      </div>
+      <Status state={state} />
+    </form>
   );
 }
 
