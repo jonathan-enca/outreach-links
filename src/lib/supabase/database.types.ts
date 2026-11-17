@@ -1579,6 +1579,61 @@ export type Database = {
         };
         Relationships: [];
       };
+      draft_declines: {
+        Row: {
+          cost_usd: number;
+          created_at: string;
+          declined_by: string;
+          page_url: string | null;
+          plan_id: string;
+          plan_item_id: string;
+          reason: string;
+          workspace_id: string;
+        };
+        Insert: {
+          cost_usd?: number;
+          created_at?: string;
+          declined_by: string;
+          page_url?: string | null;
+          plan_id: string;
+          plan_item_id: string;
+          reason: string;
+          workspace_id: string;
+        };
+        Update: {
+          cost_usd?: number;
+          created_at?: string;
+          declined_by?: string;
+          page_url?: string | null;
+          plan_id?: string;
+          plan_item_id?: string;
+          reason?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "draft_declines_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "link_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "draft_declines_plan_item_id_fkey";
+            columns: ["plan_item_id"];
+            isOneToOne: true;
+            referencedRelation: "link_plan_items";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "draft_declines_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       draft_runs: {
         Row: {
           cost_usd: number;
@@ -3226,6 +3281,51 @@ export type Database = {
             columns: ["site_id"];
             isOneToOne: true;
             referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      site_pages: {
+        Row: {
+          content: string;
+          description: string;
+          read_at: string;
+          site_id: string;
+          title: string;
+          url: string;
+          workspace_id: string;
+        };
+        Insert: {
+          content?: string;
+          description?: string;
+          read_at?: string;
+          site_id: string;
+          title?: string;
+          url: string;
+          workspace_id: string;
+        };
+        Update: {
+          content?: string;
+          description?: string;
+          read_at?: string;
+          site_id?: string;
+          title?: string;
+          url?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "site_pages_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "site_pages_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
             referencedColumns: ["id"];
           },
         ];

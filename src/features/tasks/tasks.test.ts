@@ -83,7 +83,6 @@ describe("message de relance", () => {
       subject: null,
       body,
       proposedUrl: URL_,
-      hook: "",
       signatureFirstName: "Alice",
     });
     expect(issues).toEqual([]);

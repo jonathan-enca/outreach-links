@@ -13,6 +13,7 @@ import { auditQualifyMore } from "./audit-qualify-more";
 import { notifyTick } from "./notify-tick";
 import { planContacts } from "./plan-contacts";
 import { planDrafts } from "./plan-drafts";
+import { draftModelsCheck } from "./draft-models-check";
 import { linkCheckTick } from "./link-check-tick";
 import { health } from "./health";
 import { planTriage } from "./plan-triage";
@@ -42,6 +43,7 @@ export const functions = [
   planTriage,
   planContacts,
   planDrafts,
+  draftModelsCheck,
   publicAudit,
   sendTick,
   replyTick,

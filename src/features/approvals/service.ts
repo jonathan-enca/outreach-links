@@ -95,6 +95,8 @@ export interface QueueView {
   /** Cibles validées sans message (plafond de rédaction atteint), et rédaction en cours. */
   missing: number;
   drafting: boolean;
+  /** Cibles écartées à la rédaction : aucune raison honnête de demander un lien (motif lisible). */
+  declined: { domain: string; pageUrl: string | null; reason: string }[];
 }
 
 /**
@@ -112,7 +114,7 @@ export function isApprovable(d: {
 
 /** Tout ce qui attend l'accord de la personne, toutes campagnes confondues (RLS). */
 export async function loadQueue(supabase: Client): Promise<QueueView> {
-  const [drafts, replyDrafts, tasks, boxes, missing] = await Promise.all([
+  const [drafts, replyDrafts, tasks, boxes, missing, declines] = await Promise.all([
     supabase
       .from("target_drafts")
       .select(
@@ -136,6 +138,11 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
       .select("id", { count: "exact", head: true })
       .eq("status", "verifiee"),
     missingDrafts(supabase),
+    supabase
+      .from("draft_declines")
+      .select("reason, page_url, created_at, link_plan_items(source_domain)")
+      .order("created_at", { ascending: false })
+      .limit(200),
   ]);
   // Les formulaires ne passent pas par l'approbation : ils vont directement dans « Formulaires à remplir ».
   const d = (drafts.data ?? []).filter((x) => x.channel === "email");
@@ -301,6 +308,12 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
     hasMailbox: (boxes.count ?? 0) > 0,
     missing: missing.total,
     drafting: missing.running,
+    declined: (declines.data ?? []).map((r) => ({
+      domain:
+        (r.link_plan_items as unknown as { source_domain: string } | null)?.source_domain ?? "",
+      pageUrl: r.page_url,
+      reason: r.reason,
+    })),
   };
 }
 
@@ -469,7 +482,7 @@ export async function editPendingMessage(
     subject,
     body,
     proposedUrl: draft.proposed_url,
-    hook: draft.hook,
+    allowAnyUrl: true,
     signatureFirstName: sig,
   });
   const ready = issues.length === 0 && draft.url_status === 200;

@@ -1877,7 +1877,7 @@ export const fr = {
   },
   drafts: {
     title: "Messages à valider",
-    body: "Pour chaque cible contactable, un message court, personnalisé à partir de sa page, signé de votre prénom. Chaque message est vérifié : l'adresse de votre page répond bien (HTTP 200), aucune mention de l'IA, pas de promesse, pas de formule creuse, pas de doublon dans le lot. Les messages de formulaire sont copiés dans vos tâches manuelles. Rien n'est envoyé : la validation par lot vient ensuite.",
+    body: "Pour chaque cible contactable, nous relisons sa page en entier et cherchons le point précis où une de vos pages rendrait service à ses lecteurs. S'il existe, un message court est écrit, avec l'adresse de sa page et celle de la vôtre, signé de votre prénom. Sinon, la cible est écartée avec son motif. Chaque message est vérifié : l'adresse de votre page répond bien (HTTP 200), aucune mention de l'IA, pas de promesse, pas de formule creuse, pas de doublon dans le lot. Les messages de formulaire sont copiés dans vos tâches manuelles. Rien n'est envoyé : la validation par lot vient ensuite.",
     start: "Rédiger les messages",
     starting: "Lancement…",
     running: "Rédaction en cours. Actualisez la page dans une minute.",
@@ -2850,6 +2850,10 @@ export const fr = {
     missing: (n: number) =>
       `${n} ${n > 1 ? "cibles validées n'ont" : "cible validée n'a"} pas encore de message.`,
     missingCta: "Rédiger les messages manquants",
+    declined: (n: number) =>
+      `${n} ${n > 1 ? "cibles écartées" : "cible écartée"} : aucune raison honnête de leur demander un lien.`,
+    declinedHelp:
+      "Avant d'écrire, nous relisons la page de chaque cible. Sans point précis où votre lien rendrait service à ses lecteurs, aucun message n'est écrit : un message sans raison part à la corbeille et abîme votre réputation d'expéditeur.",
     hintMailbox: "Connectez d'abord une boîte d'envoi pour approuver et envoyer ce message.",
     hintNotReady: "Corrigez d'abord les points signalés en rouge.",
     drafting: "Rédaction en cours : les nouveaux messages apparaissent ici dans quelques minutes.",

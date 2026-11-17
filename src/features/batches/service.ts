@@ -164,7 +164,7 @@ export async function editDraft(
     subject,
     body,
     proposedUrl: draft.proposed_url,
-    hook: draft.hook,
+    allowAnyUrl: true,
     signatureFirstName: sig,
   });
   const ready = issues.length === 0 && draft.url_status === 200;

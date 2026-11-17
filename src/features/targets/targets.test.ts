@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildPrompt, presentationText } from "@/features/drafting/write";
+import { presentationText } from "@/features/signature/signature";
+import { buildWriterPrompt } from "@/features/drafting/write";
 import type { DraftBrief, DraftContext, DraftItem } from "@/features/drafting/types";
 import { buildBridge, type BridgeContext } from "./bridge";
 import {
@@ -340,28 +341,37 @@ describe("rédacteur branché sur le brief des constats", () => {
     hook: "Pour colorier, voir free printable coloring pages.",
     brief: b,
   });
+  const page = {
+    url: "https://ecole-x.fr/liens",
+    title: "Liens",
+    description: "",
+    text: "Pour colorier, voir free printable coloring pages.",
+    moved: false,
+  };
+  const candidates = [
+    { url: "https://mega-coloring.com/guide", title: "Guide", description: "", text: "Le guide." },
+  ];
   const payload = (p: string) =>
     JSON.parse(p.split("<donnees_non_fiables>\n")[1]!.split("\n</donnees_non_fiables>")[0]!) as {
-      brief?: Record<string, unknown>;
+      expediteur: { presentation: string };
+      cible: { constat_automatique?: Record<string, unknown> };
     };
-  it("le prompt porte le point précis, la ressource, l'erreur constatée et la présentation choisie", () => {
-    const p = payload(
-      buildPrompt(item(brief("equipe")), dctx, "https://mega-coloring.com/guide", []),
-    );
-    expect(p.brief).toMatchObject({
-      constat: "lien_mort",
+  it("le prompt porte le constat vérifié, l'erreur constatée et la présentation choisie", () => {
+    const p = payload(buildWriterPrompt(item(brief("equipe")), dctx, page, candidates));
+    expect(p.cible.constat_automatique).toMatchObject({
+      nature: "lien_mort",
       erreur_http_constatee: 404,
-      ressource_a_proposer: { url: "https://mega-coloring.com/guide" },
-      presentation_a_utiliser: "Je suis Léa, de l'équipe de mega-coloring.com",
     });
+    expect(p.expediteur.presentation).toBe("Je suis Léa, de l'équipe de mega-coloring.com");
   });
   it("jamais « fondateur » sans l'accord de l'utilisateur", () => {
     expect(presentationText("equipe", "Léa", "s.fr")).not.toContain("fondateur");
     expect(presentationText("agence", "Léa", "s.fr")).not.toContain("fondateur");
     expect(presentationText("fondateur", "Léa", "s.fr")).toContain("fondateur de s.fr");
   });
-  it("sans brief (plan d'opportunités), le prompt est inchangé", () => {
-    const p = payload(buildPrompt(item(null), dctx, "https://mega-coloring.com/guide", []));
-    expect(p.brief).toBeUndefined();
+  it("sans brief (plan d'opportunités), ni constat ni rôle supposé", () => {
+    const p = payload(buildWriterPrompt(item(null), dctx, page, candidates));
+    expect(p.cible.constat_automatique).toBeUndefined();
+    expect(p.expediteur.presentation).not.toMatch(/fondateur/i);
   });
 });

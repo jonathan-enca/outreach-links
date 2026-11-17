@@ -194,19 +194,21 @@ export interface MissingDrafts {
   running: boolean;
 }
 
-/** Cibles rédigeables sans message, par plan (pur, testé) : contact trouvé, page lue avec une accroche. */
+/**
+ * Cibles sans message qu'une rédaction peut encore traiter, par plan (pur, testé) : contact trouvé, page
+ * lue au tri, ni message écrit ni cible écartée faute d'angle.
+ */
 export function countMissing(
   contacts: readonly { plan_id: string; plan_item_id: string }[],
-  triage: readonly { plan_item_id: string; hook: string | null; page_title: string | null }[],
+  triage: readonly { plan_item_id: string }[],
   drafts: readonly { plan_item_id: string }[],
+  declines: readonly { plan_item_id: string }[] = [],
 ): Map<string, number> {
-  const draftable = new Set(
-    triage.filter((x) => x.hook?.trim() || x.page_title?.trim()).map((x) => x.plan_item_id),
-  );
-  const written = new Set(drafts.map((d) => d.plan_item_id));
+  const draftable = new Set(triage.map((x) => x.plan_item_id));
+  const done = new Set([...drafts, ...declines].map((d) => d.plan_item_id));
   const out = new Map<string, number>();
   for (const c of contacts) {
-    if (!draftable.has(c.plan_item_id) || written.has(c.plan_item_id)) continue;
+    if (!draftable.has(c.plan_item_id) || done.has(c.plan_item_id)) continue;
     out.set(c.plan_id, (out.get(c.plan_id) ?? 0) + 1);
   }
   return out;
@@ -214,7 +216,7 @@ export function countMissing(
 
 /** Messages qui restent à rédiger pour la personne, toutes campagnes confondues (RLS). */
 export async function missingDrafts(supabase: Client): Promise<MissingDrafts> {
-  const [contacts, triage, drafts, runs] = await Promise.all([
+  const [contacts, triage, drafts, runs, declines] = await Promise.all([
     supabase
       .from("target_contacts")
       .select("plan_id, plan_item_id, workspace_id")
@@ -222,14 +224,20 @@ export async function missingDrafts(supabase: Client): Promise<MissingDrafts> {
       .limit(3000),
     supabase
       .from("link_target_triage")
-      .select("plan_item_id, hook, page_title")
+      .select("plan_item_id")
       .eq("verdict", "ok")
       .not("resolved_url", "is", null)
       .limit(3000),
     supabase.from("target_drafts").select("plan_item_id").limit(3000),
     supabase.from("draft_runs").select("plan_id, status").limit(500),
+    supabase.from("draft_declines").select("plan_item_id").limit(3000),
   ]);
-  const missing = countMissing(contacts.data ?? [], triage.data ?? [], drafts.data ?? []);
+  const missing = countMissing(
+    contacts.data ?? [],
+    triage.data ?? [],
+    drafts.data ?? [],
+    declines.data ?? [],
+  );
   const wsOf = new Map((contacts.data ?? []).map((c) => [c.plan_id, c.workspace_id]));
   const statusOf = new Map((runs.data ?? []).map((r) => [r.plan_id, r.status]));
   const plans = [...missing.entries()].map(([planId, n]) => ({
