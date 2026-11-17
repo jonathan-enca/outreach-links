@@ -614,3 +614,77 @@ export function evalPage(url: string, p: Partial<PageRead> | null | undefined): 
     ...(p ?? { status: 0, unreachable: true }),
   };
 }
+
+/**
+ * Garde-fou de qualité (chantier E, 18/11/2026) : cibles que CLAUDE a jugées faibles ou suspectes sur
+ * l'audit de référence du 17/11 (72 cibles). **Seul l'avis de Jonathan fait foi** : tant que `verdict`
+ * vaut `null`, ces cas sont « à confirmer », ne comptent dans aucune métrique de `QUAL_EVAL_CASES` et
+ * ne justifient aucun changement de règle. Quand Jonathan répond, copier son avis dans `verdict`
+ * (`bon` / `mauvais`) et, si `mauvais`, ajouter le cas au jeu annoté ci-dessus.
+ */
+export interface QualityWatchCase {
+  domain: string;
+  /** Avis de Claude, jamais une vérité. */
+  claude: "faible" | "limite" | "domaine_suspect";
+  /** Avis de Jonathan ; null = à confirmer. */
+  verdict: "bon" | "mauvais" | null;
+  /** Ce qu'une lecture réelle (18/11/2026, robots.txt respecté) a montré, quand elle a eu lieu. */
+  reading?: string;
+}
+
+export const QUALITY_TO_CONFIRM: QualityWatchCase[] = [
+  ...[
+    "creavea.com",
+    "amedenfant.fr",
+    "devenirparent.net",
+    "hello-merlin.com",
+    "paperblog.fr",
+    "bambintroc.fr",
+    "dessinpassion.com",
+    "journaux.fr",
+    "lepointdufle.net",
+    "maniaclic.blog4ever.com",
+  ].map((domain): QualityWatchCase => ({ domain, claude: "faible", verdict: null })),
+  ...[
+    "editions-retz.com",
+    "flashmode.tn",
+    "kidscare.lu",
+    "wikicampers.fr",
+    "papadejojo.fr",
+    "bayard-jeunesse.com",
+  ].map((domain): QualityWatchCase => ({ domain, claude: "limite", verdict: null })),
+  {
+    domain: "laruellebleue.com",
+    claude: "domaine_suspect",
+    verdict: null,
+    reading:
+      "Probable : thèmes sans rapport entre eux (moto, scooter, héritage, « Jeux d'Argent », lutin farceur) et pied de page avec 8 liens vers des sites sans rapport (.fun, .shop).",
+  },
+  {
+    domain: "creativa-grenoble.com",
+    claude: "domaine_suspect",
+    verdict: null,
+    reading:
+      "Probable : un blog « création » dont les articles vont de bracelets, escape game et recettes à des cadeaux de Noël ; aucun signe de tarif.",
+  },
+  {
+    domain: "famille-heureuse.fr",
+    claude: "domaine_suspect",
+    verdict: null,
+    reading:
+      "Confirmé : la page contact accueille les « articles sponsorisés » (la règle existante les détecte sur cet accueil, mais la cible avait été jugée sur une page intérieure).",
+  },
+  {
+    domain: "nantes-artifice.fr",
+    claude: "domaine_suspect",
+    verdict: null,
+    reading:
+      "Non confirmé : blog maison / déco / immobilier cohérent, sans tarif ni mention sponsorisée ; seule la page jugée (dessins de Noël) est hors du thème du site.",
+  },
+  {
+    domain: "trucetastuce.net",
+    claude: "domaine_suspect",
+    verdict: null,
+    reading: "Non confirmé : site de conseils généralistes, aucun signe de vente de liens.",
+  },
+];

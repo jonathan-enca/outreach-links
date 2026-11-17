@@ -556,3 +556,22 @@ describe("entonnoir complet", () => {
     });
   });
 });
+
+describe("garde-fou de qualité (chantier E)", () => {
+  it("les cas à confirmer n'entrent dans aucune métrique tant que Jonathan n'a pas répondu", async () => {
+    const { QUALITY_TO_CONFIRM, QUAL_EVAL_CASES } = await import("./eval-set");
+    expect(QUALITY_TO_CONFIRM).toHaveLength(21);
+    expect(QUALITY_TO_CONFIRM.filter((c) => c.verdict !== null)).toHaveLength(0);
+    const inSet = new Set(QUAL_EVAL_CASES.map((c) => c.candidate.domain));
+    for (const c of QUALITY_TO_CONFIRM) expect(inSet.has(c.domain)).toBe(false);
+  });
+
+  it("la règle existante voit « articles sponsorisés » sur l'accueil de famille-heureuse.fr", async () => {
+    const { sellsLinks } = await import("@/features/triage/rules");
+    expect(
+      sellsLinks(
+        "Tu peux nous proposer un sujet, ou discuter d'une collaboration (y compris articles sponsorisés ), via la page contact.",
+      ),
+    ).toBe(true);
+  });
+});

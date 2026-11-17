@@ -51,3 +51,37 @@ Question : l'écart est-il juste ? (`juste` / `à tort`)
 | 18  | athlenda.com                        | https://athlenda.com/coloriages-magiques-gratuits-imprimer                                                                       | sans_contact        | Aucun email ni formulaire trouvé sur le site.                                         |            |
 | 19  | mediadiversified.org                | https://mediadiversified.org/                                                                                                    | langue              | page en « en-gb »                                                                     |            |
 | 20  | gbcolorare.com                      | https://gbcolorare.com/chien/                                                                                                    | robots              | le robots.txt interdit la lecture                                                     |            |
+
+## 3. Garde-fou de qualité du bas de liste (chantier E, 18/11/2026)
+
+**Aucune règle de tri modifiée** : Jonathan n'a pas encore donné son avis (colonne « Votre avis » vide ci-dessus et dans `PROGRESS.md`). Les cibles jugées faibles par Claude sont dans `QUALITY_TO_CONFIRM` (`src/features/qualification/eval-set.ts`, `verdict: null` = à confirmer). Quand vous répondez `bon` / `mauvais`, on les passe dans le jeu annoté.
+
+| Site                                                                                                                                                                    | Avis de Claude                 | Votre avis |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | ---------- |
+| creavea.com, amedenfant.fr, devenirparent.net, hello-merlin.com, paperblog.fr, bambintroc.fr, dessinpassion.com, journaux.fr, lepointdufle.net, maniaclic.blog4ever.com | faible                         |            |
+| editions-retz.com, flashmode.tn, kidscare.lu, wikicampers.fr, papadejojo.fr, bayard-jeunesse.com                                                                        | limite                         |            |
+| laruellebleue.com, creativa-grenoble.com                                                                                                                                | domaine suspect : probable     |            |
+| famille-heureuse.fr                                                                                                                                                     | domaine suspect : confirmé     |            |
+| nantes-artifice.fr, trucetastuce.net                                                                                                                                    | domaine suspect : non confirmé |            |
+
+### Lecture réelle des cinq « noms de domaine rachetés » (robots.txt et pause respectés)
+
+- **laruellebleue.com** : thèmes sans rapport (moto, scooter 125, héritage, rubrique « Jeux d'Argent », lutin farceur), pied de page avec 8 liens vers des sites sans rapport (.fun, .shop). Probable réseau de liens. Déjà écarté comme « concurrent » dans trois analyses sur quatre, par chance.
+- **creativa-grenoble.com** : blog « création » qui publie bracelets, escape game, recettes, cadeaux de Noël : mélange de thèmes sans rapport, aucun tarif visible. Suspect, pas prouvé.
+- **famille-heureuse.fr** : la page contact accueille les « articles sponsorisés ». Preuve nette, mais la cible avait été jugée sur une page intérieure (coloriages) : l'accueil n'est pas lu, donc la règle existante (`sellsLinks`) n'a pas pu s'appliquer.
+- **nantes-artifice.fr** : blog maison / déco / immobilier cohérent, ni tarif ni mention sponsorisée. Non confirmé.
+- **trucetastuce.net** : conseils généralistes, rien de suspect. Non confirmé.
+
+Décision : une seule règle utile ressort (lire l'accueil des cibles jugées sur une page intérieure pour y chercher une vente de liens), elle attrape 1 site sur 5 pour une lecture de plus par cible ; **non codée** sans avis de Jonathan, notée au Backlog.
+
+### Part de pages d'accueil et qualité par tranche (trois analyses de mega-coloring.com du 16/11, l'analyse de 72 cibles n'existant plus en base)
+
+| Analyse  | Tranche | Cibles | Jugées sur l'accueil | Adéquation moyenne | Faibles (liste de Claude) |
+| -------- | ------- | ------ | -------------------- | ------------------ | ------------------------- |
+| 2b8ee04f | 1 à 30  | 30     | 7                    | 0,77               | 1                         |
+| 2b8ee04f | 31 à 60 | 30     | 8                    | 0,74               | 1                         |
+| 2b8ee04f | 61 +    | 25     | 14                   | 0,70               | 3                         |
+| a2e12ab1 | 61 +    | 24     | 16                   | 0,67               | 2                         |
+| fc43af7d | 61 +    | 9      | 5                    | 0,66               | 1                         |
+
+Constat : plus on descend, plus les cibles reposent sur un accueil (23 % en tête, 56 % à partir de la 61e) et plus l'adéquation baisse (0,77 → 0,67). La piste « un accueil sans rapport visible avec le thème pèse moins » est plausible, mais les faibles identifiés n'y sont que 1 sur 5 : trop peu pour fixer un poids. À mesurer sur le jeu annoté dès que l'avis de Jonathan est connu. Avant / après : identiques, rien n'a changé.

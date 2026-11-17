@@ -1463,3 +1463,14 @@ Branche `claude/etape-4-pertes-gratuites-uexz0u`. Aucune migration, aucune nouve
 - `hasContactForm` est aussi lu par le tri et les signaux d'éditeur : des pages qui n'avaient pas de « formulaire » en ont maintenant un (extensions de formulaire reconnues). Effet attendu : un peu moins d'« éditeur introuvable ». Une lettre d'information bâtie avec une de ces extensions pourrait être prise pour un formulaire de contact (à surveiller).
 - La lecture de l'accueil ajoute des requêtes HTTP (environ 9 % de lectures en plus sur l'audit de référence), avec le délai par hôte habituel.
 - Idée hors périmètre (Backlog) : lecteur de secours Jina pour les accueils en 403 (plare.fr) ; adresses écrites en lettres espacées (fiche-maternelle.com) ; le « mot de passe du compte de test » : prévoir un script qui le réaligne par l'API d'administration d'authentification.
+
+## Session du 18/11 (matin, suite 4) : garde-fou de qualité du bas de liste (prompt maître n° 3, chantier E, étape 5 sur 7)
+
+Branche `claude/gallant-gates-7ooyc4`. Aucune migration, aucune fonction Inngest, **aucune règle de tri ni seuil modifié** (jeu annoté intact). 0 USD dépensé (lectures HTTP polies, requêtes SQL en lecture).
+
+- **E.1** Aucun avis de Jonathan dans PROGRESS.md ni dans `docs/eval-qualite-recherche.md` : les 16 cibles faibles / limites de Claude sont ajoutées comme « à confirmer » (`QUALITY_TO_CONFIRM`, `verdict: null`, hors de toute métrique), avec test. Rien n'est changé sur leur seule base.
+- **E.2** Mesure sur trois analyses du 16/11 (l'audit f530ee83 de 72 cibles n'existe plus en base) : pages d'accueil = 23 % des cibles 1 à 30, **56 % à partir de la 61e** ; adéquation moyenne 0,77 → 0,70 → 0,67. Piste plausible, mais seulement 1 faible sur 5 est un accueil : pas assez pour fixer un poids. Non codée.
+- **E.3** Lecture réelle des 5 sites : laruellebleue.com (réseau probable : thèmes sans rapport, rubrique « Jeux d'Argent », 8 liens de pied de page vers des sites sans rapport), creativa-grenoble.com (mélange de thèmes, suspect), famille-heureuse.fr (**confirmé** : accueille les « articles sponsorisés » sur sa page contact ; la règle `sellsLinks` existante le verrait, mais la cible a été jugée sur une page intérieure), nantes-artifice.fr et trucetastuce.net **non confirmés**. Aucune règle ajoutée.
+- **E.4** Tableau par tranche dans `docs/eval-qualite-recherche.md` §3. Avant / après identiques (rien n'a changé).
+- Backlog : lire l'accueil des cibles jugées sur une page intérieure pour y chercher une vente de liens (attrape 1 site sur 5 ici, une lecture de plus par cible) ; à décider avec l'avis de Jonathan.
+- Prochain : étape 6 (chantier F, run réel de contrôle ; budget restant 0,60 USD dont rien n'est consommé).
