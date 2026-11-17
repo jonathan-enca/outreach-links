@@ -4,11 +4,10 @@ import { revalidatePath } from "next/cache";
 import type { AuditActionState } from "@/features/audits/service";
 import { editReplyDraft, rejectReplyDraft, validateReplyDraft } from "@/features/inbox/service";
 import { draftMissing } from "@/features/drafting/service";
-import { completeTask } from "@/features/tasks/service";
 import { inngest } from "@/inngest/client";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { approveMessages, editPendingMessage } from "./service";
+import { approveMessages, completeForm, editPendingMessage } from "./service";
 
 const refresh = () => revalidatePath("/app", "layout");
 
@@ -48,8 +47,8 @@ export async function rejectReplyAction(id: string): Promise<AuditActionState> {
   return r;
 }
 
-export async function completeFormAction(id: string): Promise<AuditActionState> {
-  const r = await completeTask(await createClient(), createServiceClient, id);
+export async function completeFormAction(id: string, taskId: string): Promise<AuditActionState> {
+  const r = await completeForm(await createClient(), createServiceClient, id, taskId);
   refresh();
   return r;
 }

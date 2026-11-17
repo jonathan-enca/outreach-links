@@ -2791,8 +2791,7 @@ export const fr = {
     approve: "Approuver et envoyer",
     approveForm: "Approuver ce message",
     /** Le nombre est celui des messages approuvables maintenant, d'où un libellé qui le dit. */
-    approveAll: (n: number) => `Approuver les ${n} messages prêts`,
-    approveForms: (n: number) => `Approuver les ${n} messages pour formulaire`,
+    approveAll: (n: number) => `Approuver et envoyer les ${n} emails prêts`,
     edit: "Modifier",
     save: "Enregistrer",
     saving: "Enregistrement…",
@@ -2804,18 +2803,18 @@ export const fr = {
     copy: "Copier le message",
     copied: "Copié",
     openForm: "Ouvrir le formulaire",
-    markDone: "Marquer comme fait",
-    formSubject: "Message prêt à coller dans leur formulaire",
+    markDone: "C'est fait",
+    formSubject: "Message à coller dans leur formulaire",
     filters: {
       label: "Filtrer par nature",
       all: "Tout",
       replies: "Réponses",
-      messages: "Premiers messages",
-      forms: "Formulaires",
+      messages: "Emails à envoyer",
+      forms: "Formulaires à remplir",
     },
     tags: {
       reply: "Réponse à approuver",
-      message: "Premier message",
+      message: "Email à envoyer",
       formMessage: "Message pour un formulaire",
       form: "Formulaire à remplir",
     },
@@ -2828,7 +2827,8 @@ export const fr = {
       thenForm:
         "Ce site n'a pas d'email. Une fois approuvé, le message vous attend ici, prêt à coller dans son formulaire.",
       todo: "À faire",
-      todoForm: "Ouvrez le formulaire du site, collez le message, puis marquez-le comme fait.",
+      todoForm:
+        "Ce site n'a pas d'adresse email. Copiez le message, ouvrez son formulaire, collez-le, envoyez-le, puis cliquez « C'est fait » : la relance sera prévue dans dix jours.",
     },
     messages: {
       unauthenticated: "Connectez-vous pour continuer.",
