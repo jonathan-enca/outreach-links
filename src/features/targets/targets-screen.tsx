@@ -230,7 +230,9 @@ function FindingBlock({ f }: { f: FindingView }) {
           </span>
         ) : null}
       </div>
-      <blockquote className="border-l-2 border-primary pl-3 italic">« {f.quote} »</blockquote>
+      <blockquote className="border-l-2 border-primary pl-3 italic">
+        «&nbsp;{f.quote}&nbsp;»
+      </blockquote>
       <p className="text-muted-foreground">
         {c.page} :{" "}
         <a
@@ -299,7 +301,7 @@ const REQUEST_TONE = {
  * sous le nom du site : la zone de contenu de l'application (56 rem) ne laisse pas la place d'une
  * colonne de plus sans écraser la raison.
  */
-const COLS = "xl:grid-cols-[1.25rem_1.75rem_15.5rem_minmax(0,1fr)_9.5rem_7.5rem_2.25rem]";
+const COLS = "xl:grid-cols-[1.25rem_1.75rem_19rem_minmax(0,1fr)_9.5rem_7.5rem_2.25rem]";
 
 /**
  * Une cible = une ligne qui se déplie (retour de Jonathan, 18/11 : tableau dense, le détail au clic).
@@ -370,7 +372,7 @@ export function TargetRow({
           ) : null}
         </div>
         <p
-          className={`col-start-2 min-w-0 text-sm xl:col-auto xl:text-[13.5px] ${open ? "xl:line-clamp-1" : "line-clamp-2"}`}
+          className={`col-start-2 min-w-0 text-sm xl:col-auto xl:text-[13.5px] ${open ? "xl:invisible xl:line-clamp-1" : "line-clamp-2"}`}
         >
           {card.why ?? req.lines[0] ?? ""}
         </p>
@@ -434,7 +436,7 @@ export function TargetRow({
                 <>
                   <p className="text-sm font-medium">{TB.quote}</p>
                   <blockquote className="border-l-2 border-primary pl-3 text-sm italic">
-                    « {req.quote} »
+                    «&nbsp;{req.quote}&nbsp;»
                   </blockquote>
                 </>
               ) : null}
@@ -451,7 +453,7 @@ export function TargetRow({
             </div>
             <div className="flex min-w-0 flex-col gap-2">
               <p className="text-sm font-medium">{TB.offer}</p>
-              <dl className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-sm">
+              <dl className="grid grid-cols-[5.75rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-sm">
                 {resource ? (
                   <>
                     <dt className="text-muted-foreground">{TB.resource}</dt>

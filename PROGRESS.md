@@ -1589,3 +1589,5 @@ Branche `claude/email-recovery-targets-ma0fhv` (poussée, **non fusionnée** : J
 ### Maquette desktop v2 appliquée (accord de Jonathan)
 
 Zone de contenu élargie pour l'écran des cibles (`shell/content-width.tsx`, 96 rem au lieu de 56), tableau à colonnes fixes à partir de 1280 px (cartes en dessous), raison complète en bandeau dans le détail, détail sur trois colonnes, liens longs tronqués (lien complet au survol). Contrôlé par captures à 1500 px et 390 px : aucun défilement horizontal.
+
+Retouches après le premier rendu réel du tableau (18/11) : colonne « Site » élargie (19 rem), la raison de la ligne ouverte n'est plus répétée (elle est dans le bandeau), libellés « Votre page » sur une ligne, guillemets insécables autour des citations (plus de « » seul en début de ligne).
