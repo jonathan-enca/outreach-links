@@ -34,12 +34,12 @@ describe("lots : sélection et taille", () => {
     expect(clampBatchSize("7")).toBe(7);
   });
 
-  it("ne retient que les emails prêts, vérifiés, hors lot, dans l'ordre du plan", () => {
+  it("ne retient que les emails prêts et vérifiés, plus les formulaires prêts, hors lot, dans l'ordre du plan", () => {
     const picked = pickEligible(
       [
         cand({ draftId: "a", position: 3 }),
         cand({ draftId: "b", position: 1 }),
-        cand({ draftId: "formulaire", channel: "formulaire" }),
+        cand({ draftId: "formulaire", channel: "formulaire", position: 9, sendable: false }),
         cand({ draftId: "pas-pret", ready: false }),
         cand({ draftId: "non-verifie", sendable: false }),
         cand({ draftId: "deja-valide", status: "valide" }),
@@ -47,9 +47,9 @@ describe("lots : sélection et taille", () => {
         cand({ draftId: "c", position: 2 }),
       ],
       new Set(["deja-lot"]),
-      2,
+      4,
     );
-    expect(picked.map((p) => p.draftId)).toEqual(["b", "c"]);
+    expect(picked.map((p) => p.draftId)).toEqual(["b", "c", "a", "formulaire"]);
   });
 
   it("un lot n'est validable que si tous ses messages sont prêts", () => {

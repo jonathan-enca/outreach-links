@@ -1546,3 +1546,13 @@ Les cibles déjà en base ne sont pas modifiées : le gain vaut pour les prochai
 `events` : 5 `analysis.email_error` (dernier 17/11 10:55, `Resend 401 validation_error`), **0 `analysis.email_sent`**. La clé reste invalide ; l'écran affiche « vous pouvez fermer cette page » sans promesse d'email (`ANALYSIS_EMAIL_VERIFIED = false`). Reste à Jonathan : poser une clé Resend valide (voir « À fournir par Jonathan »), puis passer la constante à `true` après un premier envoi constaté.
 
 Prochain : à décider par Jonathan (relancer l'enquête sur les audits existants ?).
+
+## Session du 18/11 (suite 7) : les formulaires entrent dans les lots
+
+Demande de Jonathan : garder les cibles qui n'ont qu'un formulaire, avec le lien du formulaire et le même message personnalisé qu'un email.
+
+- **Constat** : le rédacteur écrivait déjà un message pour chaque cible « formulaire » (canal `formulaire`, tâche manuelle créée), mais `pickEligible` n'admettait que les emails dans un lot. Une tâche n'apparaît qu'après validation d'un lot : ces formulaires n'étaient donc **jamais visibles**.
+- **Changement** : un brouillon `formulaire` prêt (URL 200, linter vert) entre dans les lots comme un email, sans contact « envoyable » exigé. La fiche du lot affiche « Formulaire de contact (à remplir à la main, message prêt à coller) » avec le lien et le message (sans objet). Après validation du lot, la tâche apparaît dans « Tâches ». **Aucun envoi** pour ces brouillons (garde-fous d'envoi et de base : canal email seulement) ; aucun formulaire rempli automatiquement.
+- Fichiers : `batches/select.ts`, `batches/service.ts`, `batches/batches-section.tsx`, `messages/fr.ts` (`batches.formChannel`), `batches.test.ts`. Aucune migration.
+- Audit de référence : 26 cibles à formulaire seul peuvent entrer dans les lots, en plus des emails.
+- La taille d'un lot compte les formulaires ; les plafonds d'envoi ne les comptent pas.

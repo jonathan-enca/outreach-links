@@ -8,7 +8,7 @@ export interface Candidate {
 }
 
 /**
- * Brouillons admissibles dans un lot : email, prêt (URL 200, linter vert), contact vérifié,
+ * Brouillons admissibles dans un lot : email (contact vérifié) ou formulaire, prêt (URL 200, linter vert),
  * pas déjà dans un lot. Ordre du plan ; au plus `size`.
  */
 export function pickEligible(
@@ -19,10 +19,11 @@ export function pickEligible(
   return candidates
     .filter(
       (c) =>
-        c.channel === "email" &&
+        // Email : contact vérifié obligatoire. Formulaire : jamais envoyé, c'est une tâche manuelle
+        // (message prêt à coller) qui apparaît une fois le lot validé.
+        (c.channel === "formulaire" || c.sendable) &&
         c.ready &&
         c.status === "brouillon" &&
-        c.sendable &&
         !inBatch.has(c.draftId),
     )
     .sort((a, b) => a.position - b.position)

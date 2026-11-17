@@ -284,6 +284,9 @@ export interface BatchItemView {
   triageReason: string | null;
   hook: string;
   email: string | null;
+  channel: "email" | "formulaire";
+  /** Lien du formulaire de contact à remplir à la main (canal formulaire). */
+  formUrl: string | null;
   subject: string | null;
   body: string;
   ready: boolean;
@@ -318,7 +321,10 @@ export async function loadBatches(supabase: Client, auditId: string): Promise<Ba
       .order("number"),
     supabase.from("batch_items").select("batch_id, draft_id, position").eq("plan_id", plan.id),
     supabase.from("target_drafts").select("*").eq("plan_id", plan.id).limit(500),
-    supabase.from("target_contacts").select("plan_item_id, email, sendable").eq("plan_id", plan.id),
+    supabase
+      .from("target_contacts")
+      .select("plan_item_id, email, sendable, form_url")
+      .eq("plan_id", plan.id),
     supabase.from("link_target_triage").select("plan_item_id, reason").eq("plan_id", plan.id),
     supabase
       .from("link_plan_items")
@@ -363,6 +369,8 @@ export async function loadBatches(supabase: Client, auditId: string): Promise<Ba
             triageReason: triageByItem.get(d.plan_item_id) ?? null,
             hook: d.hook,
             email: contactByItem.get(d.plan_item_id)?.email ?? null,
+            channel: d.channel as "email" | "formulaire",
+            formUrl: contactByItem.get(d.plan_item_id)?.form_url ?? null,
             subject: d.subject,
             body: d.body,
             ready: d.ready,
