@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
+  Bell,
   CheckSquare,
   ChevronsUpDown,
   CreditCard,
@@ -62,7 +63,6 @@ export function AppNav({
   const n = t.shell.nav;
   const siteId = SITE_IN_PATH.exec(pathname)?.[1] ?? sites[0]?.id ?? null;
   const site = sites.find((s) => s.id === siteId) ?? sites[0] ?? null;
-  const settingsHref = site ? `/app/site/${site.id}` : "/app/site";
   const onSettings = /^\/app\/site(\/[0-9a-f-]{36})?\/?$/i.test(pathname);
   const starts = (p: string) => pathname === p || pathname.startsWith(`${p}/`);
 
@@ -138,19 +138,26 @@ export function AppNav({
       items: [
         {
           key: "boite",
-          href: `${settingsHref}#boite-envoi`,
+          href: "/app/reglages/boite",
           label: n.mailbox,
           icon: Mail,
-          active: false,
+          active: starts("/app/reglages/boite"),
         },
         {
           key: "messages",
-          href: settingsHref,
+          href: "/app/reglages/messages",
           label: n.yourMessages,
           icon: PenLine,
-          active: onSettings || starts("/app/garde-fous"),
+          active: starts("/app/reglages/messages") || onSettings || starts("/app/garde-fous"),
           mobile: true,
           short: n.short.settings,
+        },
+        {
+          key: "notifications",
+          href: "/app/reglages/notifications",
+          label: n.notifications,
+          icon: Bell,
+          active: starts("/app/reglages/notifications"),
         },
         {
           key: "abonnement",

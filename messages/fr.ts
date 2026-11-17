@@ -2409,6 +2409,7 @@ export const fr = {
       mailbox: "Boîte d'envoi",
       yourMessages: "Vos messages",
       billing: "Abonnement",
+      notifications: "Notifications",
       changeSite: "Voir tous vos sites",
       short: { conversations: "Échanges", settings: "Réglages" },
       groups: {
@@ -2526,6 +2527,118 @@ export const fr = {
     },
     detail: "Voir le détail de l'analyse",
     conversations: "Voir les conversations",
+  },
+  settings: {
+    eyebrow: "Réglages",
+    messages: {
+      unauthenticated: "Connectez-vous pour continuer.",
+      saveError: "Enregistrement impossible. Réessayez.",
+      saved: "Réglages enregistrés.",
+    },
+    mailbox: {
+      title: "Boîte d'envoi",
+      description:
+        "La boîte d'où partent vos messages. Nous réglons le rythme et arrêtons les envois si trop de messages reviennent en erreur.",
+      authTitle: (domain: string) => `Contrôles anti-spam de ${domain}`,
+      authNote:
+        "Ces trois réglages évitent que vos messages arrivent en indésirables. Ils se font chez l'hébergeur de votre nom de domaine.",
+      auth: {
+        spf: {
+          name: "SPF",
+          ok: "votre domaine dit qui a le droit d'envoyer en son nom.",
+          absent: "réglage absent. Ajoutez-le chez l'hébergeur de votre domaine.",
+          inconnu: "contrôle impossible pour l'instant. Réessayez plus tard.",
+        },
+        dkim: {
+          name: "DKIM",
+          ok: "vos messages sont signés.",
+          absent: "réglage absent.",
+          inconnu:
+            "signature non trouvée automatiquement. Vérifiez chez votre fournisseur de messagerie qu'elle est activée.",
+        },
+        dmarc: {
+          name: "DMARC",
+          ok: "votre domaine dit quoi faire d'un message non conforme.",
+          absent: "réglage absent. Ajoutez-le chez l'hébergeur de votre domaine.",
+          inconnu: "contrôle impossible pour l'instant. Réessayez plus tard.",
+        },
+      },
+    },
+    yourMessages: {
+      title: "Vos messages",
+      description:
+        "Qui écrit et ce que vous proposez. Les messages ne citent que ce qui est écrit ici.",
+      firstNameHint: "Vos messages sont signés de ce prénom.",
+      role: "Comment vous vous présentez",
+      roleHint: "On n'écrit jamais « fondateur » sans votre accord.",
+      offer: "Ce que vous offrez en échange",
+      offerHint: "Une ressource, un outil, une contribution. Jamais d'argent sans votre décision.",
+      previewTitle: "Aperçu de la signature",
+      previewName: "Votre prénom",
+      of: "de",
+      previewBody:
+        "Bonjour,\n\nVotre page renvoie vers une ressource qui ne répond plus. Nous en publions une à jour, gratuite.",
+      neverTitle: "Ce que nous ne faisons jamais",
+      never: [
+        "Aucun message envoyé sans votre validation",
+        "Aucun lien acheté sans votre décision",
+        "Un moyen de ne plus être contacté dans chaque message",
+      ],
+    },
+  },
+  notifications: {
+    title: "Notifications",
+    description:
+      "Les emails que nous vous envoyons quand quelque chose demande votre décision ou qu'un lien change.",
+    soon: "Bientôt",
+    note: "Envoyés à l'adresse de votre compte. Les réglages s'enregistrent dès que vous les changez. Les notifications marquées « Bientôt » sont enregistrées et partiront dès qu'elles seront en service.",
+    items: {
+      reply_waiting: {
+        title: "Une réponse vous attend",
+        body: "Un prospect a répondu et sa réponse demande votre décision.",
+        when: "Dans les dix minutes",
+      },
+      to_validate: {
+        title: "Des messages sont à valider",
+        body: "De nouveaux messages sont prêts à partir.",
+        when: "Regroupés, un email par jour au plus",
+      },
+      links: {
+        title: "Un lien est obtenu ou a disparu",
+        body: "Un lien vers votre site est en ligne, a changé ou a été retiré.",
+        when: "Le premier lien tout de suite, les suivants dans le résumé",
+      },
+      mailbox: {
+        title: "Votre boîte d'envoi a un problème",
+        body: "Elle doit être reconnectée ou a été mise en pause.",
+        when: "Tout de suite : les envois sont bloqués",
+      },
+      new_sites: {
+        title: "De nouveaux sites à contacter",
+        body: "Nous avons trouvé de nouvelles opportunités de lien pour une de vos campagnes.",
+        when: "Dans le résumé de la semaine",
+      },
+      weekly: {
+        title: "Résumé de la semaine",
+        body: "Messages envoyés, réponses, liens obtenus et prochaines actions.",
+        when: "Chaque lundi matin",
+      },
+    },
+    email: {
+      subject: (n: number) =>
+        n > 1 ? `${n} réponses attendent votre décision` : "Une réponse attend votre décision",
+      body: (n: number) =>
+        n > 1
+          ? `${n} sites que vous avez contactés vous ont répondu. Une réponse est proposée pour chacun : relisez-la, modifiez-la si besoin, puis approuvez-la.`
+          : "Un site que vous avez contacté vous a répondu. Une réponse est proposée : relisez-la, modifiez-la si besoin, puis approuvez-la.",
+      cta: "Voir les réponses",
+      footer:
+        "Vous recevez cet email parce que la notification « Une réponse vous attend » est activée dans vos réglages.",
+    },
+    messages: {
+      unauthenticated: "Connectez-vous pour continuer.",
+      saveError: "Enregistrement impossible. Réessayez.",
+    },
   },
   conversations: {
     eyebrow: "Messagerie",
