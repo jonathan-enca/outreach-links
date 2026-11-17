@@ -131,7 +131,13 @@ function Row({ siteId, box }: { siteId: string; box: MailboxView }) {
             {testing ? m.testing : m.test}
           </Button>
         </form>
-        <form action={remove}>
+        <form
+          action={remove}
+          onSubmit={(e) => {
+            // Suppression définitive : on dit ce qui part avec la boîte avant de l'exécuter.
+            if (!window.confirm(m.removeConfirm)) e.preventDefault();
+          }}
+        >
           <Button type="submit" variant="outline" disabled={removing}>
             {m.remove}
           </Button>
@@ -156,6 +162,8 @@ function ScheduleForm({ siteId, box }: { siteId: string; box: MailboxView }) {
   const start = box.windowStart ?? 9;
   const end = box.windowEnd ?? 18;
   const selectClass = inputClass.replace("w-full ", "");
+  // « 24 h sur 24 » : de 0 h à 24 h, un seul geste. Les heures se grisent quand il est coché.
+  const [allDay, setAllDay] = useState(start === 0 && end === 24);
   return (
     <form action={save} className="mt-2 flex flex-col gap-3 border-t border-border pt-4">
       <div>
@@ -179,6 +187,16 @@ function ScheduleForm({ siteId, box }: { siteId: string; box: MailboxView }) {
           ))}
         </div>
       </fieldset>
+      <label className="inline-flex items-center gap-1.5 text-sm font-medium">
+        <input
+          type="checkbox"
+          name="allDay"
+          checked={allDay}
+          onChange={(e) => setAllDay(e.target.checked)}
+          className="size-4 accent-primary"
+        />
+        {sc.allDay}
+      </label>
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <label htmlFor={`start-${box.id}`} className="font-medium">
           {sc.from}
@@ -187,6 +205,7 @@ function ScheduleForm({ siteId, box }: { siteId: string; box: MailboxView }) {
           id={`start-${box.id}`}
           name="startHour"
           defaultValue={start}
+          disabled={allDay}
           className={selectClass}
         >
           {HOURS.slice(0, 24).map((h) => (
@@ -198,7 +217,13 @@ function ScheduleForm({ siteId, box }: { siteId: string; box: MailboxView }) {
         <label htmlFor={`end-${box.id}`} className="font-medium">
           {sc.to}
         </label>
-        <select id={`end-${box.id}`} name="endHour" defaultValue={end} className={selectClass}>
+        <select
+          id={`end-${box.id}`}
+          name="endHour"
+          defaultValue={end}
+          disabled={allDay}
+          className={selectClass}
+        >
           {HOURS.slice(1).map((h) => (
             <option key={h} value={h}>
               {sc.hour(h)}

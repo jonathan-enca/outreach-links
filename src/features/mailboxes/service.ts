@@ -4,6 +4,8 @@ import { t } from "@/lib/messages";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { decryptSecret, encryptSecret, parseKeyRing, type KeyRing } from "./crypto";
 import { checkDomainHealth, type HealthReport } from "./health";
+import { formatSendTime } from "@/features/sending/queue-note";
+import { nextSendStart } from "@/features/sending/schedule";
 import { mailboxSchema, scheduleSchema } from "./schema";
 import { sendSmtp, verifyImap, verifySmtp, type TransportOptions } from "./transport";
 
@@ -205,18 +207,21 @@ export async function updateSendSchedule(
   mailboxId: string,
   formData: FormData,
   deps: Pick<MailboxDeps, "getServiceClient">,
+  now: Date = new Date(),
 ): Promise<MailboxState> {
   const u = await user(supabase);
   if (!u) return { status: "error", message: M.unauthenticated };
+  // « 24 h sur 24 » : un seul geste pour couvrir toute la journée (de 0 h à 24 h).
+  const allDay = formData.get("allDay") !== null;
   const parsed = scheduleSchema.safeParse({
     days: formData.getAll("days"),
-    startHour: formData.get("startHour"),
-    endHour: formData.get("endHour"),
+    startHour: allDay ? 0 : formData.get("startHour"),
+    endHour: allDay ? 24 : formData.get("endHour"),
   });
   if (!parsed.success) return { status: "error", message: M.scheduleInvalid };
   const { data: visible } = await supabase
     .from("mailboxes")
-    .select("id, workspace_id")
+    .select("id, workspace_id, timezone")
     .eq("id", mailboxId)
     .maybeSingle();
   if (!visible) return { status: "error", message: M.notFound };
@@ -237,7 +242,18 @@ export async function updateSendSchedule(
     type: "mailbox.schedule_updated",
     payload: { mailbox_id: mailboxId, ...parsed.data },
   });
-  return { status: "ok", message: M.scheduleSaved };
+  // On dit tout de suite ce que ces horaires changent : ouverts maintenant, ou prochaine ouverture.
+  const window = {
+    timezone: visible.timezone,
+    startHour: parsed.data.startHour,
+    endHour: parsed.data.endHour,
+    days: parsed.data.days,
+  };
+  const next = nextSendStart(now, window);
+  return {
+    status: "ok",
+    message: `${M.scheduleSaved} ${next ? M.scheduleNext(formatSendTime(next, window.timezone, true)) : M.scheduleOpenNow}`,
+  };
 }
 
 export async function removeMailbox(

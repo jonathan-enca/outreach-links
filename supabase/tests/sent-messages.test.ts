@@ -510,4 +510,54 @@ describe.skipIf(!adminUrl)("envois : garde-fous en base", () => {
       await db.query("rollback");
     }
   });
+  it("supprimer une boîte : l'historique des envois terminés est conservé, détaché de la boîte", async () => {
+    // Bug réel (17/11/2026) : la boîte de Jonathan ne pouvait plus être supprimée après un premier envoi,
+    // car la clé étrangère (ON DELETE SET NULL) modifiait un envoi « terminé », que la garde refusait.
+    await db.query("begin");
+    try {
+      await db.query("set local role service_role");
+      const b = await validatedBatch(db, 1);
+      const mb = (
+        await db.query(
+          `insert into public.mailboxes (workspace_id, site_id, email, from_name, username, password_enc,
+             key_version, smtp_host, smtp_port, imap_host, imap_port, status, smtp_ok, imap_ok)
+           values ($1, $2, 'autre@alice-site.fr', 'Jo', 'jo', 'v1.x.y.z', 'v1', 'smtp.alice-site.fr', 587,
+             'imap.alice-site.fr', 993, 'verifiee', true, true) returning id`,
+          [workspaceId, siteId],
+        )
+      ).rows[0].id as string;
+      const sent = (await claim(db, { batch: b, draft: drafts[0]!, mailbox: mb, dry: false }))
+        .rows[0].id as string;
+      await db.query(
+        "update public.sent_messages set status = 'envoye', sent_at = now() where id = $1",
+        [sent],
+      );
+      const before = (await db.query("select * from public.sent_messages where id = $1", [sent]))
+        .rows[0];
+
+      await db.query("delete from public.mailboxes where id = $1", [mb]);
+
+      const after = (await db.query("select * from public.sent_messages where id = $1", [sent]))
+        .rows[0];
+      expect(after.mailbox_id).toBeNull();
+      // Rien d'autre n'a changé : mêmes valeurs partout, sauf la boîte.
+      expect({ ...after, mailbox_id: before.mailbox_id }).toEqual(before);
+
+      // Le reste d'un envoi terminé reste protégé, même détaché de sa boîte.
+      await db.query("savepoint s");
+      await expect(
+        db.query("update public.sent_messages set subject = 'autre' where id = $1", [sent]),
+      ).rejects.toThrow(/non modifiable/);
+      await db.query("rollback to savepoint s");
+      // Et on ne rattache pas un envoi terminé à une autre boîte.
+      await expect(
+        db.query("update public.sent_messages set mailbox_id = $2 where id = $1", [
+          sent,
+          mailboxId,
+        ]),
+      ).rejects.toThrow(/non modifiable/);
+    } finally {
+      await db.query("rollback");
+    }
+  });
 });

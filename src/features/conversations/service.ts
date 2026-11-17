@@ -3,7 +3,7 @@ import type { AuditActionState } from "@/features/audits/service";
 import { CATEGORY_LABELS, type Category } from "@/features/classification/types";
 import { t } from "@/lib/messages";
 import type { Database } from "@/lib/supabase/database.types";
-import { formatSendTime, loadSendQueue, type QueueNote } from "@/features/sending/queue-note";
+import { loadSendQueue, queuedMessageText, type QueueNote } from "@/features/sending/queue-note";
 import { cleanTag, isUnread, threadStatus, type ThreadStatus } from "./status";
 
 type Client = SupabaseClient<Database>;
@@ -314,7 +314,7 @@ async function loadQueued(
           from: "systeme",
           at: null,
           subject: null,
-          text: when ? M.queuedAt(formatSendTime(when.at, when.timezone, false)) : M.queued,
+          text: when ? queuedMessageText(when) : M.queued,
         },
       ],
       draft: null,

@@ -144,6 +144,23 @@ describe("service boîte d'envoi", () => {
       send_window_start: 8,
       send_window_end: 20,
     });
+    // « 24 h sur 24 » : un seul geste, de 0 h à 24 h, même si des heures sont envoyées avec.
+    const all = schedule(["1", "2", "3", "4", "5", "6", "7"], "9", "18");
+    all.set("allDay", "on");
+    const night = new Date("2026-11-17T22:04:00Z"); // 23 h 04 à Paris
+    const r = await updateSendSchedule(f.client, id, all, deps, night);
+    expect(r.status).toBe("ok");
+    expect(r.message).toMatch(/Les envois sont ouverts en ce moment/);
+    expect(f.tables.mailboxes![0]).toMatchObject({ send_window_start: 0, send_window_end: 24 });
+    // Horaires fermés au moment de l'enregistrement : la réponse annonce la prochaine ouverture.
+    const closed = await updateSendSchedule(
+      f.client,
+      id,
+      schedule(["1", "2", "3"], "9", "18"),
+      deps,
+      night,
+    );
+    expect(closed.message).toMatch(/Prochaine ouverture : mercredi 18 novembre à 9 h/);
     // Aucun jour, heures inversées, jour inconnu : rien n'est écrit.
     for (const bad of [
       schedule([], "9", "18"),
@@ -152,7 +169,8 @@ describe("service boîte d'envoi", () => {
     ]) {
       expect((await updateSendSchedule(f.client, id, bad, deps)).status).toBe("error");
     }
-    expect(f.tables.mailboxes![0]).toMatchObject({ send_days: [2, 6], send_window_start: 8 });
+    // Les réglages refusés n'ont rien écrit : il reste ceux de la dernière demande valide.
+    expect(f.tables.mailboxes![0]).toMatchObject({ send_days: [1, 2, 3], send_window_start: 9 });
     expect(
       (await updateSendSchedule(f.client, "inconnue", schedule(["1"], "9", "18"), deps)).status,
     ).toBe("error");
