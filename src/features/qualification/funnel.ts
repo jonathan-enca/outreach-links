@@ -6,10 +6,16 @@ import { BudgetExceededError } from "@/lib/dataforseo";
 import type { BatchOutcome, BatchRequest, LlmBatchClient } from "@/lib/llm/batch";
 import { LlmBudgetExceededError, type LlmClient } from "@/lib/llm/client";
 import { BATCH_DISCOUNT } from "@/lib/llm/pricing";
-import { authorityImpact, runFreeStages, type AuthorityImpact, type FreeVerdict } from "./free";
+import {
+  authorityImpact,
+  nameCarriesTheme,
+  runFreeStages,
+  type AuthorityImpact,
+  type FreeVerdict,
+} from "./free";
 import { batchWorstUsd, QUALIFY_LIMITS } from "./limits";
 import { batchSchema, judgeBatch, judgementRequest, toJudgements, type BatchItem } from "./llm";
-import { pageVerdict, type PageVerdict } from "./page";
+import { isHomeUrl, pageVerdict, rescueFromHome, type PageVerdict } from "./page";
 import { finalScore, judgementExclusion, preContactScore, requestAndWhy } from "./score";
 import type {
   ContactOutcome,
@@ -26,7 +32,7 @@ import type {
 export type StepRunner = <T>(id: string, fn: () => Promise<T>) => Promise<T>;
 
 /** Résultat de la vérification légère du robots.txt, avant toute lecture. */
-export type RobotsCheck = "ok" | "interdit" | "inconnu";
+export type RobotsCheck = "ok" | "interdit" | "inconnu" | "muet";
 
 export interface QualDeps {
   /** `robotsOk` : le robots.txt a déjà été vérifié pour cette page ET l'accueil (il n'est pas relu). */
@@ -143,6 +149,11 @@ export interface FunnelStats {
   /** Jugement direct ou par l'API par lots, et ce que le lot a mesuré (délai réel, repli en appels directs). */
   judgeMode?: "direct" | "lots";
   batch?: { requests: number; waitMs: number; fallbacks: number; canceled: boolean };
+  /**
+   * Chantier D (pertes gratuites) : accueils lus avant d'écarter un « éditeur introuvable » et
+   * sauvés, sites au robots.txt muet et au nom de domaine du thème passés en fin de file.
+   */
+  lostFree?: { homeTried: number; homeRescued: number; robotsSilent: number; nameTail: number };
 }
 
 interface Track {
@@ -157,6 +168,10 @@ interface Track {
   lane: string;
   preRead: boolean;
   robotsOk: boolean;
+  /** Le robots.txt n'a pas répondu à temps : lu en dernier (jamais écarté pour cela). */
+  robotsSilent: boolean;
+  /** Le nom de domaine porte un mot du thème : concurrent probable, lu en dernier (jamais écarté pour cela). */
+  nameTail: boolean;
   read: boolean;
 }
 
@@ -251,6 +266,14 @@ function orderLane(lane: string, tracks: Track[]): Track[] {
   const byScore = (a: Track, b: Track) =>
     b.free.provisionalScore - a.free.provisionalScore ||
     a.free.candidate.domain.localeCompare(b.free.candidate.domain);
+  // Fin de file (chantier D.3 et D.4) : robots.txt muet, nom de domaine portant un mot du thème.
+  // Ces sites restent lus tant que la file n'est pas vide, mais après tous les autres.
+  const isTail = (t: Track) => t.robotsSilent || t.nameTail;
+  const head = tracks.filter((t) => !isTail(t));
+  const tail = tracks.filter(isTail);
+  if (tail.length > 0 && head.length > 0) {
+    return [...orderLane(lane, head), ...orderLane(lane, tail)];
+  }
   const sorted = [...tracks].sort(byScore);
   if (lane !== "serp") return sorted;
   // Tour de rôle entre les types d'éditeurs cherchés : chacun voit ses meilleurs résultats lus.
@@ -312,6 +335,8 @@ export async function executeQualification(
     lane: laneOf(free.candidate),
     preRead: free.reason !== null,
     robotsOk: false,
+    robotsSilent: false,
+    nameTail: nameCarriesTheme(free.candidate.domain, input.ctx.theme),
     read: false,
   }));
   const alive = () => tracks.filter((t) => t.reason === null);
@@ -362,6 +387,7 @@ export async function executeQualification(
       chunk.forEach((t, i) => {
         const c = res.checks[i];
         if (c === "ok") t.robotsOk = true;
+        else if (c === "muet") t.robotsSilent = true;
         else if (c === "interdit") {
           Object.assign(t, {
             stage: 2,
@@ -389,6 +415,8 @@ export async function executeQualification(
   let judgeKept = 0;
   let dry = 0;
   let lots = 0;
+  let homeTried = 0;
+  let homeRescued = 0;
   type GroupOutcome = {
     failed: boolean;
     blocked: boolean;
@@ -486,12 +514,22 @@ export async function executeQualification(
       const out = await mapByHost(
         lot,
         (t) => t.free.candidate.domain,
-        async (t) =>
-          pageVerdict(
-            await d.readPage(t.free.candidate, { robotsOk: t.robotsOk }),
-            t.free.candidate,
-            input.ctx,
-          ),
+        async (t) => {
+          const c = t.free.candidate;
+          const first = pageVerdict(await d.readPage(c, { robotsOk: t.robotsOk }), c, input.ctx);
+          // D.2 : « éditeur introuvable » sur une page intérieure : on lit l'accueil avant d'écarter.
+          if (
+            first.reason !== "editeur_introuvable" ||
+            !first.page ||
+            isHomeUrl(first.page.url) ||
+            !L.homeRescue
+          ) {
+            return { ...first, homeTried: false, homeRescued: false };
+          }
+          const home = await d.readPage({ ...c, url: null }, { robotsOk: t.robotsOk });
+          const r = rescueFromHome(first, home, c, input.ctx);
+          return { ...r.verdict, homeTried: true, homeRescued: r.rescued };
+        },
         { concurrency: L.readConcurrency, sameHostDelayMs: L.hostDelayMs, sleep: d.sleep },
       );
       await emit({
@@ -513,6 +551,8 @@ export async function executeQualification(
       Object.assign(t, { stage: 3, page: v.page, reason: v.reason, detail: v.detail, read: true });
       yieldOf(t.lane).read++;
     });
+    homeTried += read.out.filter((v) => v.homeTried).length;
+    homeRescued += read.out.filter((v) => v.homeRescued).length;
     pagesRead += lot.length;
     const toJudge = lot.filter((t) => t.reason === null);
     aliveAfterRead += toJudge.length;
@@ -1007,6 +1047,12 @@ export async function executeQualification(
       stock,
       bySource,
       byPersona,
+      lostFree: {
+        homeTried,
+        homeRescued,
+        robotsSilent: tracks.filter((t) => t.robotsSilent).length,
+        nameTail: tracks.filter((t) => t.nameTail && !t.preRead).length,
+      },
     },
   };
 }

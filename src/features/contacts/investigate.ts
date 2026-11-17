@@ -28,6 +28,29 @@ export interface InvestigateDeps extends Omit<PageReaderDeps, "maxRequests"> {
   paidCallsLeft: number;
 }
 
+/**
+ * Vraie page « Contact » du site (dernier segment : contact, nous-contacter, contactez-nous...), pas
+ * une page de connexion, un extranet ou un contact produit (« contact-kits-pedagogiques »).
+ */
+function isPlainContactPage(href: string): boolean {
+  try {
+    const parts = new URL(href).pathname.toLowerCase().split("/").filter(Boolean);
+    const last = parts.at(-1) ?? "";
+    if (
+      parts.some((p) =>
+        /login|connexion|extranet|compte|account|panier|cart|inscription|register/.test(p),
+      )
+    ) {
+      return false;
+    }
+    return /^(contacts?|nous-contacter|contactez-nous|nous-ecrire|ecrire|contact-us|contactus)(\.html?|\.php)?$/.test(
+      last,
+    );
+  } catch {
+    return false;
+  }
+}
+
 const stripWww = (d: string) => d.replace(/^www\./, "").toLowerCase();
 
 function base(item: ContactItem): ContactResult {
@@ -90,6 +113,7 @@ export async function investigateItem(
   //    pages lues alimentent le tour suivant ; le sitemap est lu une fois si rien n'est trouvé.
   const hasOwnEmail = () =>
     pages.some((p) => extractEmails(p.text, p.mailtos).some((e) => isOwnDomainEmail(e, domain)));
+  let blockedContact: string | null = null;
   const pool: PageLink[] = [...(first?.links ?? []), ...(home?.links ?? [])];
   let budget = CONTACT_LIMITS.maxContactPages;
   let sitemapDone = false;
@@ -111,6 +135,26 @@ export async function investigateItem(
     for (const href of next) {
       budget--;
       const p = await readOnce(href);
+      if (p?.links) pool.push(...p.links);
+      // Page de contact liée par le site lui-même mais fermée à notre robot (robots.txt) : on ne la lit
+      // pas, mais elle existe : l'utilisateur pourra l'ouvrir à la main (chantier D.1).
+      if (p?.blockedByRobots && isPlainContactPage(href)) blockedContact ??= href;
+    }
+  }
+
+  // 3. Rien trouvé : pages de contact usuelles essayées à l'aveugle (le menu peut être dessiné par
+  //    script ou absent du HTML lu). Quelques requêtes seulement, arrêt dès qu'un contact apparaît.
+  const found = () => hasOwnEmail() || pages.some((p) => p.hasContactForm || p.mailtos.length > 0);
+  if (!found()) {
+    let origin: string | null = null;
+    try {
+      origin = new URL(item.resolvedUrl).origin;
+    } catch {
+      /* URL invalide : pas de sondage */
+    }
+    for (const path of CONTACT_LIMITS.probePaths) {
+      if (!origin || found()) break;
+      const p = await readOnce(origin + path);
       if (p?.links) pool.push(...p.links);
     }
   }
@@ -248,6 +292,17 @@ export async function investigateItem(
       paidCalls: paid,
       reason:
         "Seule une adresse d'un autre domaine est visible : à vérifier à la main, pas d'envoi.",
+    };
+  }
+  if (blockedContact) {
+    return {
+      ...out,
+      status: "formulaire",
+      formUrl: blockedContact,
+      contactUrl: blockedContact,
+      paidCalls: paid,
+      reason:
+        "Le site a une page de contact, mais son robots.txt la ferme à notre robot : à ouvrir à la main (tâche créée).",
     };
   }
   return {

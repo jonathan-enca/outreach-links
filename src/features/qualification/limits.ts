@@ -9,6 +9,8 @@ import { estimateCostUsd } from "@/lib/llm/pricing";
  * bornés en nombre et en durée pour tenir le temps d'une analyse.
  */
 export const QUALIFY_LIMITS = {
+  /** Chantier D.2 : lire l'accueil avant d'écarter un « éditeur introuvable » vu sur une page intérieure. */
+  homeRescue: true,
   /** Part du budget cible d'audit réservée au LLM de qualification (0,40 USD pour 1 USD). */
   shareOfTarget: 0.4,
   // --- Étage 2 : signaux fournisseur ---

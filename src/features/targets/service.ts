@@ -146,6 +146,11 @@ export interface TargetsView {
   cards: TargetCard[];
   /** Cibles « mentions » sans contact (mention seulement) : visibles, jamais validées. */
   contactless: TargetCard[];
+  /**
+   * Chantier D.1 : sites jugés pertinents mais sans email ni formulaire trouvé. Gardés à part,
+   * visibles avec le lien de leur page, jamais perdus ni validés.
+   */
+  noContact: TargetCard[];
   competitors: { domain: string; queries: number; bestRank: number | null }[];
   /** Chantier H : types d'éditeurs cherchés (étiquettes actives du profil). */
   publisherTypes: PublisherType[];
@@ -235,11 +240,12 @@ export async function loadTargets(
 
   let cards: TargetCard[] = [];
   let contactless: TargetCard[] = [];
+  let noContact: TargetCard[] = [];
   let findingsCount = 0;
   let publisherTypes: PublisherType[] = [];
   let stock = 0;
   if (qrun && qrun.status === "termine") {
-    const [short, extra, fnd, profile, stockRes] = await Promise.all([
+    const [short, extra, lost, fnd, profile, stockRes] = await Promise.all([
       supabase
         .from("qualified_targets")
         .select("*")
@@ -254,6 +260,13 @@ export async function loadTargets(
         .eq("status", "exclu")
         .contains("tactics", ["mentions"])
         .limit(200),
+      supabase
+        .from("qualified_targets")
+        .select("*")
+        .eq("run_id", qrun.id)
+        .eq("exclusion_reason", "sans_contact")
+        .order("fit", { ascending: false })
+        .limit(100),
       supabase.from("target_findings").select("*").eq("audit_id", auditId).limit(500),
       getLatestBrandProfile(supabase, audit.site_id),
       supabase
@@ -313,6 +326,10 @@ export async function loadTargets(
     contactless = (extra.data ?? [])
       .filter((r) => withMention.has(r.id))
       .map((r) => toCard(r, findings, resources, validated));
+    const shown = new Set(contactless.map((c) => c.id));
+    noContact = (lost.data ?? [])
+      .filter((r) => !shown.has(r.id))
+      .map((r) => toCard(r, findings, resources, validated));
   }
 
   // Coûts annoncés : seulement quand l'étape est possible et pas déjà en cours.
@@ -350,6 +367,7 @@ export async function loadTargets(
     findings: { ...runView(frunRes.data), preview: fPreview, count: findingsCount },
     cards,
     contactless,
+    noContact,
     competitors: (comps.data ?? [])
       .filter((c) => c.selected)
       .map((c) => ({ domain: c.domain, queries: c.queries_count, bestRank: c.best_rank })),

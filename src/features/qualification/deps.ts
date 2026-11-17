@@ -44,7 +44,8 @@ export async function checkRobotsFor(
   const res = await fetchRobots(`${u.protocol}//${u.host}/robots.txt`);
   // Pas de réponse dans le délai court : on ne conclut RIEN ici (mesuré le 17/11 : un site lent mais
   // valable était écarté). La lecture refera la demande, avec son délai normal.
-  if (!res || res.status >= 500) return "inconnu";
+  // Un site qui ne répond pas vite passe en fin de file (chantier D.3), il n'est pas écarté.
+  if (!res || res.status >= 500) return "muet";
   const rules = robotsFromResponse(res, BOT_TOKEN);
   // « ok » seulement si la page ET l'accueil sont ouverts : la lecture peut retomber sur l'accueil.
   if (!rules.allowed(u.pathname + u.search)) return "interdit";

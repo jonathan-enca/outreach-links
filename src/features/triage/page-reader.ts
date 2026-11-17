@@ -6,6 +6,14 @@ import type { PageFetcher } from "@/features/sites/verify";
 /** Plafond du texte conservé par page (le LLM n'en reçoit qu'un extrait). */
 export const MAX_TEXT_CHARS = 12_000;
 const MAX_LINKS = 120;
+/**
+ * Liens de contact au-delà des `MAX_LINKS` premiers : le pied de page d'un gros site (menu, articles)
+ * vient après 120 liens, et c'est lui qui porte « Contact » et « Mentions légales » (mesuré le
+ * 18/11 : 5 cibles sur 19 sans contact avaient un lien « Contact » jamais lu).
+ */
+const MAX_EXTRA_CONTACT_LINKS = 30;
+const CONTACT_LIKE =
+  /contact|mentions?[-_ ]?l[eé]gales?|a[-_ ]?propos|qui[-_ ]sommes|[eé]crire|webmaster|r[eé]daction|[eé]quipe|annonceur|partenair|presse|auteur|about/i;
 export const MAX_OUTBOUND = 80;
 const CHROME_SELECTOR =
   "nav, header, footer, aside, [role='navigation'], [role='banner'], [role='contentinfo'], .menu, .widget, .sidebar, #sidebar, .footer, .header";
@@ -74,6 +82,11 @@ export interface PageReaderDeps {
   robotsPreset?: (origin: string) => RobotsRules | undefined;
 }
 
+const FORM_PLUGIN_MARKER =
+  /wpcf7|contact-?form|nf-form|ninja-?forms?|wpforms|gform|forminator|elementor-form|formidable|fluentform|cf7|jetpack-contact|form-contact|formulaire-contact/;
+const FORM_PLUGIN_SELECTOR =
+  ".wpcf7, .nf-form-cont, .wpforms-container, .gform_wrapper, .forminator-ui, .fluent-form, .frm_forms, .contact-form, #contact-form, .elementor-form";
+
 const collapse = (s: string) => s.replace(/\s+/g, " ").trim();
 
 /** Extrait titre, description, titres, texte visible et liens internes d'une page HTML. */
@@ -89,10 +102,15 @@ export function parseHtml(html: string, url: string): Omit<PageRead, "status" | 
   const links: PageLink[] = [];
   const seen = new Set<string>();
   if (base) {
+    let extra = 0;
     $("a[href]").each((_, el) => {
-      if (links.length >= MAX_LINKS) return;
       const raw = $(el).attr("href") ?? "";
       if (/^(mailto:|tel:|javascript:|#)/i.test(raw)) return;
+      if (links.length >= MAX_LINKS) {
+        if (extra >= MAX_EXTRA_CONTACT_LINKS || !CONTACT_LIKE.test(`${raw} ${$(el).text()}`))
+          return;
+        extra++;
+      }
       try {
         const u = new URL(raw, base);
         if (u.hostname.replace(/^www\./, "") !== base.hostname.replace(/^www\./, "")) return;
@@ -166,17 +184,28 @@ export function parseHtml(html: string, url: string): Omit<PageRead, "status" | 
       .get(),
   ).filter((m) => m.includes("@"));
   const allMailtos = [...new Set([...mailtos, ...cf, ...ld])].slice(0, 12);
-  const hasContactForm = $("form")
-    .toArray()
-    .some((f) => {
-      const form = $(f);
-      const action = (form.attr("action") ?? "").toLowerCase();
-      const marker = `${form.attr("id") ?? ""} ${form.attr("class") ?? ""} ${action}`.toLowerCase();
-      if (/search|recherche|comment|newsletter|login|connexion|subscribe/.test(marker))
-        return false;
-      if (form.find('input[type="password"], input[type="search"]').length > 0) return false;
-      return form.find("textarea").length > 0;
-    });
+  const hasContactForm =
+    $("form")
+      .toArray()
+      .some((f) => {
+        const form = $(f);
+        const action = (form.attr("action") ?? "").toLowerCase();
+        const marker =
+          `${form.attr("id") ?? ""} ${form.attr("class") ?? ""} ${action}`.toLowerCase();
+        if (/search|recherche|comment|newsletter|login|connexion|subscribe/.test(marker))
+          return false;
+        if (form.find('input[type="password"], input[type="search"]').length > 0) return false;
+        if (form.find("textarea").length > 0) return true;
+        // Formulaire sans zone de message visible (champ généré par script, message en « text ») :
+        // reconnu par une extension de formulaires connue ou par au moins trois champs dont un email.
+        if (FORM_PLUGIN_MARKER.test(marker)) return true;
+        const fields = form.find(
+          'input:not([type="hidden"], [type="submit"], [type="button"], [type="checkbox"], [type="radio"]), select',
+        );
+        return form.find('input[type="email"]').length > 0 && fields.length >= 3;
+      }) ||
+    // Extensions dont le formulaire est dessiné par script : le conteneur est dans la page, pas le <form>.
+    $(FORM_PLUGIN_SELECTOR).length > 0;
   const title = collapse($("title").first().text()).slice(0, 200);
   const description = collapse($('meta[name="description"]').attr("content") ?? "").slice(0, 300);
   const headings = $("h1, h2, h3")

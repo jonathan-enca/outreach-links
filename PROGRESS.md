@@ -1420,3 +1420,46 @@ PR [#124](https://github.com/jonathan-enca/outreach-links/pull/124) (code) fusio
 - **Captures connectées bureau 1440 et mobile 390 non faites** : le mot de passe du compte de test ne correspond plus à celui de l'environnement (connexion refusée) ; le réaligner par SQL sur `auth.users` a été refusé par le système d'autorisation, et `shots:seed` est interdit (il supprime les audits). Il suffit de réaligner le mot de passe du compte de test pour refaire `focus.mjs` (`SHOTS_CLICK` sur « Mentions sans lien », chemin `/app/audit/fc43af7d-82b6-458f-bdef-60cb6956f435/cibles`).
 - **Branche créée par erreur** : `m-c-ne-plus-payer-le-vain` a été poussée avant que je relise la consigne (branche imposée : `claude/reduce-wasted-calls-4h5y3a`) ; son contenu est identique à la PR fusionnée, mais le proxy a refusé de la supprimer : à supprimer à la main sur GitHub (aucun risque).
 - Idée hors périmètre (Backlog) : un concurrent « plus de 10 fois plus gros que le site » serait un meilleur critère de géant que le seuil fixe de 10 000 (la taille du site est dans l'état des lieux, pas dans le plan).
+
+## Session du 18/11 (matin, suite 3) : récupérer les pertes gratuites (prompt maître n° 3, chantier D, étape 4 sur 7)
+
+Branche `claude/etape-4-pertes-gratuites-uexz0u`. Aucune migration, aucune nouvelle fonction Inngest (39 attendues). **Aucune règle de tri ni seuil modifié** : jeu annoté et prompts de jugement intacts (aucun jugement relancé pour ça). Tests, lint, typecheck et format verts, avec `TEST_DATABASE_URL` (1363 tests).
+
+### Ce qui est fait
+
+- **D.1 Contacts (MU.8)**, trois causes réelles trouvées en rejouant l'enquête sur les 19 cibles perdues de l'audit de référence `fc43af7d…` :
+  1. **Lien « Contact » jamais lu** : le lecteur ne gardait que les 120 premiers liens de la page ; le pied de page (« Contact », « Mentions légales », « À propos ») vient après. Il garde maintenant jusqu'à 30 liens de contact en plus (`page-reader.ts`, `MAX_EXTRA_CONTACT_LINKS`). Les autres liens restent plafonnés comme avant.
+  2. **Page de contact fermée par robots.txt** (over-blog / eklablog : `Disallow: /contact`) : on ne la lit toujours pas, mais le site la lie lui-même : la cible devient une **tâche manuelle** (« à ouvrir à la main ») au lieu d'être perdue. Seulement une vraie page « Contact » (dernier segment `contact`, `nous-contacter`, `contactez-nous`…) : une page de connexion ou un contact produit (`contact-kits-pedagogiques`) est ignorée.
+  3. **Formulaires non reconnus** : formulaire sans zone de message (extensions Ninja Forms, WPForms, CF7, Gravity, etc. dessinées par script, ou trois champs dont un email) reconnu. Une inscription à une lettre d'information ou une recherche ne l'est toujours pas.
+  - Plus : sondage de quatre pages usuelles (`/contact`, `/nous-contacter`, `/mentions-legales`, `/a-propos`) quand le menu n'en montre aucune, arrêt dès qu'un contact apparaît (`CONTACT_LIMITS.probePaths`).
+  - **Onglet à part** : écran « Vos cibles », section repliée « Sites pertinents sans contact trouvé (N) » (domaine, accroche, lien vers la page), hors validation. `TargetsView.noContact`.
+  - Jamais d'adresse devinée ni inventée (test dédié).
+- **D.2 « Éditeur introuvable »** : avant d'écarter une page intérieure, on lit l'accueil du site (`rescueFromHome`, `QUALIFY_LIMITS.homeRescue`). L'accueil qui prouve un vrai motif (parqué, piraté, vendeur de liens, connexion) écarte pour ce motif ; l'accueil qui montre un éditeur sauve le site, et la page jugée reste la page d'origine. Statistiques `stats.lostFree` (`homeTried`, `homeRescued`).
+- **D.3 Robots.txt muet** : nouvelle valeur `muet` (pas de réponse en 5 s ou erreur 5xx) : le site passe en **fin de file**, n'est pas écarté.
+- **D.4 Nom de domaine du thème** : un nom de domaine qui porte une racine (5 lettres) d'un mot du thème de la campagne (`nameCarriesTheme`, mots du `theme`, rien en dur) passe en fin de file, jamais écarté. Un candidat qui cumule les deux reste en fin de file.
+
+### Mesures avant / après (sans appel DataForSEO ; lectures HTTP polies ; copie en lecture seule des lignes de l'audit `fc43af7d…`, rien écrit en base)
+
+| Chantier         | Avant                                                                                      | Après                                                                                                                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| D.1 contacts     | 19 cibles pertinentes sans contact sur 88 (69 livrées)                                     | **13** : 5 passent en formulaire / page à ouvrir (centre-de-loisirs, kidfriendly, parolesdebebe69, 2 eklablog) et 1 en adresse « à vérifier » (jebouquine, adresse du groupe Bayard)       |
+| D.2 éditeur      | 34 écartés                                                                                 | 17 accueils lus, **2 sauvés** (byothe.fr, citizenkid.com), 28 encore écartés ; les 2 sauvés ont été jugés (0,0004 USD) : pertinents (0,8 et 0,5) mais **0 cible** : adresse jugée invalide |
+| D.3 robots muet  | 58 sites muets sur 431 candidats                                                           | en fin de file ; **3 seulement avaient été lus** sur ce run, dont 1 cible : gain de places de lecture ≈ 0 ici                                                                              |
+| D.4 nom du thème | 13 sites sur 200 jugés portent un mot du thème, dont 11 écartés comme concurrents, 1 cible | ces 11 jugements passent en fin de file (≈ 5,5 % du jugement) ; la cible `exercices-a-imprimer.com` est lue plus tard, jamais perdue                                                       |
+
+**Honnêtement : l'objectif « moins de 5 cibles pertinentes perdues sur 64 » n'est pas atteint** (19 → 13). Les 13 restantes : 3 sites de forum sans page de contact trouvable, 2 sites dont la seule adresse est écrite en lettres espacées ou en image, 1 site dont l'accueil renvoie 403 (lecteur de secours Jina non configuré), des sites sans aucune adresse publique, et 2 adresses refusées par le vérificateur DNS. Aller plus loin demanderait un finder payant (D5 : toujours non) ou le lecteur de secours. D.2 sauve 2 sites sur 34 et **0 cible** : le « 48 sites récupérables » du prompt n'existe pas, la plupart des accueils n'ont pas non plus d'éditeur visible. D.3 et D.4 ne changent le coût que quand le budget de lecture ou de jugement est atteint avant la fin de la file.
+
+### Coûts de la session
+
+**0,0004 USD** de LLM (jugement des 3 sites sauvés), 0 USD de DataForSEO, sur un budget de 0,60 USD.
+
+### Outils de mesure ajoutés (gratuits, ignorés sans variable)
+
+`pnpm demo:contacts-measure` (enquête de contact sur une liste), `demo:lost-free` (accueil sauveur), `demo:lost-funnel` (entonnoir réel sur une liste, budget `LOST_FUNNEL_BUDGET`, défaut 0,10 USD), `demo:robots-silent`. Entrées JSON `[{domain,url}]` ; voir l'en-tête de chaque fichier `*.live.test.ts`.
+
+### Pièges et dettes
+
+- **Captures de l'étape 3 non refaites** : le mot de passe du compte de test n'est pas réaligné (pas de `.env.local` dans ce conteneur) ; le réaligner par SQL sur `auth.users` a déjà été refusé, `shots:seed` est interdit. La nouvelle section « Sites pertinents sans contact trouvé » n'a donc **pas de capture non plus** (elle est repliée, markup minimal, vérifié seulement par typecheck et tests).
+- `hasContactForm` est aussi lu par le tri et les signaux d'éditeur : des pages qui n'avaient pas de « formulaire » en ont maintenant un (extensions de formulaire reconnues). Effet attendu : un peu moins d'« éditeur introuvable ». Une lettre d'information bâtie avec une de ces extensions pourrait être prise pour un formulaire de contact (à surveiller).
+- La lecture de l'accueil ajoute des requêtes HTTP (environ 9 % de lectures en plus sur l'audit de référence), avec le délai par hôte habituel.
+- Idée hors périmètre (Backlog) : lecteur de secours Jina pour les accueils en 403 (plare.fr) ; adresses écrites en lettres espacées (fiche-maternelle.com) ; le « mot de passe du compte de test » : prévoir un script qui le réaligne par l'API d'administration d'authentification.
