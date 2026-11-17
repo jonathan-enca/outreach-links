@@ -1556,3 +1556,8 @@ Demande de Jonathan : garder les cibles qui n'ont qu'un formulaire, avec le lien
 - Fichiers : `batches/select.ts`, `batches/service.ts`, `batches/batches-section.tsx`, `messages/fr.ts` (`batches.formChannel`), `batches.test.ts`. Aucune migration.
 - Audit de référence : 26 cibles à formulaire seul peuvent entrer dans les lots, en plus des emails.
 - La taille d'un lot compte les formulaires ; les plafonds d'envoi ne les comptent pas.
+
+## Session du 18/11 (suite 8) : email de fin d'analyse remis
+
+- Cause du 401 du 17/11 : clé recopiée avec un caractère en trop (« validation_error »). Nouvelle clé `outreach-links-transactionnel-2` (envoi seul, domaine `ouiouioui.app`) posée sur Vercel (`RESEND_API_KEY`, production et preview, sensitive). Envoi réel constaté depuis `no-reply@ouiouioui.app` (réponse 200 avec identifiant).
+- `ANALYSIS_EMAIL_VERIFIED = true` : la phrase « vous recevrez un email » revient. **À confirmer au premier `analysis.email_sent`** dans `events` (sinon repasser la constante à `false`). L'ancienne clé `outreach-links-transactionnel` peut être supprimée dans Resend.
