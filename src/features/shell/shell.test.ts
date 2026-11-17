@@ -53,8 +53,8 @@ describe("homeDestination (/app)", () => {
   it("sans site : étape 1", () => {
     expect(homeDestination([])).toBe("/app/demarrer");
   });
-  it("un seul site : sa prochaine étape", () => {
-    expect(homeDestination([site(audit("termine", "termine"))])).toBe("/app/site/s1/cibles");
+  it("un seul site : l'accueil s'affiche quand même", () => {
+    expect(homeDestination([site(audit("termine", "termine"))])).toBeNull();
   });
   it("plusieurs sites : la liste (pas de redirection)", () => {
     expect(homeDestination([site(null, "s1"), site(null, "s2")])).toBeNull();

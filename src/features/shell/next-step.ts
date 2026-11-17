@@ -62,10 +62,13 @@ export function nextStep(site: SiteSnapshot): NextStep {
   return { kind: "analyse", href: siteHref.analyse(site.id), step: "analyse" };
 }
 
-/** Où envoyer `/app` : pas de site → étape 1 ; un seul site → sa prochaine étape ; plusieurs → la liste. */
+/**
+ * Où envoyer `/app` : pas de site → étape 1 ; sinon l'accueil s'affiche (la liste des sites, chacun avec
+ * son état et sa prochaine étape). Avant le 18/11, un seul site renvoyait droit à son écran : l'onglet
+ * « Accueil » était alors inaccessible (retour de Jonathan).
+ */
 export function homeDestination(sites: SiteSnapshot[]): string | null {
   if (sites.length === 0) return START_HREF;
-  if (sites.length === 1) return nextStep(sites[0]!).href;
   return null;
 }
 
