@@ -1303,3 +1303,81 @@ Captures connectées (production, compte de test) dans `docs/captures-arriere-pl
 - Le lot d'origine d'une cible n'est pas enregistré (comparaison de qualité par lot impossible) : ajouter une colonne si l'on veut la suivre.
 - Clé Resend toujours invalide : Jonathan doit en poser une (voir « À fournir par Jonathan »).
 - Le dernier lot est borné par le budget restant (0,06 USD) : il lit moins de pages que les précédents, ce qui explique en partie son rendement plus faible.
+
+## Session du 18/11 (matin, suite) : jugement de l'arrière-plan à tarif réduit (prompt maître n° 3, chantier B, étape 2 sur 7)
+
+PR [#121](https://github.com/jonathan-enca/outreach-links/pull/121) (code) et [#122](https://github.com/jonathan-enca/outreach-links/pull/122) (budget recalé), CI vertes, fusionnées, production déployée (`1a7dbda`). Migration appliquée en production avant le code : `2026120600000000_cost_ledger_batch_key.sql` (index unique, une ligne de coût par requête de lot). Inngest : **39 fonctions** (aucune ajoutée), resynchronisé, vérifié avec `get_apps`.
+
+### Vérification dans la documentation Anthropic (18/11/2026, `platform.claude.com/docs/en/build-with-claude/batch-processing`)
+
+- L'API par lots (Message Batches) existe et est stable ; elle accepte notre modèle (`claude-haiku-4-5`, par défaut en production : aucune variable `LLM_MODEL` sur Vercel, `ANTHROPIC_API_KEY` posée).
+- **Remise : 50 %** sur l'entrée et la sortie (Haiku 4.5 : 0,50 / 2,50 USD par million de jetons au lieu de 1 / 5).
+- Délai annoncé : « la plupart des lots finissent en moins d'une heure », maximum 24 h. Les paramètres sont ceux d'un appel normal (outil forcé, schéma), donc **même prompt, mêmes règles**.
+- Note : la grille liste aussi Claude Haiku 5.5 à 0,05 / 0,25 USD par million de jetons en lots. Changer de modèle changerait le jugement : hors périmètre, voir Dettes.
+
+### Délai réel mesuré (production, compte de test, copies de l'audit de mesure)
+
+| Lot                           | Requêtes (5 cibles chacune) | Attente de la réponse |
+| ----------------------------- | --------------------------- | --------------------- |
+| 1 (copie X)                   | 8                           | **183 s**             |
+| 2 (copie X)                   | 5                           | **154 s**             |
+| 3 (copie Y, plafonds recalés) | 5                           | **122 s**             |
+
+Environ 3 minutes, loin de la limite de 15 minutes : **l'API par lots est gardée**. Je n'ai pas isolé un lot d'une seule requête de 5 cibles : la clé Anthropic n'existe qu'en production, la mesure passe donc par le vrai lot d'arrière-plan (5 à 8 requêtes).
+
+### Ce qui est fait
+
+- `src/lib/llm/batch.ts` : client de l'API par lots (envoi, état, résultats, annulation), erreur HTTP réduite au statut, coût RÉEL de chaque réponse journalisé dans `cost_ledger` (`llm.qualification.batch`, `metadata.batchId` et `customId`) ; `src/lib/llm/pricing.ts` : `BATCH_DISCOUNT = 0,5`.
+- `src/features/qualification/funnel.ts` : en mode lots, les pages du lot sont lues d'abord, puis **un seul envoi** pour tous les groupes de 5 cibles. L'attente passe par `hooks.wait`, branché sur `step.sleep` dans `audit-qualify-more` (jamais une requête qui bloque), suivie d'une lecture d'état (`judge-poll-N`, un step par lecture, toutes les 30 s). Après 10 minutes, le lot est annulé et chaque groupe sans réponse est rejugé en **appel direct** (aucune cible perdue). Un groupe en erreur ou à la sortie invalide est lui aussi rejugé en direct. Budget planifié avant l'envoi au tarif des lots (pire cas × 0,5) ; les groupes qui ne tiennent pas restent en réserve (`hors_budget_llm`). Plafonds durs (`guard`) contrôlés avant l'envoi.
+- **Seulement l'arrière-plan** : la première liste et le clic « Lire d'autres sites » restent en appels directs (pas de `wait` fourni). Interrupteur : `LLM_BATCH_JUDGEMENT=off` (variable Vercel, défaut `on`) ; sans clé Anthropic ou avec OpenAI : appels directs.
+- Mêmes prompt (`judgementRequest` / `toJudgements` partagés avec l'appel direct), mêmes règles de tri, mêmes seuils (testé : mêmes résultats cible par cible qu'en direct, coût plus bas).
+- **Rejeu sans doublon** : les résultats d'un lot relus ne recréent pas de ligne de coût (index unique, erreur « duplicate key » ignorée) ; un lot rejoué avec ses steps mémorisés n'envoie rien de nouveau.
+- Statistiques de lot ajoutées à `more_stats` : `judgeMode: "lots"`, `batch: { requests, waitMs, fallbacks, canceled }`.
+
+### Tests
+
+- `src/features/qualification/batch-judging.test.ts` (un seul envoi, attente par pas, mêmes résultats qu'en direct, repli après annulation, repli d'un seul groupe, budget, rejeu), `src/lib/llm/batch.test.ts` (tarif, forme de la requête, états, résultats, erreurs, doublons).
+- **Vraie base** : `supabase/tests/qualification-background.test.ts` (nouveau test : lot jugé par lots, deux lignes de coût à demi-tarif, résultats relus sans doublon, étapes rejouées sans nouvelle requête, la chaîne compte le coût du journal une seule fois) ; `supabase/tests/pg-client.ts` gère maintenant `insert` et `single`.
+- Leçon : la première CI a échoué parce que j'avais lancé en local la suite complète SANS base. **Toujours lancer avec `TEST_DATABASE_URL=postgres://postgres@127.0.0.1:55432/postgres`** (Postgres 16 dans `/var/tmp/pgd`, port 55432).
+
+### Mesure sur deux copies du compte de test (mêmes candidats)
+
+L'audit de mesure du 16/11 n'existe plus (incident de `shots:seed`, session précédente). Les copies partent de l'audit `fc43af7d…` (69 cibles, 211 en réserve : la réserve restante est la moins bien classée, donc moins rentable que celle du matin). Copie X (`a2e12ab1…`) : chaîne par lots ; copie Y (`2b8ee04f…`) : un lot en appels directs (« Lire d'autres sites »). Aucune donnée de vrai client touchée.
+
+|                                  | Par lots (X, 2 lots)                   | Direct (Y, 1 lot) |
+| -------------------------------- | -------------------------------------- | ----------------- |
+| Requêtes / appels                | 13                                     | 9                 |
+| **Coût du jugement**             | 0,0538 USD                             | 0,0709 USD        |
+| **Coût par requête de 5 cibles** | **0,0041**                             | 0,0079            |
+| Cibles ajoutées                  | 15 (10 + 5)                            | 10                |
+| **Coût par cible ajoutée**       | **0,0036 USD**                         | 0,0071 USD        |
+| Durée                            | 7 min 56 s (≈ 3 min d'attente par lot) | 1 min 40 s        |
+
+Contrôle : 62 291 jetons en entrée et 9 076 en sortie pour 13 requêtes, soit 0,1077 USD au tarif standard, la moitié = 0,0538 (**remise de 50 % exacte**). Rappel : 0,0045 USD par cible mesuré le matin (direct, réserve plus riche). Compromis : **le jugement coûte moitié moins, mais chaque lot dure environ 3 minutes de plus**.
+
+Copie Y refaite avec les plafonds recalés (production) : 1 lot, 5 requêtes, attente 122 s, +6 cibles, 0,0195 USD, arrêt `reserve_epuisee`.
+
+**Qualité des 15 cibles ajoutées** (jugement de Claude, à confirmer par Jonathan ; même modèle et même prompt, donc pas de changement attendu). Les 10 dernières (rangs 54 à 83) : 4 bonnes (famille-heureuse.fr, creativa-grenoble.com, lacavernedanais.com, hashtag-mum.com), 4 limites (anaisetsapetitevie.blogspot.com, blogblogyaquelquun.com, ricochet-jeunes.org, rainbowcoloringpage.com), 2 faibles (decorationdenoelbgv.blogspot.com, bouillondidees.com, tous deux à 0,5). Les mieux classées (guide-maternelle.fr, école de Châteauneuf-Sainte-Thérèse, lireetfairelire.org, ecolepositive.fr) : bonnes. Même gradient qu'avant, aucune règle de tri changée.
+
+### Budget et coût annoncé recalés
+
+- Première liste mesurée : 0,92 USD (17/11). `AUTO_LIMITS.budgetUsd` **0,25 → 0,07 USD** (tarif des lots) : 0,92 + 0,07 = **0,99 USD, sous 1,00**. Dépensé en mesure : 0,054 (X) et 0,0195 USD (Y), la réserve s'épuisait avant le plafond. Plafond dur contrôlé avant l'envoi (pire cas) et à chaque lot (reste du budget).
+- **Compromis à connaître** : 0,07 USD finance environ 17 requêtes, soit 85 pages jugées et 15 à 25 cibles ajoutées, contre 54 le matin à 0,245 USD en direct. À **0,15 USD**, environ le double de cibles ajoutées pour environ 1,07 USD au total. Décision de produit : un seul chiffre (`AUTO_LIMITS.budgetUsd`, `src/features/qualification/background.ts`).
+- `AUTO_LIMITS.maxMs` 15 → **25 minutes** (l'attente de chaque lot s'ajoute) ; `AUTO_EXPECTED_SHARE` 0,7 → 0,8.
+- Coût annoncé (`estimate.ts`) : part attendue de la qualification 0,5 → 0,73 (mesuré 0,29 sur 0,40). L'écart restant entre annoncé et réel vient surtout de la recherche (mesurée 0,48 USD) : à recaler avec plus de mesures (une seule donnée).
+- **Non refait** : une analyse complète de bout en bout par l'interface (hors budget de l'étape). Le total 0,99 est la somme de deux mesures (0,92 du 17/11 et le plafond d'arrière-plan), pas un run unique.
+
+### Captures
+
+Aucun écran modifié : pas de nouvelles captures.
+
+### Coûts de la session
+
+**0,144 USD** de jugement (0,0538 + 0,0709 + 0,0195 ; budget fixé 0,60 USD), 0 USD DataForSEO. Copies de mesure laissées dans le compte de test (audits `a2e12ab1…` et `2b8ee04f…`).
+
+### Dettes
+
+- Chaque lot attend ~3 minutes : lire le lot suivant pendant l'attente du précédent serait possible (enchaînement plus complexe).
+- Un lot d'une seule requête de 5 cibles n'a pas été mesuré isolément.
+- Le lot d'origine d'une cible n'est toujours pas enregistré.
+- Claude Haiku 5.5 en lots (0,05 / 0,25 USD par million de jetons annoncés) : à tester sur le jeu annoté avant tout changement de modèle.
