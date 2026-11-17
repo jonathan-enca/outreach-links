@@ -229,8 +229,23 @@ describe("catalogue des pages du site", () => {
     ]);
   });
 
+  it("écarte la pagination, quelle que soit son écriture", () => {
+    const urls = pickCatalogueUrls(
+      "s.fr",
+      [
+        "https://s.fr/animaux/chat/",
+        "https://s.fr/animaux/chat/page-2/",
+        "https://s.fr/animaux/chat/page/3/",
+        "https://s.fr/animaux/chien/",
+      ],
+      "fr",
+      10,
+    );
+    expect(urls).toEqual(["https://s.fr/animaux/chat/", "https://s.fr/animaux/chien/"]);
+  });
+
   it("plafonne, et retrouve une page malgré « www » ou une barre finale", () => {
-    const many = Array.from({ length: 30 }, (_, i) => `https://s.fr/guides/page-${i}`);
+    const many = Array.from({ length: 30 }, (_, i) => `https://s.fr/guides/guide-${i}`);
     expect(pickCatalogueUrls("s.fr", many, "fr", 5)).toHaveLength(5);
     const cat = [{ url: "https://www.s.fr/guides/a" }];
     expect(findCataloguePage(cat, "https://s.fr/guides/a/")).toBe(cat[0]);
