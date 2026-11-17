@@ -32,13 +32,14 @@ export async function beginDrafts(service: Client, planId: string): Promise<Draf
 
 /**
  * Cibles contactables (email trouvé, même à vérifier, ou formulaire) avec leur hook.
- * Une cible sans citation ni titre de page n'est pas rédigée (pas d'accroche inventée).
+ * Une cible sans citation ni titre de page n'est pas rédigée (pas d'accroche inventée). Une cible qui
+ * a déjà son message n'est pas reprise : relancer la rédaction n'écrit que les messages manquants.
  */
 export async function loadDraftInput(
   service: Client,
   run: DraftRun,
 ): Promise<{ items: DraftItem[]; skipped: number; ctx: DraftContext | null }> {
-  const [contactsRes, triageRes, itemsRes, siteRes, briefsRes] = await Promise.all([
+  const [contactsRes, triageRes, itemsRes, siteRes, briefsRes, writtenRes] = await Promise.all([
     service
       .from("target_contacts")
       .select("plan_item_id, status")
@@ -62,8 +63,11 @@ export async function loadDraftInput(
       .select("plan_item_id, brief")
       .eq("plan_id", run.planId)
       .limit(500),
+    // Messages déjà écrits : jamais réécrits (un message modifié ou validé par la personne est gardé).
+    service.from("target_drafts").select("plan_item_id").eq("plan_id", run.planId).limit(1000),
   ]);
   if (contactsRes.error) throw new Error(`loadDraftInput : ${contactsRes.error.message}`);
+  const written = new Set((writtenRes.data ?? []).map((d) => d.plan_item_id));
   if (briefsRes.error) throw new Error(`loadDraftInput : ${briefsRes.error.message}`);
   const briefs = new Map(
     (briefsRes.data ?? []).map((b) => [b.plan_item_id, b.brief as unknown as DraftBrief]),
@@ -91,7 +95,7 @@ export async function loadDraftInput(
   for (const c of contactsRes.data ?? []) {
     const tr = triage.get(c.plan_item_id);
     const it = planItems.get(c.plan_item_id);
-    if (!tr || !it || !tr.resolved_url) continue;
+    if (!tr || !it || !tr.resolved_url || written.has(c.plan_item_id)) continue;
     const brief = briefs.get(c.plan_item_id) ?? null;
     const hook = tr.hook?.trim() || tr.page_title?.trim() || "";
     if (!hook) continue;

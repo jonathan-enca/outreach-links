@@ -5,6 +5,7 @@ import {
   approveMessagesAction,
   approveReplyAction,
   completeFormAction,
+  draftMissingAction,
   editMessageAction,
   editReplyAction,
   rejectReplyAction,
@@ -32,6 +33,7 @@ async function Queue() {
         editReply: editReplyAction,
         rejectReply: rejectReplyAction,
         completeForm: completeFormAction,
+        draftMissing: draftMissingAction,
       }}
     />
   );

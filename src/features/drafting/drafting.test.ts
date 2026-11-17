@@ -317,3 +317,26 @@ describe("synthèse, service et fonction", () => {
     expect(functions).toContain(planDrafts);
   });
 });
+
+describe("messages manquants (18/11)", () => {
+  it("compte par plan les cibles contactables avec accroche et sans message", async () => {
+    const { countMissing } = await import("./service");
+    const contacts = [
+      { plan_id: "p1", plan_item_id: "a" },
+      { plan_id: "p1", plan_item_id: "b" },
+      { plan_id: "p1", plan_item_id: "c" },
+      { plan_id: "p2", plan_item_id: "d" },
+    ];
+    const triage = [
+      { plan_item_id: "a", hook: "Une citation", page_title: null },
+      { plan_item_id: "b", hook: " ", page_title: "Titre de page" },
+      { plan_item_id: "c", hook: null, page_title: null }, // pas d'accroche : jamais rédigée
+      { plan_item_id: "d", hook: "x", page_title: null },
+    ];
+    const m = countMissing(contacts, triage, [{ plan_item_id: "a" }]);
+    expect([...m.entries()]).toEqual([
+      ["p1", 1],
+      ["p2", 1],
+    ]);
+  });
+});

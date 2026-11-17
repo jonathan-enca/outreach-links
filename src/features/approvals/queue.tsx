@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,6 +21,7 @@ export interface QueueActions {
   editReply: Edit;
   rejectReply: (id: string) => Result;
   completeForm: (id: string) => Result;
+  draftMissing: () => Result;
 }
 
 type Filter = "tout" | "messages" | "reponses" | "formulaires";
@@ -262,10 +263,49 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
     ["formulaires", V.filters.forms, forms.length],
   ];
   const show = (f: Filter) => filter === "tout" || filter === f;
+  // Pendant une rédaction, l'écran se met à jour seul : les nouveaux messages arrivent sans recharger.
+  useEffect(() => {
+    if (!view.drafting) return;
+    const id = setInterval(() => router.refresh(), 8000);
+    return () => clearInterval(id);
+  }, [view.drafting, router]);
+  const missingBanner = view.drafting ? (
+    <Card className="p-4 text-sm" role="status">
+      {V.drafting}
+    </Card>
+  ) : view.missing > 0 ? (
+    <Card className="flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
+      <span>{V.missing(view.missing)}</span>
+      <Button
+        type="button"
+        size="sm"
+        disabled={pending}
+        onClick={() =>
+          start(async () => {
+            setBulk(await actions.draftMissing());
+            router.refresh();
+          })
+        }
+      >
+        {pending ? V.busy : V.missingCta}
+      </Button>
+    </Card>
+  ) : null;
   if (view.messages.length + view.replies.length + view.forms.length === 0)
-    return <Card className="p-6 text-muted-foreground">{V.none}</Card>;
+    return (
+      <div className="flex flex-col gap-4">
+        {missingBanner}
+        {bulk.message ? (
+          <p role="status" className={bulk.status === "error" ? "text-danger" : "text-success"}>
+            {bulk.message}
+          </p>
+        ) : null}
+        <Card className="p-6 text-muted-foreground">{V.none}</Card>
+      </div>
+    );
   return (
     <div className="flex flex-col gap-4">
+      {missingBanner}
       {!view.hasMailbox && view.messages.some((m) => m.channel === "email") ? (
         <Card className="border-warning/40 bg-warning/5 p-4 text-sm">
           {V.noMailbox}{" "}

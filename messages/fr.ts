@@ -1893,6 +1893,9 @@ export const fr = {
       saveError: "Impossible de lancer la rédaction. Réessayez.",
       sendFailed: "Le lancement du travail a échoué. Cliquez de nouveau pour le relancer.",
       started: "Rédaction lancée.",
+      nothingMissing: "Tous les messages sont déjà rédigés.",
+      missingStarted: (n: number) =>
+        `Rédaction lancée pour ${n} ${n > 1 ? "cibles" : "cible"}. Les messages arrivent ici dans quelques minutes.`,
     },
   },
   mailboxes: {
@@ -2690,6 +2693,10 @@ export const fr = {
     noMailbox:
       "Aucune boîte d'envoi n'est connectée : connectez-la pour approuver et envoyer vos emails. Vous pouvez déjà les relire et les modifier.",
     connect: "Connecter une boîte",
+    missing: (n: number) =>
+      `${n} ${n > 1 ? "cibles validées n'ont" : "cible validée n'a"} pas encore de message.`,
+    missingCta: "Rédiger les messages manquants",
+    drafting: "Rédaction en cours : les nouveaux messages apparaissent ici dans quelques minutes.",
     to: "À :",
     subject: "Objet",
     body: "Message",
