@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { loadQueue } from "@/features/approvals/service";
 import type { Database } from "@/lib/supabase/database.types";
 import { nextStep, type NextStep, type SiteSnapshot } from "./next-step";
 
@@ -113,34 +114,32 @@ export function buildOverview(r: OverviewRows): OverviewView {
 /** Tout ce que l'accueil, le menu et la liste des campagnes montrent (la RLS limite à l'espace de la personne). */
 export async function loadOverview(supabase: Client): Promise<OverviewView> {
   const head = { count: "exact" as const, head: true };
-  const [sites, audits, plans, sent, replies, links, drafts, replyDrafts, forms, boxes] =
-    await Promise.all([
-      supabase.from("sites").select("id, domain, country").order("created_at", { ascending: true }),
-      supabase
-        .from("audits")
-        .select("id, site_id, status, analysis_status, created_at")
-        .order("created_at", { ascending: false })
-        .limit(200),
-      supabase.from("link_plans").select("id, site_id, item_count").limit(500),
-      supabase
-        .from("sent_messages")
-        .select("id, plan_id")
-        .eq("step", "initial")
-        .eq("dry_run", false)
-        .not("sent_at", "is", null)
-        .limit(5000),
-      supabase.from("inbound_messages").select("sent_message_id").eq("kind", "reponse").limit(5000),
-      supabase
-        .from("links")
-        .select("site_id")
-        .not("first_live_at", "is", null)
-        .is("lost_at", null)
-        .limit(5000),
-      supabase.from("target_drafts").select("id", head).eq("status", "brouillon").eq("ready", true),
-      supabase.from("reply_drafts").select("id", head).eq("status", "brouillon"),
-      supabase.from("manual_tasks").select("id", head).eq("status", "a_faire"),
-      supabase.from("mailboxes").select("id", head),
-    ]);
+  const [sites, audits, plans, sent, replies, links, queue] = await Promise.all([
+    supabase.from("sites").select("id, domain, country").order("created_at", { ascending: true }),
+    supabase
+      .from("audits")
+      .select("id, site_id, status, analysis_status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(200),
+    supabase.from("link_plans").select("id, site_id, item_count").limit(500),
+    supabase
+      .from("sent_messages")
+      .select("id, plan_id")
+      .eq("step", "initial")
+      .eq("dry_run", false)
+      .not("sent_at", "is", null)
+      .limit(5000),
+    supabase.from("inbound_messages").select("sent_message_id").eq("kind", "reponse").limit(5000),
+    supabase
+      .from("links")
+      .select("site_id")
+      .not("first_live_at", "is", null)
+      .is("lost_at", null)
+      .limit(5000),
+    // Les compteurs « à valider » sont ceux de la file elle-même : le menu, l'accueil et l'écran
+    // affichent toujours le même nombre (retour de Jonathan, 18/11 : 50 au menu, 31 à l'écran).
+    loadQueue(supabase),
+  ]);
   const latestIds = [
     ...new Map((audits.data ?? []).map((a) => [a.site_id, a.id] as const).reverse()).values(),
   ];
@@ -163,9 +162,9 @@ export async function loadOverview(supabase: Client): Promise<OverviewView> {
     sent: sent.data ?? [],
     replies: replies.data ?? [],
     links: links.data ?? [],
-    pendingDrafts: drafts.count ?? 0,
-    pendingReplies: replyDrafts.count ?? 0,
-    pendingForms: forms.count ?? 0,
-    mailboxes: boxes.count ?? 0,
+    pendingDrafts: queue.messages.length,
+    pendingReplies: queue.replies.length,
+    pendingForms: queue.forms.length,
+    mailboxes: queue.hasMailbox ? 1 : 0,
   });
 }

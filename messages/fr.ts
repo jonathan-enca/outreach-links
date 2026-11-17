@@ -1893,6 +1893,9 @@ export const fr = {
       saveError: "Impossible de lancer la rédaction. Réessayez.",
       sendFailed: "Le lancement du travail a échoué. Cliquez de nouveau pour le relancer.",
       started: "Rédaction lancée.",
+      nothingMissing: "Tous les messages sont déjà rédigés.",
+      missingStarted: (n: number) =>
+        `Rédaction lancée pour ${n} ${n > 1 ? "cibles" : "cible"}. Les messages arrivent ici dans quelques minutes.`,
     },
   },
   mailboxes: {
@@ -2747,12 +2750,14 @@ export const fr = {
       lien_obtenu: "Lien obtenu",
       refuse: "Refusé",
       erreur: "Message revenu en erreur",
+      en_attente: "Approuvé, en attente d'envoi",
     },
     messages: {
       notFound: "Conversation introuvable.",
       saveError: "Enregistrement impossible. Réessayez.",
       emptyTag: "Écrivez une étiquette.",
       tooManyTags: "Dix étiquettes au plus par conversation.",
+      queued: "Message approuvé. Il partira de votre boîte d'envoi au rythme prévu.",
       followUpPlanned: (date: string) => `Relance prévue le ${date} sans réponse.`,
       system: {
         rebond: "Le message est revenu en erreur : cette adresse ne sera plus utilisée.",
@@ -2767,8 +2772,12 @@ export const fr = {
     none: "Rien à valider pour l'instant. Les messages apparaissent ici dès que vous validez des cibles.",
     allLater: "Tout est remis à plus tard pour cette visite. Rechargez la page pour les revoir.",
     noMailbox:
-      "Aucune boîte d'envoi n'est connectée : vous pouvez approuver vos messages, ils partiront quand elle le sera.",
+      "Aucune boîte d'envoi n'est connectée : connectez-la pour approuver et envoyer vos emails. Vous pouvez déjà les relire et les modifier.",
     connect: "Connecter une boîte",
+    missing: (n: number) =>
+      `${n} ${n > 1 ? "cibles validées n'ont" : "cible validée n'a"} pas encore de message.`,
+    missingCta: "Rédiger les messages manquants",
+    drafting: "Rédaction en cours : les nouveaux messages apparaissent ici dans quelques minutes.",
     to: "À :",
     subject: "Objet",
     body: "Message",
@@ -2817,6 +2826,7 @@ export const fr = {
       nothing: "Aucun message choisi.",
       notFound: "Message introuvable.",
       notReady: "Ce message n'est pas prêt : corrigez les points signalés avant de l'approuver.",
+      needMailbox: "Connectez d'abord votre boîte d'envoi : sans elle, aucun email ne peut partir.",
       unavailable: "Service indisponible. Réessayez dans un instant.",
       saveError: "Enregistrement impossible. Réessayez.",
       approved: (n: number) =>

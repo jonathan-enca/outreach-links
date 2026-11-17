@@ -1666,6 +1666,21 @@ Maquette validée par Jonathan (artefact « Maquette espace client » : menu, ac
 - Risque résiduel accepté : un utilisateur peut écrire au nom d'une marque qui n'est pas la sienne depuis sa propre boîte. Si des abus apparaissent, la parade la plus légère est de comparer le domaine de la boîte d'envoi à celui du site (aucune action demandée à l'utilisateur).
 - Contrôle : typecheck, lint et tests verts. Pas de capture d'écran refaite.
 
+## Session du 18/11 (suite 16) : retours de Jonathan sur « À valider » (données réelles de remove-me.io)
+
+- **Compteur du menu ≠ écran** (50 contre 31) : le menu comptait tous les brouillons prêts et toutes les tâches, l'écran seulement ce qu'il montre. Les compteurs viennent maintenant de la file elle-même (`loadOverview` appelle `loadQueue`).
+- **Approuver sans boîte d'envoi** : refusé côté serveur pour un email (boîte vérifiée exigée pour le site) et bouton désactivé à l'écran ; les messages pour formulaire restent approuvables. Deux emails avaient été approuvés avant ce garde-fou : ils partiront à la connexion de la boîte.
+- **Message approuvé invisible** : un email approuvé apparaît tout de suite dans Conversations avec le statut « Approuvé, en attente d'envoi ».
+- **80 cibles validées, 34 messages rédigés** (décidé et corrigé, voir « suite 17 »). Cause mesurée sur le plan `0a99e395…` (70 cibles) : le rédacteur plafonne à 40 cibles par exécution (30 ignorées) et à 0,10 USD de LLM (atteint à 0,098 USD après 25 messages : 15 non rédigées). Coût mesuré : environ 0,004 USD par message. Rédiger 80 messages demande environ 0,32 USD, et il n'existe pas de bouton pour rédiger les messages manquants d'un plan déjà traité. `DRAFT_LIMITS` dans `drafting/limits.ts`.
+
+## Session du 18/11 (suite 17) : plafonds du rédacteur relevés, messages manquants
+
+Décision de Jonathan : oui aux deux propositions.
+
+- **Plafonds** (`drafting/limits.ts`) : 100 cibles par rédaction (40 avant), 0,45 USD de LLM par rédaction (0,10 avant). Mesuré : environ 0,004 USD par message. Une campagne complète passe d'environ 1,00 à 1,35 USD.
+- **« Rédiger les messages manquants »** : bandeau en haut de « À valider » quand des cibles validées n'ont pas de message (`missingDrafts`, `draftMissing` dans `drafting/service.ts`). Relance la rédaction des plans concernés, même terminés. **Un message déjà écrit n'est jamais réécrit** (`loadDraftInput` saute les cibles qui ont un brouillon) : les messages modifiés ou validés sont gardés. Pendant la rédaction, l'écran se rafraîchit seul.
+- Sur remove-me.io : 45 messages manquants (plan de 70 cibles, 25 rédigés) ; 1 cible du second plan n'a pas d'accroche et ne sera jamais rédigée. La relance n'a **pas** été lancée par Claude : c'est le clic de Jonathan (environ 0,18 USD).
+
 ## Session du 17/11 (suite) : réglages « Vos messages » refaits (signature complète, contreparties)
 
 Maquette validée par Jonathan avant le code (canvas « Réglages · Vos messages »). Ses décisions : logo dans la signature (ses utilisateurs sont des entreprises, habituées aux signatures) ; l'offre libre remplacée par des cases ; un changement de signature s'applique aussi aux messages déjà dans « À valider » ; pas de texte d'exemple dans le champ Nom.

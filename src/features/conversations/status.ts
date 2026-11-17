@@ -9,6 +9,7 @@ export const THREAD_STATUSES = [
   "lien_obtenu",
   "refuse",
   "erreur",
+  "en_attente",
 ] as const;
 export type ThreadStatus = (typeof THREAD_STATUSES)[number];
 

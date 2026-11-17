@@ -10,6 +10,7 @@ import {
 } from "@/features/signature/signature";
 import type { AuditActionState } from "@/features/audits/service";
 import { lintMessage } from "@/features/drafting/lint";
+import { missingDrafts } from "@/features/drafting/service";
 import type { LintIssue } from "@/features/drafting/types";
 import { listTasks } from "@/features/tasks/service";
 import { t } from "@/lib/messages";
@@ -83,6 +84,9 @@ export interface QueueView {
   replies: PendingReply[];
   forms: PendingForm[];
   hasMailbox: boolean;
+  /** Cibles validées sans message (plafond de rédaction atteint), et rédaction en cours. */
+  missing: number;
+  drafting: boolean;
 }
 
 /**
@@ -100,7 +104,7 @@ export function isApprovable(d: {
 
 /** Tout ce qui attend l'accord de la personne, toutes campagnes confondues (RLS). */
 export async function loadQueue(supabase: Client): Promise<QueueView> {
-  const [drafts, replyDrafts, tasks, boxes] = await Promise.all([
+  const [drafts, replyDrafts, tasks, boxes, missing] = await Promise.all([
     supabase
       .from("target_drafts")
       .select(
@@ -115,7 +119,11 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
       .order("created_at", { ascending: false })
       .limit(100),
     listTasks(supabase),
-    supabase.from("mailboxes").select("id", { count: "exact", head: true }),
+    supabase
+      .from("mailboxes")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "verifiee"),
+    missingDrafts(supabase),
   ]);
   const d = drafts.data ?? [];
   const itemIds = d.map((x) => x.plan_item_id);
@@ -171,14 +179,14 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
   type PlanSite = (SignatureSiteRow & { country: string | null }) | null;
   const planRows = [...((plans.data ?? []) as unknown as { id: string; sites: PlanSite }[])];
   // Les réponses peuvent venir d'un plan qui n'a plus de premier message en attente.
-  const missing = [...new Set((sent.data ?? []).map((s) => s.plan_id))].filter(
+  const otherPlans = [...new Set((sent.data ?? []).map((s) => s.plan_id))].filter(
     (id) => !planRows.some((p) => p.id === id),
   );
-  if (missing.length) {
+  if (otherPlans.length) {
     const more = await supabase
       .from("link_plans")
       .select(`id, sites(country, ${SIGNATURE_COLUMNS})`)
-      .in("id", missing);
+      .in("id", otherPlans);
     planRows.push(...((more.data ?? []) as unknown as { id: string; sites: PlanSite }[]));
   }
   const campaignMap = new Map(
@@ -256,6 +264,8 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
         body: x.message,
       })),
     hasMailbox: (boxes.count ?? 0) > 0,
+    missing: missing.total,
+    drafting: missing.running,
   };
 }
 
@@ -293,6 +303,23 @@ export async function approveMessages(
     isApprovable({ ...d, sendable: sendable.get(d.plan_item_id) === true }),
   );
   if (ok.length === 0) return { status: "error", message: M.notReady };
+  // Un email ne s'approuve qu'avec une boîte d'envoi connectée et vérifiée pour son site : sans elle,
+  // « Approuver et envoyer » ne pourrait rien envoyer (retour de Jonathan, 18/11).
+  const emailPlans = [...new Set(ok.filter((d) => d.channel === "email").map((d) => d.plan_id))];
+  if (emailPlans.length > 0) {
+    const { data: plans } = await supabase
+      .from("link_plans")
+      .select("id, site_id")
+      .in("id", emailPlans);
+    const siteIds = [...new Set((plans ?? []).map((p) => p.site_id))];
+    const { data: boxes } = await supabase
+      .from("mailboxes")
+      .select("site_id")
+      .in("site_id", siteIds)
+      .eq("status", "verifiee");
+    const withBox = new Set((boxes ?? []).map((b) => b.site_id));
+    if (siteIds.some((s) => !withBox.has(s))) return { status: "error", message: M.needMailbox };
+  }
   let service: Client;
   try {
     service = getServiceClient();
