@@ -1553,11 +1553,13 @@ export const fr = {
       others: "Autres sites",
       zero: "aucune cible pour l'instant",
       suggested: "suggestion",
+      short: "Type de site",
       emptyTab:
         "Aucune cible de ce type pour l'instant. Nous l'avons cherché ; rien n'a passé le tri.",
     },
     filters: {
       label: "Filtrer par tactique",
+      rowTitle: "La demande",
       toutes: "Toutes",
       inconnus: "Sites que personne ne sollicite",
       ressources: "Pages ressources et liens morts",

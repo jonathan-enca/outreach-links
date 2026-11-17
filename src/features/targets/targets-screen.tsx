@@ -230,7 +230,9 @@ function FindingBlock({ f }: { f: FindingView }) {
           </span>
         ) : null}
       </div>
-      <blockquote className="border-l-2 border-primary pl-3 italic">« {f.quote} »</blockquote>
+      <blockquote className="border-l-2 border-primary pl-3 italic">
+        «&nbsp;{f.quote}&nbsp;»
+      </blockquote>
       <p className="text-muted-foreground">
         {c.page} :{" "}
         <a
@@ -299,7 +301,7 @@ const REQUEST_TONE = {
  * sous le nom du site : la zone de contenu de l'application (56 rem) ne laisse pas la place d'une
  * colonne de plus sans écraser la raison.
  */
-const COLS = "xl:grid-cols-[1.25rem_1.75rem_15.5rem_minmax(0,1fr)_9.5rem_7.5rem_2.25rem]";
+const COLS = "xl:grid-cols-[1.25rem_1.75rem_19rem_minmax(0,1fr)_9.5rem_7.5rem_2.25rem]";
 
 /**
  * Une cible = une ligne qui se déplie (retour de Jonathan, 18/11 : tableau dense, le détail au clic).
@@ -350,6 +352,16 @@ export function TargetRow({
             aria-label={`${c.select} : ${card.domain}`}
             className="mt-0.5 size-5 accent-primary xl:mt-0 xl:size-4"
           />
+        ) : card.alreadyValidated ? (
+          // Déjà validée : la case reste visible, cochée et grisée (sinon la ligne semble impossible à choisir).
+          <input
+            type="checkbox"
+            checked
+            disabled
+            readOnly
+            aria-label={`${c.alreadyValidated} : ${card.domain}`}
+            className="mt-0.5 size-5 accent-primary opacity-50 xl:mt-0 xl:size-4"
+          />
         ) : (
           <span aria-hidden="true" />
         )}
@@ -357,6 +369,11 @@ export function TargetRow({
         <div className="min-w-0">
           <h3 className="break-words font-semibold xl:truncate">
             {card.domain}
+            {card.alreadyValidated ? (
+              <Badge tone="success" className="ml-2 align-middle">
+                {c.alreadyValidated}
+              </Badge>
+            ) : null}
             {isNew ? (
               <Badge tone="info" className="ml-2 align-middle">
                 {M.live.newBadge}
@@ -370,7 +387,7 @@ export function TargetRow({
           ) : null}
         </div>
         <p
-          className={`col-start-2 min-w-0 text-sm xl:col-auto xl:text-[13.5px] ${open ? "xl:line-clamp-1" : "line-clamp-2"}`}
+          className={`col-start-2 min-w-0 text-sm xl:col-auto xl:text-[13.5px] ${open ? "xl:invisible xl:line-clamp-1" : "line-clamp-2"}`}
         >
           {card.why ?? req.lines[0] ?? ""}
         </p>
@@ -419,28 +436,36 @@ export function TargetRow({
               <strong>{TB.whyLead}</strong> {card.why}
             </p>
           ) : null}
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_minmax(0,1fr)] xl:gap-8">
+          <div className="flex flex-col gap-4">
+            {card.findings.length > 0 || req.quote ? (
+              <div className="flex min-w-0 flex-col gap-2">
+                {card.findings.length > 0 ? (
+                  <>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {c.findings}
+                    </p>
+                    <ul className="flex flex-col gap-2">
+                      {card.findings.map((f) => (
+                        <FindingBlock key={f.id} f={f} />
+                      ))}
+                    </ul>
+                  </>
+                ) : req.quote ? (
+                  <>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {TB.quote}
+                    </p>
+                    <blockquote className="rounded-r-md border-l-2 border-primary bg-muted px-3 py-2 text-sm italic">
+                      «&nbsp;{req.quote}&nbsp;»
+                    </blockquote>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
             <div className="flex min-w-0 flex-col gap-2">
-              {card.findings.length > 0 ? (
-                <>
-                  <p className="text-sm font-medium">{c.findings}</p>
-                  <ul className="flex flex-col gap-2">
-                    {card.findings.map((f) => (
-                      <FindingBlock key={f.id} f={f} />
-                    ))}
-                  </ul>
-                </>
-              ) : req.quote ? (
-                <>
-                  <p className="text-sm font-medium">{TB.quote}</p>
-                  <blockquote className="border-l-2 border-primary pl-3 text-sm italic">
-                    « {req.quote} »
-                  </blockquote>
-                </>
-              ) : null}
-            </div>
-            <div className="flex min-w-0 flex-col gap-2">
-              <p className="text-sm font-medium">{c.request}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {c.request}
+              </p>
               <ol className="list-decimal pl-5 text-sm">
                 {req.lines.map((l, i) => (
                   <li key={i} className="mb-1">
@@ -450,8 +475,10 @@ export function TargetRow({
               </ol>
             </div>
             <div className="flex min-w-0 flex-col gap-2">
-              <p className="text-sm font-medium">{TB.offer}</p>
-              <dl className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {TB.offer}
+              </p>
+              <dl className="grid grid-cols-[5.75rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-sm">
                 {resource ? (
                   <>
                     <dt className="text-muted-foreground">{TB.resource}</dt>
@@ -494,12 +521,9 @@ export function TargetRow({
                   </>
                 ) : null}
               </dl>
-              {card.platformHosted || card.alreadyValidated ? (
-                <div className="flex flex-wrap gap-2">
-                  {card.platformHosted ? <Badge tone="neutral">{c.hosted}</Badge> : null}
-                  {card.alreadyValidated ? (
-                    <Badge tone="success">{c.alreadyValidated}</Badge>
-                  ) : null}
+              {card.platformHosted ? (
+                <div>
+                  <Badge tone="neutral">{c.hosted}</Badge>
                 </div>
               ) : null}
             </div>
@@ -935,41 +959,48 @@ export function TargetsScreen({
           <Card className="p-6 text-muted-foreground">{M.list.empty}</Card>
         ) : (
           <>
-            <div role="group" aria-label={M.filters.label} className={CHIPS}>
-              {(["toutes", "inconnus", "ressources", "mentions"] as const)
-                .filter((k) => k === "toutes" || counts[k] > 0)
-                .map((k) => (
+            <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:gap-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground xl:w-28 xl:shrink-0 xl:pt-2">
+                {M.filters.rowTitle}
+              </p>
+              <div role="group" aria-label={M.filters.label} className={CHIPS}>
+                {(["toutes", "inconnus", "ressources", "mentions"] as const)
+                  .filter((k) => k === "toutes" || counts[k] > 0)
+                  .map((k) => (
+                    <Button
+                      key={k}
+                      type="button"
+                      size="sm"
+                      className="shrink-0"
+                      variant={filter === k && !onlyNew ? "default" : "outline"}
+                      aria-pressed={filter === k && !onlyNew}
+                      onClick={() => {
+                        setFilter(k);
+                        setOnlyNew(false);
+                      }}
+                    >
+                      {M.filters[k]} ({counts[k]})
+                    </Button>
+                  ))}
+                {fresh.size > 0 ? (
                   <Button
-                    key={k}
                     type="button"
                     size="sm"
                     className="shrink-0"
-                    variant={filter === k && !onlyNew ? "default" : "outline"}
-                    aria-pressed={filter === k && !onlyNew}
-                    onClick={() => {
-                      setFilter(k);
-                      setOnlyNew(false);
-                    }}
+                    variant={onlyNew ? "default" : "outline"}
+                    aria-pressed={onlyNew}
+                    onClick={() => setOnlyNew(!onlyNew)}
                   >
-                    {M.filters[k]} ({counts[k]})
+                    {M.live.newFilter} ({fresh.size})
                   </Button>
-                ))}
-              {fresh.size > 0 ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  className="shrink-0"
-                  variant={onlyNew ? "default" : "outline"}
-                  aria-pressed={onlyNew}
-                  onClick={() => setOnlyNew(!onlyNew)}
-                >
-                  {M.live.newFilter} ({fresh.size})
-                </Button>
-              ) : null}
+                ) : null}
+              </div>
             </div>
             {types.length > 0 ? (
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-medium">{M.publishers.title}</p>
+              <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:gap-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground xl:w-28 xl:shrink-0 xl:pt-2">
+                  {M.publishers.short}
+                </p>
                 <div
                   role="group"
                   aria-label={M.publishers.label}
