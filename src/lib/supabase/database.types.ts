@@ -1738,6 +1738,51 @@ export type Database = {
           },
         ];
       };
+      thread_reads: {
+        Row: {
+          read_at: string;
+          read_by: string | null;
+          sent_message_id: string;
+          workspace_id: string;
+        };
+        Insert: {
+          read_at?: string;
+          read_by?: string | null;
+          sent_message_id: string;
+          workspace_id: string;
+        };
+        Update: {
+          read_at?: string;
+          read_by?: string | null;
+          sent_message_id?: string;
+          workspace_id?: string;
+        };
+        Relationships: [];
+      };
+      thread_tags: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          sent_message_id: string;
+          tag: string;
+          workspace_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          sent_message_id: string;
+          tag: string;
+          workspace_id: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          sent_message_id?: string;
+          tag?: string;
+          workspace_id?: string;
+        };
+        Relationships: [];
+      };
       inbox_states: {
         Row: {
           sent_message_id: string;
