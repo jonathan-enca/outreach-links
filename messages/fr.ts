@@ -1,5 +1,9 @@
+import { mailboxGuides } from "./mailbox-guides";
+
 /** Toutes les chaînes de l'interface passent par ce fichier (UI en français). */
 export const fr = {
+  // Guides « connecter sa boîte d'envoi » : un fichier à part, un guide par fournisseur.
+  mailboxGuides,
   app: {
     // Nom de travail provisoire : SEUL endroit où il est écrit (docs/naming.md). Le changer ici suffit.
     name: "Autolink.ai",
@@ -598,6 +602,7 @@ export const fr = {
         { href: "/conditions", label: "Conditions d'utilisation" },
       ],
       freeAudit: "Essai gratuit",
+      mailboxGuides: "Connecter sa boîte mail",
       signIn: "Se connecter",
       rights: "Tous droits réservés.",
     },
@@ -1900,7 +1905,7 @@ export const fr = {
   },
   mailboxes: {
     title: "Boîte d'envoi",
-    body: "Les messages partiront depuis votre propre boîte (SMTP pour envoyer, IMAP pour lire les réponses), avec un mot de passe d'application. Il est chiffré avant d'être enregistré et n'est jamais affiché ni relu. Ici, rien n'est envoyé à un tiers : le test vérifie seulement la connexion et, si l'envoi réel est activé, vous adresse un message de test à vous-même.",
+    body: "Les messages partent de votre propre boîte : nous envoyons ceux que vous avez approuvés et lisons les réponses, rien d'autre. Le mot de passe est chiffré avant d'être enregistré et n'est jamais affiché ni relu. Ici, rien n'est envoyé à un tiers : le test vérifie seulement la connexion et, si l'envoi réel est activé, vous adresse un message de test à vous-même.",
     emptyTitle: "Aucune boîte connectée",
     email: "Adresse d'envoi",
     fromName: "Nom affiché",

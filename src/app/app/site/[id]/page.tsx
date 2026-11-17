@@ -24,7 +24,9 @@ async function Site({ params }: { params: Promise<{ id: string }> }) {
   if (!site) notFound();
   const { data: rows } = await supabase
     .from("mailboxes")
-    .select("id, email, status, smtp_ok, imap_ok, last_error, health, hourly_cap, daily_cap")
+    .select(
+      "id, email, status, smtp_ok, imap_ok, last_error, smtp_host, health, hourly_cap, daily_cap",
+    )
     .eq("site_id", site.id)
     .order("created_at");
   const boxes: MailboxView[] = (rows ?? []).map((r) => ({
@@ -34,6 +36,7 @@ async function Site({ params }: { params: Promise<{ id: string }> }) {
     smtpOk: r.smtp_ok,
     imapOk: r.imap_ok,
     lastError: r.last_error,
+    smtpHost: r.smtp_host,
     health: (r.health as MailboxView["health"]) ?? null,
     hourlyCap: r.hourly_cap,
     dailyCap: r.daily_cap,
