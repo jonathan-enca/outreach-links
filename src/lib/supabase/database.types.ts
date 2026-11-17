@@ -1738,6 +1738,42 @@ export type Database = {
           },
         ];
       };
+      notification_prefs: {
+        Row: {
+          reply_waiting: boolean;
+          to_validate: boolean;
+          links: boolean;
+          mailbox: boolean;
+          new_sites: boolean;
+          weekly: boolean;
+          updated_at: string;
+          updated_by: string | null;
+          workspace_id: string;
+        };
+        Insert: {
+          reply_waiting?: boolean;
+          to_validate?: boolean;
+          links?: boolean;
+          mailbox?: boolean;
+          new_sites?: boolean;
+          weekly?: boolean;
+          updated_at?: string;
+          updated_by?: string | null;
+          workspace_id: string;
+        };
+        Update: {
+          reply_waiting?: boolean;
+          to_validate?: boolean;
+          links?: boolean;
+          mailbox?: boolean;
+          new_sites?: boolean;
+          weekly?: boolean;
+          updated_at?: string;
+          updated_by?: string | null;
+          workspace_id?: string;
+        };
+        Relationships: [];
+      };
       thread_reads: {
         Row: {
           read_at: string;
