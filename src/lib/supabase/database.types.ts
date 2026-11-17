@@ -2416,6 +2416,7 @@ export type Database = {
           last_error: string | null;
           last_test_at: string | null;
           password_enc: string;
+          send_days: number[];
           send_window_end: number;
           send_window_start: number;
           site_id: string;
@@ -2447,6 +2448,7 @@ export type Database = {
           last_error?: string | null;
           last_test_at?: string | null;
           password_enc: string;
+          send_days?: number[];
           send_window_end?: number;
           send_window_start?: number;
           site_id: string;
@@ -2478,6 +2480,7 @@ export type Database = {
           last_error?: string | null;
           last_test_at?: string | null;
           password_enc?: string;
+          send_days?: number[];
           send_window_end?: number;
           send_window_start?: number;
           site_id?: string;

@@ -45,7 +45,7 @@ async function Mailbox({ searchParams }: { searchParams: Promise<{ site?: string
   const { data: rows } = await supabase
     .from("mailboxes")
     .select(
-      "id, email, status, smtp_ok, imap_ok, last_error, smtp_host, health, hourly_cap, daily_cap",
+      "id, email, status, smtp_ok, imap_ok, last_error, smtp_host, health, hourly_cap, daily_cap, send_days, send_window_start, send_window_end",
     )
     .eq("site_id", site.id)
     .order("created_at");
@@ -60,6 +60,9 @@ async function Mailbox({ searchParams }: { searchParams: Promise<{ site?: string
     health: (r.health as MailboxView["health"]) ?? null,
     hourlyCap: r.hourly_cap,
     dailyCap: r.daily_cap,
+    sendDays: r.send_days,
+    windowStart: r.send_window_start,
+    windowEnd: r.send_window_end,
   }));
   // Le domaine contrôlé est celui de la boîte connectée ; à défaut, celui du site.
   const domain = boxes[0]?.email.split("@")[1] ?? site.domain;

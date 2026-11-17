@@ -3,6 +3,7 @@ import type { AuditActionState } from "@/features/audits/service";
 import { CATEGORY_LABELS, type Category } from "@/features/classification/types";
 import { t } from "@/lib/messages";
 import type { Database } from "@/lib/supabase/database.types";
+import { formatSendTime, loadSendQueue, type QueueNote } from "@/features/sending/queue-note";
 import { cleanTag, isUnread, threadStatus, type ThreadStatus } from "./status";
 
 type Client = SupabaseClient<Database>;
@@ -41,12 +42,23 @@ export interface ConversationsView {
   threads: ConversationView[];
   campaigns: { id: string; label: string }[];
   tags: string[];
+  /** Emails approuvés pas encore partis : pourquoi, et quand ils partiront. */
+  queue: QueueNote | null;
+}
+
+export interface ConversationsOptions {
+  now: Date;
+  /** L'envoi réel est-il activé sur ce serveur (sinon : simulation). */
+  realSending: boolean;
 }
 
 const ids = <T extends { id: string }>(rows: readonly T[]) => rows.map((r) => r.id);
 
 /** Tous les fils de la personne, toutes campagnes confondues (RLS), le plus récent d'abord. */
-export async function loadConversations(supabase: Client): Promise<ConversationsView> {
+export async function loadConversations(
+  supabase: Client,
+  opts: ConversationsOptions = { now: new Date(), realSending: false },
+): Promise<ConversationsView> {
   const { data: sentRows } = await supabase
     .from("sent_messages")
     .select("id, plan_id, draft_id, step, to_email, subject, body, sent_at, follow_up_due_at")
@@ -56,8 +68,12 @@ export async function loadConversations(supabase: Client): Promise<Conversations
     .limit(1000);
   const all = sentRows ?? [];
   const initial = all.filter((s) => s.step === "initial");
-  const queued = await loadQueued(supabase, new Set(all.map((s) => s.draft_id)));
-  if (initial.length === 0) return finish(queued);
+  const { threads: queued, note } = await loadQueued(
+    supabase,
+    new Set(all.map((s) => s.draft_id)),
+    opts,
+  );
+  if (initial.length === 0) return finish(queued, note);
   const threadIds = ids(initial);
   const draftIds = [...new Set(initial.map((s) => s.draft_id))];
   const planIds = [...new Set(initial.map((s) => s.plan_id))];
@@ -221,15 +237,15 @@ export async function loadConversations(supabase: Client): Promise<Conversations
       classificationId: lastCls?.id ?? null,
     };
   });
-  return finish([...threads, ...queued]);
+  return finish([...threads, ...queued], note);
 }
 
-function finish(threads: ConversationView[]): ConversationsView {
+function finish(threads: ConversationView[], queue: QueueNote | null): ConversationsView {
   threads.sort((a, b) => b.lastAt.localeCompare(a.lastAt));
   const campaigns = [...new Map(threads.map((x) => [x.campaignId, x.campaign])).entries()]
     .filter(([id]) => id)
     .map(([id, label]) => ({ id, label }));
-  return { threads, campaigns, tags: [...new Set(threads.flatMap((x) => x.tags))].sort() };
+  return { threads, campaigns, tags: [...new Set(threads.flatMap((x) => x.tags))].sort(), queue };
 }
 
 /**
@@ -240,7 +256,8 @@ function finish(threads: ConversationView[]): ConversationsView {
 async function loadQueued(
   supabase: Client,
   sentDraftIds: ReadonlySet<string>,
-): Promise<ConversationView[]> {
+  opts: ConversationsOptions,
+): Promise<{ threads: ConversationView[]; note: QueueNote | null }> {
   const { data: drafts } = await supabase
     .from("target_drafts")
     .select("id, plan_id, plan_item_id, subject, body, hook, generated_at, edited_at")
@@ -248,7 +265,7 @@ async function loadQueued(
     .eq("channel", "email")
     .limit(500);
   const waiting = (drafts ?? []).filter((d) => !sentDraftIds.has(d.id));
-  if (waiting.length === 0) return [];
+  if (waiting.length === 0) return { threads: [], note: null };
   const itemIds = waiting.map((d) => d.plan_item_id);
   const [items, contacts, plans] = await Promise.all([
     supabase.from("link_plan_items").select("id, source_domain").in("id", itemIds),
@@ -270,26 +287,41 @@ async function loadQueued(
       return [p.id, { id: p.site_id, label }];
     }),
   );
-  return waiting.map((d) => ({
-    id: `attente-${d.id}`,
-    domain: itemMap.get(d.plan_item_id) ?? "",
-    email: mailMap.get(d.plan_item_id) ?? "",
-    campaign: planMap.get(d.plan_id)?.label ?? "",
-    campaignId: planMap.get(d.plan_id)?.id ?? "",
-    status: "en_attente",
-    category: null,
-    unread: false,
-    tags: [],
-    lastAt: d.edited_at ?? d.generated_at,
-    preview: d.body.replace(/\s+/g, " ").slice(0, 140),
-    hook: d.hook,
-    messages: [
-      { from: "nous", at: null, subject: d.subject, text: d.body },
-      { from: "systeme", at: null, subject: null, text: M.queued },
-    ],
-    draft: null,
-    classificationId: null,
-  }));
+  const { note, eta } = await loadSendQueue(
+    supabase,
+    waiting.map((d) => ({ id: d.id, siteId: planMap.get(d.plan_id)?.id ?? "" })),
+    opts.now,
+    opts.realSending,
+  );
+  const threads = waiting.map((d): ConversationView => {
+    const when = eta.get(d.id);
+    return {
+      id: `attente-${d.id}`,
+      domain: itemMap.get(d.plan_item_id) ?? "",
+      email: mailMap.get(d.plan_item_id) ?? "",
+      campaign: planMap.get(d.plan_id)?.label ?? "",
+      campaignId: planMap.get(d.plan_id)?.id ?? "",
+      status: "en_attente",
+      category: null,
+      unread: false,
+      tags: [],
+      lastAt: d.edited_at ?? d.generated_at,
+      preview: d.body.replace(/\s+/g, " ").slice(0, 140),
+      hook: d.hook,
+      messages: [
+        { from: "nous", at: null, subject: d.subject, text: d.body },
+        {
+          from: "systeme",
+          at: null,
+          subject: null,
+          text: when ? M.queuedAt(formatSendTime(when.at, when.timezone, false)) : M.queued,
+        },
+      ],
+      draft: null,
+      classificationId: null,
+    };
+  });
+  return { threads, note };
 }
 
 /** Le fil appartient-il à la personne ? (lecture par la RLS, avant toute écriture par le serveur). */

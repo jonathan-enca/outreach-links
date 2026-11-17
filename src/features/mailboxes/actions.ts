@@ -8,6 +8,7 @@ import {
   defaultMailboxDeps,
   removeMailbox,
   testMailbox,
+  updateSendSchedule,
   type MailboxState,
 } from "./service";
 
@@ -40,5 +41,18 @@ export async function removeMailboxAction(
 ): Promise<MailboxState> {
   const r = await removeMailbox(await createClient(), mailboxId, deps());
   revalidatePath(`/app/site/${siteId}`);
+  return r;
+}
+
+export async function updateScheduleAction(
+  siteId: string,
+  mailboxId: string,
+  _prev: MailboxState,
+  formData: FormData,
+): Promise<MailboxState> {
+  const r = await updateSendSchedule(await createClient(), mailboxId, formData, deps());
+  revalidatePath(`/app/site/${siteId}`);
+  revalidatePath("/app/reglages/boite");
+  revalidatePath("/app/inbox");
   return r;
 }

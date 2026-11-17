@@ -12,7 +12,15 @@ import {
   verifyUnsubscribeTokenWithRing,
 } from "./message";
 import { buildFollowUp, followUpState, type SignalKind } from "./followup";
-import { addDays, effectiveDailyCap, isInSendWindow } from "./schedule";
+import {
+  addDays,
+  describeWindow,
+  effectiveDailyCap,
+  isInSendWindow,
+  nextSendStart,
+  planSendTimes,
+} from "./schedule";
+import { formatSendTime, queueNoteText } from "./queue-note";
 import { runSendTick, type SendDeps } from "./service";
 
 const W = { timezone: "Europe/Paris", startHour: 9, endHour: 18 };
@@ -27,6 +35,70 @@ describe("fenêtre d'envoi et échauffement", () => {
     expect(
       isInSendWindow(new Date("2026-11-16T10:00:00+01:00"), { ...W, timezone: "Nope/Zone" }),
     ).toBe(false);
+  });
+  it("prochaine ouverture : le soir même, le lendemain 9 h ; le vendredi soir, le lundi", () => {
+    expect(nextSendStart(new Date("2026-11-17T10:00:00+01:00"), W)).toBeNull();
+    expect(nextSendStart(new Date("2026-11-17T22:14:00+01:00"), W)?.toISOString()).toBe(
+      new Date("2026-11-18T09:00:00+01:00").toISOString(),
+    );
+    expect(nextSendStart(new Date("2026-11-20T18:30:00+01:00"), W)?.toISOString()).toBe(
+      new Date("2026-11-23T09:00:00+01:00").toISOString(),
+    );
+    expect(
+      queueNoteText({
+        state: "ferme",
+        waiting: 5,
+        hours: "",
+        nextAt: new Date("2026-11-18T09:00:00+01:00"),
+        timezone: "Europe/Paris",
+      }),
+    ).toBe("5 emails approuvés partiront à la reprise des envois, mercredi 18 novembre à 9 h.");
+    expect(
+      nextSendStart(new Date("2026-11-17T22:14:00+01:00"), { ...W, timezone: "Nulle/Part" }),
+    ).toBeNull();
+  });
+  it("jours réglables : une boîte peut envoyer le samedi et se taire le lundi", () => {
+    const sat = { ...W, days: [2, 3, 4, 5, 6] };
+    expect(isInSendWindow(new Date("2026-11-21T11:00:00+01:00"), sat)).toBe(true); // samedi
+    expect(isInSendWindow(new Date("2026-11-16T10:00:00+01:00"), sat)).toBe(false); // lundi
+    expect(isInSendWindow(new Date("2026-11-16T10:00:00+01:00"), { ...W, days: null })).toBe(true);
+    expect(describeWindow(W)).toBe("du lundi au vendredi, de 9 h à 18 h");
+    expect(describeWindow({ ...W, days: [1, 2, 3, 4, 5, 6, 7] })).toBe(
+      "tous les jours, de 9 h à 18 h",
+    );
+    expect(describeWindow({ startHour: 8, endHour: 12, days: [3, 1] })).toBe(
+      "le lundi et mercredi, de 8 h à 12 h",
+    );
+  });
+  it("heures de départ probables : un passage sur six minutes, échauffement de cinq par jour", () => {
+    const base = { window: W, recent: [], firstSendAt: null, dailyCap: 20, hourlyCap: 10 };
+    // Mardi 22 h 14 : rien avant mercredi 9 h, puis un message toutes les six minutes.
+    const night = planSendTimes(new Date("2026-11-17T22:14:00+01:00"), 7, base);
+    expect(night.slice(0, 5).map((d) => d!.toISOString())).toEqual(
+      ["09:00", "09:06", "09:12", "09:18", "09:24"].map((h) =>
+        new Date(`2026-11-18T${h}:00+01:00`).toISOString(),
+      ),
+    );
+    // Première semaine : cinq par 24 heures. Le sixième attend le lendemain, à la même heure.
+    expect(night[5]!.toISOString()).toBe(new Date("2026-11-19T09:06:00+01:00").toISOString());
+    expect(formatSendTime(night[1]!, "Europe/Paris", false)).toBe(
+      "mercredi 18 novembre vers 9 h 06",
+    );
+    // En pleine journée, le prochain passage est le bon.
+    const day = planSendTimes(new Date("2026-11-18T10:01:00+01:00"), 1, base);
+    expect(day[0]!.toISOString()).toBe(new Date("2026-11-18T10:06:00+01:00").toISOString());
+    // Plafond horaire atteint : on attend que l'heure glisse.
+    const busy = planSendTimes(new Date("2026-11-18T10:01:00+01:00"), 1, {
+      ...base,
+      hourlyCap: 1,
+      firstSendAt: new Date("2026-09-01T09:00:00+02:00"),
+      recent: [new Date("2026-11-18T09:54:00+01:00")],
+    });
+    expect(busy[0]!.toISOString()).toBe(new Date("2026-11-18T10:54:00+01:00").toISOString());
+    // Fuseau inconnu : aucune estimation, jamais d'heure inventée.
+    expect(
+      planSendTimes(new Date(), 2, { ...base, window: { ...W, timezone: "Nulle/Part" } }),
+    ).toEqual([null, null]);
   });
   it("échauffement 5, 10, 15 par jour puis le plafond de la boîte", () => {
     const now = new Date("2026-12-01T10:00:00Z");
