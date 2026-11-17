@@ -3198,6 +3198,35 @@ export type Database = {
           },
         ];
       };
+      site_logos: {
+        Row: {
+          site_id: string;
+          mime: string;
+          data_base64: string;
+          updated_at: string;
+        };
+        Insert: {
+          site_id: string;
+          mime: string;
+          data_base64: string;
+          updated_at?: string;
+        };
+        Update: {
+          site_id?: string;
+          mime?: string;
+          data_base64?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "site_logos_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: true;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       sites: {
         Row: {
           categories: string[];
@@ -3215,6 +3244,12 @@ export type Database = {
           target_keywords: string[];
           sender_email: string | null;
           signature_first_name: string | null;
+          signature_last_name: string | null;
+          signature_show_site: boolean;
+          signature_linkedin_url: string | null;
+          signature_phone: string | null;
+          signature_logo_token: string | null;
+          counterparts: string[];
           updated_at: string;
           verification_method: string | null;
           verification_token: string;
@@ -3237,6 +3272,12 @@ export type Database = {
           target_keywords?: string[];
           sender_email?: string | null;
           signature_first_name?: string | null;
+          signature_last_name?: string | null;
+          signature_show_site?: boolean;
+          signature_linkedin_url?: string | null;
+          signature_phone?: string | null;
+          signature_logo_token?: string | null;
+          counterparts?: string[];
           updated_at?: string;
           verification_method?: string | null;
           verification_token?: string;
@@ -3259,6 +3300,12 @@ export type Database = {
           target_keywords?: string[];
           sender_email?: string | null;
           signature_first_name?: string | null;
+          signature_last_name?: string | null;
+          signature_show_site?: boolean;
+          signature_linkedin_url?: string | null;
+          signature_phone?: string | null;
+          signature_logo_token?: string | null;
+          counterparts?: string[];
           updated_at?: string;
           verification_method?: string | null;
           verification_token?: string;

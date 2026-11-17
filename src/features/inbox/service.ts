@@ -15,6 +15,12 @@ import {
   type PaymentOption,
 } from "./payment";
 import { writeReply } from "./reply-writer";
+import {
+  COUNTERPART_PHRASES,
+  counterpartSentence,
+  isCounterpart,
+  type Counterpart,
+} from "@/features/signature/signature";
 import { viewFor, VIEWS, type InboxView, type ThreadState } from "./views";
 
 type Client = SupabaseClient<Database>;
@@ -150,6 +156,7 @@ interface Context {
   workspaceId: string;
   siteDomain: string;
   signature: string;
+  counterparts: Counterpart[];
   linkUrl: string;
   hook: string;
   anchor: string;
@@ -184,7 +191,7 @@ async function loadContext(supabase: Client, sentMessageId: string): Promise<Con
   if (!item || !plan) return null;
   const { data: site } = await supabase
     .from("sites")
-    .select("domain, signature_first_name")
+    .select("domain, signature_first_name, counterparts")
     .eq("id", plan.site_id)
     .single();
   if (!site) return null;
@@ -192,6 +199,7 @@ async function loadContext(supabase: Client, sentMessageId: string): Promise<Con
     workspaceId: sent.workspace_id,
     siteDomain: site.domain,
     signature: site.signature_first_name?.trim() || "",
+    counterparts: (site.counterparts ?? []).filter(isCounterpart),
     linkUrl: d.proposed_url,
     hook: d.hook,
     anchor: item.anchor_text,
@@ -455,6 +463,7 @@ async function buildDraft(
         theirSubject: inb.subject,
         category: target.category,
         allowedUrls: [ctx.linkUrl, ctx.pageUrl],
+        counterparts: ctx.counterparts.map((c) => COUNTERPART_PHRASES[c]),
       },
       { workspaceId: target.workspaceId },
     );
@@ -499,7 +508,11 @@ export async function choosePaymentOption(
   if (!ctx || !ctx.signature) return { status: "error", message: M.noContext };
   const p = buildPaymentDraft(
     option,
-    { signatureFirstName: ctx.signature, targetUrl: ctx.linkUrl },
+    {
+      signatureFirstName: ctx.signature,
+      targetUrl: ctx.linkUrl,
+      counterpartSentence: counterpartSentence(ctx.counterparts),
+    },
     budget,
   );
   const err = await upsertDraft(getServiceClient(), {

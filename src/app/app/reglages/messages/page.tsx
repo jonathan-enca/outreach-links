@@ -5,6 +5,7 @@ import { saveMessagesAction } from "@/features/settings/actions";
 import { SettingsHeader } from "@/features/settings/header";
 import { MessagesForm } from "@/features/settings/messages-form";
 import { pickSite, SiteTabs } from "@/features/settings/site-pick";
+import { isCounterpart } from "@/features/signature/signature";
 import { START_HREF } from "@/features/shell/next-step";
 import { isFounderRole } from "@/features/targets/types";
 import { t } from "@/lib/messages";
@@ -26,8 +27,13 @@ async function Messages({ searchParams }: { searchParams: Promise<{ site?: strin
         key={site.id}
         domain={site.domain}
         firstName={site.signature_first_name ?? ""}
+        lastName={site.signature_last_name ?? ""}
         role={isFounderRole(site.founder_role) ? site.founder_role : null}
-        offer={site.offered_asset ?? ""}
+        showSite={site.signature_show_site}
+        linkedinUrl={site.signature_linkedin_url ?? ""}
+        phone={site.signature_phone ?? ""}
+        logoUrl={site.signature_logo_token ? `/api/logo/${site.signature_logo_token}` : null}
+        counterparts={site.counterparts.filter(isCounterpart)}
         save={saveMessagesAction.bind(null, site.id)}
       />
     </>

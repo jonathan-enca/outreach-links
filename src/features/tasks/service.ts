@@ -1,4 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  SIGNATURE_COLUMNS,
+  applySignature,
+  signatureFromSite,
+  type SignatureSiteRow,
+} from "@/features/signature/signature";
 import type { AuditActionState } from "@/features/audits/service";
 import { SEND_LIMITS } from "@/features/sending/limits";
 import { addDays } from "@/features/sending/schedule";
@@ -28,10 +34,25 @@ export async function listTasks(supabase: Client): Promise<TaskView[]> {
     supabase.from("link_plan_items").select("id, source_domain, target_page_url").in("id", itemIds),
     supabase
       .from("target_drafts")
-      .select("id, plan_item_id, body, status")
+      .select("id, plan_id, plan_item_id, body, status")
       .in("plan_item_id", itemIds),
   ]);
   const validated = (drafts ?? []).filter((d) => d.status === "valide");
+  // Signature des réglages « Vos messages », en texte : un formulaire n'accepte ni logo ni mise en forme.
+  const planIds = [...new Set(validated.map((d) => d.plan_id))];
+  const { data: plans } =
+    planIds.length > 0
+      ? await supabase
+          .from("link_plans")
+          .select(`id, sites(${SIGNATURE_COLUMNS})`)
+          .in("id", planIds)
+      : { data: [] };
+  const signatureByPlan = new Map(
+    ((plans ?? []) as unknown as { id: string; sites: SignatureSiteRow | null }[]).map((p) => [
+      p.id,
+      p.sites ? signatureFromSite(p.sites, "") : null,
+    ]),
+  );
   const { data: bi } =
     validated.length > 0
       ? await supabase
@@ -67,7 +88,7 @@ export async function listTasks(supabase: Client): Promise<TaskView[]> {
       domain: it.source_domain,
       formUrl: x.form_url,
       targetUrl: it.target_page_url,
-      message: d.body,
+      message: applySignature(d.body, signatureByPlan.get(d.plan_id) ?? null),
       status: x.status,
       doneAt: x.done_at,
       followUpStatus: x.follow_up_status,

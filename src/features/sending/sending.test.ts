@@ -85,6 +85,7 @@ function world(
     hourly?: number;
     daily?: number;
     smtpPort?: number;
+    site?: Record<string, unknown>;
   } = {},
 ) {
   const n = opts.drafts ?? 3;
@@ -120,6 +121,7 @@ function world(
         daily_cap: opts.daily ?? 20,
       },
     ],
+    sites: opts.site ? [{ id: "site1", ...opts.site }] : [],
     link_plans: [{ id: "plan1", site_id: "site1" }],
     batches: [
       {
@@ -322,6 +324,57 @@ describe("moteur d'envoi : mode réel contre un faux serveur SMTP local", () => 
     const row = db.tables.sent_messages![0]!;
     expect(row).toMatchObject({ status: "envoye", dry_run: false, attempts: 1 });
     expect(JSON.stringify(db.tables)).not.toContain("pw-secret");
+  });
+
+  it("signature du site : remplace le prénom final ; avec un logo, le message part aussi en HTML", async () => {
+    mode = "ok";
+    const token = "ab".repeat(16);
+    const db = world({
+      drafts: 1,
+      smtpPort: port,
+      site: {
+        domain: "alice-site.fr",
+        founder_role: "fondateur",
+        signature_first_name: "Jo",
+        signature_last_name: "Martin",
+        signature_show_site: true,
+        signature_linkedin_url: null,
+        signature_phone: null,
+        signature_logo_token: token,
+      },
+    });
+    const r = await runSendTick(real(db));
+    expect(r[0]).toMatchObject({ result: "envoye" });
+    const mail = await simpleParser(received[received.length - 1]!);
+    const signed = "Corps 1\n\nJo Martin\nFondateur de alice-site.fr\nhttps://alice-site.fr";
+    expect(mail.text).toContain(signed);
+    expect(mail.text).toContain("répondez « stop »");
+    expect(mail.html).toContain(`<img src="https://app.test/api/logo/${token}"`);
+    expect(mail.html).toContain("<strong>Jo Martin</strong>");
+    // Le texte enregistré est celui qui est parti.
+    expect(db.tables.sent_messages![0]!.body).toContain(signed);
+  });
+
+  it("sans logo, le message signé reste en texte seul", async () => {
+    mode = "ok";
+    const db = world({
+      drafts: 1,
+      smtpPort: port,
+      site: {
+        domain: "alice-site.fr",
+        founder_role: null,
+        signature_first_name: "Jo",
+        signature_last_name: null,
+        signature_show_site: true,
+        signature_linkedin_url: null,
+        signature_phone: null,
+        signature_logo_token: null,
+      },
+    });
+    await runSendTick(real(db));
+    const mail = await simpleParser(received[received.length - 1]!);
+    expect(mail.text).toContain("Corps 1\n\nJo\nhttps://alice-site.fr");
+    expect(mail.html).toBe(false);
   });
 
   it("échec temporaire : réessayé après le délai, puis envoyé ; jamais avant", async () => {

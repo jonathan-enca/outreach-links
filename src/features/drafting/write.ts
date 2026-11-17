@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { LlmClient } from "@/lib/llm/client";
-import type { DraftContext, DraftItem, Presentation } from "./types";
+import { presentationText } from "@/features/signature/signature";
+import type { DraftContext, DraftItem } from "./types";
 
 export const draftSchema = z.object({
   subject: z.string().max(120).nullable(),
@@ -12,8 +13,9 @@ export const SYSTEM_PROMPT = `Tu écris, au nom d'une personne réelle, un court
 Règles absolues :
 - 3 à 5 phrases au total, ton naturel d'un humain qui a lu sa page, vouvoiement, aucune formule creuse (« j'espère que vous allez bien », « je me permets », « n'hésitez pas »).
 - Ouvre sur ce que dit sa page, en reprenant des mots EXACTS de la citation fournie (pas d'invention).
-- Une demande concrète et honnête : quelle page, où elle s'insérerait, pourquoi elle sert ses lecteurs. Mentionne ce que le site apporte (actif offert) sans exagérer.
+- Une demande concrète et honnête : quelle page, où elle s'insérerait, pourquoi elle sert ses lecteurs.
 - Inclus l'URL exacte fournie, telle quelle, et aucune autre URL.
+- Ne propose rien en échange (ni article, ni partage, ni lien en retour) : la page proposée se suffit.
 - Ne parle JAMAIS d'IA, d'automatisation, de robot, d'outil. Ne promets rien (trafic, résultats, garantie). Ne parle pas d'argent, de paiement ni de tarif.
 - Termine par le prénom de signature fourni, seul sur la dernière ligne.
 - Écris dans la langue du site à promouvoir.
@@ -34,11 +36,7 @@ const TYPE_ASK: Record<string, string> = {
 };
 
 /** Présentation de l'expéditeur : la réponse de l'utilisateur, jamais « fondateur » par défaut. */
-export function presentationText(p: Presentation, first: string, site: string): string {
-  if (p === "fondateur") return `Je suis ${first}, fondateur de ${site}`;
-  if (p === "equipe") return `Je suis ${first}, de l'équipe de ${site}`;
-  return `Je suis ${first} et je travaille avec l'éditeur de ${site}`;
-}
+export { presentationText };
 
 export function buildPrompt(
   item: DraftItem,
@@ -54,7 +52,6 @@ export function buildPrompt(
     },
     langue: ctx.language,
     canal: item.channel === "email" ? "email" : "formulaire_de_contact",
-    actif_offert: item.offer ?? ctx.offeredAsset,
     demande: TYPE_ASK[item.type] ?? "proposer un lien éditorial vers la page",
     url_a_inclure_exactement: proposedUrl,
     ancre_suggeree: item.anchorText,

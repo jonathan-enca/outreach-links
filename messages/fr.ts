@@ -2554,23 +2554,104 @@ export const fr = {
     yourMessages: {
       title: "Vos messages",
       description:
-        "Qui écrit et ce que vous proposez. Les messages ne citent que ce qui est écrit ici.",
-      firstNameHint: "Vos messages sont signés de ce prénom.",
-      role: "Comment vous vous présentez",
-      roleHint: "On n'écrit jamais « fondateur » sans votre accord.",
-      offer: "Ce que vous offrez en échange",
-      offerHint: "Une ressource, un outil, une contribution. Jamais d'argent sans votre décision.",
-      previewTitle: "Aperçu de la signature",
-      previewName: "Votre prénom",
-      of: "de",
-      previewBody:
-        "Bonjour,\n\nVotre page renvoie vers une ressource qui ne répond plus. Nous en publions une à jour, gratuite.",
-      neverTitle: "Ce que nous ne faisons jamais",
-      never: [
-        "Aucun message envoyé sans votre validation",
-        "Aucun lien acheté sans votre décision",
-        "Un moyen de ne plus être contacté dans chaque message",
-      ],
+        "Qui signe vos messages et comment. L'aperçu montre ce que reçoit un éditeur, au mot près pour la signature.",
+      who: {
+        title: "Qui écrit",
+        body: "Un vrai prénom et un vrai rôle : c'est ce qu'un éditeur vérifie en premier.",
+        firstName: "Prénom",
+        lastName: "Nom",
+        optional: "(facultatif)",
+        role: (domain: string) => `Votre rôle pour ${domain}`,
+        roles: {
+          fondateur: "Fondateur",
+          equipe: "Membre de l'équipe",
+          agence: "Agence ou prestataire",
+        },
+        written: (sentence: string) => `Écrit tel quel dans le message : « ${sentence} ».`,
+        previewName: "Votre prénom",
+        noRole: (first: string) => `Je suis ${first}`,
+      },
+      signature: {
+        title: "Signature",
+        body: "Une signature d'entreprise classique : votre nom, votre rôle, et ce que vous cochez ici.",
+        logo: "Logo de votre entreprise",
+        logoHint: "Affiché en petit à côté de votre nom, comme dans une signature professionnelle.",
+        logoFile: "Votre logo",
+        logoFileHint:
+          "PNG ou JPG. Si la messagerie du destinataire bloque les images, le reste de la signature s'affiche normalement.",
+        logoCurrent: "Logo actuel",
+        logoAlt: "Votre logo",
+        logoUnreadable: "Cette image n'a pas pu être lue. Choisissez un fichier PNG ou JPG.",
+        site: "Lien vers votre site",
+        siteHint: (domain: string) => `${domain}, ajouté sous votre nom.`,
+        linkedin: "Profil LinkedIn",
+        linkedinHint:
+          "Montre qu'une vraie personne écrit. Le plus efficace pour inspirer confiance.",
+        linkedinUrl: "Adresse de votre profil",
+        linkedinPlaceholder: "linkedin.com/in/votre-profil",
+        phone: "Téléphone",
+        phoneHint:
+          "Utile pour les mairies, associations et commerces, qui préfèrent parfois appeler.",
+        phoneNumber: "Votre numéro",
+      },
+      counterparts: {
+        title: "Si un éditeur demande une contrepartie",
+        body: "Votre premier message ne propose rien en échange : il propose une page utile à ses lecteurs. Ces choix servent seulement à préparer votre réponse quand un éditeur demande quelque chose en retour.",
+        items: {
+          partage: { title: "Partager sa page", hint: "Sur vos réseaux ou dans votre newsletter." },
+          article: {
+            title: "Écrire un article pour son site",
+            hint: "Un contenu original, signé de votre nom.",
+          },
+          lien_retour: {
+            title: "Faire un lien en retour",
+            hint: "Depuis votre site vers le sien. À garder rare : des échanges de liens en série se repèrent.",
+          },
+        },
+        short: {
+          partage: "partager sa page",
+          article: "écrire un article pour son site",
+          lien_retour: "faire un lien en retour",
+        },
+        paid: "Payer pour un lien",
+        paidHint:
+          "Jamais automatique. Chaque demande de paiement vous est soumise, et la réponse par défaut est un refus poli.",
+        none: "Rien de coché : si un éditeur demande une contrepartie, la réponse préparée sera un refus poli.",
+        some: (list: string) =>
+          `Si un éditeur demande une contrepartie, la réponse proposera : ${list}. Vous la validez avant l'envoi.`,
+        or: " ou ",
+      },
+      save: "Enregistrer",
+      saving: "Enregistrement…",
+      saveNote:
+        "S'applique aux prochains messages et à ceux déjà dans « À valider ». Les messages déjà envoyés ne changent pas.",
+      preview: {
+        title: "Ce que reçoit l'éditeur",
+        body: "Exemple de message. Les passages entre crochets changent pour chaque site.",
+        from: "De",
+        subject: "Objet",
+        subjectValue: "Un lien ne fonctionne plus sur votre page",
+        hello: "Bonjour,",
+        p1: (intro: string) =>
+          `${intro}. Dans votre article « [titre de sa page] », le lien vers [la ressource citée] affiche une erreur 404.`,
+        p2: (domain: string) =>
+          `Nous publions une page à jour sur le même sujet : https://${domain}/[votre-page]. Elle peut le remplacer si elle vous semble utile à vos lecteurs.`,
+        bye: "Bonne journée,",
+        signature: "Votre signature",
+        facts: [
+          "Rien ne part sans votre validation.",
+          "Chaque message permet à l'éditeur de demander à ne plus être contacté.",
+          "Dans un formulaire de contact, la même signature part en texte simple, sans logo.",
+        ],
+      },
+      errors: {
+        firstName: "Indiquez votre prénom (60 caractères au plus).",
+        lastName: "Le nom est trop long (60 caractères au plus).",
+        role: "Choisissez votre rôle.",
+        linkedin: "Adresse LinkedIn invalide. Exemple : linkedin.com/in/votre-profil",
+        phone: "Numéro de téléphone invalide.",
+        logo: "Logo refusé : choisissez une image PNG ou JPG plus légère.",
+      },
     },
   },
   notifications: {

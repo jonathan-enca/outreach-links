@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { AuditActionState } from "@/features/audits/service";
 import { t } from "@/lib/messages";
-import type { PendingForm, PendingMessage, PendingReply, QueueView } from "./service";
+import type { PendingForm, PendingMessage, PendingReply, QueueView, SignedView } from "./service";
 
 const V = t.toValidate;
 type Result = Promise<AuditActionState>;
@@ -31,12 +31,14 @@ const LABEL = "text-[11px] font-semibold uppercase tracking-wider text-muted-for
 function Body({
   subject,
   body,
+  signed,
   editing,
   withSubject,
   onChange,
 }: {
   subject: string | null;
   body: string;
+  signed?: SignedView | null;
   editing: boolean;
   withSubject: boolean;
   onChange: (s: string, b: string) => void;
@@ -45,7 +47,35 @@ function Body({
     return (
       <>
         {subject ? <p className="font-semibold">{subject}</p> : null}
-        <p className="whitespace-pre-line rounded-control bg-muted px-3 py-2.5 text-sm">{body}</p>
+        {signed ? (
+          <div className="rounded-control bg-muted px-3 py-2.5 text-sm">
+            <p className="whitespace-pre-line">{signed.content}</p>
+            <div className="mt-3 flex items-center gap-3 [overflow-wrap:anywhere]">
+              {signed.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- logo servi par jeton
+                <img
+                  src={signed.logoUrl}
+                  alt=""
+                  className="h-10 w-auto max-w-24 shrink-0 object-contain"
+                />
+              ) : null}
+              <div className="flex min-w-0 flex-col">
+                {signed.lines.map((l, i) => (
+                  <span
+                    key={i}
+                    className={
+                      l.strong ? "font-semibold" : l.href ? "text-info underline" : undefined
+                    }
+                  >
+                    {l.text}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="whitespace-pre-line rounded-control bg-muted px-3 py-2.5 text-sm">{body}</p>
+        )}
       </>
     );
   return (
@@ -77,6 +107,7 @@ function Item({
   campaign,
   subject,
   body,
+  signed,
   withSubject,
   aside,
   issues,
@@ -92,6 +123,7 @@ function Item({
   campaign?: string;
   subject: string | null;
   body: string;
+  signed?: SignedView | null;
   withSubject: boolean;
   aside: { title: string; text: string }[];
   issues?: string[];
@@ -128,6 +160,7 @@ function Item({
         <Body
           subject={subject}
           body={body}
+          signed={signed}
           editing={editing}
           withSubject={withSubject}
           onChange={(s, b) => setDraft({ subject: s, body: b })}
@@ -325,6 +358,7 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
                   to={r.to}
                   subject={r.subject}
                   body={r.body}
+                  signed={r.signed}
                   withSubject={r.subject !== null}
                   aside={[{ title: V.aside.theirs, text: `« ${r.theirs} »` }]}
                   primary={{ label: V.approve, run: () => actions.approveReply(r.id) }}
@@ -352,6 +386,7 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
                   campaign={m.campaign}
                   subject={m.subject}
                   body={m.body}
+                  signed={m.signed}
                   withSubject={m.channel === "email"}
                   aside={[
                     { title: V.aside.hook, text: m.hook },

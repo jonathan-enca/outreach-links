@@ -1,4 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  SIGNATURE_COLUMNS,
+  signatureFromSite,
+  signatureLines,
+  splitSignoff,
+  type Signature,
+  type SignatureLine,
+  type SignatureSiteRow,
+} from "@/features/signature/signature";
 import type { AuditActionState } from "@/features/audits/service";
 import { lintMessage } from "@/features/drafting/lint";
 import type { LintIssue } from "@/features/drafting/types";
@@ -8,6 +17,25 @@ import type { Database } from "@/lib/supabase/database.types";
 
 type Client = SupabaseClient<Database>;
 const M = t.toValidate.messages;
+
+/**
+ * Le message tel qu'il partira : le texte sans le prénom final, suivi de la signature des réglages
+ * « Vos messages ». Le logo ne part que par email (un formulaire n'accepte que du texte).
+ */
+export interface SignedView {
+  content: string;
+  lines: SignatureLine[];
+  logoUrl: string | null;
+}
+
+function signedView(body: string, s: Signature | null, withLogo: boolean): SignedView | null {
+  if (!s) return null;
+  return {
+    content: splitSignoff(body, s).content,
+    lines: signatureLines(s),
+    logoUrl: withLogo ? s.logoUrl : null,
+  };
+}
 
 /** Un premier message (email ou formulaire) qui attend l'accord de la personne. */
 export interface PendingMessage {
@@ -21,6 +49,7 @@ export interface PendingMessage {
   to: string | null;
   subject: string | null;
   body: string;
+  signed: SignedView | null;
   hook: string;
   reason: string;
   ready: boolean;
@@ -35,6 +64,7 @@ export interface PendingReply {
   to: string | null;
   subject: string | null;
   body: string;
+  signed: SignedView | null;
   /** Ce que le prospect a écrit (extrait). */
   theirs: string;
 }
@@ -102,7 +132,10 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
           .in("plan_item_id", itemIds)
       : { data: [] },
     planIds.length
-      ? supabase.from("link_plans").select("id, sites(domain, country)").in("id", planIds)
+      ? supabase
+          .from("link_plans")
+          .select(`id, sites(country, ${SIGNATURE_COLUMNS})`)
+          .in("id", planIds)
       : { data: [] },
     r.length
       ? supabase
@@ -116,7 +149,7 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
     r.length
       ? supabase
           .from("sent_messages")
-          .select("id, to_email")
+          .select("id, to_email, plan_id")
           .in(
             "id",
             r.map((x) => x.sent_message_id),
@@ -135,14 +168,31 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
   const itemMap = new Map((items.data ?? []).map((i) => [i.id, i]));
   const contactMap = new Map((contacts.data ?? []).map((c) => [c.plan_item_id, c]));
   const countries = t.sites.countries as Record<string, string>;
+  type PlanSite = (SignatureSiteRow & { country: string | null }) | null;
+  const planRows = [...((plans.data ?? []) as unknown as { id: string; sites: PlanSite }[])];
+  // Les réponses peuvent venir d'un plan qui n'a plus de premier message en attente.
+  const missing = [...new Set((sent.data ?? []).map((s) => s.plan_id))].filter(
+    (id) => !planRows.some((p) => p.id === id),
+  );
+  if (missing.length) {
+    const more = await supabase
+      .from("link_plans")
+      .select(`id, sites(country, ${SIGNATURE_COLUMNS})`)
+      .in("id", missing);
+    planRows.push(...((more.data ?? []) as unknown as { id: string; sites: PlanSite }[]));
+  }
   const campaignMap = new Map(
-    (plans.data ?? []).map((p) => {
-      const s = p.sites as unknown as { domain: string; country: string | null } | null;
+    planRows.map((p) => {
+      const s = p.sites;
       return [
         p.id,
         s ? `${s.domain}${s.country ? ` · ${countries[s.country] ?? s.country}` : ""}` : "",
       ];
     }),
+  );
+  // Adresse relative du logo : l'écran est servi par la même application.
+  const signatureMap = new Map(
+    planRows.map((p) => [p.id, p.sites ? signatureFromSite(p.sites, "") : null]),
   );
   const messages: PendingMessage[] = d
     .map((x) => {
@@ -161,6 +211,7 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
         to: channel === "email" ? (c?.email ?? null) : (c?.form_url ?? null),
         subject: x.subject,
         body: x.body,
+        signed: signedView(x.body, signatureMap.get(x.plan_id) ?? null, channel === "email"),
         hook: x.hook,
         reason: x.targeting_reason,
         ready: x.ready,
@@ -177,6 +228,7 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
     });
   const inMap = new Map((inbound.data ?? []).map((i) => [i.id, i.body_excerpt]));
   const toMap = new Map((sent.data ?? []).map((s) => [s.id, s.to_email]));
+  const sentPlan = new Map((sent.data ?? []).map((s) => [s.id, s.plan_id]));
   const clsMap = new Map((cls.data ?? []).map((c) => [c.inbound_message_id, c.id]));
   return {
     messages,
@@ -187,6 +239,11 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
       to: toMap.get(x.sent_message_id) ?? null,
       subject: x.subject,
       body: x.body,
+      signed: signedView(
+        x.body,
+        signatureMap.get(sentPlan.get(x.sent_message_id) ?? "") ?? null,
+        true,
+      ),
       theirs: inMap.get(x.inbound_message_id) ?? "",
     })),
     forms: tasks

@@ -142,6 +142,7 @@ export interface OutreachMail {
   to: string;
   subject: string;
   text: string;
+  html?: string;
   messageId: string;
   inReplyTo?: string;
   references?: string;
@@ -180,6 +181,7 @@ export async function sendOutreachMail(
         to: mail.to,
         subject: mail.subject,
         text: mail.text,
+        ...(mail.html ? { html: mail.html } : {}),
         messageId: mail.messageId,
         inReplyTo: mail.inReplyTo,
         references: mail.references,
