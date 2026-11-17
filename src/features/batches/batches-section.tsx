@@ -68,6 +68,14 @@ function ItemRow({
       <p className="text-sm text-muted-foreground">
         {m.hook} « {item.hook} »
       </p>
+      {item.channel === "formulaire" && item.formUrl ? (
+        <p className="text-sm text-muted-foreground">
+          {m.formChannel}{" "}
+          <a href={item.formUrl} target="_blank" rel="noreferrer" className="underline">
+            {item.formUrl}
+          </a>
+        </p>
+      ) : null}
       {item.email ? (
         <p className="text-sm text-muted-foreground">
           {m.to} {item.email}

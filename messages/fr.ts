@@ -1930,6 +1930,7 @@ export const fr = {
     triage: "Tri :",
     hook: "S'appuie sur :",
     to: "Destinataire :",
+    formChannel: "Formulaire de contact (à remplir à la main, message prêt à coller) :",
     edit: "Modifier",
     save: "Enregistrer",
     saving: "Enregistrement…",
