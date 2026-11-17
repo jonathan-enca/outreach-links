@@ -320,16 +320,23 @@ Ordre conseillé : MN.1 (court, sans code) et MH.1 en parallèle, puis MN.2, MH.
 - Les « concurrents » recoupés étaient fr.norton.com, senat.fr, studyrama.com... : des sites qui parlent du thème, pas des pages comparables aux nôtres.
 - Constats concrets (lien mort, mention sans lien) : 4 sur 80.
 
-**Principe.** Inverser la recherche : partir de chaque page précise du site et chercher les pages d'autres sites qui traitent exactement ce point. Puis ne garder qu'une page où un lien a sa place, et le vérifier avant de dépenser quoi que ce soit en contact et en rédaction.
+**Principe.** Trois familles de recherche, toutes à partir de ce que le site possède vraiment (son profil, ses publics, ses pages précises), puis une seule question avant de dépenser en contact et en rédaction : un lien a-t-il sa place sur cette page, et quelqu'un la modifiera-t-il ?
 
-Un sous-jalon = une session. Chaque sous-jalon se termine par une mesure sur remove-me.io et mega-coloring.com, comparée à la référence (10 % de cibles avec angle).
+1. **Par sujet** : pour chaque page précise du site, les pages d'autres sites qui traitent exactement ce point.
+2. **Par public** : pour chaque page précise, les éditeurs dont les lecteurs en ont besoin. Les publics viennent de l'analyse du site déjà faite (`brand_profiles.personas`) ; on les croise avec le sujet de la page, plus avec le thème général. Le meilleur angle du 17/11 (les professeurs documentalistes) venait d'une recherche par public.
+3. **Par lien mort** : les pages qui citent une ressource disparue que le site peut remplacer. C'est l'angle le plus solide : la personne a un problème, on lui apporte la solution.
+
+**Règle de généralité (décision de Jonathan, 17/11/2026).** remove-me.io n'est qu'un site de test. Aucun mot, aucune règle, aucun seuil propre à un thème dans le code : tout vient du profil et des pages du site. Chaque sous-jalon se mesure sur au moins deux sites de thèmes différents (remove-me.io et mega-coloring.com) et n'est validé que si le gain tient sur les deux.
+
+Un sous-jalon = une session. Chaque sous-jalon se termine par une mesure comparée à la référence (10 % de cibles avec angle).
 
 ### MC.0 Mesurer avant de construire (essai sans code produit)
 
-- Prendre 6 pages précises de remove-me.io. Pour chacune, écrire 3 recherches « de sujet » (ce qu'un article voisin viserait) et lire les 20 premiers résultats (≈ 0,11 USD de DataForSEO).
-- Retirer par l'adresse les pages d'accueil, légales, commerciales et les rubriques, puis passer le reste au tri d'angle du rédacteur.
-- Critère : au moins 30 % de pages avec angle après le filtre gratuit (référence : 10 %). En dessous, revoir le principe avant de coder la suite.
-- Sortie : tableau par type de recherche (pages lues, angles trouvés, coût), noté dans `PROGRESS.md`.
+- Sur les deux sites de test, prendre 6 pages précises. Pour chacune : 2 recherches par sujet et 2 recherches par public (publics du profil), 10 premiers résultats.
+- Retirer par l'adresse les pages d'accueil, légales, commerciales et les rubriques. Sur les pages restantes, relever les liens sortants cassés du contenu.
+- Passer un échantillon au tri d'angle du rédacteur (petit modèle, puis modèle fort sur les pages retenues).
+- Critère : au moins 30 % de pages avec angle après le filtre gratuit, sur chacun des deux sites (référence : 10 %). En dessous, revoir le principe avant de coder la suite.
+- Sortie : tableau par site et par famille de recherche (résultats, pages lues, angles, liens morts utiles, coût), noté dans `PROGRESS.md`.
 
 ### MC.1 Filtre gratuit par nature de page
 
@@ -337,17 +344,28 @@ Un sous-jalon = une session. Chaque sous-jalon se termine par une mesure sur rem
 - Exception : une page d'accueil reste candidate pour une mention sans lien ou un lien mort constaté.
 - Motif d'exclusion lisible, compté dans l'entonnoir. Jeu d'essai annoté (les 80 cibles du 17/11 : 60 doivent tomber, les 2 bonnes doivent rester).
 
-### MC.2 Recherches à partir des pages du site
+### MC.2 Recherches par sujet et par public, à partir des pages du site
 
-- Réutiliser le catalogue du rédacteur (`site_pages`). Pour chaque page précise, le modèle écrit 2 à 4 recherches de sujet et, s'il y en a, le « fait nouveau » que la page connaît et que d'anciens articles ignorent (exemple : la fin de Bloctel au 11 août 2026).
-- Ces recherches remplacent la majorité des recherches par thème dans l'univers de requêtes ; le coût annoncé avant lancement ne change pas d'ordre de grandeur (0,006 USD par recherche).
-- Chaque candidat garde la page du site qui l'a fait trouver : le rédacteur part de cette page au lieu de la deviner.
+- Réutiliser le catalogue du rédacteur (`site_pages`) et les publics du profil (`brand_profiles.personas`). Pour chaque page précise, le modèle écrit des recherches par sujet (ce qu'un article voisin viserait) et des recherches par public (ce public + ce sujet), et dit quel public a besoin de quelle page.
+- S'il y en a un, il relève le « fait nouveau » que la page connaît et que d'anciens articles ignorent (une règle qui a changé, un service fermé) : les pages qui donnent encore l'ancienne information sont des cibles naturelles.
+- Ces recherches remplacent la majorité des recherches « public + thème général » de l'univers de requêtes ; le coût annoncé avant lancement ne change pas d'ordre de grandeur (0,006 USD par recherche).
+- Chaque candidat garde la page du site et le public qui l'ont fait trouver : le rédacteur part de là au lieu de deviner.
+- Mesure : part de pages avec angle par famille (sujet, public), sur les deux sites.
 
-### MC.3 Qui cite déjà une page comme la nôtre
+### MC.3 Liens morts
 
-- Pour chaque page du site, repérer les 3 à 5 pages concurrentes les mieux placées sur ses recherches, puis lire QUI les cite (backlinks de la page, pas du domaine). Une page qui cite déjà un guide équivalent est la meilleure cible : le lien a déjà sa place.
-- Même lecture pour les pages concurrentes disparues (404) encore citées : remplacement de lien mort, l'angle le plus solide.
-- Remplace le recoupement par domaine actuel (concurrents mal choisis). Coût à annoncer et à plafonner : mesuré le 16/11, 0,05 USD par appel de backlinks.
+Trois sources, de la moins chère à la plus chère. Aujourd'hui : 11 candidats et 4 constats sur 80 cibles, la phase étant coupée par son budget.
+
+- **Dans les pages déjà trouvées (gratuit)** : vérifier les liens sortants du contenu de chaque page lue (pas seulement ceux de la liste courte), et ne garder que les liens cassés dont le sujet correspond à une page du site. Un lien cassé sans rapport n'est pas un angle (le flux d'agenda d'isoc.fr, 17/11).
+- **Pages disparues de sites comparables (payant, plafonné)** : pour les sites dont les pages se classent sur les mêmes recherches que les nôtres, lire leurs pages en 404 qui reçoivent encore des liens, puis QUI les cite. Remplace le choix actuel des « concurrents » par thème (fr.norton.com, senat.fr le 17/11).
+- **Ressources connues qui ont fermé** : quand le profil ou une page du site nomme un service, un outil ou une page officielle qui n'existe plus, chercher qui le cite encore.
+- Pour chaque lien mort retenu : la page du site qui le remplace, vérifiée en 200, et l'adresse exacte du lien cassé (le message la cite).
+- Coût à annoncer et à plafonner : mesuré le 16/11, 0,05 USD par appel de backlinks.
+
+### MC.3b Qui cite déjà une page comme la nôtre
+
+- Pour chaque page du site, repérer les 3 à 5 pages les mieux placées sur ses recherches, puis lire QUI les cite (backlinks de la page, pas du domaine). Une page qui cite déjà un guide équivalent a une place pour le nôtre.
+- À lancer seulement si MC.2 et MC.3 ne suffisent pas à atteindre l'objectif de volume : c'est la famille la plus chère.
 
 ### MC.4 La qualification juge l'angle, pas le sujet
 
