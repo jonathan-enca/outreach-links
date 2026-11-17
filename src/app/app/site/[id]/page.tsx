@@ -5,9 +5,8 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { MailboxSection, type MailboxView } from "@/features/mailboxes/mailbox-section";
-import { updateSiteAction, verifySiteAction } from "@/features/sites/actions";
+import { updateSiteAction } from "@/features/sites/actions";
 import { SiteForm } from "@/features/sites/site-form";
-import { VerificationPanel } from "@/features/sites/verification-panel";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 
@@ -41,12 +40,6 @@ async function Site({ params }: { params: Promise<{ id: string }> }) {
   }));
   return (
     <div className="flex flex-col gap-6">
-      <VerificationPanel
-        domain={site.domain}
-        token={site.verification_token}
-        verified={Boolean(site.verified_at)}
-        action={verifySiteAction.bind(null, site.id)}
-      />
       <Card className="p-6">
         <SiteForm
           action={updateSiteAction.bind(null, site.id)}

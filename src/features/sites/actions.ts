@@ -3,15 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/service";
-import {
-  createSite,
-  updateSite,
-  verifySite,
-  type SiteFormState,
-  type VerifyState,
-} from "./service";
-import { safeFetchPage } from "./verify";
+import { createSite, updateSite, type SiteFormState } from "./service";
 
 export async function createSiteAction(
   _prev: SiteFormState,
@@ -32,11 +24,5 @@ export async function updateSiteAction(
 ): Promise<SiteFormState> {
   const result = await updateSite(await createClient(), siteId, formData);
   if (result.status === "saved") revalidatePath(`/app/site/${siteId}`);
-  return result;
-}
-
-export async function verifySiteAction(siteId: string): Promise<VerifyState> {
-  const result = await verifySite(await createClient(), siteId, safeFetchPage, createServiceClient);
-  if (result.status === "verified") revalidatePath(`/app/site/${siteId}`);
   return result;
 }

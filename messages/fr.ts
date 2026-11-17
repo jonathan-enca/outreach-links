@@ -984,8 +984,6 @@ export const fr = {
     newTitle: "Ajouter votre site",
     editTitle: "Modifier votre site",
     back: "Retour à mes sites",
-    verifiedBadge: "Propriété vérifiée",
-    unverifiedBadge: "Propriété non vérifiée",
     manage: "Gérer ce site",
     fields: {
       domain: "Domaine du site",
@@ -1020,17 +1018,6 @@ export const fr = {
     languages: { fr: "Français", en: "Anglais" },
     save: "Enregistrer",
     create: "Créer le site",
-    verify: {
-      title: "Vérifier la propriété du domaine",
-      body: "La vérification prouve que ce site est bien le vôtre. Elle n'est pas nécessaire pour l'audit, mais elle est exigée avant tout envoi.",
-      metaTitle: "Option 1 : balise meta",
-      metaBody: "Ajoutez cette ligne dans la section head de la page d'accueil.",
-      fileTitle: "Option 2 : fichier",
-      fileBody: "Publiez un fichier texte contenant uniquement ce code, à l'adresse suivante.",
-      button: "Vérifier maintenant",
-      done: "Propriété vérifiée",
-      doneBody: "Ce domaine est vérifié. Si vous changez de domaine, il faudra le refaire.",
-    },
     messages: {
       unauthenticated: "Votre session a expiré. Reconnectez-vous.",
       noWorkspace: "Aucun espace de travail trouvé pour votre compte.",

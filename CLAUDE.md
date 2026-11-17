@@ -129,7 +129,7 @@ Réponse de la cible demandant de l'argent : trois options présentées à l'uti
 - Liste de suppression globale et par utilisateur ; lien de désinscription ; `List-Unsubscribe`.
 - **Suspension automatique** d'une boîte ou d'un compte au-delà de seuils de rebonds ou de plaintes.
 - Blocage de domaines sensibles (gouvernement, santé, etc.) [HYPOTHÈSE] et des destinataires déjà contactés par un autre utilisateur dans un délai donné [HYPOTHÈSE].
-- Anti-abus à l'inscription (vérification de propriété du domaine, ex. fichier ou balise).
+- Anti-abus à l'inscription : **pas de vérification de propriété du domaine** (décision de Jonathan, 17/11/2026 : une campagne lancée pour le site d'un autre ne lui apporte que des liens, et la vraie sécurité est la boîte d'envoi connectée, que l'utilisateur doit contrôler). Les garde-fous restent les plafonds par boîte, la validation avant envoi, la liste de suppression et la suspension automatique.
 
 ### 4.5 Coûts et audit gratuit
 
