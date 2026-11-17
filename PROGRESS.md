@@ -1599,3 +1599,9 @@ Seconde passe (accord de Jonathan) : les trois sections du détail sont **empil�
 - **Accueil** : `/app` ne renvoie plus droit aux cibles quand il n'y a qu'un site (`homeDestination`) : la liste des sites s'affiche toujours (état, prochaine étape, « Revoir l'analyse » quand les cibles sont prêtes). Revient sur le choix MU.2 « accueil = prochaine étape ».
 - **Textes** : section des concurrents renommée « Vos concurrents sur Google » et réécrite côté utilisateur ; « Lire d'autres sites » devient « Lire le lot suivant », avec ce qu'un clic fait (jusqu'à 150 sites, environ 5 minutes).
 - À décider : un clic sur « Lire le lot suivant » coûte jusqu'à 0,15 USD (`MORE_LIMITS.budgetUsd`) et rien ne limite le nombre de clics par analyse.
+- **« Reprendre à partir d'ici »** n'est plus proposé sur une analyse **terminée** (seulement après un échec) : le bouton effaçait les cibles déjà livrées et repayait les étapes suivantes (`analysis/view.ts`, `canRestart`). Le lien du bas de l'écran des cibles devient « Voir le détail de l'analyse » (lecture seule).
+
+### Backlog (notes de Jonathan, 18/11, à ouvrir)
+
+- **Onglet « Campagnes »** : repenser l'espace client autour des campagnes. Une campagne = l'analyse complète faite au départ (un site × un pays) ; ses résultats servent ensuite à écrire et envoyer les messages. Remplace l'accueil « liste des sites » et l'accès aux étapes de l'analyse.
+- **Chantier emailing de rétention** : prévenir l'utilisateur par email quand un nouveau site avec une opportunité de lien est disponible, pour qu'il revienne faire la demande.

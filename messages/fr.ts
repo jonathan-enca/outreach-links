@@ -1377,7 +1377,7 @@ export const fr = {
   },
   targets: {
     title: "Vos cibles",
-    reviewSteps: "Revoir les étapes de l'analyse ou en reprendre une",
+    reviewSteps: "Voir le détail de l'analyse",
     description:
       "La liste courte, classée : pour chaque site, la demande à faire et pourquoi. Rien n'est envoyé avant que vous ayez validé un lot de messages.",
     back: "Retour à l'analyse",
@@ -2416,7 +2416,7 @@ export const fr = {
       title: "Vos sites",
       description: "Où en est chacun de vos sites, et quoi faire ensuite.",
       add: "Ajouter un site",
-      review: "Revoir l'analyse",
+      review: "Voir le détail de l'analyse",
       state: {
         onboarding: "À vérifier avant l'analyse",
         analyse: "Analyse en cours",
