@@ -185,21 +185,31 @@ describe("types d'éditeurs déduits du profil", () => {
 });
 
 describe("gabarits de requêtes par type d'éditeur", () => {
-  it("au moins 4 requêtes par type, faites des mots du type et du thème, opérateurs intitle et inurl", () => {
+  it("au moins 4 requêtes par type, faites des mots du type et du thème, sans opérateur (cinq fois plus cher)", () => {
     for (const type of types) {
       const qs = typeQueries(type, theme, "fr");
       expect(qs.length).toBeGreaterThanOrEqual(GUARANTEED_PER_TYPE);
       expect(new Set(qs.map((q) => q.q)).size).toBe(qs.length);
       expect(qs[0]!.q).toBe(joinWords(type.terms[0], theme[0]));
-      expect(qs.some((q) => q.q.includes("intitle:"))).toBe(true);
-      expect(qs.some((q) => q.q.includes("inurl:"))).toBe(true);
-      for (const q of qs) expect(q.q).toContain("mariage");
+      for (const q of qs) {
+        expect(q.q).toContain("mariage");
+        expect(q.q).not.toMatch(/intitle:|inurl:|site:|"/);
+      }
+      expect(qs.some((q) => q.tactic === "ressources")).toBe(true);
     }
-    expect(typeQueries(types[0]!, theme, "fr")[1]!.q).toBe(
-      'intitle:"wedding planner" photographe mariage',
-    );
-    expect(typeQueries(types[2]!, theme, "fr").map((q) => q.q)).toContain(
-      "photographe mariage inurl:mairie",
+    expect(
+      typeQueries(types[0]!, theme, "fr")
+        .slice(0, 4)
+        .map((q) => q.q),
+    ).toEqual([
+      "wedding planner photographe mariage",
+      "organisatrice de mariage photos",
+      "wedding planner photos de mariage",
+      "wedding planner photographe mariage liens utiles",
+    ]);
+    // Un type à un seul mot : le vocabulaire générique de sa catégorie complète.
+    expect(typeQueries(types[3]!, theme, "fr").map((q) => q.q)).toContain(
+      "boutique blog fleuriste photographe mariage",
     );
   });
 
