@@ -2423,7 +2423,7 @@ export const fr = {
       billing: "Abonnement",
       notifications: "Notifications",
       changeSite: "Voir tous vos sites",
-      short: { conversations: "Échanges", settings: "Réglages" },
+      short: { conversations: "Échanges" },
       groups: {
         prospecting: "Prospection",
         mailbox: "Messagerie",
@@ -2500,6 +2500,25 @@ export const fr = {
         analyse: "Voir l'analyse",
         reprise: "Reprendre l'analyse",
         cibles: "Voir vos cibles",
+      },
+    },
+    settingsHub: {
+      title: "Réglages",
+      description: "Votre boîte d'envoi, vos messages, vos notifications et votre abonnement.",
+      back: "Réglages",
+      groups: { sending: "Envoi", follow: "Suivi", account: "Compte" },
+      links: {
+        mailbox: {
+          label: "Boîte d'envoi",
+          hint: "Connecter votre boîte, jours et heures d'envoi",
+        },
+        messages: { label: "Vos messages", hint: "Qui écrit, signature, contreparties" },
+        notifications: { label: "Notifications", hint: "Ce que vous recevez par email" },
+        safeguards: { label: "Garde-fous d'envoi", hint: "Plafonds, pause, niveau d'autonomie" },
+        links: { label: "Liens obtenus", hint: "Les liens posés et leur vérification" },
+        tasks: { label: "Tâches à faire à la main", hint: "Formulaires de contact à remplir" },
+        sites: { label: "Vos sites", hint: "Ajouter un site ou régler l'un d'eux" },
+        billing: { label: "Abonnement", hint: "Votre offre et votre facturation" },
       },
     },
     account: {

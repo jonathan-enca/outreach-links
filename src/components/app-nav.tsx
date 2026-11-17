@@ -14,9 +14,11 @@ import {
   Mail,
   MessageSquare,
   PenLine,
+  Settings,
   Target,
   type LucideIcon,
 } from "lucide-react";
+import { inSettings, SETTINGS_HOME } from "@/features/shell/settings-links";
 import { t } from "@/lib/messages";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +40,8 @@ interface Item {
   count?: number;
   /** Présent dans la barre basse du téléphone. */
   mobile?: boolean;
+  /** Seulement dans la barre basse : le menu latéral de l'ordinateur liste déjà chaque page. */
+  mobileOnly?: boolean;
   /** Libellé court pour la barre basse (la place est comptée). */
   short?: string;
 }
@@ -149,8 +153,6 @@ export function AppNav({
           label: n.yourMessages,
           icon: PenLine,
           active: starts("/app/reglages/messages") || onSettings || starts("/app/garde-fous"),
-          mobile: true,
-          short: n.short.settings,
         },
         {
           key: "notifications",
@@ -158,6 +160,16 @@ export function AppNav({
           label: n.notifications,
           icon: Bell,
           active: starts("/app/reglages/notifications"),
+        },
+        {
+          // Téléphone : la porte d'entrée de toutes les pages de réglages (liste complète).
+          key: "reglages",
+          href: SETTINGS_HOME,
+          label: n.groups.settings,
+          icon: Settings,
+          active: inSettings(pathname),
+          mobile: true,
+          mobileOnly: true,
         },
         {
           key: "abonnement",
@@ -225,25 +237,29 @@ export function AppNav({
                 {g.title}
               </p>
             ) : null}
-            {g.items.map(({ key, href, label, icon: Icon, active, count }) => (
-              <Link
-                key={key}
-                href={href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm",
-                  active ? "bg-sidebar-active font-semibold text-white" : "hover:bg-sidebar-hover",
-                )}
-              >
-                <Icon aria-hidden className="size-4 shrink-0" />
-                <span className="flex-1 truncate">{label}</span>
-                {count ? (
-                  <span className="rounded-full bg-sidebar-accent px-2 text-[11px] font-bold text-sidebar">
-                    {count}
-                  </span>
-                ) : null}
-              </Link>
-            ))}
+            {g.items
+              .filter((i) => !i.mobileOnly)
+              .map(({ key, href, label, icon: Icon, active, count }) => (
+                <Link
+                  key={key}
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm",
+                    active
+                      ? "bg-sidebar-active font-semibold text-white"
+                      : "hover:bg-sidebar-hover",
+                  )}
+                >
+                  <Icon aria-hidden className="size-4 shrink-0" />
+                  <span className="flex-1 truncate">{label}</span>
+                  {count ? (
+                    <span className="rounded-full bg-sidebar-accent px-2 text-[11px] font-bold text-sidebar">
+                      {count}
+                    </span>
+                  ) : null}
+                </Link>
+              ))}
           </div>
         ))}
       </div>
