@@ -8,6 +8,7 @@ import { ANALYSIS_EVENT, LINKS_STATE_EVENT } from "@/features/analysis/service";
 import { logger } from "@/lib/logger";
 import { t } from "@/lib/messages";
 import { createServiceClient } from "@/lib/supabase/service";
+import { safeStep } from "@/lib/well-formed";
 
 export const analysisEventSchema = z.object({ auditId: z.uuid() });
 
@@ -35,7 +36,8 @@ export const analysisRun = inngest.createFunction(
   async ({ event, step }) => {
     const { auditId } = analysisEventSchema.parse(event.data);
     const log = logger.child({ fn: "analysis-run", auditId });
-    const runStep: StepRunner = (id, fn) => step.run(id, fn) as never;
+    // Tout résultat de step est rendu bien formé avant d'être mémorisé (voir `well-formed.ts`).
+    const runStep: StepRunner = safeStep((id, fn) => step.run(id, fn) as Promise<unknown>);
     const orchestration = realOrchestration(
       productionAnalysisDeps(async (run) => {
         await inngest.send({

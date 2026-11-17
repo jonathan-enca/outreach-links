@@ -1,6 +1,7 @@
 import { isLoginWall, isParked, looksHacked, sellsLinks } from "@/features/triage/rules";
 import type { PageRead, PageReader } from "@/features/triage/page-reader";
 import { stageTwoReason } from "./free";
+import { wellFormed } from "@/lib/well-formed";
 import { QUALIFY_LIMITS } from "./limits";
 import type { ExclusionReason, PageSnapshot, QualCandidate, QualContext } from "./types";
 
@@ -41,14 +42,15 @@ export function hasContributorProgram(text: string): boolean {
 }
 
 export function snapshotOf(read: PageRead): PageSnapshot {
+  // Une coupe au milieu d'un émoji laisse une demi-paire UTF-16 : chaque extrait est rendu bien formé.
   return {
     url: read.url,
     status: read.status,
     lang: read.lang,
-    title: read.title.slice(0, 200),
-    description: read.description.slice(0, 300),
-    headings: read.headings.slice(0, 8).map((h) => h.slice(0, 120)),
-    excerpt: read.text.slice(0, QUALIFY_LIMITS.excerptChars),
+    title: wellFormed(read.title.slice(0, 200)),
+    description: wellFormed(read.description.slice(0, 300)),
+    headings: read.headings.slice(0, 8).map((h) => wellFormed(h.slice(0, 120))),
+    excerpt: wellFormed(read.text.slice(0, QUALIFY_LIMITS.excerptChars)),
     publisherSignals: publisherSignals(read),
     contributorProgram: hasContributorProgram(read.text),
   };
