@@ -96,7 +96,8 @@ function Item({
   withSubject: boolean;
   aside: { title: string; text: string }[];
   issues?: string[];
-  primary: { label: string; run: () => Result; disabled?: boolean } | null;
+  /** `hint` : la raison affichée au survol quand le bouton est désactivé. */
+  primary: { label: string; run: () => Result; disabled?: boolean; hint?: string } | null;
   secondary?: { label: string; run: () => Result };
   onEdit?: Edit extends (id: string, i: infer I) => Result ? (i: I) => Result : never;
   onLater: () => void;
@@ -172,15 +173,21 @@ function Item({
         ) : (
           <>
             {primary ? (
-              <Button
-                type="button"
-                size="sm"
-                className="w-full md:w-auto"
-                disabled={pending || primary.disabled}
-                onClick={() => run(primary.run)}
+              // Un bouton désactivé ne reçoit pas le survol : l'explication est portée par son enveloppe.
+              <span
+                title={primary.disabled ? primary.hint : undefined}
+                className={`w-full md:w-auto ${primary.disabled && primary.hint ? "cursor-not-allowed" : ""}`}
               >
-                {pending ? V.busy : primary.label}
-              </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="w-full md:w-auto"
+                  disabled={pending || primary.disabled}
+                  onClick={() => run(primary.run)}
+                >
+                  {pending ? V.busy : primary.label}
+                </Button>
+              </span>
             ) : null}
             {extra}
             {onEdit ? (
@@ -346,7 +353,11 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
               })
             }
           >
-            {pending ? V.busy : V.approveAll(ready.length)}
+            {pending
+              ? V.busy
+              : view.hasMailbox
+                ? V.approveAll(ready.length)
+                : V.approveForms(ready.length)}
           </Button>
         ) : null}
       </div>
@@ -406,6 +417,11 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
                     label: m.channel === "email" ? V.approve : V.approveForm,
                     run: () => actions.approveMessages([m.id]),
                     disabled: !m.ready || (m.channel === "email" && !view.hasMailbox),
+                    hint: !m.ready
+                      ? V.hintNotReady
+                      : m.channel === "email" && !view.hasMailbox
+                        ? V.hintMailbox
+                        : undefined,
                   }}
                   onEdit={(i) => actions.editMessage(m.id, i)}
                   onLater={() => hide(m.id)}

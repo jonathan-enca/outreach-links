@@ -2696,13 +2696,17 @@ export const fr = {
     missing: (n: number) =>
       `${n} ${n > 1 ? "cibles validées n'ont" : "cible validée n'a"} pas encore de message.`,
     missingCta: "Rédiger les messages manquants",
+    hintMailbox: "Connectez d'abord une boîte d'envoi pour approuver et envoyer ce message.",
+    hintNotReady: "Corrigez d'abord les points signalés en rouge.",
     drafting: "Rédaction en cours : les nouveaux messages apparaissent ici dans quelques minutes.",
     to: "À :",
     subject: "Objet",
     body: "Message",
     approve: "Approuver et envoyer",
     approveForm: "Approuver ce message",
-    approveAll: (n: number) => `Tout approuver (${n})`,
+    /** Le nombre est celui des messages approuvables maintenant, d'où un libellé qui le dit. */
+    approveAll: (n: number) => `Approuver les ${n} messages prêts`,
+    approveForms: (n: number) => `Approuver les ${n} messages pour formulaire`,
     edit: "Modifier",
     save: "Enregistrer",
     saving: "Enregistrement…",
