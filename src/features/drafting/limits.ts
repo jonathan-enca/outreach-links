@@ -21,7 +21,7 @@ export const DRAFT_LIMITS = {
   targetPageChars: 16_000,
   /** Pages du site à promouvoir lues pour le catalogue, et texte gardé pour chacune. */
   cataloguePages: 80,
-  cataloguePageChars: 8_000,
+  cataloguePageChars: 6_000,
   catalogueChunk: 20,
   catalogueHostDelayMs: 250,
   /** Un catalogue plus vieux est relu (jours). */
