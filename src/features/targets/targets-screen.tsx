@@ -9,7 +9,15 @@ import { Card } from "@/components/ui/card";
 import { formatUsd } from "@/features/audits/format";
 import type { AuditActionState } from "@/features/audits/service";
 import { t } from "@/lib/messages";
-import { countByTactic, eligibleIds, filterCards, isEligible, primaryRequest } from "./cards";
+import {
+  cardTactics,
+  countByTactic,
+  eligibleIds,
+  filterCards,
+  isEligible,
+  primaryRequest,
+  primaryTactic,
+} from "./cards";
 import { publisherTabs } from "./publishers";
 import {
   FOUNDER_ROLES,
@@ -243,100 +251,253 @@ function contactLine(card: TargetCard): string {
   return c.none;
 }
 
-export function TargetCardView({
+const TB = M.table;
+
+function contactShort(card: TargetCard): string {
+  const k = card.contact;
+  if (k.kind === "email")
+    return k.verified ? TB.contactShort.email : TB.contactShort.emailUnverified;
+  return k.kind === "formulaire" ? TB.contactShort.form : TB.contactShort.none;
+}
+
+const REQUEST_TONE = {
+  site_non_sollicite: "accent",
+  page_ressources: "info",
+  lien_mort: "warning",
+  lien_inadapte: "warning",
+  mention_sans_lien: "info",
+} as const;
+
+/**
+ * Colonnes du tableau (écran large). Sur téléphone, la même ligne devient une carte : case à cocher,
+ * site (et son type) et flèche sur la première rangée, puis la raison et les pastilles en dessous
+ * (aucun défilement horizontal, cible tactile de la flèche de 40 px). Le type d'éditeur est écrit
+ * sous le nom du site : la zone de contenu de l'application (56 rem) ne laisse pas la place d'une
+ * colonne de plus sans écraser la raison.
+ */
+const COLS =
+  "md:grid-cols-[1.25rem_1.5rem_minmax(10rem,1.2fr)_minmax(0,2.4fr)_8.75rem_6.75rem_2rem]";
+
+/**
+ * Une cible = une ligne qui se déplie (retour de Jonathan, 18/11 : tableau dense, le détail au clic).
+ * Fermée : la raison en une phrase. Ouverte : la citation de sa page, la demande en trois temps, ce
+ * que nous proposons et le contact.
+ */
+export function TargetRow({
   card,
+  index,
+  open,
   selected,
+  onOpen,
   onToggle,
 }: {
   card: TargetCard;
+  index: number;
+  open: boolean;
   selected: boolean;
+  onOpen: (id: string) => void;
   onToggle: (id: string) => void;
 }) {
   const c = M.card;
   const req = primaryRequest(card);
   const eligible = isEligible(card);
+  const type = card.publisher ?? (card.siteType ? M.siteTypes[card.siteType] : "");
+  const others = cardTactics(card).filter((x) => x !== primaryTactic(card));
+  const resource = req.finding
+    ? { url: req.finding.resourceUrl, title: req.finding.resourceTitle }
+    : card.resource;
+  const detailId = `detail-${card.id}`;
   return (
-    <li>
-      <Card className="flex flex-col gap-3 p-5">
-        <div className="flex flex-wrap items-center gap-2">
-          {eligible ? (
-            <input
-              type="checkbox"
-              checked={selected}
-              onChange={() => onToggle(card.id)}
-              aria-label={`${c.select} : ${card.domain}`}
-              className="size-4 accent-primary"
-            />
+    <li className="border-b border-border last:border-b-0" data-testid="target-row">
+      <div
+        className={`grid cursor-pointer grid-cols-[1.25rem_minmax(0,1fr)_2.5rem] items-start gap-x-3 gap-y-1.5 px-3 py-3 hover:bg-muted/60 md:items-center md:px-4 md:py-2.5 ${COLS}`}
+        onClick={(e) => {
+          // Un clic sur la case, un lien ou la flèche garde son propre effet.
+          if ((e.target as HTMLElement).closest("input,a,button")) return;
+          onOpen(card.id);
+        }}
+      >
+        {eligible ? (
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggle(card.id)}
+            aria-label={`${c.select} : ${card.domain}`}
+            className="mt-0.5 size-5 accent-primary md:mt-0 md:size-4"
+          />
+        ) : (
+          <span aria-hidden="true" />
+        )}
+        <span className="hidden text-sm tabular-nums text-muted-foreground md:block">{index}</span>
+        <div className="min-w-0">
+          <h3 className="break-words font-semibold">{card.domain}</h3>
+          {type ? (
+            <p className="break-words text-xs text-muted-foreground md:line-clamp-2" title={type}>
+              {type}
+            </p>
           ) : null}
-          {card.rank ? (
-            <span className="text-sm text-muted-foreground">
-              {c.rank.replace("{n}", String(card.rank))}
-            </span>
-          ) : null}
-          <h3 className="font-semibold">{card.domain}</h3>
-          {card.siteType ? <Badge tone="neutral">{M.siteTypes[card.siteType]}</Badge> : null}
-          {[...new Set(card.tactics)].map((x) => (
-            <Badge key={x} tone="accent">
-              {M.tacticLabels[x]}
-            </Badge>
-          ))}
-          {card.platformHosted ? <Badge tone="neutral">{c.hosted}</Badge> : null}
-          {card.alreadyValidated ? <Badge tone="success">{c.alreadyValidated}</Badge> : null}
         </div>
-        {card.why ? (
-          <p className="text-sm">
-            <span className="text-muted-foreground">{c.why} :</span> {card.why}
-          </p>
-        ) : null}
-        <p className="text-sm">
-          <span className="text-muted-foreground">{c.contact} :</span> {contactLine(card)}
+        <p
+          className={`col-start-2 min-w-0 text-sm md:col-auto ${open ? "" : "line-clamp-2 md:line-clamp-1"}`}
+        >
+          {card.why ?? req.lines[0] ?? ""}
         </p>
-        <div className="flex flex-col gap-1">
-          <p className="text-sm font-medium">{c.request}</p>
-          <ol className="list-decimal pl-5 text-sm">
-            {req.lines.map((l, i) => (
-              <li key={i}>{l}</li>
-            ))}
-          </ol>
+        <div className="col-start-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 md:contents">
+          <span>
+            <Badge tone={REQUEST_TONE[req.kind]}>{TB.requestTags[req.kind]}</Badge>
+          </span>
+          <span className="text-sm text-muted-foreground">
+            <span aria-hidden="true" className="md:hidden">
+              ·{" "}
+            </span>
+            {contactShort(card)}
+          </span>
         </div>
-        {card.findings.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium">{c.findings}</p>
-            <ul className="flex flex-col gap-2">
-              {card.findings.map((f) => (
-                <FindingBlock key={f.id} f={f} />
-              ))}
-            </ul>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={detailId}
+          aria-label={`${open ? TB.close : TB.open} : ${card.domain}`}
+          onClick={() => onOpen(card.id)}
+          className="col-start-3 row-start-1 flex size-10 items-center justify-center justify-self-end rounded-control text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring md:col-auto md:row-auto md:size-8"
+        >
+          <svg
+            viewBox="0 0 16 16"
+            aria-hidden="true"
+            className={`size-4 transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
+          >
+            <path
+              d="M3 6l5 5 5-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      </div>
+      {open ? (
+        <div
+          id={detailId}
+          className="grid gap-4 px-3 pb-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:gap-8 md:pb-5 md:pl-[5.25rem] md:pr-4"
+        >
+          <div className="flex min-w-0 flex-col gap-4">
+            {card.findings.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                <p className="text-sm font-medium">{c.findings}</p>
+                <ul className="flex flex-col gap-2">
+                  {card.findings.map((f) => (
+                    <FindingBlock key={f.id} f={f} />
+                  ))}
+                </ul>
+              </div>
+            ) : req.quote ? (
+              <div className="flex flex-col gap-2">
+                <p className="text-sm font-medium">{TB.quote}</p>
+                <blockquote className="border-l-2 border-primary pl-3 text-sm italic">
+                  « {req.quote} »
+                </blockquote>
+              </div>
+            ) : null}
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-medium">{c.request}</p>
+              <ol className="list-decimal pl-5 text-sm">
+                {req.lines.map((l, i) => (
+                  <li key={i}>{l}</li>
+                ))}
+              </ol>
+            </div>
           </div>
-        ) : null}
-      </Card>
+          <div className="flex min-w-0 flex-col gap-2">
+            <p className="text-sm font-medium">{TB.offer}</p>
+            <dl className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-[auto_minmax(0,1fr)]">
+              {resource ? (
+                <>
+                  <dt className="text-muted-foreground">{TB.resource}</dt>
+                  <dd className="break-words">
+                    {resource.title} <span className="break-all">({resource.url})</span>
+                  </dd>
+                </>
+              ) : null}
+              <dt className="text-muted-foreground">{c.contact}</dt>
+              <dd className="break-words">{contactLine(card)}</dd>
+              {card.pageUrl ? (
+                <>
+                  <dt className="text-muted-foreground">{TB.page}</dt>
+                  <dd className="break-all">
+                    <a
+                      href={card.pageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline underline-offset-4"
+                    >
+                      {card.pageUrl}
+                    </a>
+                  </dd>
+                </>
+              ) : null}
+              {others.length > 0 ? (
+                <>
+                  <dt className="text-muted-foreground">{TB.alsoTitle}</dt>
+                  <dd>{others.map((x) => M.tacticLabels[x]).join(", ")}</dd>
+                </>
+              ) : null}
+            </dl>
+            {card.platformHosted || card.alreadyValidated ? (
+              <div className="flex flex-wrap gap-2">
+                {card.platformHosted ? <Badge tone="neutral">{c.hosted}</Badge> : null}
+                {card.alreadyValidated ? <Badge tone="success">{c.alreadyValidated}</Badge> : null}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </li>
   );
 }
 
-/** Chantier G : ce que l'analyse a examiné, en une phrase, et le détail des sites écartés sans lecture. */
-export function FunnelSummary({ funnel }: { funnel: NonNullable<TargetsView["funnel"]> }) {
-  const F = M.funnel;
+/** Le tableau des cibles : en-têtes de colonnes sur écran large seulement, cartes sur téléphone. */
+export function TargetsTable({
+  cards,
+  open,
+  selected,
+  onOpen,
+  onToggle,
+}: {
+  cards: readonly TargetCard[];
+  open: ReadonlySet<string>;
+  selected: ReadonlySet<string>;
+  onOpen: (id: string) => void;
+  onToggle: (id: string) => void;
+}) {
   return (
-    <Card className="flex flex-col gap-2 p-4" data-testid="funnel-summary">
-      <p className="font-medium">{F.summary(funnel.candidates, funnel.shortlist)}</p>
-      <p className="text-sm text-muted-foreground">
-        {F.detail(funnel.preReadTotal, funnel.pagesRead, funnel.judged)}
-      </p>
-      {funnel.preRead.length > 0 ? (
-        <details className="text-sm">
-          <summary className="cursor-pointer text-primary underline underline-offset-4">
-            {F.skippedTitle}
-          </summary>
-          <ul className="mt-2 flex flex-col gap-1 text-muted-foreground">
-            {funnel.preRead.map((r) => (
-              <li key={r.reason}>
-                {r.count} : {F.reasons[r.reason] ?? F.reasons.autre}
-              </li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
+    <Card className="overflow-hidden p-0" data-testid="targets-table">
+      <div
+        aria-hidden="true"
+        className={`hidden gap-x-3 border-b border-border bg-muted px-4 py-2 text-xs font-semibold text-muted-foreground md:grid ${COLS}`}
+      >
+        <span />
+        <span>#</span>
+        <span>{TB.site}</span>
+        <span>{TB.why}</span>
+        <span>{TB.request}</span>
+        <span>{TB.contact}</span>
+        <span />
+      </div>
+      <ul>
+        {cards.map((c, i) => (
+          <TargetRow
+            key={c.id}
+            card={c}
+            index={i + 1}
+            open={open.has(c.id)}
+            selected={selected.has(c.id)}
+            onOpen={onOpen}
+            onToggle={onToggle}
+          />
+        ))}
+      </ul>
     </Card>
   );
 }
@@ -409,6 +570,10 @@ export function MoreSites({
   );
 }
 
+/** Filtres : une rangée qui défile au doigt sur téléphone, qui passe à la ligne sur écran large. */
+const CHIPS = "flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible md:pb-0";
+const NONE: ReadonlySet<string> = new Set();
+
 export function TargetsScreen({
   view,
   auditId,
@@ -432,6 +597,16 @@ export function TargetsScreen({
   /** Onglet de type d'éditeur : `undefined` = toutes, `null` = autres sites. */
   const [publisher, setPublisher] = useState<string | null | undefined>(undefined);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(eligibleIds(view.cards)));
+  // La première cible est ouverte d'emblée : on voit tout de suite le niveau de détail disponible.
+  const [open, setOpen] = useState<Set<string>>(
+    () => new Set(view.cards[0] ? [view.cards[0].id] : []),
+  );
+  const toggleOpen = (id: string) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
   const [vState, setVState] = useState<AuditActionState>({ status: "idle" });
   const [vPending, startValidate] = useTransition();
   const counts = useMemo(() => countByTactic(view.cards), [view.cards]);
@@ -574,26 +749,29 @@ export function TargetsScreen({
 
       <section className="flex flex-col gap-4" aria-labelledby="short-list">
         <h2 id="short-list" className="font-display text-2xl font-semibold">
-          {M.list.title}
+          {view.cards.length > 0 ? M.list.heading(view.cards.length) : M.list.title}
         </h2>
-        {view.funnel ? <FunnelSummary funnel={view.funnel} /> : null}
+        {view.cards.length > 0 ? <p className="text-muted-foreground">{M.list.lead}</p> : null}
         {view.cards.length === 0 ? (
           <Card className="p-6 text-muted-foreground">{M.list.empty}</Card>
         ) : (
           <>
-            <div role="group" aria-label={M.filters.label} className="flex flex-wrap gap-2">
-              {(["toutes", "inconnus", "ressources", "mentions"] as const).map((k) => (
-                <Button
-                  key={k}
-                  type="button"
-                  size="sm"
-                  variant={filter === k ? "default" : "outline"}
-                  aria-pressed={filter === k}
-                  onClick={() => setFilter(k)}
-                >
-                  {M.filters[k]} ({counts[k]})
-                </Button>
-              ))}
+            <div role="group" aria-label={M.filters.label} className={CHIPS}>
+              {(["toutes", "inconnus", "ressources", "mentions"] as const)
+                .filter((k) => k === "toutes" || counts[k] > 0)
+                .map((k) => (
+                  <Button
+                    key={k}
+                    type="button"
+                    size="sm"
+                    className="shrink-0"
+                    variant={filter === k ? "default" : "outline"}
+                    aria-pressed={filter === k}
+                    onClick={() => setFilter(k)}
+                  >
+                    {M.filters[k]} ({counts[k]})
+                  </Button>
+                ))}
             </div>
             {types.length > 0 ? (
               <div className="flex flex-col gap-2">
@@ -601,31 +779,34 @@ export function TargetsScreen({
                 <div
                   role="group"
                   aria-label={M.publishers.label}
-                  className="flex flex-wrap gap-2"
+                  className={CHIPS}
                   data-testid="publisher-tabs"
                 >
                   <Button
                     type="button"
                     size="sm"
+                    className="shrink-0"
                     variant={publisher === undefined ? "default" : "outline"}
                     aria-pressed={publisher === undefined}
                     onClick={() => setPublisher(undefined)}
                   >
                     {M.publishers.all} ({view.cards.length})
                   </Button>
-                  {tabs.map((tab) => (
-                    <Button
-                      key={tab.label ?? "~autres"}
-                      type="button"
-                      size="sm"
-                      variant={publisher === tab.label ? "default" : "outline"}
-                      aria-pressed={publisher === tab.label}
-                      className={tab.count === 0 ? "text-muted-foreground" : undefined}
-                      onClick={() => setPublisher(tab.label)}
-                    >
-                      {tab.label ?? M.publishers.others} ({tab.count})
-                    </Button>
-                  ))}
+                  {tabs
+                    .filter((tab) => tab.count > 0)
+                    .map((tab) => (
+                      <Button
+                        key={tab.label ?? "~autres"}
+                        type="button"
+                        size="sm"
+                        variant={publisher === tab.label ? "default" : "outline"}
+                        aria-pressed={publisher === tab.label}
+                        className="shrink-0"
+                        onClick={() => setPublisher(tab.label)}
+                      >
+                        {tab.label ?? M.publishers.others} ({tab.count})
+                      </Button>
+                    ))}
                 </div>
               </div>
             ) : null}
@@ -640,16 +821,13 @@ export function TargetsScreen({
                     : M.list.emptyFiltered}
               </p>
             ) : (
-              <ul className="flex flex-col gap-4">
-                {shown.map((c) => (
-                  <TargetCardView
-                    key={c.id}
-                    card={c}
-                    selected={selected.has(c.id)}
-                    onToggle={toggle}
-                  />
-                ))}
-              </ul>
+              <TargetsTable
+                cards={shown}
+                open={open}
+                selected={selected}
+                onOpen={toggleOpen}
+                onToggle={toggle}
+              />
             )}
             {filter === "ressources" && view.collection.skipped.deadPages.length > 0 ? (
               <p className="text-sm text-muted-foreground" data-testid="dead-pages-skipped">
@@ -666,10 +844,12 @@ export function TargetsScreen({
             {view.funnel ? (
               <MoreSites funnel={view.funnel} more={view.more} start={actions.readMore} />
             ) : null}
-            <Card className="sticky bottom-4 flex flex-col gap-2 p-4">
-              <div className="flex flex-wrap items-center gap-3">
+            {/* Téléphone : le bouton prend toute la largeur, les actions secondaires tiennent sur une rangée. */}
+            <Card className="sticky bottom-3 flex flex-col gap-2 p-3 md:bottom-4 md:p-4">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <Button
                   type="button"
+                  className="w-full md:w-auto"
                   disabled={vPending || chosen.length === 0 || view.founderRole === null}
                   onClick={() =>
                     startValidate(async () => {
@@ -699,12 +879,16 @@ export function TargetsScreen({
                 </Button>
                 <Link
                   href={`/app/audit/${auditId}/plan`}
-                  className="text-sm underline underline-offset-4"
+                  className="hidden text-sm underline underline-offset-4 md:inline"
                 >
                   {M.toPlan}
                 </Link>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p
+                className={`text-xs text-muted-foreground ${
+                  view.founderRole !== null && chosen.length > 0 ? "hidden md:block" : ""
+                }`}
+              >
                 {view.founderRole === null
                   ? M.validate.needFounder
                   : chosen.length === 0
@@ -723,11 +907,13 @@ export function TargetsScreen({
             {M.contactless.title}
           </h2>
           <p className="text-muted-foreground">{M.contactless.body}</p>
-          <ul className="flex flex-col gap-4">
-            {view.contactless.map((c) => (
-              <TargetCardView key={c.id} card={c} selected={false} onToggle={toggle} />
-            ))}
-          </ul>
+          <TargetsTable
+            cards={view.contactless}
+            open={open}
+            selected={NONE}
+            onOpen={toggleOpen}
+            onToggle={toggle}
+          />
         </section>
       ) : null}
 

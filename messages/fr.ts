@@ -1587,6 +1587,34 @@ export const fr = {
       authority: "Autorité {n}",
       moreFindings: "Autres points relevés sur cette page",
     },
+    /** Écran en tableau (18/11) : libellés courts des colonnes et du détail déplié. */
+    table: {
+      site: "Site",
+      why: "Pourquoi ce site",
+      request: "Demande",
+      type: "Type",
+      contact: "Contact",
+      open: "Voir le détail",
+      close: "Replier le détail",
+      quote: "Ce que dit sa page",
+      offer: "Ce que nous proposons",
+      page: "Page lue",
+      resource: "Votre page",
+      alsoTitle: "Autre raison de le contacter",
+      requestTags: {
+        site_non_sollicite: "Jamais sollicité",
+        page_ressources: "Page ressources",
+        lien_mort: "Lien mort",
+        lien_inadapte: "Lien à remplacer",
+        mention_sans_lien: "Mention sans lien",
+      },
+      contactShort: {
+        email: "Email vérifié",
+        emailUnverified: "Email à vérifier",
+        form: "Formulaire",
+        none: "Aucun contact",
+      },
+    },
     kinds: {
       lien_mort: "Lien mort à remplacer",
       lien_inadapte: "Lien peu utile à remplacer",
@@ -1594,6 +1622,8 @@ export const fr = {
     },
     list: {
       title: "Liste courte",
+      heading: (n: number) => `${n} ${n > 1 ? "sites" : "site"} à contacter`,
+      lead: "Chaque site a sa raison. Ouvrez une ligne pour voir le détail, décochez un site pour l'écarter.",
       empty:
         "Vos cibles apparaissent ici quand l'analyse est terminée. Rien n'est contacté à cette étape.",
       emptyFiltered: "Aucune cible pour cette tactique.",

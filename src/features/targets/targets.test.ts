@@ -89,9 +89,12 @@ describe("cartes : constats, tactiques et filtre", () => {
       card("d", { tactics: ["inconnus"], findings: [finding("mention_sans_lien")] }),
     ];
     expect(filterCards(cards, "toutes")).toHaveLength(4);
-    expect(filterCards(cards, "inconnus").map((c) => c.id)).toEqual(["a", "d"]);
+    // Une seule catégorie par cible (celle de sa demande) : les compteurs s'additionnent.
+    expect(filterCards(cards, "inconnus").map((c) => c.id)).toEqual(["a"]);
     expect(filterCards(cards, "mentions").map((c) => c.id)).toEqual(["c", "d"]);
-    expect(countByTactic(cards)).toEqual({ toutes: 4, inconnus: 2, ressources: 1, mentions: 2 });
+    const n = countByTactic(cards);
+    expect(n).toEqual({ toutes: 4, inconnus: 1, ressources: 1, mentions: 2 });
+    expect(n.inconnus + n.ressources + n.mentions).toBe(n.toutes);
   });
   it("la demande principale vient du constat le plus probant, sinon de la qualification", () => {
     const withF = card("a", { findings: [finding("lien_inadapte"), finding("lien_mort")] });

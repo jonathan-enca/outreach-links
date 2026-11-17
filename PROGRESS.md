@@ -1561,3 +1561,19 @@ Demande de Jonathan : garder les cibles qui n'ont qu'un formulaire, avec le lien
 
 - Cause du 401 du 17/11 : clé recopiée avec un caractère en trop (« validation_error »). Nouvelle clé `outreach-links-transactionnel-2` (envoi seul, domaine `ouiouioui.app`) posée sur Vercel (`RESEND_API_KEY`, production et preview, sensitive). Envoi réel constaté depuis `no-reply@ouiouioui.app` (réponse 200 avec identifiant).
 - `ANALYSIS_EMAIL_VERIFIED = true` : la phrase « vous recevrez un email » revient. **À confirmer au premier `analysis.email_sent`** dans `events` (sinon repasser la constante à `false`). L'ancienne clé `outreach-links-transactionnel` peut être supprimée dans Resend.
+
+## Session du 18/11 (suite 9) : écran « Vos cibles » en tableau (retours de Jonathan après son test sur remove-me.io)
+
+Maquette validée par Jonathan avant le code. Périmètre : session A sur trois (voir « Reste à faire »).
+
+- **Tableau** (`targets-screen.tsx`, `TargetsTable` / `TargetRow`) : une ligne par site (rang, site et type d'éditeur dessous, raison en une phrase, demande, contact), flèche qui déplie le détail (citation de sa page ou constats, demande en trois lignes, ce que nous proposons, contact, page lue). **La première cible est ouverte d'emblée.**
+- **Téléphone : format à part.** La ligne devient une carte (case, site, flèche de 40 px ; raison sur 2 lignes ; pastilles dessous), filtres en rangée qui défile au doigt, bouton de validation pleine largeur. Contrôlé par captures à 390 px et 1280 px sur une page de prévisualisation locale (supprimée) : aucun défilement horizontal.
+- **Compteurs qui s'additionnent** : une seule catégorie par cible, celle de sa demande (`primaryTactic` dans `cards.ts`). La seconde raison reste dans le détail (« Autre raison de le contacter »).
+- **Encadré « Nous avons examiné N sites »** retiré de l'écran (info de back-office). Titre : « N sites à contacter ».
+- **Filtres et types à 0 masqués** (revient sur le choix du chantier H d'afficher les types à zéro). Conséquence : le message « cette recherche n'a pas été lancée » des mentions n'est plus atteignable.
+- Pas de capture avec de vraies données (pas de session connectée) : à regarder en production.
+
+### Reste à faire (validé par Jonathan)
+
+- **Session B** : bandeau « la recherche continue » avec temps restant, pastille et filtre « Nouveau », nouveaux sites insérés sans faire sauter la liste, email de fin envoyé à la fin définitive (à vérifier : aujourd'hui, à la première liste ou à la fin ?).
+- **Session C** : retirer « Comment vous présentez-vous » et le prénom de signature de cet écran ; les demander dans une étape « Réglages des messages » juste avant la rédaction. La validation des cibles ne doit plus rien exiger.
