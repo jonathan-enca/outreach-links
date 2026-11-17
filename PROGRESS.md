@@ -1381,3 +1381,42 @@ Aucun écran modifié : pas de nouvelles captures.
 - Un lot d'une seule requête de 5 cibles n'a pas été mesuré isolément.
 - Le lot d'origine d'une cible n'est toujours pas enregistré.
 - Claude Haiku 5.5 en lots (0,05 / 0,25 USD par million de jetons annoncés) : à tester sur le jeu annoté avant tout changement de modèle.
+
+## Session du 18/11 (matin, suite 2) : ne plus payer ce qui ne rapporte rien (prompt maître n° 3, chantier C, étape 3 sur 7)
+
+PR [#124](https://github.com/jonathan-enca/outreach-links/pull/124) (code) fusionnée, production déployée (`0427ceb`) ; une seconde PR recale le budget et le coût annoncé. Inngest : **39 fonctions** (aucune ajoutée), vérifié avec `get_apps`. Aucune migration.
+
+### Ce qui est fait
+
+- `src/features/collection/worth.ts` (pur, 0 USD, aucun mot propre à un thème) :
+  - **Liens morts des concurrents** : parmi les 5 premiers concurrents retenus, on n'interroge pas un « géant » (au moins 10 000 domaines référents ; taille inconnue = jamais écarté) ni un concurrent d'une autre langue visible (adresse d'exemple ou extension de pays, même règle que le filtre avant lecture). Aucun remplaçant n'est pris dans la suite de la liste.
+  - **Mentions de marque** : lancées seulement si au moins une écriture du nom n'est pas descriptive (une fois retirés les mots du thème et des mots-clés, de même racine sur 5 lettres, il reste plus de 4 lettres ; un nom collé comme « MegaColoring » est découpé ; moins de 5 lettres = trop ambigu). Sinon aucun appel (ni recherche Google de marque, ni Content Analysis).
+- Le plan figé garde la raison (`plan.skipped`, défaut vide pour les anciens plans). Écran « Vos cibles » : sous « Mentions sans lien », si rien n'a été trouvé, il dit soit « cette recherche a été faite : aucune cible », soit « n'a pas été lancée : [raison] » ; sous « Pages ressources et liens morts », une ligne liste les concurrents non interrogés avec la raison. La tactique reste donc affichée avec son résultat honnête.
+- Non touché : liens morts PROUVÉS sur les pages des cibles, règles de tri, seuils, requêtes de recherche.
+- Tests : `worth.test.ts` (règles, cas mesuré, plan, ancien plan sans `skipped`) ; les fixtures de `collection.test.ts` utilisent maintenant un nom de marque distinctif (« Atelier Plumeau »), car « Mega Coloring » est désormais jugé descriptif.
+
+### Mesure avant / après (copie `c0a1c0de-0000-4000-8000-000000000003` de l'audit `fc43af7d…`, même plan de recherche, production)
+
+| Phase                       | Avant (runs du 16/11, ledger)                                            | Après (copie, run réel)                                                                                                                              |
+| --------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mentions de marque          | environ 0,033 USD, 0 cible                                               | **0 appel, 0 USD** (nom jugé descriptif)                                                                                                             |
+| Liens morts des concurrents | 3 appels, 0,0748 USD (magnific.com, c-monetiquette.fr, esle.io), 0 cible | magnific.com écarté (21 154 domaines), puis **3 appels quand même** (c-monetiquette, esle, lululataupe), 0,0251 USD payés (2 en cache), 24 candidats |
+| Collecte entière            | 0,357 USD (réel)                                                         | 0,097 USD **payés**, mais 13 recherches, 2 liens morts, 4 Content Analysis, 1 recoupement sortis du cache : non comparable                           |
+
+**Honnêtement : l'économie réelle est de 0,033 USD (mentions), pas de 0,108.** La phase « liens morts » était déjà plafonnée à 3 appels par son budget de phase (0,085 USD), donc retirer le géant fait seulement passer l'appel suivant : même dépense, mais sur un concurrent de bonne taille et de la bonne langue plutôt que sur un site d'IA anglophone qui avait fourni 31 des 32 candidats « liens morts » (aucun devenu cible). esle.io (anglophone dans son adresse d'exemple) n'est pas détecté : aucun signal de langue fiable pour une adresse `.io`. L'économie des mentions ne vaut que pour un nom descriptif (c'est le cas du site de test).
+
+### Décision de produit (à valider par Jonathan) : budget d'arrière-plan et coût annoncé
+
+- `AUTO_LIMITS.budgetUsd` **0,07 → 0,08 USD** (`src/features/qualification/background.ts`). Raison : première liste mesurée 0,92 USD + 0,08 = **1,00 USD**, la limite demandée, même pour un nom de marque distinctif (aucune économie). Pour un nom descriptif, le total tombe à environ 0,97 USD. Aller plus haut (0,10 par exemple, plus de lots jugés) ferait dépasser 1,00 USD pour un nom distinctif : je ne l'ai pas fait. Si tu préfères le gain de cibles au plafond de 1,00 USD, c'est ce seul chiffre.
+- Coût annoncé (`estimate.ts`) : part attendue de la collecte **0,56 → 0,65** (collecte mesurée à 0,357 USD sur 0,55) : attendu **0,796 → 0,853 USD** (≤ 1,00 ; pire cas inchangé sous le plafond de 2). Il reste sous le réel mesuré de la première liste (0,92) : l'écart vient de la recherche et du profil (non mesurés ici), à recaler en MU.11. L'économie des mentions n'est pas comptée, par prudence.
+- Test `background.test.ts` : l'analyse complète est maintenant vérifiée « au plus 1,00 USD » (et non « strictement sous »).
+
+### Coûts de la session
+
+**0,097 USD** de DataForSEO (copie `c0a1c0de…`, une collecte), 0 USD de LLM, sur un budget de 0,60 USD. La copie reste dans le compte de test ; le plan de l'audit `fc43af7d…` porte maintenant `skipped` (même valeur que celle que le nouveau code aurait écrite) pour que l'écran l'affiche.
+
+### Ce qui n'a pas été fait / pièges
+
+- **Captures connectées bureau 1440 et mobile 390 non faites** : le mot de passe du compte de test ne correspond plus à celui de l'environnement (connexion refusée) ; le réaligner par SQL sur `auth.users` a été refusé par le système d'autorisation, et `shots:seed` est interdit (il supprime les audits). Il suffit de réaligner le mot de passe du compte de test pour refaire `focus.mjs` (`SHOTS_CLICK` sur « Mentions sans lien », chemin `/app/audit/fc43af7d-82b6-458f-bdef-60cb6956f435/cibles`).
+- **Branche créée par erreur** : `m-c-ne-plus-payer-le-vain` a été poussée avant que je relise la consigne (branche imposée : `claude/reduce-wasted-calls-4h5y3a`) ; son contenu est identique à la PR fusionnée, mais le proxy a refusé de la supprimer : à supprimer à la main sur GitHub (aucun risque).
+- Idée hors périmètre (Backlog) : un concurrent « plus de 10 fois plus gros que le site » serait un meilleur critère de géant que le seuil fixe de 10 000 (la taille du site est dans l'état des lieux, pas dans le plan).
