@@ -252,7 +252,8 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
   const msgs = view.messages.filter((m) => !later.has(m.id));
   const replies = view.replies.filter((r) => !later.has(r.id));
   const forms = view.forms.filter((f) => !later.has(f.id));
-  const ready = msgs.filter((m) => m.ready);
+  // Sans boîte d'envoi vérifiée, seuls les messages pour formulaire peuvent être approuvés.
+  const ready = msgs.filter((m) => m.ready && (m.channel === "formulaire" || view.hasMailbox));
   const total = msgs.length + replies.length + forms.length;
   const chips: [Filter, string, number][] = [
     ["tout", V.filters.all, total],
@@ -364,7 +365,7 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
                   primary={{
                     label: m.channel === "email" ? V.approve : V.approveForm,
                     run: () => actions.approveMessages([m.id]),
-                    disabled: !m.ready,
+                    disabled: !m.ready || (m.channel === "email" && !view.hasMailbox),
                   }}
                   onEdit={(i) => actions.editMessage(m.id, i)}
                   onLater={() => hide(m.id)}

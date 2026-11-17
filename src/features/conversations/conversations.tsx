@@ -29,6 +29,7 @@ const TONE: Record<ThreadStatus, "warning" | "success" | "info" | "neutral" | "d
   lien_obtenu: "success",
   refuse: "danger",
   erreur: "danger",
+  en_attente: "neutral",
 };
 
 const SELECT = "h-9 rounded-control border border-border bg-card px-2 text-sm";
@@ -93,27 +94,29 @@ function Pane({
           ))}
         </div>
       </div>
-      <form
-        className="flex flex-wrap gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!tag.trim()) return;
-          run(() => actions.setTag(thread.id, tag, true));
-          setTag("");
-        }}
-      >
-        <input
-          aria-label={C.addTag}
-          placeholder={C.addTag}
-          value={tag}
-          maxLength={30}
-          onChange={(e) => setTag(e.target.value)}
-          className={`${SELECT} min-w-0 flex-1 md:max-w-xs`}
-        />
-        <Button type="submit" size="sm" variant="outline" disabled={pending}>
-          {C.add}
-        </Button>
-      </form>
+      {thread.status === "en_attente" ? null : (
+        <form
+          className="flex flex-wrap gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!tag.trim()) return;
+            run(() => actions.setTag(thread.id, tag, true));
+            setTag("");
+          }}
+        >
+          <input
+            aria-label={C.addTag}
+            placeholder={C.addTag}
+            value={tag}
+            maxLength={30}
+            onChange={(e) => setTag(e.target.value)}
+            className={`${SELECT} min-w-0 flex-1 md:max-w-xs`}
+          />
+          <Button type="submit" size="sm" variant="outline" disabled={pending}>
+            {C.add}
+          </Button>
+        </form>
+      )}
       {thread.hook ? (
         <p className="rounded-control bg-muted px-3 py-2 text-sm">
           <strong>{C.why}</strong> {thread.hook}

@@ -1665,3 +1665,10 @@ Maquette validée par Jonathan (artefact « Maquette espace client » : menu, ac
 - **Conservé, inactif** : colonnes `sites.verification_token`, `verified_at`, `verification_method` et leur trigger (aucune migration), `verifySite` et `checkOwnership` (testés, sans appelant). `createSafeFetcher` dans `verify.ts` reste utilisé par les lecteurs de pages : ne pas supprimer ce fichier.
 - Risque résiduel accepté : un utilisateur peut écrire au nom d'une marque qui n'est pas la sienne depuis sa propre boîte. Si des abus apparaissent, la parade la plus légère est de comparer le domaine de la boîte d'envoi à celui du site (aucune action demandée à l'utilisateur).
 - Contrôle : typecheck, lint et tests verts. Pas de capture d'écran refaite.
+
+## Session du 18/11 (suite 16) : retours de Jonathan sur « À valider » (données réelles de remove-me.io)
+
+- **Compteur du menu ≠ écran** (50 contre 31) : le menu comptait tous les brouillons prêts et toutes les tâches, l'écran seulement ce qu'il montre. Les compteurs viennent maintenant de la file elle-même (`loadOverview` appelle `loadQueue`).
+- **Approuver sans boîte d'envoi** : refusé côté serveur pour un email (boîte vérifiée exigée pour le site) et bouton désactivé à l'écran ; les messages pour formulaire restent approuvables. Deux emails avaient été approuvés avant ce garde-fou : ils partiront à la connexion de la boîte.
+- **Message approuvé invisible** : un email approuvé apparaît tout de suite dans Conversations avec le statut « Approuvé, en attente d'envoi ».
+- **À DÉCIDER, non corrigé : 80 cibles validées, 34 messages rédigés.** Cause mesurée sur le plan `0a99e395…` (70 cibles) : le rédacteur plafonne à 40 cibles par exécution (30 ignorées) et à 0,10 USD de LLM (atteint à 0,098 USD après 25 messages : 15 non rédigées). Coût mesuré : environ 0,004 USD par message. Rédiger 80 messages demande environ 0,32 USD, et il n'existe pas de bouton pour rédiger les messages manquants d'un plan déjà traité. `DRAFT_LIMITS` dans `drafting/limits.ts`.

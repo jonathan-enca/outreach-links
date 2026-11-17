@@ -56,7 +56,8 @@ export async function loadConversations(supabase: Client): Promise<Conversations
     .limit(1000);
   const all = sentRows ?? [];
   const initial = all.filter((s) => s.step === "initial");
-  if (initial.length === 0) return { threads: [], campaigns: [], tags: [] };
+  const queued = await loadQueued(supabase, new Set(all.map((s) => s.draft_id)));
+  if (initial.length === 0) return finish(queued);
   const threadIds = ids(initial);
   const draftIds = [...new Set(initial.map((s) => s.draft_id))];
   const planIds = [...new Set(initial.map((s) => s.plan_id))];
@@ -220,11 +221,75 @@ export async function loadConversations(supabase: Client): Promise<Conversations
       classificationId: lastCls?.id ?? null,
     };
   });
+  return finish([...threads, ...queued]);
+}
+
+function finish(threads: ConversationView[]): ConversationsView {
   threads.sort((a, b) => b.lastAt.localeCompare(a.lastAt));
   const campaigns = [...new Map(threads.map((x) => [x.campaignId, x.campaign])).entries()]
     .filter(([id]) => id)
     .map(([id, label]) => ({ id, label }));
   return { threads, campaigns, tags: [...new Set(threads.flatMap((x) => x.tags))].sort() };
+}
+
+/**
+ * Emails approuvés mais pas encore partis : ils apparaissent tout de suite dans les conversations,
+ * avec le statut « approuvé, en attente d'envoi » (retour de Jonathan, 18/11 : un message approuvé
+ * disparaissait de « À valider » sans réapparaître nulle part).
+ */
+async function loadQueued(
+  supabase: Client,
+  sentDraftIds: ReadonlySet<string>,
+): Promise<ConversationView[]> {
+  const { data: drafts } = await supabase
+    .from("target_drafts")
+    .select("id, plan_id, plan_item_id, subject, body, hook, generated_at, edited_at")
+    .eq("status", "valide")
+    .eq("channel", "email")
+    .limit(500);
+  const waiting = (drafts ?? []).filter((d) => !sentDraftIds.has(d.id));
+  if (waiting.length === 0) return [];
+  const itemIds = waiting.map((d) => d.plan_item_id);
+  const [items, contacts, plans] = await Promise.all([
+    supabase.from("link_plan_items").select("id, source_domain").in("id", itemIds),
+    supabase.from("target_contacts").select("plan_item_id, email").in("plan_item_id", itemIds),
+    supabase
+      .from("link_plans")
+      .select("id, site_id, sites(domain, country)")
+      .in("id", [...new Set(waiting.map((d) => d.plan_id))]),
+  ]);
+  const itemMap = new Map((items.data ?? []).map((i) => [i.id, i.source_domain]));
+  const mailMap = new Map((contacts.data ?? []).map((c) => [c.plan_item_id, c.email]));
+  const countries = t.sites.countries as Record<string, string>;
+  const planMap = new Map(
+    (plans.data ?? []).map((p) => {
+      const s = p.sites as unknown as { domain: string; country: string | null } | null;
+      const label = s
+        ? `${s.domain}${s.country ? ` · ${countries[s.country] ?? s.country}` : ""}`
+        : "";
+      return [p.id, { id: p.site_id, label }];
+    }),
+  );
+  return waiting.map((d) => ({
+    id: `attente-${d.id}`,
+    domain: itemMap.get(d.plan_item_id) ?? "",
+    email: mailMap.get(d.plan_item_id) ?? "",
+    campaign: planMap.get(d.plan_id)?.label ?? "",
+    campaignId: planMap.get(d.plan_id)?.id ?? "",
+    status: "en_attente",
+    category: null,
+    unread: false,
+    tags: [],
+    lastAt: d.edited_at ?? d.generated_at,
+    preview: d.body.replace(/\s+/g, " ").slice(0, 140),
+    hook: d.hook,
+    messages: [
+      { from: "nous", at: null, subject: d.subject, text: d.body },
+      { from: "systeme", at: null, subject: null, text: M.queued },
+    ],
+    draft: null,
+    classificationId: null,
+  }));
 }
 
 /** Le fil appartient-il à la personne ? (lecture par la RLS, avant toute écriture par le serveur). */
