@@ -3,6 +3,7 @@ import { describe, it } from "vitest";
 import { BOT_USER_AGENT } from "@/features/deadlinks/hunt";
 import { createSafeFetcher } from "@/features/sites/verify";
 import { investigateItem } from "./investigate";
+import { createMxVerifier } from "./provider";
 
 /**
  * Mesure RÉELLE (gratuite : lectures HTTP polies, aucun appel payant) de l'enquêteur de contact sur
@@ -10,6 +11,18 @@ import { investigateItem } from "./investigate";
  *   NODE_USE_ENV_PROXY=1 CONTACT_MEASURE_IN=... CONTACT_MEASURE_OUT=... pnpm demo:contacts-measure
  */
 const input = process.env.CONTACT_MEASURE_IN;
+
+/** Résolveur MX par DNS-over-HTTPS : le DNS direct est bloqué dans le conteneur de développement. */
+async function dohResolveMx(domain: string): Promise<{ exchange: string }[]> {
+  const res = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=MX`, {
+    headers: { accept: "application/dns-json" },
+  });
+  const json = (await res.json()) as { Status: number; Answer?: { type: number; data: string }[] };
+  if (json.Status === 3) throw Object.assign(new Error("ENOTFOUND"), { code: "ENOTFOUND" });
+  return (json.Answer ?? [])
+    .filter((a) => a.type === 15)
+    .map((a) => ({ exchange: a.data.split(" ")[1]!.replace(/\.$/, "") || "." }));
+}
 
 describe.skipIf(!input)("enquêteur de contact : mesure réelle", () => {
   it("rejoue l'enquête et écrit le tableau", { timeout: 600_000 }, async () => {
@@ -34,7 +47,7 @@ describe.skipIf(!input)("enquêteur de contact : mesure réelle", () => {
           sleep: (ms) => new Promise((x) => setTimeout(x, ms)),
           now: () => Date.now(),
           provider: null,
-          freeVerifier: null,
+          freeVerifier: process.env.CONTACT_MEASURE_MX ? createMxVerifier(dohResolveMx) : null,
           isSuppressed: () => false,
           paidCallsLeft: 0,
         },

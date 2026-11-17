@@ -92,11 +92,109 @@ export function rankEmails(emails: readonly string[], siteDomain: string): strin
   return [...emails].sort((a, b) => score(b) - score(a));
 }
 
-/** Vrai si l'email est sur le domaine de la cible ou un sous-domaine. */
+/** Plateformes de blogs : leur nom n'est pas la marque du site, jamais de domaine « frère ». */
+const PLATFORMS = new Set([
+  "blogspot",
+  "centerblog",
+  "blog4ever",
+  "over-blog",
+  "eklablog",
+  "canalblog",
+  "wordpress",
+  "wixsite",
+  "jimdofree",
+  "skyrock",
+  "free",
+  "overblog",
+  "weebly",
+  "github",
+]);
+
+/** Marque d'un domaine : le libellé juste avant l'extension, sans tirets (« aniapp.fr » -> « aniapp »). */
+function brandOf(host: string): string | null {
+  const labels = host.split(".");
+  if (labels.length < 2) return null;
+  const label = labels[labels.length - 2]!;
+  return PLATFORMS.has(label) ? null : label.replace(/-/g, "");
+}
+
+/**
+ * Domaine « frère » : la marque de l'un contient celle de l'autre (au moins 5 lettres), par exemple
+ * `bloghoptoys.fr` et `hoptoys.fr`, ou `aniapp.fr` et `aniapps.fr`. Jamais pour une plateforme de blogs.
+ */
+function sharesBrand(host: string, dom: string): boolean {
+  const a = brandOf(host);
+  const b = brandOf(dom);
+  if (!a || !b) return false;
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  return short.length >= 5 && long.includes(short);
+}
+
+/** Vrai si l'email est sur le domaine de la cible, un sous-domaine ou un domaine frère (même marque). */
 export function isOwnDomainEmail(email: string, siteDomain: string): boolean {
   const host = domainOf(email);
   const dom = strip(siteDomain);
-  return isUnder(host, dom) || isUnder(dom, host);
+  return isUnder(host, dom) || isUnder(dom, host) || sharesBrand(host, dom);
+}
+
+/** Messageries grand public : l'adresse d'un particulier ou d'un petit éditeur, pas d'un prestataire. */
+const WEBMAIL = [
+  "gmail.com",
+  "googlemail.com",
+  "orange.fr",
+  "wanadoo.fr",
+  "free.fr",
+  "sfr.fr",
+  "neuf.fr",
+  "laposte.net",
+  "bbox.fr",
+  "hotmail.com",
+  "hotmail.fr",
+  "outlook.com",
+  "outlook.fr",
+  "live.fr",
+  "live.com",
+  "yahoo.fr",
+  "yahoo.com",
+  "icloud.com",
+  "me.com",
+  "aol.com",
+  "gmx.fr",
+  "gmx.com",
+  "proton.me",
+  "protonmail.com",
+];
+
+export const isWebmail = (email: string): boolean => WEBMAIL.includes(domainOf(email));
+
+const LEGAL_OR_CONTACT_PAGE =
+  /(contact|nous-contacter|contactez|mentions?-?legales?|mentions|legal|a-propos|apropos|about|qui-sommes|ecrire|nous-ecrire|joindre)/i;
+
+/**
+ * Adresse de messagerie grand public que le site publie lui-même comme contact : sur une page de
+ * contact, de mentions légales ou « à propos », ou dans un lien `mailto:`. Une adresse vue dans un
+ * article (commentaire, citation) n'est jamais retenue. Plus de deux adresses distinctes : ambiguë,
+ * on n'en choisit aucune. Les adresses de prestataires (agence, hébergeur) ne sont pas de la
+ * messagerie grand public : elles restent exclues.
+ */
+export function publisherWebmail(
+  pages: readonly { url: string; text: string; mailtos: readonly string[] }[],
+): string | null {
+  const found: string[] = [];
+  for (const p of pages) {
+    let path = "";
+    try {
+      path = new URL(p.url).pathname;
+    } catch {
+      continue;
+    }
+    const onContactPage = LEGAL_OR_CONTACT_PAGE.test(path);
+    for (const e of extractEmails(p.text, p.mailtos)) {
+      if (!isWebmail(e) || found.includes(e)) continue;
+      if (onContactPage || p.mailtos.map((m) => m.toLowerCase()).includes(e)) found.push(e);
+    }
+  }
+  return found.length >= 1 && found.length <= 2 ? found[0]! : null;
 }
 
 const CONTACT_PATH =

@@ -10,6 +10,7 @@ import {
   extractEmails,
   isOwnDomainEmail,
   isUsableEmail,
+  publisherWebmail,
   rankEmails,
 } from "./extract";
 import { investigateItem, type InvestigateDeps } from "./investigate";
@@ -612,5 +613,84 @@ describe("résumés, service et job", () => {
     );
     expect(again.message).toMatch(/déjà/);
     expect(sent).toHaveLength(1);
+  });
+});
+
+describe("contacts récupérés gratuitement (étape 7)", () => {
+  const mxOk = createMxVerifier(async () => [{ exchange: "mx.example.net" }]);
+  const mxNone = createMxVerifier(async () => []);
+  const form = `<form><textarea name="m"></textarea><input type="email"></form>`;
+
+  it("domaine frère : bloghoptoys.fr -> support@hoptoys.fr, jamais une plateforme de blogs", () => {
+    expect(isOwnDomainEmail("support@hoptoys.fr", "bloghoptoys.fr")).toBe(true);
+    expect(isOwnDomainEmail("contact@aniapps.fr", "animravel.aniapp.fr")).toBe(true);
+    expect(isOwnDomainEmail("x@flatprod.com", "trictrac.net")).toBe(false);
+    expect(isOwnDomainEmail("x@blogspot.com", "dangerecole.blogspot.com")).toBe(true); // sous-domaine
+    expect(isOwnDomainEmail("x@blogspot.fr", "autre.blogspot.com")).toBe(false);
+    expect(isOwnDomainEmail("x@ab.fr", "abc.fr")).toBe(false); // marque trop courte
+  });
+
+  it("webmail publié sur les mentions légales : envoyable (mx) même si un formulaire existe", async () => {
+    const w = web({
+      "https://blog.fr/p": html(`<a href="/contact">Contact</a><a href="/mentions-legales">ML</a>`),
+      "https://blog.fr/contact": html(form),
+      "https://blog.fr/mentions-legales": html("<p>Éditeur : Jeanne, jeanne.blog@gmail.com</p>"),
+    });
+    const r = await investigateItem(
+      item("blog.fr", "https://blog.fr/p"),
+      deps(w.fetch, { freeVerifier: mxOk }),
+    );
+    expect(r).toMatchObject({
+      status: "email_verifie",
+      email: "jeanne.blog@gmail.com",
+      sendable: true,
+      verifier: "mx",
+      paidCalls: 0,
+    });
+    expect(r.reason).toMatch(/grand public/);
+  });
+
+  it("webmail vu dans un article (ni page de contact ni mailto) : ignoré", async () => {
+    const w = web({ "https://blog.fr/p": html("<p>Un lecteur : lecteur@gmail.com</p>" + form) });
+    const r = await investigateItem(item("blog.fr", "https://blog.fr/p"), deps(w.fetch));
+    expect(r.status).toBe("formulaire");
+    expect(r.email).toBeNull();
+  });
+
+  it("email d'un prestataire (agence, hébergeur) : toujours ignoré au profit du formulaire", async () => {
+    const w = web({
+      "https://blog.fr/p": html(`<a href="/mentions-legales">ML</a>` + form),
+      "https://blog.fr/mentions-legales": html(
+        "<p>Hébergeur : support@ovh.com ; agence : contact@slateways.fr</p>",
+      ),
+    });
+    const r = await investigateItem(
+      item("blog.fr", "https://blog.fr/p"),
+      deps(w.fetch, { freeVerifier: mxOk }),
+    );
+    expect(r.status).toBe("formulaire");
+  });
+
+  it("adresse invalide (pas de MX) : le formulaire n'est pas perdu", async () => {
+    const w = web({
+      "https://blog.fr/p": html(`<a href="/mentions-legales">ML</a>` + form),
+      "https://blog.fr/mentions-legales": html("<p>Éditeur : jeanne@gmail.com</p>"),
+    });
+    const r = await investigateItem(
+      item("blog.fr", "https://blog.fr/p"),
+      deps(w.fetch, { freeVerifier: mxNone }),
+    );
+    expect(r.status).toBe("formulaire");
+  });
+
+  it("plus de deux webmails distincts : ambigu, aucun retenu", () => {
+    const pages = [
+      {
+        url: "https://s.fr/contact",
+        text: "a@gmail.com b@gmail.com c@gmail.com",
+        mailtos: [],
+      },
+    ];
+    expect(publisherWebmail(pages)).toBeNull();
   });
 });
