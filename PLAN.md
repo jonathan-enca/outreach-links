@@ -351,7 +351,7 @@ Un sous-jalon = une session. Chaque sous-jalon se termine par une mesure sur rem
 
 ### MC.4 La qualification juge l'angle, pas le sujet
 
-- Remplacer la note de proximité par le tri d'angle du rédacteur, sur la page lue en entier, avec le petit modèle de génération actuelle (≈ 0,001 USD par page contre 0,007 USD aujourd'hui pour un extrait).
+- Remplacer la note de proximité par le tri d'angle du rédacteur, sur la page lue en entier, avec le petit modèle de génération actuelle (≈ 0,001 USD par page lue en entier ; aujourd'hui ≈ 0,0014 USD par cible pour un extrait de 1 200 caractères).
 - Avec ce prix, lire aussi la réserve (498 candidats jamais lus le 17/11) : objectif 500 à 600 pages jugées par campagne pour moins de 1 USD.
 - Le verdict et la page proposée sont gardés : le rédacteur ne refait pas le tri, il rejuge et écrit. La recherche de contact ne se fait plus que pour les cibles avec angle.
 - Classement de la liste courte par force de l'angle (lien mort ou fait périmé, puis manque explicite, puis liste de ressources tenue), avant l'autorité du site.
