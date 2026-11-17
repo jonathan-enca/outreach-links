@@ -12,6 +12,7 @@ import {
 } from "@/features/qualification/run";
 import { logger } from "@/lib/logger";
 import { createServiceClient } from "@/lib/supabase/service";
+import { safeStep } from "@/lib/well-formed";
 
 export const qualificationEventSchema = z.object({ auditId: z.uuid() });
 
@@ -49,7 +50,8 @@ export const auditQualify = inngest.createFunction(
       if (!l) throw new Error("qualification : collecte introuvable ou non terminée");
       return { ctx: l.ctx, candidates: l.candidates };
     });
-    const runStep: StepRunner = (id, fn) => step.run(id, fn) as never;
+    // Tout résultat de step est rendu bien formé avant d'être mémorisé (voir `well-formed.ts`).
+    const runStep: StepRunner = safeStep((id, fn) => step.run(id, fn) as Promise<unknown>);
     const deps = () => productionQualDeps(loaded.ctx, run);
     const { results, stats } = await executeQualification(deps, toInput(run, loaded), runStep);
     const out = await step.run("finalize", async () =>

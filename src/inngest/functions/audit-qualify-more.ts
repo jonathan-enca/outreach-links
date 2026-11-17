@@ -12,6 +12,7 @@ import {
 } from "@/features/qualification/more";
 import { logger } from "@/lib/logger";
 import { createServiceClient } from "@/lib/supabase/service";
+import { safeStep } from "@/lib/well-formed";
 
 const eventSchema = z.object({ auditId: z.uuid() });
 
@@ -46,7 +47,8 @@ export const auditQualifyMore = inngest.createFunction(
       if (!l) throw new Error("lot supplémentaire : recherche introuvable");
       return l;
     });
-    const runStep: StepRunner = (id, fn) => step.run(id, fn) as never;
+    // Tout résultat de step est rendu bien formé avant d'être mémorisé (voir `well-formed.ts`).
+    const runStep: StepRunner = safeStep((id, fn) => step.run(id, fn) as Promise<unknown>);
     const { results, stats } = await executeQualification(
       () => productionQualDeps(loaded.ctx, run),
       toMoreInput(run, loaded),

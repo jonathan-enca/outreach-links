@@ -11,6 +11,7 @@ import {
 import { createDataForSeoClientFromEnv } from "@/lib/dataforseo";
 import { logger } from "@/lib/logger";
 import { createServiceClient } from "@/lib/supabase/service";
+import { safeStep } from "@/lib/well-formed";
 
 export const collectionEventSchema = z.object({ auditId: z.uuid() });
 
@@ -43,7 +44,8 @@ export const auditCollect = inngest.createFunction(
       log.warn("collecte non exécutable (non confirmée ou déjà terminée)");
       return { skipped: true };
     }
-    const runStep: StepRunner = (id, fn) => step.run(id, fn) as never;
+    // Tout résultat de step est rendu bien formé avant d'être mémorisé (voir `well-formed.ts`).
+    const runStep: StepRunner = safeStep((id, fn) => step.run(id, fn) as Promise<unknown>);
     const progress = await executeCollection(
       () => ({ dfs: createDataForSeoClientFromEnv(), service: createServiceClient() }),
       run,
