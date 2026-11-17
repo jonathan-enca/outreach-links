@@ -540,6 +540,7 @@
 
 ## Backlog (idées hors périmètre)
 
+- **Arrière-plan (17/11, étape 1)** : pas d'étape « liens morts » pour les cibles ajoutées par la lecture de la réserve (manuel ou automatique) ; jugement des lots d'arrière-plan à tarif réduit (étape 2) ; barre fixe « Valider ces demandes » qui recouvre le message de fin sur mobile (MU.10).
 - Essai de 7 jours (16/11) : le coder dans la facturation (début, fin, blocage ou passage à l'offre), avec ou sans carte ; aligner la page d'inscription, les conditions et le sort de l'audit gratuit public (`/audit-gratuit`).
 - Tarifs (16/11) : imposer par offre le nombre de sites, de boîtes, d'audits par mois et les réponses prêtes à insérer (aujourd'hui seul le plafond d'envois l'est) ; TVA incluse côté Stripe (prix TTC) ; facturation annuelle ; faire correspondre `workspaces.plan` (gratuit/payant) aux trois offres.
 - **Contexte à garder pour MT.5 (16/11/2026, retour de Jonathan)** : Jonathan a obtenu un **backlink réel** avec un mail personnalisé qui **cite un point précis de l'article cible** (un lien vers un service américain peu utile à un lecteur français) et **propose la ressource la plus pertinente de son site**, en se présentant **honnêtement comme le fondateur**. À reprendre dans MT.5 (liens inadaptés : repérer dans la page un lien sortant étranger ou peu utile au lecteur, le citer, proposer la ressource du site qui le remplace) et dans le rédacteur (M3.3) : ouverture par le point précis, la ressource choisie (champ `resource` du jugement MT.4), signature « fondateur de ». Rien de codé en MT.4.
@@ -1262,3 +1263,43 @@ Faute de temps. Reste à faire tel que décrit dans `docs/jalon-mu.md`.
 `docs/master-prompt-3.md`, mis à jour le 17/11 après le retour de Jonathan (« bonne qualité ; comment en avoir le double avec les mêmes ressources ? ») : **deux fois plus de cibles à ressources égales** (réserve lue en arrière-plan, jugement moins cher pour l'arrière-plan, budget des sources sans rendement déplacé, contacts et autres pertes gratuites), avec un garde-fou de qualité ; puis email, MU.10, MU.5, MU.9, MU.7, MU.11.
 
 Mesures prises pour ce prompt (audit `f530ee83…`, 72 cibles) : la première liste coûte 0,017 USD par cible, un lot de la réserve 0,005 ; 228 sites restent non lus (162 du contenu, 66 des recherches Google) ; liens morts des concurrents et mentions coûtent 0,11 USD par analyse pour 0 cible ; l'entrée (extraits de page) fait 59 % du coût du jugement ; 16 des 60 concurrents jugés ont un mot du thème dans leur nom de domaine (2 des 72 cibles). **Cibles jugées faibles par Claude sur les 72** (à confirmer par Jonathan) : creavea.com, amedenfant.fr, devenirparent.net, hello-merlin.com, paperblog.fr, bambintroc.fr, dessinpassion.com, journaux.fr, lepointdufle.net, maniaclic.blog4ever.com ; limites : editions-retz.com, flashmode.tn, kidscare.lu, wikicampers.fr, papadejojo.fr, bayard-jeunesse.com ; soupçon non vérifié de noms de domaine rachetés : nantes-artifice.fr, creativa-grenoble.com, laruellebleue.com, famille-heureuse.fr, trucetastuce.net.
+
+## Session du 18/11 (matin) : lecture automatique de la réserve en arrière-plan (prompt maître n° 3, chantier A, étape 1 sur 7)
+
+PR [#119](https://github.com/jonathan-enca/outreach-links/pull/119), CI verte, fusionnée, production déployée (`927ddef`). Migration appliquée en production avant le code : `qualification_background` (colonnes `auto_*` ajoutées seulement). Inngest : **39 fonctions** (38 + `audit-qualify-auto-start`), resynchronisé et vérifié avec `get_apps`.
+
+### Ce qui est fait
+
+- **Enchaînement** : à la fin de l'analyse (première liste inchangée), `analysis-run` envoie `audit/qualification.auto.requested` ; `audit-qualify-auto-start` prend le verrou et envoie le lot 1 ; chaque lot (`audit-qualify-more`, événement `audit/qualification.more.requested` avec `auto.lot`) se termine par une étape « advance » qui compte le lot, décide, et envoie au plus UN événement pour le lot suivant (identifiant fixe par lot). Un lot = `MORE_LIMITS` (environ 80 pages lues). Code : `src/features/qualification/background.ts`, `reserve.ts`, `more.ts`.
+- **Un seul lot à la fois** : trois verrous. Base : le passage à « lot demandé » est une seule mise à jour conditionnelle ; Inngest : concurrence 1 par analyse ; bouton : « Lire d'autres sites » ne lance rien tant que la chaîne est en cours (message dédié).
+- **Arrêts** (colonne `auto_stop`) : `reserve_epuisee`, `budget` (0,25 USD de jugement au total pour l'arrière-plan, **ajouté** aux plafonds durs ; chaque lot est borné par ce qui reste), `rendement_faible` (2 lots de suite sous 5 cibles), `duree` (15 minutes, le temps de lecture de chaque lot est borné par ce qui reste), `erreur`.
+- **Rejeu sans doublon** : compteurs mis à jour par compare-and-set sur `auto_lots` ; un événement en retard ou rejoué ne relance pas un lot déjà fait.
+- **Écran « Vos cibles »** : « Nous continuons à lire les autres sites trouvés. N cibles ajoutées depuis la première liste, M sites restent à lire », rafraîchi seul toutes les 8 s ; à la fin, le nombre de cibles ajoutées et la raison de l'arrêt ; le bouton revient s'il reste des sites.
+- **Phrase « vous recevrez un email »** : **retirée** (`src/features/analysis/email-promise.ts`, constante `ANALYSIS_EMAIL_VERIFIED = false`). La clé Resend de Vercel date du 16/11 18:13 (inchangée), le dernier envoi a échoué (`Resend 401 validation_error`, 17/11 00:36), aucun email d'analyse dans Resend. À remettre à `true` après un premier envoi réel constaté.
+- **Coût annoncé** : attendu 0,65 → **0,82 USD** (≤ 1,00) ; pire cas 1,17 → 1,42 USD (plafond 2). Mais le **réel mesuré** de la première liste était 0,92 USD (le modèle d'estimation était déjà optimiste) : réel attendu d'une analyse complète, environ 0,92 + 0,25 = **1,17 USD**, soit au-dessus de 1,00. À traiter à l'étape 2 (tarif réduit) ou en baissant le budget d'arrière-plan.
+- **Tests** : `src/features/qualification/background.test.ts` (décisions et chaque arrêt, purs) ; `supabase/tests/qualification-background.test.ts` sur une **vraie base** via `supabase/tests/pg-client.ts` (mini client façon supabase-js sur Postgres : vraies contraintes et `on conflict`) : deux démarrages simultanés, bouton bloqué, événement rejoué, bornes de budget et de temps, `finalizeMore` (rangs contigus, réserve conservée, rejeu), enchaînement, chaque arrêt, redémarrage.
+
+### Mesure
+
+**Incident de ma part** : pour préparer les captures j'ai lancé `pnpm shots:seed`, qui réinitialise l'espace du compte de test : il a **supprimé l'audit de mesure f530ee83 (72 cibles, 228 en réserve)**, alors qu'un premier lot venait de partir dessus (ce lot, perdu, a coûté quelques centimes ; non compté dans le tableau). Aucune donnée de vrai client touchée. **Ne plus lancer `shots:seed` sur un compte dont on veut garder un audit.** Mesure refaite sur une copie, dans le compte de test, de l'état « première liste » de l'analyse du 16/11 (audit `37a97992…`, 677 candidats : 15 cibles, 524 sites en réserve, ancien code), audit `fc43af7d-82b6-458f-bdef-60cb6956f435`, site `b298baeb-7696-49a4-9d19-c46f809b260f`. Les conditions ne sont donc pas celles demandées (72 / 228) : la réserve est plus grande (524) et la première liste plus petite (15).
+
+|                                 | Résultat                                                                                                       |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Lots enchaînés                  | 3 (lot 1 : +33 cibles en 1 min 40 pour 0,116 USD ; lot 2 : +10 ; lot 3 : +11)                                  |
+| Cibles ajoutées                 | **54** (15 → 69)                                                                                               |
+| Durée de l'arrière-plan         | **4 min 17** (08:10:03 → 08:14:20)                                                                             |
+| Coût du jugement d'arrière-plan | **0,245 USD**, soit **0,0045 USD par cible** (première liste : 0,017 ; lot de réserve mesuré le 17/11 : 0,005) |
+| Raison d'arrêt                  | `budget` (0,245 sur 0,25) ; il restait 211 sites en réserve                                                    |
+| Premier lot                     | 0,0035 USD par cible, les lots suivants rapportent moins (21 cibles pour 0,13 USD, soit 0,006)                 |
+
+**Qualité** (jugement de Claude, à confirmer par Jonathan ; le lot d'origine d'une cible n'est pas enregistré, donc comparaison entre les 10 mieux et les 10 moins bien classées des 54 ajoutées) : note moyenne d'adéquation 0,74, 1 seule à 0,5, 37 blogs, 15 hors blogs et boutiques. **Les 10 mieux classées : 9 bonnes, 1 limite** (astucesdefilles.com, écoles de l'académie de Strasbourg, viedeparents.fr, ludiloisirs.fr, pordic.fr…). **Les 10 moins bien classées (celles ajoutées en dernier au sens du score) : 3 bonnes (liyah.fr, 38.kidiklik.fr, trucetastuce.net), 4 limites (mineurs.fr, bricabracblocenvrac, apprendre-reviser-memoriser.fr, florenceducatteau.com), 3 faibles (choisir-ma-creche.com, momes-et-merveilles.fr, devenirparent.net)**. Même gradient que celui déjà mesuré : la fin de liste est plus faible, comme les rangs 31 et plus du 17/11. Aucune règle de tri changée.
+
+Captures connectées (production, compte de test) dans `docs/captures-arriere-plan/` : `bureau-` et `mobile-lecture-en-cours.png`, `bureau-` et `mobile-lecture-fin.png`. Sur mobile, la barre fixe « Valider ces demandes » recouvre une partie du message de fin (dette MU.10).
+
+### Dettes
+
+- Estimation annoncée (0,82) sous le réel attendu (environ 1,17) : voir plus haut.
+- Pas d'étape « liens morts » pour les cibles ajoutées (Backlog).
+- Le lot d'origine d'une cible n'est pas enregistré (comparaison de qualité par lot impossible) : ajouter une colonne si l'on veut la suivre.
+- Clé Resend toujours invalide : Jonathan doit en poser une (voir « À fournir par Jonathan »).
+- Le dernier lot est borné par le budget restant (0,06 USD) : il lit moins de pages que les précédents, ce qui explique en partie son rendement plus faible.
