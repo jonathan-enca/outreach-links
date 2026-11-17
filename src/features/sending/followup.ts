@@ -72,6 +72,8 @@ export function buildFollowUp(i: {
   subject: string;
   body: string;
   sentAt: Date;
+  /** Signature complète en texte ; à défaut, le nom d'expéditeur de la boîte. */
+  signature?: string | null;
 }): { subject: string; body: string } {
   const subject = /^re\s*:/i.test(i.subject) ? i.subject : `Re: ${i.subject}`;
   const quoted = i.body
@@ -84,7 +86,7 @@ export function buildFollowUp(i: {
     "",
     "Je me permets de revenir vers vous une dernière fois au sujet de mon message ci-dessous, au cas où il vous aurait échappé. Si le sujet ne vous intéresse pas, aucun souci : dites-le-moi simplement et je ne vous relancerai pas.",
     "",
-    i.fromName,
+    i.signature?.trim() || i.fromName,
     "",
     `Le ${fmt.format(i.sentAt)}, j'écrivais :`,
     quoted,

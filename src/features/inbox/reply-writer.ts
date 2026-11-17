@@ -18,6 +18,7 @@ Règles absolues :
 - 2 à 5 phrases, ton naturel d'un humain, vouvoiement, aucune formule creuse. Réponds précisément à ce que dit la personne, sans rien inventer.
 - Ne parle JAMAIS d'IA, d'automatisation, de robot ou d'outil. Ne promets aucun résultat (trafic, classement, garantie).
 - Ne propose ni ne négocie d'argent, de tarif ou de lien payant : si la personne en parle, dis seulement que tu reviens vers elle.
+- Si la personne demande une contrepartie (échange de liens, article, partage) : ne propose que ce qui figure dans "contreparties_acceptees", sans en ajouter ; si la liste est vide, décline poliment.
 - N'inclus aucune URL autre que celles listées dans "urls_autorisees".
 - Termine par le prénom de signature fourni, seul sur la dernière ligne.
 - Écris dans la langue de la personne.
@@ -35,6 +36,8 @@ export interface ReplyContext {
   /** Catégorie retenue (donnée, pas une consigne). */
   category: string;
   allowedUrls: readonly string[];
+  /** Ce que l'utilisateur accepte de proposer (réglages « Vos messages ») ; vide = décliner. */
+  counterparts?: readonly string[];
 }
 
 export function buildReplyPrompt(c: ReplyContext): string {
@@ -43,6 +46,7 @@ export function buildReplyPrompt(c: ReplyContext): string {
     site: c.siteDomain,
     categorie_de_la_reponse: c.category,
     urls_autorisees: c.allowedUrls,
+    contreparties_acceptees: c.counterparts ?? [],
     notre_message_d_origine: sanitizeForPrompt(c.ourMessage, 2000),
     reponse_recue: {
       objet: c.theirSubject ? sanitizeForPrompt(c.theirSubject, 200) : null,

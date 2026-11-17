@@ -47,13 +47,13 @@ Chaque étape de la méthode de Jonathan devient un module, un écran et un job 
 
 ### 3.0 Champs de contexte (onboarding)
 
-| Champ                               | Rôle                                                                      |
-| ----------------------------------- | ------------------------------------------------------------------------- |
-| Domaine du site                     | cible des liens                                                           |
-| Niche / thème                       | cadrage de la recherche de concurrents et de cibles                       |
-| Pays + langue                       | langue des mails, marché des cibles                                       |
-| Boîte d'envoi + prénom de signature | expéditeur ; signature naturelle                                          |
-| Actif offert en échange             | ce qu'on propose (guide, outil, ressource, contribution, échange de lien) |
+| Champ                               | Rôle                                                                       |
+| ----------------------------------- | -------------------------------------------------------------------------- |
+| Domaine du site                     | cible des liens                                                            |
+| Niche / thème                       | cadrage de la recherche de concurrents et de cibles                        |
+| Pays + langue                       | langue des mails, marché des cibles                                        |
+| Boîte d'envoi + prénom de signature | expéditeur ; signature naturelle                                           |
+| Contreparties acceptées             | ce qu'on accepte de proposer si un éditeur demande quelque chose en retour |
 
 Objectif : **liens éditoriaux gratuits uniquement**. Un lien payant n'est jamais acheté sans décision explicite de l'utilisateur (voir 5.4).
 
@@ -156,6 +156,7 @@ Carte demandée au premier envoi réel (comme Outlink). Paliers différenciés p
 - Pas de mention de l'IA ; pas de promesse mensongère ; pas de faux lien d'amitié.
 - [À CONFIRMER] Un lot d'exemples de messages qui ont bien marché sur les sites de Jonathan pour calibrer le style.
 - Chaque brouillon affiche son hook et la raison du ciblage.
+- **Décision de Jonathan (17/11/2026), réglages « Vos messages »** : le premier message ne propose rien en échange (la page proposée se suffit) ; ce que l'utilisateur accepte de donner en retour (partage, article, lien en retour) ne sert qu'aux réponses. La signature est celle d'une entreprise (nom, rôle, logo, lien vers le site, LinkedIn, téléphone, au choix), composée à l'envoi : un changement s'applique aussi aux messages déjà dans « À valider ».
 
 ## 6. Modèle de données
 

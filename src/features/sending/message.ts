@@ -1,15 +1,19 @@
 import type { KeyRing } from "@/features/mailboxes/crypto";
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import { renderHtml, type Signature } from "@/features/signature/signature";
 
 export interface OutgoingInput {
   fromName: string;
   fromAddress: string;
   to: string;
   subject: string;
+  /** Texte déjà signé (voir `applySignature`). */
   body: string;
   messageId: string;
   inReplyTo?: string | null;
   unsubscribeUrl: string;
+  /** Avec un logo, le message part aussi en HTML ; sinon en texte seul. */
+  signature?: Signature | null;
 }
 
 export interface OutgoingMail {
@@ -17,6 +21,7 @@ export interface OutgoingMail {
   to: string;
   subject: string;
   text: string;
+  html?: string;
   messageId: string;
   inReplyTo?: string;
   references?: string;
@@ -33,11 +38,13 @@ const FOOTER =
   "\n\n--\nSi vous ne souhaitez plus recevoir de message de ma part, répondez « stop ».";
 
 export function buildOutgoing(i: OutgoingInput): OutgoingMail {
+  const text = `${i.body.trimEnd()}${FOOTER}`;
   return {
     from: { name: i.fromName, address: i.fromAddress },
     to: i.to,
     subject: i.subject,
-    text: `${i.body.trimEnd()}${FOOTER}`,
+    text,
+    ...(i.signature?.logoUrl ? { html: renderHtml(text, i.signature) } : {}),
     messageId: i.messageId,
     ...(i.inReplyTo ? { inReplyTo: i.inReplyTo, references: i.inReplyTo } : {}),
     headers: {

@@ -12,6 +12,7 @@ import {
 } from "@/features/sending/message";
 import { addDays, effectiveDailyCap, isInSendWindow } from "@/features/sending/schedule";
 import type { SendDeps } from "@/features/sending/service";
+import { applySignature, loadSignature, type Signature } from "@/features/signature/signature";
 
 type Client = SupabaseClient<Database>;
 type MailboxRow = Database["public"]["Tables"]["mailboxes"]["Row"] & {
@@ -196,7 +197,7 @@ function replySubject(draft: DraftRow, inbound: InboundRow, ours: string | null)
 async function attempt(
   db: Client,
   box: MailboxRow,
-  draft: DraftRow,
+  rawDraft: DraftRow,
   inbound: InboundRow,
   prev: Prev,
   ctx: Ctx,
@@ -205,6 +206,9 @@ async function attempt(
   replyDraftId: string;
 } | null> {
   const { dry, now } = ctx;
+  // Signature du site, posée au moment de partir (réglages « Vos messages »).
+  const signature = await loadSignature(db, box.site_id, ctx.deps.appUrl);
+  const draft = { ...rawDraft, body: applySignature(rawDraft.body, signature) };
   const to = inbound.from_email?.toLowerCase() ?? null;
   const { data: ours } = await db
     .from("sent_messages")
@@ -270,6 +274,7 @@ async function attempt(
         attempts: prev.attempts + 1,
         claimed_at: now.toISOString(),
         error: null,
+        body: draft.body,
       })
       .eq("id", prev.id)
       .eq("status", "a_reessayer")
@@ -296,7 +301,7 @@ async function attempt(
     rowId = data.id;
     attempts = 1;
   }
-  return finish(db, box, draft, to, subject, messageId, rowId, attempts, inbound, ctx);
+  return finish(db, box, draft, to, subject, messageId, rowId, attempts, inbound, ctx, signature);
 }
 
 async function finish(
@@ -310,6 +315,7 @@ async function finish(
   attempts: number,
   inbound: InboundRow,
   { dry, now, deps }: Ctx,
+  signature: Signature | null,
 ) {
   const log = async (type: string, extra: Record<string, unknown> = {}) => {
     await db.from("events").insert({
@@ -359,6 +365,7 @@ async function finish(
     to,
     subject,
     body: draft.body,
+    signature,
     messageId,
     inReplyTo: inbound.message_id,
     unsubscribeUrl: `${deps.appUrl}/api/unsubscribe?t=${makeUnsubscribeToken(inbound.sent_message_id, secret)}`,

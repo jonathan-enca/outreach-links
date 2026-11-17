@@ -41,6 +41,8 @@ export interface PaymentContext {
   targetUrl: string;
   /** Prénom ou formule d'appel de la cible, si connu ; sinon « Bonjour ». */
   greeting?: string;
+  /** Proposition composée depuis les contreparties acceptées (réglages « Vos messages »). */
+  counterpartSentence?: string | null;
 }
 
 export interface PaymentDraft {
@@ -72,10 +74,13 @@ export function buildPaymentDraft(
     };
   }
   if (option === "echanger") {
+    const offer = ctx.counterpartSentence
+      ? `je peux vous proposer autre chose : ${ctx.counterpartSentence}. Si cela vous intéresse, dites-le-moi`
+      : `je peux vous proposer une ressource que vos lecteurs pourraient utiliser (${ctx.targetUrl}). Si cela vous intéresse, dites-le-moi`;
     return {
       option,
       subject: "Re : votre réponse",
-      body: `${hi},\n\nMerci pour votre retour. Nous ne payons pas pour les liens, mais je peux vous proposer autre chose : une contribution écrite pour votre site, ou une ressource que vos lecteurs pourraient utiliser (${ctx.targetUrl}). Si l'une de ces pistes vous intéresse, dites-moi laquelle.\n\nCordialement,\n${sign}`,
+      body: `${hi},\n\nMerci pour votre retour. Nous ne payons pas pour les liens, mais ${offer}.\n\nCordialement,\n${sign}`,
       budgetCapEur: null,
       linkNature: "echange",
     };

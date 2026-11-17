@@ -9,6 +9,12 @@ import { SEND_LIMITS } from "./limits";
 import { buildOutgoing, makeMessageId, makeUnsubscribeToken, unsubscribeSecrets } from "./message";
 import { buildFollowUp, skipReasonForSignals, type SignalKind } from "./followup";
 import { addDays, effectiveDailyCap, isInSendWindow } from "./schedule";
+import {
+  applySignature,
+  loadSignature,
+  signatureText,
+  type Signature,
+} from "@/features/signature/signature";
 
 type Client = SupabaseClient<Database>;
 type MailboxRow = Database["public"]["Tables"]["mailboxes"]["Row"] & {
@@ -56,6 +62,9 @@ export type MailboxOutcome =
     };
 
 const COUNTED = ["en_cours", "envoye", "simule", "a_reessayer", "echec"];
+
+/** Signature du site de la boîte, lue une fois par passage (réglages « Vos messages »). */
+const SIGNATURES = new WeakMap<MailboxRow, Signature | null>();
 
 /** Un passage du moteur : au plus UN message par boîte (le cron espace les passages). */
 export async function runSendTick(deps: SendDeps): Promise<MailboxOutcome[]> {
@@ -130,6 +139,8 @@ async function sendNext(db: Client, box: MailboxRow, deps: SendDeps): Promise<Ma
   const daily = effectiveDailyCap(box.daily_cap, firstAt, now);
   if (inHour >= hourly || rows.length >= daily) return { ...base, result: "plafond" };
 
+  SIGNATURES.set(box, await loadSignature(db, box.site_id, deps.appUrl));
+
   // Relances dues d'abord : une relance en retard passe avant un nouvel envoi.
   const followUp = await sendNextFollowUp(db, box, dry, now, deps);
   if (followUp) return { ...base, ...followUp };
@@ -192,14 +203,20 @@ async function attempt(
   draftId: string;
 } | null> {
   const draftId = item.draft_id;
-  const { data: draft } = await db
+  const { data: row } = await db
     .from("target_drafts")
     .select("id, plan_id, plan_item_id, channel, subject, body, status, workspace_id")
     .eq("id", draftId)
     .maybeSingle();
-  if (!draft || draft.channel !== "email" || draft.status !== "valide" || !draft.subject) {
+  if (!row || row.channel !== "email" || row.status !== "valide" || !row.subject) {
     return null;
   }
+  // La signature est posée ici, au moment de partir : le texte enregistré est celui qui est envoyé.
+  const draft = {
+    ...row,
+    subject: row.subject,
+    body: applySignature(row.body, SIGNATURES.get(box) ?? null),
+  };
   const { data: contact } = await db
     .from("target_contacts")
     .select("email, sendable")
@@ -244,6 +261,7 @@ async function attempt(
         attempts: prev.attempts + 1,
         claimed_at: now.toISOString(),
         error: null,
+        body: draft.body,
       })
       .eq("id", prev.id)
       .eq("status", "a_reessayer")
@@ -351,6 +369,7 @@ async function finish(
     to,
     subject: draft.subject ?? "",
     body: draft.body,
+    signature: SIGNATURES.get(box) ?? null,
     messageId,
     inReplyTo: opts.inReplyTo ?? null,
     unsubscribeUrl: `${deps.appUrl}/api/unsubscribe?t=${makeUnsubscribeToken(rowId, secret)}`,
@@ -487,6 +506,7 @@ async function sendNextFollowUp(
       subject: initial.subject,
       body: initial.body,
       sentAt: new Date(initial.sent_at ?? now),
+      signature: SIGNATURES.get(box) ? signatureText(SIGNATURES.get(box)!) : null,
     });
     const skip = async (why: string): Promise<Outcome> => {
       if (prev) {

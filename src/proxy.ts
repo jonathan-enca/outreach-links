@@ -39,7 +39,8 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // /api/inngest est exclu : appelé par Inngest (pas de session), il se protège par sa clé de signature.
+  // /api/logo aussi : le logo d'une signature est lu par les messageries des destinataires, sans session.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/inngest|api/stripe|api/unsubscribe|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/inngest|api/stripe|api/unsubscribe|api/logo|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

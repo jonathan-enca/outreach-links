@@ -94,6 +94,8 @@ async function routes() {
     ["21-taches", "/app/taches"],
     ["22-garde-fous", "/app/garde-fous"],
     ["23-facturation", "/app/facturation"],
+    ["24-reglages-messages", "/app/reglages/messages"],
+    ["25-a-valider", "/app/a-valider"],
   ];
 }
 
