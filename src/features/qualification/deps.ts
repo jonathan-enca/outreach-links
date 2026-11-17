@@ -6,6 +6,7 @@ import { ALLOW_ALL, robotsFromResponse } from "@/features/deadlinks/robots";
 import { createSafeFetcher } from "@/features/sites/verify";
 import { createJinaFallback, createPageReader } from "@/features/triage/page-reader";
 import { assertCanSpend, spendLimitsFor } from "@/features/collection/guard";
+import { createBatchClientFromEnv, type LlmBatchClient } from "@/lib/llm/batch";
 import { createLlmClientFromEnv, type LlmClient } from "@/lib/llm/client";
 import { createServiceClient } from "@/lib/supabase/service";
 import type { QualDeps, RobotsCheck } from "./funnel";
@@ -61,6 +62,7 @@ export function realQualDeps(
   ctx: QualContext,
   opts: {
     llm: (remainingUsd: number) => LlmClient | null;
+    batch?: () => LlmBatchClient | null;
     guard: (estimateUsd: number) => Promise<void>;
   },
 ): QualDeps {
@@ -98,6 +100,7 @@ export function realQualDeps(
     },
     checkRobots: (c) => checkRobotsFor(fetchRobots, c),
     llm: opts.llm,
+    batch: opts.batch,
     guard: opts.guard,
     investigate: (item) =>
       investigateItem(item, {
@@ -129,6 +132,7 @@ export function productionQualDeps(
         maxCostPerCallUsd: batchWorstUsd(QUALIFY_LIMITS.batchSize, run.model) * 1.5,
       });
     },
+    batch: createBatchClientFromEnv,
     guard: (estimateUsd) =>
       assertCanSpend(
         createServiceClient(),

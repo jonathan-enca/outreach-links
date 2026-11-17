@@ -61,6 +61,8 @@ export const auditQualifyMore = inngest.createFunction(
       () => productionQualDeps(loaded.ctx, run),
       toMoreInput(run, loaded),
       runStep,
+      // Lecture automatique : jugement par l'API par lots, attente par `step.sleep` (jamais bloquante).
+      auto ? { wait: (id, ms) => step.sleep(id, ms) } : {},
     );
     const out = await step.run("finalize", async () =>
       finalizeMore(createServiceClient(), run, results, stats),

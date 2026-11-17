@@ -99,6 +99,34 @@ export function toJudgement(
   };
 }
 
+/** Requête de jugement d'un groupe de cibles (la même pour un appel direct et pour l'API par lots). */
+export function judgementRequest(items: readonly BatchItem[], ctx: QualContext) {
+  return {
+    system: SYSTEM_PROMPT,
+    prompt: buildBatchPrompt(items, ctx),
+    schema: batchSchema,
+    schemaName: "qualification",
+    maxOutputTokens: items.length * QUALIFY_LIMITS.outputTokensPerTarget + 60,
+    temperature: 0,
+  };
+}
+
+/** Réponse validée -> un jugement par id reçu (id inconnu ou doublon ignorés ; hook vérifié). */
+export function toJudgements(
+  items: readonly BatchItem[],
+  data: z.infer<typeof batchSchema>,
+  ctx: QualContext,
+): Map<string, LlmJudgement> {
+  const byId = new Map(items.map((i) => [i.id, i]));
+  const judgements = new Map<string, LlmJudgement>();
+  for (const r of data.results) {
+    const item = byId.get(r.id);
+    if (!item || judgements.has(r.id)) continue;
+    judgements.set(r.id, toJudgement(r, item.page, ctx.resources.length));
+  }
+  return judgements;
+}
+
 /**
  * Un appel pour un lot de cibles. Retourne un jugement par id reçu (un id absent de la réponse reste
  * sans jugement : la cible est « non qualifiée », jamais devinée).
@@ -111,21 +139,9 @@ export async function judgeBatch(
 ): Promise<{ judgements: Map<string, LlmJudgement>; costUsd: number }> {
   const out = await llm.generate({
     task: "qualification",
-    system: SYSTEM_PROMPT,
-    prompt: buildBatchPrompt(items, ctx),
-    schema: batchSchema,
-    schemaName: "qualification",
-    maxOutputTokens: items.length * QUALIFY_LIMITS.outputTokensPerTarget + 60,
-    temperature: 0,
+    ...judgementRequest(items, ctx),
     workspaceId: scope.workspaceId,
     auditId: scope.auditId,
   });
-  const byId = new Map(items.map((i) => [i.id, i]));
-  const judgements = new Map<string, LlmJudgement>();
-  for (const r of out.data.results) {
-    const item = byId.get(r.id);
-    if (!item || judgements.has(r.id)) continue;
-    judgements.set(r.id, toJudgement(r, item.page, ctx.resources.length));
-  }
-  return { judgements, costUsd: out.costUsd };
+  return { judgements: toJudgements(items, out.data, ctx), costUsd: out.costUsd };
 }

@@ -10,7 +10,7 @@ import type { Client } from "pg";
 type Filter = { sql: (n: number) => string; params: unknown[] };
 interface State {
   table: string;
-  op: "select" | "update" | "upsert";
+  op: "select" | "update" | "upsert" | "insert";
   cols: string;
   count: boolean;
   head: boolean;
@@ -63,6 +63,15 @@ class Query implements PromiseLike<Result> {
   update(values: Record<string, unknown>) {
     this.s.op = "update";
     this.s.values = values;
+    return this;
+  }
+  insert(values: Record<string, unknown> | Record<string, unknown>[]) {
+    this.s.op = "insert";
+    this.s.values = Array.isArray(values) ? values : [values];
+    return this;
+  }
+  single() {
+    this.s.single = true;
     return this;
   }
   upsert(values: Record<string, unknown>[], opts: { onConflict: string }) {
@@ -123,6 +132,19 @@ class Query implements PromiseLike<Result> {
       });
       sql = `update public.${s.table} set ${sets.join(", ")}${where()}`;
       if (s.returning) sql += " returning *";
+    } else if (s.op === "insert") {
+      const rows = s.values as Record<string, unknown>[];
+      const cols = Object.keys(rows[0]);
+      const tuples = rows.map(
+        (r) =>
+          `(${cols
+            .map((c) => {
+              params.push(param(r[c]));
+              return `$${params.length}`;
+            })
+            .join(", ")})`,
+      );
+      sql = `insert into public.${s.table} (${cols.map((c) => `"${c}"`).join(", ")}) values ${tuples.join(", ")} returning *`;
     } else {
       const rows = s.values as Record<string, unknown>[];
       const cols = Object.keys(rows[0]);

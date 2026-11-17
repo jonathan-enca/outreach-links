@@ -39,3 +39,15 @@ export function costUsd(model: string, inputTokens: number, outputTokens: number
 export function estimateCostUsd(model: string, promptChars: number, maxOutputTokens: number) {
   return costUsd(model, Math.ceil(promptChars / 4), maxOutputTokens);
 }
+
+/**
+ * API par lots d'Anthropic (Message Batches) : 50 % du tarif standard, entrée et sortie, vérifié dans
+ * la documentation Anthropic le 18/11/2026 (« All usage is charged at 50 percent of the standard API
+ * prices »). Délai annoncé : « most batches completing within 1 hour », jamais plus de 24 h.
+ */
+export const BATCH_DISCOUNT = 0.5;
+
+/** Coût d'une requête passée par l'API par lots (USD). */
+export function batchCostUsd(model: string, inputTokens: number, outputTokens: number): number {
+  return r6(costUsd(model, inputTokens, outputTokens) * BATCH_DISCOUNT);
+}

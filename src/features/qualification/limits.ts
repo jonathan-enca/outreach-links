@@ -60,6 +60,13 @@ export const QUALIFY_LIMITS = {
   judgeConcurrency: 4,
   /** Cibles par appel (le prompt système est payé une fois par lot). */
   batchSize: 5,
+  /**
+   * Jugement par l'API par lots (arrière-plan seulement) : intervalle entre deux lectures de l'état
+   * et délai maximal avant repli en appels directs. Le délai annoncé par Anthropic est « jusqu'à 1 h,
+   * la plupart du temps moins » ; mesuré sur un vrai lot le 18/11/2026 (voir PROGRESS.md).
+   */
+  batchPollMs: 30_000,
+  batchMaxWaitMs: 10 * 60_000,
   /** Extrait de page envoyé au modèle (caractères). */
   excerptChars: 1_200,
   /** Jetons de sortie par cible (borne du coût). */
