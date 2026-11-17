@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
+import { GUIDES_BASE } from "@/features/mailboxes/providers";
 import { t } from "@/lib/messages";
 import { HOME_SECTIONS } from "./sections";
 
@@ -45,6 +46,11 @@ export function SiteFooter() {
             <li>
               <Link className={link} href={`/#${HOME_SECTIONS.faq}`}>
                 {n.faq}
+              </Link>
+            </li>
+            <li>
+              <Link className={link} href={GUIDES_BASE}>
+                {f.mailboxGuides}
               </Link>
             </li>
           </ul>
