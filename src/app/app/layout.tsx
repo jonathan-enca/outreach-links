@@ -2,17 +2,27 @@ import { ContentWidth } from "@/features/shell/content-width";
 import Link from "next/link";
 import { Suspense } from "react";
 import { AppNav } from "@/components/app-nav";
+import { loadOverview } from "@/features/shell/overview";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
+import { signOut } from "./actions";
 
-/** Les sites de la personne (la RLS limite à son espace) pour le menu ; vide tant que rien n'est chargé. */
+/** Menu : sites, compteurs de ce qui attend la personne, compte (la RLS limite à son espace). */
 async function Nav() {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("sites")
-    .select("id, domain")
-    .order("created_at", { ascending: true });
-  return <AppNav sites={data ?? []} />;
+  const [{ data: auth }, overview] = await Promise.all([
+    supabase.auth.getUser(),
+    loadOverview(supabase),
+  ]);
+  const p = overview.pending;
+  return (
+    <AppNav
+      sites={overview.campaigns.map((c) => ({ id: c.siteId, domain: c.domain }))}
+      counts={{ toValidate: p.drafts + p.replies + p.forms, conversations: p.replies }}
+      email={auth.user?.email ?? null}
+      signOut={signOut}
+    />
+  );
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -24,16 +34,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       >
         {t.nav.skipToContent}
       </a>
-      <header className="flex h-14 items-center border-b border-border bg-card px-4">
-        <Link href="/app" className="font-display text-lg font-semibold text-primary">
+      {/* Téléphone seulement : sur ordinateur, le nom est en haut du menu latéral. */}
+      <header className="flex h-12 items-center justify-between bg-sidebar px-4 md:hidden">
+        <Link href="/app" className="font-display text-lg font-semibold text-white">
           {t.app.name}
+        </Link>
+        <Link href="/app/compte" className="text-sm text-sidebar-foreground underline">
+          {t.shell.nav.account}
         </Link>
       </header>
       <div className="flex flex-1 flex-col md:flex-row">
         <Suspense fallback={<AppNav sites={[]} />}>
           <Nav />
         </Suspense>
-        <main id="contenu" className="flex-1 px-4 py-6 pb-24 md:px-8 md:pb-8">
+        <main id="contenu" className="min-w-0 flex-1 bg-muted/40 px-4 py-6 pb-24 md:px-8 md:pb-8">
           <ContentWidth>{children}</ContentWidth>
         </main>
       </div>

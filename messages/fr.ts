@@ -2403,6 +2403,20 @@ export const fr = {
   shell: {
     nav: {
       home: "Accueil",
+      campaigns: "Campagnes",
+      toValidate: "À valider",
+      conversations: "Conversations",
+      mailbox: "Boîte d'envoi",
+      yourMessages: "Vos messages",
+      billing: "Abonnement",
+      changeSite: "Voir tous vos sites",
+      short: { conversations: "Échanges", settings: "Réglages" },
+      groups: {
+        prospecting: "Prospection",
+        mailbox: "Messagerie",
+        results: "Résultats",
+        settings: "Réglages",
+      },
       targets: "Cibles",
       overview: "État des lieux",
       account: "Compte",
@@ -2413,6 +2427,51 @@ export const fr = {
       needSite: "Disponible après l'ajout de votre site",
     },
     home: {
+      hello: "Bonjour",
+      lead: "Voici où en sont vos campagnes et ce qui vous attend.",
+      newCampaign: "Nouvelle campagne",
+      stats: {
+        targets: "Cibles prêtes",
+        targetsHint: (n: number) => `dont ${n} ${n > 1 ? "validées" : "validée"}`,
+        sent: "Messages envoyés",
+        sentHint: "premiers messages partis de votre boîte",
+        replies: "Réponses",
+        repliesHint: (pct: number | null) =>
+          pct === null ? "aucun message envoyé pour l'instant" : `${pct} % de réponse`,
+        links: "Liens obtenus",
+        linksHint: "vérifiés sur la page",
+      },
+      steps: {
+        title: "Vos premiers liens",
+        progress: (done: number, total: number) => `${done} sur ${total} faits`,
+        campaign: "Créez votre première campagne",
+        campaignDone: "Campagne créée",
+        campaignHint: "Nous analysons votre site et trouvons les sites à contacter.",
+        validate: "Validez vos cibles",
+        validateDone: "Cibles validées",
+        validateHint: "Vous choisissez les sites à contacter ; les messages sont rédigés.",
+        mailbox: "Connectez votre boîte d'envoi",
+        mailboxDone: "Boîte d'envoi connectée",
+        mailboxHint: "Les messages partent de votre adresse, à un rythme régulier.",
+        send: "Envoyez votre premier lot",
+        sendDone: "Premier lot envoyé",
+        sendHint: "Vous relisez chaque message avant qu'il parte.",
+        go: {
+          campaign: "Commencer",
+          validate: "Voir les cibles",
+          mailbox: "Connecter",
+          send: "Relire",
+        },
+      },
+      todo: {
+        title: "À faire maintenant",
+        none: "Rien ne vous attend pour l'instant.",
+        replies: (n: number) =>
+          `${n} ${n > 1 ? "réponses attendent" : "réponse attend"} votre décision`,
+        drafts: (n: number) => `${n} ${n > 1 ? "messages" : "message"} à valider avant envoi`,
+        forms: (n: number) => `${n} ${n > 1 ? "formulaires" : "formulaire"} à remplir à la main`,
+        open: "Ouvrir",
+      },
       title: "Vos sites",
       description: "Où en est chacun de vos sites, et quoi faire ensuite.",
       add: "Ajouter un site",
@@ -2437,6 +2496,59 @@ export const fr = {
       safeguards: "Garde-fous d'envoi",
       tasks: "Tâches à faire à la main",
       billing: "Abonnement",
+    },
+  },
+  campaigns: {
+    eyebrow: "Prospection",
+    title: "Campagnes",
+    description:
+      "Une campagne est l'analyse complète d'un site pour un pays, puis les messages envoyés à ses cibles.",
+    new: "Nouvelle campagne",
+    empty:
+      "Aucune campagne pour l'instant. Créez la première : nous analysons votre site et trouvons les sites à contacter.",
+    analysed: (date: string, n: number) =>
+      `Analyse du ${date} · ${n} ${n > 1 ? "cibles trouvées" : "cible trouvée"}`,
+    notAnalysed: "Pas encore analysée",
+    stats: {
+      targets: "cibles",
+      validated: "validées",
+      contacted: "contactées",
+      replies: "réponses",
+      links: "liens obtenus",
+    },
+    status: {
+      onboarding: "À vérifier avant l'analyse",
+      analyse: "Analyse en cours",
+      reprise: "Analyse arrêtée",
+      toValidate: "Cibles à valider",
+      ready: "Messages à envoyer",
+      sending: "Envois en cours",
+    },
+    detail: "Voir le détail de l'analyse",
+    conversations: "Voir les conversations",
+  },
+  toValidate: {
+    eyebrow: "Messagerie",
+    title: "À valider",
+    description: "Tout ce qui attend votre accord avant de partir. Rien n'est envoyé sans vous.",
+    none: "Rien à valider pour l'instant. Les messages apparaissent ici dès que vous validez des cibles.",
+    drafts: {
+      title: "Premiers messages",
+      body: (n: number) =>
+        `${n} ${n > 1 ? "messages sont prêts" : "message est prêt"} : relisez-les, modifiez-les si besoin, puis validez le lot.`,
+      cta: "Relire les messages",
+    },
+    replies: {
+      title: "Réponses à approuver",
+      body: (n: number) =>
+        `${n} ${n > 1 ? "réponses proposées attendent" : "réponse proposée attend"} votre accord.`,
+      cta: "Ouvrir les conversations",
+    },
+    forms: {
+      title: "Formulaires à remplir",
+      body: (n: number) =>
+        `${n} ${n > 1 ? "sites n'ont" : "site n'a"} pas d'email : le message est prêt à coller dans leur formulaire.`,
+      cta: "Voir les formulaires",
     },
   },
   overview: {

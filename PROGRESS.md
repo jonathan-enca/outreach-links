@@ -1605,3 +1605,24 @@ Seconde passe (accord de Jonathan) : les trois sections du détail sont **empil�
 
 - **Onglet « Campagnes »** : repenser l'espace client autour des campagnes. Une campagne = l'analyse complète faite au départ (un site × un pays) ; ses résultats servent ensuite à écrire et envoyer les messages. Remplace l'accueil « liste des sites » et l'accès aux étapes de l'analyse.
 - **Chantier emailing de rétention** : prévenir l'utilisateur par email quand un nouveau site avec une opportunité de lien est disponible, pour qu'il revienne faire la demande.
+
+## Session du 18/11 (suite 12) : nouvel espace client, étape 1 (menu, accueil, campagnes)
+
+Maquette validée par Jonathan (artefact « Maquette espace client » : menu, accueil, à valider, conversations, campagnes, réglages), inspirée des captures de l'espace connecté d'Outlink qu'il a fournies.
+
+### Fait (étape 1 sur 4)
+
+- **Menu** (`components/app-nav.tsx`) : sombre, groupes Prospection (Campagnes) / Messagerie (À valider, Conversations) / Résultats (Liens obtenus) / Réglages (Boîte d'envoi, Vos messages, Abonnement), site courant en haut, compte et « Se déconnecter » en bas à gauche (pas de cloche : décision de Jonathan). Compteurs sur À valider et Conversations. Téléphone : barre basse de cinq écrans. « État des lieux » et les entrées verrouillées sortent du menu.
+- **Accueil** (`app/app/page.tsx`) : quatre compteurs (cibles prêtes, messages envoyés, réponses, liens obtenus), liste « Vos premiers liens » en quatre étapes cochées, bloc « À faire maintenant ». Données : `shell/overview.ts` (`loadOverview`, `buildOverview` testé).
+- **Campagnes** (`/app/campagnes`) : une carte par site et pays, cinq compteurs, état (`shell/campaign-status.ts`).
+- **À valider** (`/app/a-valider`), **première version** : trois blocs (réponses, premiers messages, formulaires) avec leur nombre, qui renvoient vers les écrans existants (inbox, plan de l'audit, tâches). Ce n'est pas encore la file unique de la maquette.
+- Contrôlé par captures du menu (1100 px et 390 px). Accueil, Campagnes et À valider : **pas de capture avec données** (pas de session connectée), à regarder en production.
+
+### Reste à faire (ordre proposé)
+
+2. **File « À valider » de la maquette** : approuver, modifier, passer sur place, pour les trois natures.
+3. **Conversations (mini-CRM)** : liste + fil, filtres campagne / non lus / statut / étiquettes / recherche. À créer : état lu / non lu et étiquettes libres (deux tables).
+4. **Réglages** : écrans Boîte d'envoi (avec contrôles SPF / DKIM / DMARC), Vos messages, Notifications (emails : réponse à traiter, messages à valider, lien, boîte en panne, nouveaux sites, résumé hebdo), Abonnement. Aujourd'hui « Boîte d'envoi » et « Vos messages » ouvrent la page du site existante.
+
+- Chiffres posés dans la maquette sans validation : montée en charge 40 / 80 / 120 messages par jour, arrêt à 5 % de rebonds, contenu des offres.
+- **Envoi réel** : toujours jamais testé avec une vraie boîte. Voir la discussion sur la connexion (mot de passe d'application ou OAuth Google / Microsoft).
