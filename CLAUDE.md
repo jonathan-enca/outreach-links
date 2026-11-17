@@ -159,6 +159,7 @@ Carte demandée au premier envoi réel (comme Outlink). Paliers différenciés p
 - Pas de mention de l'IA ; pas de promesse mensongère ; pas de faux lien d'amitié.
 - [À CONFIRMER] Un lot d'exemples de messages qui ont bien marché sur les sites de Jonathan pour calibrer le style.
 - Chaque brouillon affiche son hook et la raison du ciblage.
+- **Décision de Jonathan (17/11/2026), un angle ou pas de message** : avant d'écrire, la page de la cible est relue en entier et on cherche le point précis où une page précise du site (jamais « le blog ») rendrait service à ses lecteurs. Sans angle honnête, aucun message n'est écrit et la cible est écartée avec son motif. Le message donne l'adresse de la page de la cible et celle de la page proposée. Modèles : un petit modèle trie, un modèle fort rejuge et rédige (essai sur 20 messages réels : 2 seulement méritaient d'être envoyés).
 - **Décision de Jonathan (17/11/2026), réglages « Vos messages »** : le premier message ne propose rien en échange (la page proposée se suffit) ; ce que l'utilisateur accepte de donner en retour (partage, article, lien en retour) ne sert qu'aux réponses. La signature est celle d'une entreprise (nom, rôle, logo, lien vers le site, LinkedIn, téléphone, au choix), composée à l'envoi : un changement s'applique aussi aux messages déjà dans « À valider ».
 
 ## 6. Modèle de données

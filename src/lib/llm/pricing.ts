@@ -10,6 +10,11 @@ export interface ModelPrice {
 
 export const MODEL_PRICES: Record<string, ModelPrice> = {
   "claude-haiku-4-5": { inputPerMTok: 1, outputPerMTok: 5 },
+  // Génération actuelle, relevée le 17/11/2026. Haiku 5.5 : tarif des prompts de 100 000 jetons au plus
+  // (les nôtres en font quelques milliers).
+  "claude-haiku-5-5": { inputPerMTok: 0.1, outputPerMTok: 0.5 },
+  "claude-sonnet-5-5": { inputPerMTok: 2, outputPerMTok: 10 },
+  "claude-opus-5-5": { inputPerMTok: 4, outputPerMTok: 20 },
   "claude-sonnet-4-5": { inputPerMTok: 3, outputPerMTok: 15 },
   "gpt-4o-mini": { inputPerMTok: 0.15, outputPerMTok: 0.6 },
   "gpt-5-mini": { inputPerMTok: 0.25, outputPerMTok: 2 },

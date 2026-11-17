@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildPaymentDraft } from "@/features/inbox/payment";
 import { buildReplyPrompt } from "@/features/inbox/reply-writer";
-import { SYSTEM_PROMPT, buildPrompt } from "@/features/drafting/write";
+import { WRITER_SYSTEM, buildWriterPrompt } from "@/features/drafting/write";
 import { counterpartSentence } from "@/features/signature/signature";
 import {
   LOGO_MAX_BYTES,
@@ -125,9 +125,9 @@ describe("logo, LinkedIn, téléphone", () => {
 
 describe("contreparties : seulement dans les réponses", () => {
   it("le premier message ne cite plus d'offre et ne propose rien en échange", () => {
-    expect(SYSTEM_PROMPT).not.toContain("actif offert");
-    expect(SYSTEM_PROMPT).toContain("Ne propose rien en échange");
-    const prompt = buildPrompt(
+    expect(WRITER_SYSTEM).not.toContain("actif offert");
+    expect(WRITER_SYSTEM).toContain("Rien en échange");
+    const prompt = buildWriterPrompt(
       {
         planItemId: "pi",
         channel: "email",
@@ -148,8 +148,14 @@ describe("contreparties : seulement dans les réponses", () => {
         offeredAsset: "des coloriages gratuits",
         signatureFirstName: "Jo",
       } as never,
-      "https://monsite.fr/guide",
-      [],
+      {
+        url: "https://cible.fr/page",
+        title: "Titre",
+        description: "",
+        text: "Texte.",
+        moved: false,
+      },
+      [{ url: "https://monsite.fr/guide", title: "Guide", description: "", text: "Le guide." }],
     );
     expect(prompt).not.toContain("actif_offert");
     expect(prompt).not.toContain("coloriages gratuits");

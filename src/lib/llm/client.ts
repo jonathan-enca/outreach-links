@@ -67,6 +67,11 @@ export interface LlmCallOptions<T extends z.ZodType> {
   schemaName?: string;
   maxOutputTokens?: number;
   temperature?: number;
+  /**
+   * Profondeur de réflexion des modèles Anthropic récents (Haiku 5.5, Sonnet 5.5, Opus 5.5), qui
+   * réfléchissent avant de répondre. La réflexion est comptée dans `maxOutputTokens`. Ignoré ailleurs.
+   */
+  effort?: "low" | "medium" | "high";
   workspaceId?: string | null;
   auditId?: string | null;
 }
@@ -92,6 +97,8 @@ type Raw = {
   model: string;
   /** Le modèle s'est arrêté faute de jetons de sortie : la réponse est incomplète. */
   truncated?: boolean;
+  /** Le modèle a refusé de répondre (classifieur de sécurité) : aucune sortie exploitable. */
+  refused?: boolean;
 };
 
 function jsonSchemaOf(schema: z.ZodType): Record<string, unknown> {
@@ -100,10 +107,23 @@ function jsonSchemaOf(schema: z.ZodType): Record<string, unknown> {
   return js;
 }
 
+const apiError = z.looseObject({
+  error: z.looseObject({ type: z.string().optional(), message: z.string().optional() }),
+});
+
 async function readJson(res: Response, provider: string): Promise<unknown> {
   if (!res.ok) {
-    // Le corps d'erreur peut citer la requête : on ne garde que le statut.
-    throw new LlmError(`${provider} : HTTP ${res.status}`, "http", res.status);
+    // Le corps d'erreur peut citer la requête : on ne garde que le statut. Exception : une requête
+    // refusée pour sa forme (400), dont le début du motif dit quel paramètre corriger.
+    let detail = "";
+    if (res.status === 400) {
+      const parsed = apiError.safeParse(await res.json().catch(() => null));
+      if (parsed.success) {
+        const e = parsed.data.error;
+        detail = ` (${[e.type, e.message?.slice(0, 160)].filter(Boolean).join(" : ")})`;
+      }
+    }
+    throw new LlmError(`${provider} : HTTP ${res.status}${detail}`, "http", res.status);
   }
   return res.json();
 }
@@ -111,7 +131,13 @@ async function readJson(res: Response, provider: string): Promise<unknown> {
 const anthropicReply = z.looseObject({
   model: z.string().nullish(),
   stop_reason: z.string().nullish(),
-  content: z.array(z.looseObject({ type: z.string(), input: z.unknown().optional() })),
+  content: z.array(
+    z.looseObject({
+      type: z.string(),
+      input: z.unknown().optional(),
+      text: z.string().optional(),
+    }),
+  ),
   usage: z.looseObject({ input_tokens: z.number(), output_tokens: z.number() }),
 });
 
@@ -129,6 +155,53 @@ const openaiReply = z.looseObject({
   usage: z.looseObject({ prompt_tokens: z.number(), completion_tokens: z.number() }),
 });
 
+/**
+ * Modèles Anthropic d'avant la génération 5 : sortie structurée par outil forcé, température réglable.
+ * Les modèles récents refusent l'un ou l'autre (HTTP 400) : ils passent par `output_config.format`.
+ */
+export function isLegacyAnthropicModel(model: string): boolean {
+  return /^claude-(3|haiku-4|sonnet-4|opus-4)/.test(model);
+}
+
+const UNSUPPORTED_SCHEMA_KEYS = [
+  "minLength",
+  "maxLength",
+  "minimum",
+  "maximum",
+  "exclusiveMinimum",
+  "exclusiveMaximum",
+  "multipleOf",
+  "minItems",
+  "maxItems",
+  "pattern",
+  "format",
+  "default",
+];
+
+/**
+ * Schéma accepté par les sorties structurées d'Anthropic : sans contraintes de longueur ni de bornes
+ * (elles restent vérifiées par zod après l'appel), et `additionalProperties: false` sur chaque objet.
+ */
+export function structuredOutputSchema(schema: unknown): unknown {
+  if (Array.isArray(schema)) return schema.map(structuredOutputSchema);
+  if (!schema || typeof schema !== "object") return schema;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(schema as Record<string, unknown>)) {
+    if (UNSUPPORTED_SCHEMA_KEYS.includes(k)) continue;
+    out[k] =
+      k === "properties" && v && typeof v === "object"
+        ? Object.fromEntries(
+            Object.entries(v as Record<string, unknown>).map(([n, p]) => [
+              n,
+              structuredOutputSchema(p),
+            ]),
+          )
+        : structuredOutputSchema(v);
+  }
+  if (out.type === "object") out.additionalProperties = false;
+  return out;
+}
+
 export function createLlmClient(options: LlmClientOptions) {
   const fetchImpl = options.fetchImpl ?? fetch;
   const model = options.model ?? DEFAULT_MODELS[options.provider];
@@ -143,13 +216,45 @@ export function createLlmClient(options: LlmClientOptions) {
     const js = jsonSchemaOf(o.schema);
     if (options.provider === "anthropic") {
       if (auth === "proxy") throw new LlmError("Anthropic exige une clé API", "config");
+      const headers = {
+        "content-type": "application/json",
+        "x-api-key": auth.apiKey,
+        "anthropic-version": "2023-06-01",
+      };
+      if (!isLegacyAnthropicModel(model)) {
+        // Génération 5 : ni outil forcé ni température (HTTP 400). Le JSON est contraint par
+        // `output_config.format` et revient dans un bloc de texte, après d'éventuels blocs de réflexion.
+        const res = await fetchImpl(API.anthropic, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            model,
+            max_tokens: maxOutputTokens,
+            system: o.system,
+            messages: [{ role: "user", content: o.prompt }],
+            output_config: {
+              effort: o.effort ?? "low",
+              format: { type: "json_schema", schema: structuredOutputSchema(js) },
+            },
+          }),
+        });
+        const body = anthropicReply.parse(await readJson(res, "anthropic"));
+        const usage = {
+          inputTokens: body.usage.input_tokens,
+          outputTokens: body.usage.output_tokens,
+          model: body.model ?? model,
+        };
+        // Un refus est une réponse 200 facturée : le coût est journalisé, puis l'appel échoue.
+        if (body.stop_reason === "refusal") return { ...usage, text: "", refused: true };
+        const text = body.content
+          .filter((c) => c.type === "text")
+          .map((c) => c.text ?? "")
+          .join("");
+        return { ...usage, text, truncated: body.stop_reason === "max_tokens" };
+      }
       const res = await fetchImpl(API.anthropic, {
         method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-api-key": auth.apiKey,
-          "anthropic-version": "2023-06-01",
-        },
+        headers,
         body: JSON.stringify({
           model,
           max_tokens: maxOutputTokens,
@@ -240,6 +345,7 @@ export function createLlmClient(options: LlmClientOptions) {
     } catch (e) {
       logger.error("llm : coût non journalisé", { task: o.task, error: (e as Error).message });
     }
+    if (raw.refused) throw new LlmError(`${options.provider} : refus du modèle`, "refusal");
     // Essai du 17/11 : Haiku s'arrêtait à la limite de jetons et renvoyait `{}` (12 lots sur 12 perdus).
     if (raw.truncated) {
       throw new LlmError(
@@ -285,7 +391,7 @@ export function createLlmClient(options: LlmClientOptions) {
 
 export type LlmClient = ReturnType<typeof createLlmClient>;
 
-function pickProvider(): LlmProvider {
+export function pickProvider(): LlmProvider {
   if (env.LLM_PROVIDER) return env.LLM_PROVIDER;
   if (env.ANTHROPIC_API_KEY) return "anthropic";
   if (env.OPENAI_API_KEY || env.LLM_PROXY_AUTH) return "openai";

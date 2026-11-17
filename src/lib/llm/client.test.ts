@@ -2,7 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { fakeSupabase } from "@/features/audits/fake-supabase";
 import { costUsd, priceFor } from "./pricing";
-import { createLlmClient, LlmBudgetExceededError, LlmError } from "./client";
+import {
+  createLlmClient,
+  isLegacyAnthropicModel,
+  LlmBudgetExceededError,
+  LlmError,
+  structuredOutputSchema,
+} from "./client";
 
 const WS = "22222222-2222-4222-8222-222222222222";
 const AUDIT = "11111111-1111-4111-8111-111111111111";
@@ -147,6 +153,88 @@ describe("client LLM Anthropic", () => {
       json({ content: [{ type: "text" }], usage: { input_tokens: 1, output_tokens: 1 } }),
     );
     await expect(client.generate(call)).rejects.toMatchObject({ kind: "invalid" });
+  });
+});
+
+describe("client LLM Anthropic, modèles de génération 5", () => {
+  const reply = (over: Record<string, unknown> = {}) =>
+    json({
+      model: "claude-opus-5-5",
+      stop_reason: "end_turn",
+      // La réflexion précède le texte : la réponse se lit par type de bloc, jamais par position.
+      content: [
+        { type: "thinking", thinking: "", signature: "abc" },
+        { type: "text", text: '{"summary":"ok"}' },
+      ],
+      usage: { input_tokens: 1000, output_tokens: 500 },
+      ...over,
+    });
+
+  it("distingue les anciens modèles des nouveaux", () => {
+    expect(isLegacyAnthropicModel("claude-haiku-4-5")).toBe(true);
+    expect(isLegacyAnthropicModel("claude-haiku-4-5-20251001")).toBe(true);
+    expect(isLegacyAnthropicModel("claude-sonnet-4-5")).toBe(true);
+    expect(isLegacyAnthropicModel("claude-haiku-5-5")).toBe(false);
+    expect(isLegacyAnthropicModel("claude-opus-5-5")).toBe(false);
+  });
+
+  it("demande le JSON par output_config, sans outil forcé ni température", async () => {
+    const { client, fetchImpl, db } = setup("anthropic", reply, { model: "claude-opus-5-5" });
+    const out = await client.generate({ ...call, effort: "medium", temperature: 0.7 });
+    expect(out.data).toEqual({ summary: "ok" });
+    const body = JSON.parse(String((fetchImpl.mock.calls[0]![1] as RequestInit).body));
+    expect(body.model).toBe("claude-opus-5-5");
+    expect(body.output_config.effort).toBe("medium");
+    expect(body.output_config.format).toEqual({
+      type: "json_schema",
+      schema: {
+        type: "object",
+        properties: { summary: { type: "string" } },
+        required: ["summary"],
+        additionalProperties: false,
+      },
+    });
+    for (const k of ["temperature", "tools", "tool_choice", "thinking"])
+      expect(body).not.toHaveProperty(k);
+    // 1000 jetons en entrée à 4 USD et 500 en sortie à 20 USD par million.
+    expect(out.costUsd).toBeCloseTo(0.014, 6);
+    expect(db.tables.cost_ledger![0]).toMatchObject({ operation: "llm.audit_summary" });
+  });
+
+  it("un refus du modèle est une erreur, et son coût est journalisé", async () => {
+    const { client, db } = setup(
+      "anthropic",
+      () => reply({ stop_reason: "refusal", content: [] }),
+      {
+        model: "claude-haiku-5-5",
+      },
+    );
+    await expect(client.generate(call)).rejects.toMatchObject({ kind: "refusal" });
+    expect(db.tables.cost_ledger).toHaveLength(1);
+  });
+
+  it("une sortie coupée par la limite de jetons est refusée", async () => {
+    const { client } = setup("anthropic", () => reply({ stop_reason: "max_tokens" }), {
+      model: "claude-haiku-5-5",
+    });
+    await expect(client.generate(call)).rejects.toMatchObject({ kind: "invalid" });
+  });
+
+  it("retire du schéma les contraintes que l'API refuse, à tous les niveaux", () => {
+    const js = z.toJSONSchema(
+      z.object({
+        verdict: z.enum(["a", "b"]),
+        motif: z.string().min(1).max(10),
+        pages: z.array(z.string().max(5)).max(3),
+        sous: z.object({ n: z.number().int().min(0).max(9) }).nullable(),
+      }),
+      { target: "draft-7" },
+    );
+    const text = JSON.stringify(structuredOutputSchema(js));
+    for (const k of ["minLength", "maxLength", "maxItems", "minimum", "maximum"])
+      expect(text).not.toContain(k);
+    expect(text).toContain('"enum":["a","b"]');
+    expect(text.match(/"additionalProperties":false/g)).toHaveLength(2);
   });
 });
 

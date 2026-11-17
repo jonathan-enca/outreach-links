@@ -1,7 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/database.types";
+import type { CataloguePage } from "./catalogue";
 import { DRAFT_LIMITS } from "./limits";
-import type { DraftBrief, DraftContext, DraftItem, DraftResult } from "./types";
+import type { DraftBrief, DraftContext, DraftDecline, DraftItem, DraftResult } from "./types";
 
 type Client = SupabaseClient<Database>;
 
@@ -31,48 +32,60 @@ export async function beginDrafts(service: Client, planId: string): Promise<Draf
 }
 
 /**
- * Cibles contactables (email trouvé, même à vérifier, ou formulaire) avec leur hook.
- * Une cible sans citation ni titre de page n'est pas rédigée (pas d'accroche inventée). Une cible qui
- * a déjà son message n'est pas reprise : relancer la rédaction n'écrit que les messages manquants.
+ * Cibles contactables (email trouvé, même à vérifier, ou formulaire) dont la page a été lue au tri.
+ * Une cible qui a déjà son message, ou qui a été écartée faute d'angle, n'est pas reprise : relancer
+ * la rédaction ne traite que les cibles restantes.
  */
 export async function loadDraftInput(
   service: Client,
   run: DraftRun,
-): Promise<{ items: DraftItem[]; skipped: number; ctx: DraftContext | null }> {
-  const [contactsRes, triageRes, itemsRes, siteRes, briefsRes, writtenRes] = await Promise.all([
-    service
-      .from("target_contacts")
-      .select("plan_item_id, status")
-      .eq("plan_id", run.planId)
-      .in("status", ["email_verifie", "email_a_verifier", "formulaire"])
-      .limit(500),
-    service
-      .from("link_target_triage")
-      .select("plan_item_id, hook, page_title, resolved_url")
-      .eq("plan_id", run.planId)
-      .eq("verdict", "ok")
-      .limit(500),
-    service.from("link_plan_items").select("*").eq("plan_id", run.planId).limit(500),
-    service
-      .from("audits")
-      .select("sites(domain, niche, language, offered_asset, signature_first_name)")
-      .eq("id", run.auditId)
-      .maybeSingle(),
-    service
-      .from("plan_item_briefs")
-      .select("plan_item_id, brief")
-      .eq("plan_id", run.planId)
-      .limit(500),
-    // Messages déjà écrits : jamais réécrits (un message modifié ou validé par la personne est gardé).
-    service.from("target_drafts").select("plan_item_id").eq("plan_id", run.planId).limit(1000),
-  ]);
+): Promise<{
+  items: DraftItem[];
+  skipped: number;
+  ctx: DraftContext | null;
+  siteId: string;
+}> {
+  const [contactsRes, triageRes, itemsRes, siteRes, briefsRes, writtenRes, declinedRes] =
+    await Promise.all([
+      service
+        .from("target_contacts")
+        .select("plan_item_id, status")
+        .eq("plan_id", run.planId)
+        .in("status", ["email_verifie", "email_a_verifier", "formulaire"])
+        .limit(500),
+      service
+        .from("link_target_triage")
+        .select("plan_item_id, hook, page_title, resolved_url")
+        .eq("plan_id", run.planId)
+        .eq("verdict", "ok")
+        .limit(500),
+      service.from("link_plan_items").select("*").eq("plan_id", run.planId).limit(500),
+      service
+        .from("audits")
+        .select("sites(id, domain, niche, language, offered_asset, signature_first_name)")
+        .eq("id", run.auditId)
+        .maybeSingle(),
+      service
+        .from("plan_item_briefs")
+        .select("plan_item_id, brief")
+        .eq("plan_id", run.planId)
+        .limit(500),
+      // Messages déjà écrits : jamais réécrits (un message modifié ou validé par la personne est gardé).
+      service.from("target_drafts").select("plan_item_id").eq("plan_id", run.planId).limit(1000),
+      service.from("draft_declines").select("plan_item_id").eq("plan_id", run.planId).limit(1000),
+    ]);
   if (contactsRes.error) throw new Error(`loadDraftInput : ${contactsRes.error.message}`);
-  const written = new Set((writtenRes.data ?? []).map((d) => d.plan_item_id));
+  if (declinedRes.error) throw new Error(`loadDraftInput : ${declinedRes.error.message}`);
+  // Déjà traitées : message écrit, ou cible écartée faute d'angle.
+  const written = new Set(
+    [...(writtenRes.data ?? []), ...(declinedRes.data ?? [])].map((d) => d.plan_item_id),
+  );
   if (briefsRes.error) throw new Error(`loadDraftInput : ${briefsRes.error.message}`);
   const briefs = new Map(
     (briefsRes.data ?? []).map((b) => [b.plan_item_id, b.brief as unknown as DraftBrief]),
   );
   const site = siteRes.data?.sites as unknown as {
+    id: string;
     domain: string;
     niche: string | null;
     language: string;
@@ -98,7 +111,6 @@ export async function loadDraftInput(
     if (!tr || !it || !tr.resolved_url || written.has(c.plan_item_id)) continue;
     const brief = briefs.get(c.plan_item_id) ?? null;
     const hook = tr.hook?.trim() || tr.page_title?.trim() || "";
-    if (!hook) continue;
     all.push({
       id: it.id,
       domain: it.source_domain,
@@ -123,7 +135,84 @@ export async function loadDraftInput(
     delete rest.pos;
     return rest as DraftItem;
   });
-  return { items, skipped: Math.max(0, all.length - items.length), ctx };
+  return { items, skipped: Math.max(0, all.length - items.length), ctx, siteId: site.id };
+}
+
+/**
+ * Catalogue du site à promouvoir, s'il est assez récent ; null s'il faut le (re)lire. Sans le texte
+ * des pages par défaut : seul le rédacteur en a besoin, pour ses pages candidates.
+ */
+export async function loadCatalogue(
+  service: Client,
+  siteId: string,
+  now: Date = new Date(),
+): Promise<CataloguePage[] | null> {
+  const { data, error } = await service
+    .from("site_pages")
+    .select("url, title, description, content, read_at")
+    .eq("site_id", siteId)
+    .order("url")
+    .limit(DRAFT_LIMITS.cataloguePages + 20);
+  if (error) throw new Error(`loadCatalogue : ${error.message}`);
+  if (!data || data.length === 0) return null;
+  const oldest = Math.min(...data.map((r) => new Date(r.read_at).getTime()));
+  if (now.getTime() - oldest > DRAFT_LIMITS.catalogueMaxAgeDays * 86_400_000) return null;
+  return data.map((r) => ({
+    url: r.url,
+    title: r.title,
+    description: r.description,
+    text: r.content,
+  }));
+}
+
+/** Vide le catalogue avant une relecture (les pages disparues du site n'y restent pas). */
+export async function clearCatalogue(service: Client, siteId: string) {
+  const { error } = await service.from("site_pages").delete().eq("site_id", siteId);
+  if (error) throw new Error(`clearCatalogue : ${error.message}`);
+}
+
+export async function saveCataloguePages(
+  service: Client,
+  siteId: string,
+  workspaceId: string,
+  pages: readonly CataloguePage[],
+) {
+  if (pages.length === 0) return;
+  const { error } = await service.from("site_pages").upsert(
+    pages.map((p) => ({
+      site_id: siteId,
+      workspace_id: workspaceId,
+      url: p.url,
+      title: p.title,
+      description: p.description,
+      content: p.text,
+      read_at: new Date().toISOString(),
+    })),
+    { onConflict: "site_id,url" },
+  );
+  if (error) throw new Error(`saveCataloguePages : ${error.message}`);
+}
+
+/** Garde la décision « pas d'angle » : la cible ne sera pas rejouée, et l'utilisateur voit le motif. */
+export async function saveDecline(
+  service: Client,
+  run: DraftRun,
+  d: DraftDecline,
+  pageUrl: string,
+) {
+  const { error } = await service.from("draft_declines").upsert(
+    {
+      plan_item_id: d.itemId,
+      plan_id: run.planId,
+      workspace_id: run.workspaceId,
+      reason: d.reason.slice(0, 1000),
+      declined_by: d.by,
+      page_url: pageUrl,
+      cost_usd: d.costUsd,
+    },
+    { onConflict: "plan_item_id" },
+  );
+  if (error) throw new Error(`saveDecline : ${error.message}`);
 }
 
 /** Messages déjà écrits du plan (pour le contrôle des doublons à la reprise d'un step). */
@@ -176,6 +265,8 @@ export async function saveDraft(service: Client, run: DraftRun, r: DraftResult) 
 
 export interface DraftStats {
   drafted: number;
+  /** Cibles écartées : aucune raison honnête de demander un lien. */
+  declined: number;
   skipped: number;
   notDrafted: number;
   ready: number;
@@ -184,9 +275,15 @@ export interface DraftStats {
   formulaire: number;
 }
 
-export function summarize(results: DraftResult[], notDrafted: number, skipped: number): DraftStats {
+export function summarize(
+  results: DraftResult[],
+  notDrafted: number,
+  skipped: number,
+  declined = 0,
+): DraftStats {
   return {
     drafted: results.length,
+    declined,
     skipped,
     notDrafted,
     ready: results.filter((r) => r.ready).length,

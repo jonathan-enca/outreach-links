@@ -331,6 +331,36 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
       </Button>
     </Card>
   ) : null;
+  const declinedCard =
+    view.declined.length > 0 ? (
+      <Card className="p-4 text-sm">
+        <details>
+          <summary className="cursor-pointer font-semibold">
+            {V.declined(view.declined.length)}
+          </summary>
+          <p className="mt-2 text-muted-foreground">{V.declinedHelp}</p>
+          <ul className="mt-3 flex flex-col gap-3">
+            {view.declined.map((d, i) => (
+              <li key={`${d.domain}-${i}`} className="border-t pt-2 first:border-t-0 first:pt-0">
+                {d.pageUrl ? (
+                  <a
+                    href={d.pageUrl}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="font-semibold underline-offset-2 hover:underline"
+                  >
+                    {d.domain}
+                  </a>
+                ) : (
+                  <span className="font-semibold">{d.domain}</span>
+                )}
+                <p className="text-muted-foreground">{d.reason}</p>
+              </li>
+            ))}
+          </ul>
+        </details>
+      </Card>
+    ) : null;
   if (view.messages.length + view.replies.length + view.forms.length === 0)
     return (
       <div className="flex flex-col gap-4">
@@ -341,6 +371,7 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
           </p>
         ) : null}
         <Card className="p-6 text-muted-foreground">{V.none}</Card>
+        {declinedCard}
       </div>
     );
   return (
@@ -488,6 +519,7 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
             ))
           : null}
       </ul>
+      {declinedCard}
     </div>
   );
 }
