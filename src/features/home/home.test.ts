@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fr } from "../../../messages/fr";
+import type { FaqItem } from "./faq";
 import { HOME_SECTIONS } from "./sections";
 import { PROOF_SITES, PROOFS_ARE_ILLUSTRATIVE, proofSummary } from "./proofs";
 import { homeNavLinks } from "./site-header";
@@ -134,6 +135,38 @@ describe("home FR", () => {
       .join(" ")
       .match(/[a-z0-9-]+\.(fr|com|net|org|io)\b/g);
     expect(domains).toBeNull();
+  });
+
+  it("vocabulaire du produit actuel : ni « lot », ni « inbox », ni « audit », et l'envoi suit le vrai moteur", () => {
+    const all = texts(fr.home).join("\n");
+    // L'espace client dit « À valider », « Conversations » et « analyse » : la home aussi.
+    expect(all).not.toMatch(/(?<![\p{L}])(lots?|inbox|audits?)(?![\p{L}])/iu);
+    // Le plafond horaire n'est pas le rythme réel (cinq par jour la première semaine) : il n'est plus annoncé.
+    expect(all).not.toMatch(/(dix|10) (emails|envois) (par|\/) ?heure/i);
+    // Chaque exemple de demande donne l'adresse de la page contactée et celle de la page proposée.
+    for (const it of fr.home.tactics.items) {
+      expect(it.example.body.match(/[a-z-]+\.example/g)?.length).toBe(2);
+    }
+  });
+
+  it("FAQ : qui envoie, comment relier sa boîte, quelles messageries, d'après la liste des guides", () => {
+    const items: readonly FaqItem[] = fr.home.faq.items;
+    const find = (re: RegExp) => items.find((i) => re.test(i.q));
+    expect(find(/qui envoie/i)?.a).toMatch(/votre propre adresse/);
+    const how = find(/relier ma boîte/i);
+    expect(how?.a).toMatch(/mot de passe d'application/);
+    expect(how?.link?.href).toBe("/aide/boite-envoi");
+    const compat = find(/messageries sont compatibles/i);
+    const [yes, no] = compat!.a.split("Pas encore compatibles");
+    expect(no).toBeDefined();
+    // Nom court d'un fournisseur : « Yahoo Mail » se dit « Yahoo », « Bouygues Telecom » « Bouygues ».
+    const short = (name: string) => name.replace(/ (Mail|Telecom)$/, "");
+    // Une messagerie dite compatible l'est dans les guides, et inversement : à mettre à jour ensemble.
+    for (const p of fr.mailboxGuides.providers) {
+      if (p.slug === "autre") continue;
+      expect(p.compatible ? yes : no, p.name).toContain(short(p.name));
+      if (!p.compatible) expect(yes, p.name).not.toContain(short(p.name));
+    }
   });
 
   it("offre d'entrée : 7 jours d'essai, plus aucune référence à un audit gratuit sur la home", () => {

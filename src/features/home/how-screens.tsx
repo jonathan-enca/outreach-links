@@ -65,8 +65,9 @@ function Rows({
 
 /**
  * Les six écrans du parcours (« Comment ça marche »), dans l'ordre des étapes. Maquettes HTML/CSS avec
- * des données de démonstration : elles suivent les vrais écrans (démarrage en un champ, audit, « Vos
- * cibles », lot, envois, inbox). Décoratives : le texte de l'étape porte le sens.
+ * des données de démonstration : elles suivent les vrais écrans (démarrage en un champ, analyse, « Vos
+ * cibles », « À valider », envois, « Conversations ») et reprennent leurs libellés. Décoratives : le
+ * texte de l'étape porte le sens.
  */
 export function howScreens(): ReactNode[] {
   const m = t.home.how.mockup;
