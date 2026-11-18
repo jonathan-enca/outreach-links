@@ -88,7 +88,7 @@ export const QUALIFY_LIMITS = {
   batchPollMs: 30_000,
   batchMaxWaitMs: 10 * 60_000,
   /** Extrait de page envoyé au modèle (caractères). */
-  excerptChars: 1_200,
+  excerptChars: Number(process.env.MC6C_EXCERPT ?? 1_200),
   /** MC.6b : liens du contenu montrés au modèle (texte et site), et passage autour de la ressource citée. */
   citedLinks: 14,
   citedContextChars: 320,

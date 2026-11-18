@@ -133,12 +133,12 @@ describe.skipIf(!live)(
         serp: plan.serp.slice(0, 14),
       };
       const estimate = estimateCollection(reduced);
-      const smallLlm = (budgetUsd: number) =>
+      const smallLlm = (budgetUsd: number, model?: string) =>
         createLlmClient({
           costClient: ledger.client as never,
           provider: "openai",
           auth: process.env.OPENAI_API_KEY ? { apiKey: process.env.OPENAI_API_KEY } : "proxy",
-          ...(process.env.LLM_MODEL ? { model: process.env.LLM_MODEL } : {}),
+          ...((model ?? process.env.LLM_MODEL) ? { model: model ?? process.env.LLM_MODEL } : {}),
           budgetUsd,
           maxCostPerCallUsd: 0.05,
         });
@@ -205,7 +205,7 @@ describe.skipIf(!live)(
       /** Petit modèle de développement, facturé au prix du modèle de production sur les jetons réels. */
       const priced = (remainingUsd: number): LlmClient | null => {
         if (remainingUsd <= 0) return null;
-        const inner = smallLlm(5);
+        const inner = smallLlm(5, process.env.MC6C_JUDGE_MODEL);
         let spent = 0;
         const client = {
           get spentUsd() {
