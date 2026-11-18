@@ -132,6 +132,16 @@ describe.skipIf(!live)(
         content: [],
         serp: plan.serp.slice(0, 14),
       };
+      // MC.6c : ressources imposées (liste séparée par des virgules) pour comparer deux passes à ressources égales.
+      const pinned = process.env.MC6C_RESOURCES?.split(",").filter(Boolean);
+      if (pinned?.length) {
+        reduced.citations = {
+          ...reduced.citations,
+          pool: pinned.map((domain) => ({ domain, referringDomains: null, sampleUrl: null })),
+          resources: pinned,
+          max: pinned.length,
+        };
+      }
       const estimate = estimateCollection(reduced);
       const smallLlm = (budgetUsd: number, model?: string) =>
         createLlmClient({
@@ -172,8 +182,7 @@ describe.skipIf(!live)(
         () => ({
           dfs: dfs as never,
           service: ledger.client,
-          llm: smallLlm(0.1),
-          describe: describeCandidates,
+          ...(pinned?.length ? {} : { llm: smallLlm(0.1), describe: describeCandidates }),
         }),
         run,
         (_id, fn) => fn(),
