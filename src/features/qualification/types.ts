@@ -21,6 +21,10 @@ export const EXCLUSION_REASONS = [
   "faux_domaine",
   "deja_contacte",
   "ne_pas_contacter",
+  // MC.1 : nature de la page reconnue par son adresse (gratuit, avant lecture)
+  "page_accueil",
+  "page_legale",
+  "fichier",
   // 2. signaux fournisseur
   "spam",
   "langue",

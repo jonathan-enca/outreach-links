@@ -1,9 +1,12 @@
 import type { Tactic } from "@/features/queries/schema";
+import type { SiteBrief } from "./resource-judge";
 
 /**
  * D'où vient un candidat brut. `lien_mort` : la page du candidat cite une page d'un CONCURRENT qui
  * n'existe plus (404 / 410) ; dans la source, `query` = adresse de la page disparue et `persona` =
- * domaine du concurrent (chantier D, tactique principale de MU.7).
+ * domaine du concurrent (chantier D, tactique principale de MU.7). `citation` : la page du candidat cite
+ * déjà une RESSOURCE COMPARABLE au site (MC.6a) ; `query` = adresse de la page citée, `persona` = domaine
+ * de la ressource.
  */
 export const COLLECTION_SOURCES = [
   "intersection",
@@ -11,6 +14,7 @@ export const COLLECTION_SOURCES = [
   "content",
   "mention",
   "lien_mort",
+  "citation",
 ] as const;
 export type CollectionSource = (typeof COLLECTION_SOURCES)[number];
 
@@ -46,6 +50,8 @@ export interface CollectionContext {
   theme: string;
   nameVariants: string[];
   targetKeywords: string[];
+  /** Profil du site (MC.6a) : sert à choisir les ressources comparables. Absent = pas de jugement possible. */
+  site?: SiteBrief;
 }
 
 export interface CollectionSourceRef {

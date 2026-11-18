@@ -16,6 +16,7 @@ import { serpLocation } from "@/features/sites/market";
 import { normalizeBacklinkItems } from "@/features/backlinks/normalize";
 import { spendLimitsFor, assertCanSpend, type SpendLimits } from "./guard";
 import {
+  citationsCallUsd,
   COLLECTION_LIMITS,
   contentCallUsd,
   deadPagesCallUsd,
@@ -24,6 +25,7 @@ import {
   type CollectionPhase,
 } from "./limits";
 import {
+  fromCitations,
   fromContent,
   fromDeadPages,
   fromSerp,
@@ -36,6 +38,9 @@ import {
   type IntersectionDomain,
 } from "./normalize";
 import type { CollectionPlan } from "./plan";
+import type { LlmClient } from "@/lib/llm/client";
+import { pickResources, RESOURCE_PICK_LIMITS, type ResourceCandidate } from "./resource-judge";
+import { resourcesFromSearches, searchCandidates } from "./resources";
 import type { CollectionContext, MergedCandidate, RawCandidate } from "./types";
 
 type Client = SupabaseClient<Database>;
@@ -63,6 +68,24 @@ export const collectionPlanSchema = z.object({
     .max(20),
   /** Concurrents dont on cherche les pages disparues (absent des plans figés avant le chantier D). */
   deadPages: z.array(z.string()).max(10).default([]),
+  /** Ressources comparables (MC.6a). Absent des plans figés avant : aucune citation cherchée, coût inchangé. */
+  citations: z
+    .object({
+      pool: z
+        .array(
+          z.object({
+            domain: z.string(),
+            referringDomains: z.number().nullable().default(null),
+            sampleUrl: z.string().nullable().default(null),
+          }),
+        )
+        .max(12)
+        .default([]),
+      resources: z.array(z.string()).max(12).default([]),
+      max: z.number().int().min(0).max(12).default(0),
+      skipped: z.array(z.object({ domain: z.string(), reason: z.string() })).default([]),
+    })
+    .default({ pool: [], resources: [], max: 0, skipped: [] }),
   /** Ce qui n'est pas lancé faute de chance de résultat (absent des plans figés avant le 18/11/2026). */
   skipped: z
     .object({
@@ -148,6 +171,18 @@ export async function beginCollection(
       theme: site.niche ?? "",
       nameVariants: profile?.profile.name_variants ?? [],
       targetKeywords: site.target_keywords,
+      ...(profile
+        ? {
+            site: {
+              domain: site.domain,
+              theme: site.niche ?? "",
+              activity: profile.profile.activity,
+              offer: profile.profile.offer,
+              audience: profile.profile.audience,
+              pages: profile.profile.linkable_resources.map((r) => r.title).slice(0, 8),
+            },
+          }
+        : {}),
     },
     plan: plan.data as CollectionPlan,
     limits: spendLimitsFor(auditId, Number(audit.cost_cap_usd)),
@@ -171,6 +206,10 @@ export interface StepOutcome {
   failed?: boolean;
   /** Durée de l'appel, tentatives comprises (ms) : mesure de la durée par chemin. */
   ms?: number;
+  /** Recherche Google : vrai si les vraies adresses (`resolve_goto_urls`) ont été refusées et la recherche refaite sans. */
+  gotoFallback?: boolean;
+  /** Recherche Google : adresses encore approximatives (reconstruites du fil d'Ariane) dans ce résultat. */
+  approxUrls?: number;
 }
 
 /** Mesure la durée d'un appel (tentatives et attentes comprises) et la range dans son résultat. */
@@ -339,7 +378,13 @@ export async function runDeadPagesCall(
   };
 }
 
-/** Une requête SERP top 30 (découverte ou marque). */
+/**
+ * Une requête SERP top 30 (découverte ou marque). MC.1 : on demande d'abord les VRAIES adresses
+ * (`resolve_goto_urls`) pour ne plus lire une page d'accueil ou une page approximative à la place de
+ * l'article trouvé. Mesuré le 18/11/2026 : même prix, mais 25 à 45 s et des refus passagers du fournisseur ;
+ * en cas de refus, la recherche est refaite SANS l'option (11 s) : les adresses sont alors reconstruites
+ * du fil d'Ariane (approximatives, jamais présentées comme exactes).
+ */
 export async function runSerpQuery(
   deps: { dfs: Pick<Dfs, "serpOrganicLive">; service: Client },
   run: CollectionRun,
@@ -351,12 +396,21 @@ export async function runSerpQuery(
   const label = `${phase}-serp-${index + 1}`;
   const est = estimateCost("serpOrganicLive", { keyword: query.q, depth });
   if (!(await guarded(deps.service, run, est))) return blockedOutcome(phase, label);
-  const out = await withProviderRetry(() =>
-    deps.dfs.serpOrganicLive(
-      { keyword: query.q, depth, ...serpLocation(run.ctx.country, run.ctx.language) },
-      callOpts(run),
-    ),
-  );
+  const base = { keyword: query.q, depth, ...serpLocation(run.ctx.country, run.ctx.language) };
+  let gotoFallback = false;
+  let out: Awaited<ReturnType<Dfs["serpOrganicLive"]>> | null = null;
+  try {
+    out = await deps.dfs.serpOrganicLive({ ...base, resolve_goto_urls: true }, callOpts(run));
+  } catch (e) {
+    if (!(e instanceof DataForSeoError) || !isTransient(e)) throw e;
+    logger.warn("collecte : vraies adresses refusées, recherche refaite sans", {
+      kind: e.kind,
+      code: e.code,
+    });
+    gotoFallback = true;
+  }
+  if (gotoFallback)
+    out = await withProviderRetry(() => deps.dfs.serpOrganicLive(base, callOpts(run)));
   if (!out) return failedOutcome(phase, label);
   const entries = serpEntries(out.result, depth);
   return {
@@ -367,6 +421,67 @@ export async function runSerpQuery(
     costUsd: out.actualCostUsd,
     cacheHit: out.cacheHit,
     rows: entries.length,
+    blocked: false,
+    gotoFallback,
+    approxUrls: entries.filter((e) => e.urlExact === false).length,
+  };
+}
+
+/**
+ * Pages qui citent déjà UNE ressource comparable (MC.6a) : un appel Backlinks (une page par domaine, dans la
+ * langue de la campagne, spam et autorité filtrés côté serveur, liens récents d'abord). Réglages de l'essai
+ * MC.0b (`docs/mc0b-essai.md`). Chaque ligne est un candidat ; la lecture et le jugement viennent après.
+ */
+export async function runCitationsCall(
+  deps: { dfs: Pick<Dfs, "backlinksBacklinks">; service: Client },
+  run: CollectionRun,
+  resource: string,
+  index: number,
+  resources: readonly string[],
+): Promise<StepOutcome> {
+  const L = COLLECTION_LIMITS.citations;
+  const label = `citations-${index + 1}`;
+  if (!(await guarded(deps.service, run, citationsCallUsd(L.rowsPerCall)))) {
+    return blockedOutcome("citations", label);
+  }
+  const out = await withProviderRetry(() =>
+    deps.dfs.backlinksBacklinks(
+      {
+        target: resource,
+        limit: L.rowsPerCall,
+        mode: "one_per_domain",
+        exclude_internal_backlinks: true,
+        backlinks_status_type: "live",
+        filters: [
+          ["page_from_language", "=", run.ctx.language],
+          "and",
+          ["backlink_spam_score", "<", L.spamMax],
+          "and",
+          ["domain_from_rank", ">", L.minDomainRank],
+        ],
+        order_by: ["first_seen,desc"],
+      },
+      callOpts(run),
+    ),
+  );
+  if (!out) return failedOutcome("citations", label);
+  const items = normalizeBacklinkItems(out.result?.items, resource);
+  const meta = new Map<string, { language: string | null; title: string | null }>();
+  for (const it of (out.result?.items ?? []) as Record<string, unknown>[]) {
+    if (typeof it.url_from !== "string") continue;
+    meta.set(it.url_from.trim(), {
+      language: typeof it.page_from_language === "string" ? it.page_from_language : null,
+      title: typeof it.page_from_title === "string" ? it.page_from_title : null,
+    });
+  }
+  return {
+    phase: "citations",
+    label,
+    raws: fromCitations(items, run.ctx, resource, resources, meta),
+    intersection: [],
+    costUsd: out.actualCostUsd,
+    cacheHit: out.cacheHit,
+    rows: out.result?.items_count ?? out.result?.items?.length ?? 0,
     blocked: false,
   };
 }
@@ -444,6 +559,15 @@ export interface PhaseStats {
   callMs: number;
   wallMs: number;
   stoppedBy: StopReason;
+  /** Recherches Google refaites sans les vraies adresses (refus du fournisseur) et adresses restées approximatives (MC.1). */
+  gotoFallbacks?: number;
+  approxUrls?: number;
+  /** Phase « citations » : ressources interrogées (MC.6a), qui les a choisies et pourquoi. */
+  resources?: string[];
+  resourcesBy?: "modele" | "concurrents";
+  resourceReasons?: Record<string, string>;
+  /** Coût du choix des ressources par le modèle (compris dans `costUsd`). */
+  llmUsd?: number;
 }
 
 export const emptyPhaseStats = (): PhaseStats => ({
@@ -473,6 +597,7 @@ export class CollectionProgress {
     morts: emptyPhaseStats(),
     serp: emptyPhaseStats(),
     content: emptyPhaseStats(),
+    citations: emptyPhaseStats(),
   };
   /** Nouveaux domaines de chaque requête de la phase `serp`, dans l'ordre (arrêt par rendement). */
   readonly serpYield: number[] = [];
@@ -502,6 +627,8 @@ export class CollectionProgress {
     s.rows += o.rows;
     if (o.blocked) s.stoppedBy = "plafond";
     if (o.failed) s.failures++;
+    if (o.gotoFallback) s.gotoFallbacks = (s.gotoFallbacks ?? 0) + 1;
+    if (o.approxUrls) s.approxUrls = (s.approxUrls ?? 0) + o.approxUrls;
     s.callMs += o.ms ?? 0;
     if (o.intersection.length > 0) this.intersectionPages.push(o.intersection);
     const fresh = newDomains(o.raws, this.seen);
@@ -521,6 +648,13 @@ export class CollectionProgress {
     this.raws.push(...cands);
     this.stats.intersection.newDomains = fresh.length;
     return fresh.length;
+  }
+
+  /** Coût hors fournisseur de données (appel du modèle) rattaché à une phase. */
+  addExtraCost(phase: CollectionPhase, usd: number): void {
+    const s = this.stats[phase];
+    s.costUsd = r6(s.costUsd + usd);
+    s.llmUsd = r6((s.llmUsd ?? 0) + usd);
   }
 
   /** Durée réelle d'un lot d'appels parallèles : celle du plus long. */
@@ -599,7 +733,7 @@ export interface ExecuteOptions {
  * après toutes les tentatives est « manqué » : compté, jamais fatal. Aucun envoi, aucun achat.
  */
 export async function executeCollection(
-  deps: () => { dfs: Dfs; service: Client },
+  deps: () => { dfs: Dfs; service: Client; llm?: LlmClient | null },
   run: CollectionRun,
   runStep: StepRunner,
   opts: ExecuteOptions = {},
@@ -787,6 +921,72 @@ export async function executeCollection(
     stopBefore: (from) => (from >= guaranteed && progress.serpShouldStop() ? "rendement" : null),
     batch: opts.batchSize ?? SERP_BATCH,
   });
+
+  // 3 bis. Pages qui citent déjà une ressource comparable (MC.6a). Candidats : les concurrents de l'audit
+  // (plan figé) et les sites vus sur les recherches par sujet (bruts de la phase SERP seulement : le résultat
+  // ne dépend pas de l'ordre d'arrivée). Le petit modèle garde ceux qui proposent la même chose que le site ;
+  // sans modèle ou en cas de panne, repli sans jugement sur les concurrents puis sur les sites vus plusieurs fois.
+  const cites = run.plan.citations;
+  if (cites.max > 0) {
+    const poolDomains = cites.pool.map((p) => p.domain);
+    const candidates: ResourceCandidate[] = [
+      ...cites.pool.map((p) => ({
+        domain: p.domain,
+        title: null,
+        url: p.sampleUrl,
+        queries: 0,
+        origin: "audit" as const,
+        referringDomains: p.referringDomains,
+      })),
+      ...searchCandidates(
+        progress.raws,
+        poolDomains,
+        run.ctx.language,
+        Math.max(0, RESOURCE_PICK_LIMITS.maxCandidates - poolDomains.length),
+      ),
+    ];
+    const picked = await runStep("citations-choix", async () => {
+      const brief = run.ctx.site;
+      const llm = deps().llm ?? null;
+      if (!brief || !llm || candidates.length === 0) return { ok: false as const };
+      if (!(await guarded(deps().service, run, RESOURCE_PICK_LIMITS.reservedUsd))) {
+        return { ok: false as const };
+      }
+      const out = await pickResources({
+        llm,
+        site: brief,
+        candidates,
+        max: cites.max,
+        language: run.ctx.language,
+        workspaceId: run.workspaceId,
+        auditId: run.auditId,
+      });
+      return out ? { ok: true as const, ...out } : { ok: false as const };
+    });
+    let resources: string[];
+    if (picked.ok) {
+      resources = picked.resources;
+      progress.stats.citations.resourcesBy = "modele";
+      progress.stats.citations.resourceReasons = picked.reasons;
+      progress.addExtraCost("citations", picked.costUsd);
+    } else {
+      resources = [
+        ...cites.resources,
+        ...resourcesFromSearches(
+          progress.raws,
+          cites.resources,
+          cites.max - cites.resources.length,
+          run.ctx.language,
+        ),
+      ].slice(0, cites.max);
+      progress.stats.citations.resourcesBy = "concurrents";
+    }
+    progress.stats.citations.resources = resources;
+    await phaseInBatches("citations", resources, {
+      estimate: () => citationsCallUsd(L.citations.rowsPerCall),
+      call: (resource, i) => runCitationsCall(deps(), run, resource, i, resources),
+    });
+  }
 
   // 4 (suite). Les résultats de Content Analysis entrent maintenant, dans l'ordre du plan.
   const content = await contentEarly;

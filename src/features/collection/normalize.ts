@@ -253,6 +253,56 @@ export function fromDeadPages(
   return out;
 }
 
+/**
+ * Candidats « cite déjà une ressource comparable » (MC.6a) : chaque ligne est une page tierce qui lie une
+ * ressource. Filtre gratuit : le site, ses concurrents, les plateformes, les géants (`acceptDomain`), les
+ * ressources elles-mêmes (et leurs sous-domaines), le spam, les liens non suivis. La nature de la page
+ * (accueil, légale, fichier) est jugée ensuite par l'étage 1 de la qualification, avec un motif lisible.
+ */
+export function fromCitations(
+  items: readonly {
+    sourceUrl: string;
+    sourceDomain: string;
+    targetUrl: string | null;
+    anchor: string | null;
+    dofollow: boolean | null;
+    spamScore: number | null;
+    sourceRank: number | null;
+  }[],
+  ctx: CollectionContext,
+  resource: string,
+  /** Toutes les ressources de la phase : une ressource n'est jamais une cible. */
+  resources: readonly string[],
+  /** Langue et titre de la page qui cite, par adresse, quand le fournisseur les donne. */
+  meta: ReadonlyMap<string, { language: string | null; title: string | null }> = new Map(),
+): RawCandidate[] {
+  const out: RawCandidate[] = [];
+  const isResource = (d: string) => resources.some((r) => d === r || d.endsWith(`.${r}`));
+  for (const it of items) {
+    if (it.dofollow === false) continue;
+    if (it.spamScore !== null && it.spamScore >= COLLECTION_LIMITS.citations.spamMax) continue;
+    const domain = acceptDomain(it.sourceDomain, ctx);
+    if (!domain || isResource(domain)) continue;
+    const m = meta.get(it.sourceUrl);
+    out.push({
+      domain,
+      url: it.sourceUrl,
+      title: m?.title ?? it.anchor,
+      source: "citation",
+      tactic: "ressources",
+      query: it.targetUrl,
+      persona: resource,
+      rank: null,
+      pageType: null,
+      competitorsCount: 1,
+      domainRank: it.sourceRank,
+      spamScore: it.spamScore,
+      language: m?.language ?? null,
+    });
+  }
+  return out;
+}
+
 /** Domaines nouveaux (jamais vus) parmi des candidats bruts : la mesure du rendement d'un appel. */
 export function newDomains(raws: readonly RawCandidate[], seen: ReadonlySet<string>): string[] {
   const fresh = new Set<string>();
@@ -314,14 +364,17 @@ export function mergeCandidates(raws: readonly RawCandidate[], maxSources = 6): 
     if (cur.sources.length < maxSources) cur.sources.push(ref);
     // La page d'une mention ou d'une SERP est plus parlante que l'ancre d'un recoupement ; la page
     // qui cite un lien mort d'un concurrent est celle à lire en priorité (la preuve y est).
-    if (r.source === "lien_mort" && r.url) {
+    // Une page qui cite déjà une ressource comparable (MC.6a) est de même nature : la preuve est sur la page.
+    if ((r.source === "lien_mort" || r.source === "citation") && r.url) {
       cur.url = r.url;
+      // Le titre décrit la page : il suit l'adresse (jamais le titre d'une autre page du même site).
+      cur.title = r.title;
       cur.language = r.language ?? null;
     } else if (!cur.url && r.url) {
       cur.url = r.url;
       cur.language = r.language ?? null;
     }
-    if (!cur.title && r.title) cur.title = r.title;
+    if (!cur.title && r.title && (!r.url || r.url === cur.url)) cur.title = r.title;
     cur.competitorsCount = Math.max(cur.competitorsCount, r.competitorsCount);
     if (r.domainRank !== null) cur.domainRank = Math.max(cur.domainRank ?? 0, r.domainRank);
     if (r.spamScore !== null) cur.spamScore = Math.min(cur.spamScore ?? 100, r.spamScore);
