@@ -54,6 +54,7 @@ function world(
         daily_cap: 20,
       },
     ],
+    mailbox_sites: [{ mailbox_id: "mb1", site_id: "site1", workspace_id: WS }],
     sent_messages: [
       {
         id: "s1",

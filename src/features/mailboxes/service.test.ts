@@ -3,6 +3,8 @@ import { fakeSupabase } from "@/features/audits/fake-supabase";
 import { parseKeyRing, decryptSecret } from "./crypto";
 import {
   connectMailbox,
+  linkMailbox,
+  unlinkMailbox,
   removeMailbox,
   testMailbox,
   updateSendSchedule,
@@ -174,5 +176,55 @@ describe("service boîte d'envoi", () => {
     expect(
       (await updateSendSchedule(f.client, "inconnue", schedule(["1"], "9", "18"), deps)).status,
     ).toBe("error");
+  });
+
+  it("rattache la boîte au site à la connexion", async () => {
+    const { f, deps } = setup();
+    await connectMailbox(f.client, "s1", form(), deps);
+    expect(f.tables.mailbox_sites).toEqual([
+      expect.objectContaining({ mailbox_id: f.tables.mailboxes![0]!.id, site_id: "s1" }),
+    ]);
+  });
+
+  it("réutilise une boîte déjà connectée sur un autre site, sans la dupliquer", async () => {
+    const f = fakeSupabase(
+      {
+        sites: [
+          { id: "s1", workspace_id: "w1" },
+          { id: "s2", workspace_id: "w1" },
+        ],
+      },
+      { userId: "u1" },
+    );
+    const { deps } = setup();
+    const d = { ...deps, getServiceClient: () => f.client };
+    await connectMailbox(f.client, "s1", form(), d);
+    const id = String(f.tables.mailboxes![0]!.id);
+    const r = await linkMailbox(f.client, "s2", id, d);
+    expect(r.status).toBe("ok");
+    expect(f.tables.mailboxes).toHaveLength(1);
+    expect(f.tables.mailbox_sites).toHaveLength(2);
+    // Retirer la boîte de s2 la laisse sur s1 et dans l'espace.
+    const u = await unlinkMailbox(f.client, "s2", id, d);
+    expect(u.status).toBe("ok");
+    expect(f.tables.mailbox_sites).toHaveLength(1);
+    expect(f.tables.mailboxes).toHaveLength(1);
+  });
+
+  it("refuse de rattacher la boîte d'un autre espace de travail", async () => {
+    const f = fakeSupabase(
+      {
+        sites: [{ id: "s1", workspace_id: "w1" }],
+        mailboxes: [{ id: "m9", workspace_id: "w2", email: "x@y.fr" }],
+      },
+      { userId: "u1" },
+    );
+    const { deps } = setup();
+    const r = await linkMailbox(f.client, "s1", "m9", {
+      ...deps,
+      getServiceClient: () => f.client,
+    });
+    expect(r.status).toBe("error");
+    expect(f.tables.mailbox_sites ?? []).toHaveLength(0);
   });
 });

@@ -2381,6 +2381,34 @@ Périmètre tenu : textes, mise en page, composants d'affichage. **Aucune logiqu
 
 Lancer une vraie campagne sur un troisième thème, lire `auto_stop`, la durée et le coût réels, et regarder ces nouveaux textes sur de vraies données.
 
+## Session du 18/11 (suite 10) : une boîte d'envoi pour toutes les campagnes ; « À relire » retiré (faite)
+
+### Ce qui change pour la personne
+
+- **Boîte réutilisable** : une boîte appartient à l'espace de travail et peut servir tous les sites. Sur Réglages > Boîte d'envoi (et la page du site), tant qu'un site n'a pas de boîte, la liste des boîtes déjà connectées s'affiche avec « Utiliser cette boîte » (un clic, rien à ressaisir) et « Connecter une autre boîte ». Sur une boîte rattachée : « Ne plus l'utiliser ici » (la boîte reste connectée pour les autres) en plus de « Supprimer la boîte » (partout ; la confirmation dit combien d'autres campagnes sont touchées). Une boîte partagée affiche « Partagée avec : … ».
+- **« À relire » retiré de « À valider »** (liste et panneau de droite) : la liste montre le hook, jamais la réserve du rédacteur. La donnée `review_note` est toujours calculée et stockée (pas de migration), seulement plus affichée.
+
+### Technique
+
+- Migration `2026121500000000_mailbox_sites.sql` (**appliquée sur la vraie base**) : table `mailbox_sites (mailbox_id, site_id, workspace_id)`, remplie depuis `mailboxes.site_id`, qui devient facultative (site d'origine, informatif ; supprimer ce site ne supprime plus la boîte). RLS lecture par membre, écriture serveur, garde « même espace de travail ».
+- Une adresse reste unique par espace : plafonds (déjà par `from_email`), échauffement et lecture IMAP ne sont pas doublés.
+- Moteur d'envoi : une boîte envoie les lots validés des plans de TOUS ses sites ; chaque message part avec la signature de **son** site (`signatureFor` dans `sending/service.ts`, et via le plan du message d'origine pour les réponses dans `inbox/send.ts`). File d'envoi (`queue-note.ts`) regroupée par boîte ; « approuver » exige une boîte vérifiée liée au site (`approvals/service.ts`).
+- Fichiers : `src/features/mailboxes/{service,actions,load,mailbox-section}.ts(x)`, `messages/fr.ts` (`mailboxes.reuse`).
+- Tests : `pnpm vitest run src/features/mailboxes src/features/sending src/features/inbox src/features/approvals`.
+
+### Dettes
+
+- Pas vérifié dans un navigateur avec deux vraies campagnes (typecheck, lint et tests seulement).
+- Le test de la base réelle `supabase/tests/mailboxes.test.ts` n'a pas été étendu à `mailbox_sites` (pas de Postgres local ici).
+- L'écran garde une boîte par site dans l'interface ; le moteur en accepterait plusieurs.
+
+### Même session : vrai sélecteur de site dans le menu, « Tous les sites »
+
+- Le sélecteur en haut du menu est maintenant une liste déroulante : « Tous les sites » + chaque site + « Gérer les sites » (qui mène à `/app/site`). Le choix est gardé dans un cookie `site` (`selectSite` dans `src/app/app/actions.ts`, lecture et validation dans `src/features/shell/current-site.ts` : un site inconnu ou invalide retombe sur « Tous »).
+- **Campagnes** n'affiche que le site choisi (toutes si « Tous les sites »). Les pages de réglages (`pickSite`) ouvrent le site choisi quand l'adresse n'a pas de `?site=`.
+- **Pas filtrés** (hors périmètre, à décider) : « À valider » (a son propre sélecteur de campagne), Conversations, Liens obtenus, Accueil. Le sélecteur du menu n'est pas encore sur téléphone (barre basse).
+- Pas vérifié dans un navigateur.
+
 ## Session du 18/11 (suite 10) : bas de l'écran « Vos cibles » (maquette puis code ; faite)
 
 Maquette validée par Jonathan le 18/11 (`docs/mockups/vos-cibles-bas.md`, décisions en fin de note : variante A, « Tout retenir » et « Tout écarter » conservés, bouton « Rédiger les N messages », concurrents retirés), puis codée. **Aucune logique touchée** : ni action serveur, ni service, ni recherche, ni envoi ; seuls l'affichage et les textes changent. Aucune donnée réelle, aucun appel payant.

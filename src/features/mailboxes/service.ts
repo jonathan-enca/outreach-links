@@ -88,25 +88,37 @@ export async function connectMailbox(
   } catch {
     return { status: "error", message: M.noKey };
   }
-  const { error } = await deps.getServiceClient().from("mailboxes").insert({
-    workspace_id: site.workspace_id,
-    site_id: site.id,
-    email: input.email,
-    from_name: input.fromName,
-    username: input.username,
-    password_enc: enc.value,
-    key_version: enc.version,
-    smtp_host: input.smtpHost,
-    smtp_port: input.smtpPort,
-    imap_host: input.imapHost,
-    imap_port: input.imapPort,
-    created_by: u.id,
-  });
-  if (error) {
+  const service = deps.getServiceClient();
+  const { data: created, error } = await service
+    .from("mailboxes")
+    .insert({
+      workspace_id: site.workspace_id,
+      site_id: site.id,
+      email: input.email,
+      from_name: input.fromName,
+      username: input.username,
+      password_enc: enc.value,
+      key_version: enc.version,
+      smtp_host: input.smtpHost,
+      smtp_port: input.smtpPort,
+      imap_host: input.imapHost,
+      imap_port: input.imapPort,
+      created_by: u.id,
+    })
+    .select("id")
+    .single();
+  if (error || !created) {
     return {
       status: "error",
-      message: error.code === "23505" ? M.duplicate : M.saveError,
+      message: error?.code === "23505" ? M.duplicate : M.saveError,
     };
+  }
+  const { error: linkError } = await service
+    .from("mailbox_sites")
+    .insert({ mailbox_id: created.id, site_id: site.id, workspace_id: site.workspace_id });
+  if (linkError) {
+    await service.from("mailboxes").delete().eq("id", created.id);
+    return { status: "error", message: M.saveError };
   }
   await supabase.from("events").insert({
     workspace_id: site.workspace_id,
@@ -115,6 +127,73 @@ export async function connectMailbox(
     payload: { site_id: site.id, email: input.email },
   });
   return { status: "ok", message: M.saved };
+}
+
+/** Rattache une boîte déjà connectée de l'espace à ce site (campagne). */
+export async function linkMailbox(
+  supabase: Client,
+  siteId: string,
+  mailboxId: string,
+  deps: Pick<MailboxDeps, "getServiceClient">,
+): Promise<MailboxState> {
+  const u = await user(supabase);
+  if (!u) return { status: "error", message: M.unauthenticated };
+  // RLS : la personne doit voir le site ET la boîte ; elles doivent être dans le même espace.
+  const [{ data: site }, { data: box }] = await Promise.all([
+    supabase.from("sites").select("id, workspace_id").eq("id", siteId).maybeSingle(),
+    supabase.from("mailboxes").select("id, workspace_id").eq("id", mailboxId).maybeSingle(),
+  ]);
+  if (!site) return { status: "error", message: M.siteNotFound };
+  if (!box || box.workspace_id !== site.workspace_id) {
+    return { status: "error", message: M.notFound };
+  }
+  const { error } = await deps
+    .getServiceClient()
+    .from("mailbox_sites")
+    .upsert(
+      { mailbox_id: box.id, site_id: site.id, workspace_id: site.workspace_id },
+      { onConflict: "mailbox_id,site_id", ignoreDuplicates: true },
+    );
+  if (error) return { status: "error", message: M.saveError };
+  await supabase.from("events").insert({
+    workspace_id: site.workspace_id,
+    actor_id: u.id,
+    type: "mailbox.linked",
+    payload: { mailbox_id: box.id, site_id: site.id },
+  });
+  return { status: "ok", message: M.linked };
+}
+
+/** Retire la boîte de ce site seulement : elle reste connectée et utilisable par les autres. */
+export async function unlinkMailbox(
+  supabase: Client,
+  siteId: string,
+  mailboxId: string,
+  deps: Pick<MailboxDeps, "getServiceClient">,
+): Promise<MailboxState> {
+  const u = await user(supabase);
+  if (!u) return { status: "error", message: M.unauthenticated };
+  const { data: link } = await supabase
+    .from("mailbox_sites")
+    .select("workspace_id")
+    .eq("mailbox_id", mailboxId)
+    .eq("site_id", siteId)
+    .maybeSingle();
+  if (!link) return { status: "error", message: M.notFound };
+  const { error } = await deps
+    .getServiceClient()
+    .from("mailbox_sites")
+    .delete()
+    .eq("mailbox_id", mailboxId)
+    .eq("site_id", siteId);
+  if (error) return { status: "error", message: M.saveError };
+  await supabase.from("events").insert({
+    workspace_id: link.workspace_id,
+    actor_id: u.id,
+    type: "mailbox.unlinked",
+    payload: { mailbox_id: mailboxId, site_id: siteId },
+  });
+  return { status: "ok", message: M.unlinked };
 }
 
 /**

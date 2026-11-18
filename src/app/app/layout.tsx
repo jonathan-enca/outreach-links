@@ -6,7 +6,8 @@ import { MobileBack } from "@/features/shell/mobile-back";
 import { loadOverview } from "@/features/shell/overview";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
-import { signOut } from "./actions";
+import { currentSiteChoice } from "@/features/shell/current-site";
+import { selectSite, signOut } from "./actions";
 
 /** Menu : sites, compteurs de ce qui attend la personne, compte (la RLS limite à son espace). */
 async function Nav() {
@@ -16,9 +17,13 @@ async function Nav() {
     loadOverview(supabase),
   ]);
   const p = overview.pending;
+  const sites = overview.campaigns.map((c) => ({ id: c.siteId, domain: c.domain }));
+  const currentSite = await currentSiteChoice(sites.map((s) => s.id));
   return (
     <AppNav
-      sites={overview.campaigns.map((c) => ({ id: c.siteId, domain: c.domain }))}
+      sites={sites}
+      currentSite={currentSite}
+      selectSite={selectSite}
       counts={{ toValidate: p.drafts + p.replies + p.forms, conversations: p.replies }}
       email={auth.user?.email ?? null}
       signOut={signOut}

@@ -10,8 +10,10 @@ import { t } from "@/lib/messages";
 import { DEFAULT_SEND_DAYS, describeWindow } from "@/features/sending/schedule";
 import {
   connectMailboxAction,
+  linkMailboxAction,
   removeMailboxAction,
   testMailboxAction,
+  unlinkMailboxAction,
   updateScheduleAction,
 } from "./actions";
 import { explainMailboxError } from "./explain-error";
@@ -43,6 +45,16 @@ export interface MailboxView {
   sendDays?: number[] | null;
   windowStart?: number | null;
   windowEnd?: number | null;
+  /** Autres campagnes (sites) qui utilisent aussi cette boîte. */
+  otherSites?: string[];
+}
+
+/** Boîte déjà connectée dans l'espace de travail, pas (encore) rattachée à ce site. */
+export interface AvailableMailbox {
+  id: string;
+  email: string;
+  status: MailboxView["status"];
+  sites: string[];
 }
 
 const m = t.mailboxes;
@@ -105,13 +117,21 @@ function Row({ siteId, box }: { siteId: string; box: MailboxView }) {
     removeMailboxAction.bind(null, siteId, box.id),
     { status: "idle" } as MailboxState,
   );
+  const [unlinkState, unlink, unlinking] = useActionState(
+    unlinkMailboxAction.bind(null, siteId, box.id),
+    { status: "idle" } as MailboxState,
+  );
   const warn = healthText(box.health);
+  const others = box.otherSites ?? [];
   return (
     <div className="flex flex-col gap-2 rounded-md border border-border p-4">
       <div className="flex flex-wrap items-center gap-2">
         <strong>{box.email}</strong>
         <Badge>{m.status[box.status]}</Badge>
       </div>
+      {others.length > 0 ? (
+        <p className="text-sm text-muted-foreground">{m.reuse.sharedWith(others.join(", "))}</p>
+      ) : null}
       <p className="text-sm">
         {m.smtp} : {box.smtpOk === null ? "—" : box.smtpOk ? m.ok : m.ko} · {m.imap} :{" "}
         {box.imapOk === null ? "—" : box.imapOk ? m.ok : m.ko}
@@ -135,14 +155,21 @@ function Row({ siteId, box }: { siteId: string; box: MailboxView }) {
           action={remove}
           onSubmit={(e) => {
             // Suppression définitive : on dit ce qui part avec la boîte avant de l'exécuter.
-            if (!window.confirm(m.removeConfirm)) e.preventDefault();
+            const text = others.length > 0 ? m.removeConfirmShared(others.length) : m.removeConfirm;
+            if (!window.confirm(text)) e.preventDefault();
           }}
         >
           <Button type="submit" variant="outline" disabled={removing}>
             {m.remove}
           </Button>
         </form>
+        <form action={unlink}>
+          <Button type="submit" variant="outline" disabled={unlinking}>
+            {unlinking ? m.reuse.unlinking : m.reuse.unlink}
+          </Button>
+        </form>
       </div>
+      <Status state={unlinkState} />
       <Status state={testState} />
       <Status state={rmState} />
       <ScheduleForm siteId={siteId} box={box} />
@@ -471,11 +498,49 @@ function ConnectForm({
   );
 }
 
-export function MailboxSection({ siteId, boxes }: { siteId: string; boxes: MailboxView[] }) {
+/** Une boîte déjà connectée pour un autre site : un clic la rattache à celui-ci. */
+function AvailableRow({ siteId, box }: { siteId: string; box: AvailableMailbox }) {
+  const [state, link, linking] = useActionState(linkMailboxAction.bind(null, siteId, box.id), {
+    status: "idle",
+  } as MailboxState);
+  return (
+    <form
+      action={link}
+      className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-4"
+    >
+      <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <strong className="break-all">{box.email}</strong>
+          <Badge>{m.status[box.status]}</Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {box.sites.length > 0 ? m.reuse.alsoUsedBy(box.sites.join(", ")) : m.reuse.notUsed}
+        </p>
+        <Status state={state} />
+      </div>
+      <Button type="submit" disabled={linking}>
+        {linking ? m.reuse.using : m.reuse.use}
+      </Button>
+    </form>
+  );
+}
+
+export function MailboxSection({
+  siteId,
+  boxes,
+  available = [],
+}: {
+  siteId: string;
+  boxes: MailboxView[];
+  available?: AvailableMailbox[];
+}) {
   // L'état vit ici : le message « Boîte enregistrée » doit rester quand le formulaire disparaît.
   const [state, connect, pending] = useActionState(connectMailboxAction.bind(null, siteId), {
     status: "idle",
   } as MailboxState);
+  // Des boîtes déjà connectées existent : on propose de les réutiliser, ou d'en connecter une autre.
+  const [other, setOther] = useState(false);
+  const canReuse = boxes.length === 0 && available.length > 0;
   return (
     <Card id="boite-envoi" className="flex scroll-mt-4 flex-col gap-4 p-6">
       <h2 className="text-lg font-semibold">{m.title}</h2>
@@ -483,7 +548,25 @@ export function MailboxSection({ siteId, boxes }: { siteId: string; boxes: Mailb
       {boxes.map((b) => (
         <Row key={b.id} siteId={siteId} box={b} />
       ))}
-      {boxes.length === 0 ? <ConnectForm action={connect} pending={pending} /> : null}
+      {canReuse ? (
+        <div className="flex flex-col gap-3">
+          <div>
+            <h3 className="font-semibold">{m.reuse.title}</h3>
+            <p className="text-sm text-muted-foreground">{m.reuse.hint}</p>
+          </div>
+          {available.map((b) => (
+            <AvailableRow key={b.id} siteId={siteId} box={b} />
+          ))}
+          <div>
+            <Button type="button" variant="outline" onClick={() => setOther((v) => !v)}>
+              {other ? m.reuse.back : m.reuse.other}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+      {boxes.length === 0 && (!canReuse || other) ? (
+        <ConnectForm action={connect} pending={pending} />
+      ) : null}
       <Status state={state} />
     </Card>
   );

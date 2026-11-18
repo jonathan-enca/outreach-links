@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import {
   Bell,
+  Check,
   CheckSquare,
   ChevronsUpDown,
   CreditCard,
@@ -21,8 +22,6 @@ import {
 import { inSettings, SETTINGS_HOME } from "@/features/shell/settings-links";
 import { t } from "@/lib/messages";
 import { cn } from "@/lib/utils";
-
-const SITE_IN_PATH = /^\/app\/site\/([0-9a-f-]{36})(\/|$)/i;
 
 export interface NavCounts {
   /** Messages, réponses et formulaires qui attendent l'accord de la personne. */
@@ -56,8 +55,13 @@ export function AppNav({
   counts = { toValidate: 0, conversations: 0 },
   email = null,
   signOut,
+  currentSite = "all",
+  selectSite,
 }: {
   sites: { id: string; domain: string }[];
+  /** Site choisi (cookie) ou « all » : filtre les écrans. */
+  currentSite?: string;
+  selectSite?: (choice: string) => Promise<void>;
   counts?: NavCounts;
   email?: string | null;
   signOut?: () => Promise<void>;
@@ -65,8 +69,32 @@ export function AppNav({
   const pathname = usePathname();
   const [menu, setMenu] = useState(false);
   const n = t.shell.nav;
-  const siteId = SITE_IN_PATH.exec(pathname)?.[1] ?? sites[0]?.id ?? null;
-  const site = sites.find((s) => s.id === siteId) ?? sites[0] ?? null;
+  const [siteMenu, setSiteMenu] = useState(false);
+  const [switching, startSwitch] = useTransition();
+  const switcher = useRef<HTMLDivElement>(null);
+  const site = sites.find((s) => s.id === currentSite) ?? null;
+  useEffect(() => {
+    if (!siteMenu) return;
+    const close = (e: MouseEvent | KeyboardEvent) => {
+      if (
+        e instanceof KeyboardEvent
+          ? e.key === "Escape"
+          : !switcher.current?.contains(e.target as Node)
+      ) {
+        setSiteMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [siteMenu]);
+  function pick(choice: string) {
+    setSiteMenu(false);
+    if (choice !== currentSite && selectSite) startSwitch(() => selectSite(choice));
+  }
   const onSettings = /^\/app\/site(\/[0-9a-f-]{36})?\/?$/i.test(pathname);
   const starts = (p: string) => pathname === p || pathname.startsWith(`${p}/`);
 
@@ -220,15 +248,53 @@ export function AppNav({
         <Link href="/app" className="px-2 pb-3 pt-1 font-display text-lg font-semibold text-white">
           {t.app.name}
         </Link>
-        {site ? (
-          <Link
-            href="/app/site"
-            title={n.changeSite}
-            className="mb-2 flex items-center justify-between gap-2 rounded-md border border-sidebar-border px-3 py-2 text-sm font-semibold text-white hover:bg-sidebar-hover"
-          >
-            <span className="truncate">{site.domain}</span>
-            <ChevronsUpDown aria-hidden className="size-4 shrink-0 opacity-70" />
-          </Link>
+        {sites.length > 0 ? (
+          <div ref={switcher} className="relative mb-2">
+            <button
+              type="button"
+              aria-haspopup="listbox"
+              aria-expanded={siteMenu}
+              aria-label={n.changeSite}
+              disabled={switching}
+              onClick={() => setSiteMenu((v) => !v)}
+              className="flex w-full items-center justify-between gap-2 rounded-md border border-sidebar-border px-3 py-2 text-left text-sm font-semibold text-white hover:bg-sidebar-hover disabled:opacity-60"
+            >
+              <span className="truncate">{site ? site.domain : n.allSites}</span>
+              <ChevronsUpDown aria-hidden className="size-4 shrink-0 opacity-70" />
+            </button>
+            {siteMenu ? (
+              <ul
+                role="listbox"
+                aria-label={n.changeSite}
+                className="absolute inset-x-0 top-full z-20 mt-1 max-h-72 overflow-y-auto rounded-card border border-border bg-card p-1.5 text-foreground shadow-lg"
+              >
+                {[{ id: "all", domain: n.allSites }, ...sites].map((s) => {
+                  const selected = s.id === (site ? site.id : "all");
+                  return (
+                    <li key={s.id} role="option" aria-selected={selected}>
+                      <button
+                        type="button"
+                        onClick={() => pick(s.id)}
+                        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-muted"
+                      >
+                        <span className="flex-1 truncate font-medium">{s.domain}</span>
+                        {selected ? <Check aria-hidden className="size-4 text-primary" /> : null}
+                      </button>
+                    </li>
+                  );
+                })}
+                <li role="presentation" className="mt-1 border-t border-border pt-1">
+                  <Link
+                    href="/app/site"
+                    onClick={() => setSiteMenu(false)}
+                    className="block rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
+                  >
+                    {n.manageSites}
+                  </Link>
+                </li>
+              </ul>
+            ) : null}
+          </div>
         ) : null}
         {groups.map((g) => (
           <div key={g.title ?? "top"} className="flex flex-col gap-0.5">

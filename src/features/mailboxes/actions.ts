@@ -6,8 +6,10 @@ import { createServiceClient } from "@/lib/supabase/service";
 import {
   connectMailbox,
   defaultMailboxDeps,
+  linkMailbox,
   removeMailbox,
   testMailbox,
+  unlinkMailbox,
   updateSendSchedule,
   type MailboxState,
 } from "./service";
@@ -21,6 +23,28 @@ export async function connectMailboxAction(
 ): Promise<MailboxState> {
   const r = await connectMailbox(await createClient(), siteId, formData, deps());
   revalidatePath(`/app/site/${siteId}`);
+  return r;
+}
+
+export async function linkMailboxAction(
+  siteId: string,
+  mailboxId: string,
+  _prev: MailboxState,
+): Promise<MailboxState> {
+  const r = await linkMailbox(await createClient(), siteId, mailboxId, deps());
+  revalidatePath(`/app/site/${siteId}`);
+  revalidatePath("/app/reglages/boite");
+  return r;
+}
+
+export async function unlinkMailboxAction(
+  siteId: string,
+  mailboxId: string,
+  _prev: MailboxState,
+): Promise<MailboxState> {
+  const r = await unlinkMailbox(await createClient(), siteId, mailboxId, deps());
+  revalidatePath(`/app/site/${siteId}`);
+  revalidatePath("/app/reglages/boite");
   return r;
 }
 

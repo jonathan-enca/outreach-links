@@ -1977,6 +1977,22 @@ export const fr = {
     remove: "Supprimer la boîte",
     removeConfirm:
       "Supprimer cette boîte ? Les messages déjà envoyés restent dans votre historique, mais les réponses lues depuis cette boîte sont supprimées avec elle. Vos messages approuvés attendront qu'une boîte soit reconnectée.",
+    removeConfirmShared: (n: number) =>
+      `Supprimer cette boîte ? Elle sert aussi à ${n} autre${n > 1 ? "s" : ""} campagne${n > 1 ? "s" : ""} : elle sera supprimée partout. Les messages déjà envoyés restent dans votre historique, mais les réponses lues depuis cette boîte sont supprimées avec elle. Pour seulement la retirer de cette campagne, choisissez « Ne plus l'utiliser ici ».`,
+    reuse: {
+      title: "Utiliser une boîte déjà connectée",
+      hint: "Une même boîte peut servir toutes vos campagnes : ses plafonds d'envoi sont partagés, et les messages partent avec la signature de chaque site.",
+      use: "Utiliser cette boîte",
+      using: "Rattachement…",
+      other: "Connecter une autre boîte",
+      back: "Choisir une boîte déjà connectée",
+      alsoUsedBy: (names: string) => `Sert déjà à : ${names}`,
+      notUsed: "Pas encore utilisée",
+      unlink: "Ne plus l'utiliser ici",
+      unlinking: "Retrait…",
+      change: "Changer de boîte",
+      sharedWith: (names: string) => `Partagée avec : ${names}`,
+    },
     status: {
       en_attente: "À tester",
       verifiee: "Connexion vérifiée",
@@ -1999,7 +2015,10 @@ export const fr = {
       siteNotFound: "Site introuvable.",
       noKey:
         "Le chiffrement des identifiants n'est pas configuré sur ce serveur : la boîte ne peut pas être enregistrée.",
-      duplicate: "Cette adresse est déjà connectée à votre espace.",
+      duplicate:
+        "Cette adresse est déjà connectée à votre espace : choisissez-la dans la liste des boîtes déjà connectées.",
+      linked: "Boîte rattachée à cette campagne.",
+      unlinked: "Boîte retirée de cette campagne. Elle reste disponible pour vos autres campagnes.",
       saveError: "Enregistrement impossible. Réessayez.",
       saved: "Boîte enregistrée. Lancez le test de connexion.",
       notFound: "Boîte introuvable.",
@@ -2483,7 +2502,9 @@ export const fr = {
       yourMessages: "Vos messages",
       billing: "Abonnement",
       notifications: "Notifications",
-      changeSite: "Voir tous vos sites",
+      changeSite: "Choisir un site",
+      allSites: "Tous les sites",
+      manageSites: "Gérer les sites",
       short: { conversations: "Échanges" },
       groups: {
         prospecting: "Prospection",

@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ALL_SITES, currentSiteChoice } from "@/features/shell/current-site";
 import { campaignStatus } from "@/features/shell/campaign-status";
 import { siteHref, START_HREF } from "@/features/shell/next-step";
 import { loadOverview } from "@/features/shell/overview";
@@ -30,10 +31,14 @@ async function Campaigns() {
   if (!auth.user) redirect("/connexion");
   const o = await loadOverview(supabase);
   if (o.campaigns.length === 0) return <Card className="p-6 text-muted-foreground">{C.empty}</Card>;
+  // Le site choisi dans le menu filtre la liste ; « Tous les sites » les montre toutes.
+  const choice = await currentSiteChoice(o.campaigns.map((c) => c.siteId));
+  const campaigns =
+    choice === ALL_SITES ? o.campaigns : o.campaigns.filter((c) => c.siteId === choice);
   const countries = t.sites.countries as Record<string, string>;
   return (
     <ul className="flex flex-col gap-4">
-      {o.campaigns.map((c) => {
+      {campaigns.map((c) => {
         const status = campaignStatus(c);
         const stats = [
           [c.targets, C.stats.targets],

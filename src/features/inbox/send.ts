@@ -209,14 +209,18 @@ async function attempt(
 } | null> {
   const { dry, now } = ctx;
   // Signature du site, posée au moment de partir (réglages « Vos messages »).
-  const signature = await loadSignature(db, box.site_id, ctx.deps.appUrl);
-  const draft = { ...rawDraft, body: applySignature(rawDraft.body, signature) };
-  const to = inbound.from_email?.toLowerCase() ?? null;
+  // Une boîte peut servir plusieurs sites : la signature est celle du site du message d'origine.
   const { data: ours } = await db
     .from("sent_messages")
-    .select("subject")
+    .select("subject, plan_id")
     .eq("id", inbound.sent_message_id)
     .maybeSingle();
+  const { data: plan } = ours
+    ? await db.from("link_plans").select("site_id").eq("id", ours.plan_id).maybeSingle()
+    : { data: null };
+  const signature = plan ? await loadSignature(db, plan.site_id, ctx.deps.appUrl) : null;
+  const draft = { ...rawDraft, body: applySignature(rawDraft.body, signature) };
+  const to = inbound.from_email?.toLowerCase() ?? null;
   const subject = replySubject(draft, inbound, ours?.subject ?? null);
   const base = {
     workspace_id: draft.workspace_id,
