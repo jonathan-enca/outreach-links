@@ -957,6 +957,10 @@ export async function executeQualification(
           const out: GroupOutcome[] = [];
           let fallbacks = 0;
           let spent = 0;
+          // MC.6g : cette étape tourne dans une requête de 300 s au plus (Vercel) ; au-delà, les appels
+          // directs de repli ne sont plus lancés : la cible reste « non qualifiée » donc en stock, relue
+          // et rejugée par la lecture de fond (jamais un 504 qui arrête toute la chaîne).
+          const collectStart = Date.now();
           for (const [k, g] of doing.entries()) {
             const items = itemsOf(g);
             const o = outcomes.get(`g${k}`);
@@ -974,6 +978,10 @@ export async function executeQualification(
               }
             }
             // Pas de réponse exploitable : un appel direct (prix plein) dans ce qui reste du budget.
+            if (Date.now() - collectStart > 150_000) {
+              out.push({ failed: true, blocked: false, costUsd: 0, judgements: [] });
+              continue;
+            }
             fallbacks++;
             const left = input.budgetUsd - costUsd - spent;
             const llm = left > 0 ? d.llm(left) : null;
