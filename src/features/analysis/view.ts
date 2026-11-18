@@ -4,6 +4,7 @@
  * Textes revus le 18/11/2026 : chaque chiffre affiché porte le nom de ce que le moteur mesure
  * (PROGRESS.md, « Refonte de l'écran d'analyse », tableau d'audit).
  */
+import { AUTO_LIMITS } from "@/features/qualification/background";
 import { t } from "@/lib/messages";
 import {
   ANALYSIS_STEP_KEYS,
@@ -123,7 +124,7 @@ export const SLOW_START_MS = 2 * 60_000;
 /** Part de la barre réservée à la première liste ; le reste avance pendant la lecture des autres sites. */
 export const FIRST_PASS_PERCENT = 90;
 /** Durée maximale de la lecture des autres sites (`AUTO_LIMITS.maxMs`), pour faire avancer la barre. */
-const BACKGROUND_MAX_MS = 25 * 60_000;
+const BACKGROUND_MAX_MS = AUTO_LIMITS.maxMs;
 /** Après la fin, délai pendant lequel la lecture des autres sites peut encore ne pas avoir démarré. */
 export const BACKGROUND_GRACE_MS = 5 * 60_000;
 

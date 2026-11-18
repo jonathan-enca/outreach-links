@@ -1340,7 +1340,7 @@ export const fr = {
       ferme_a_liens: "Site d'articles écrits pour placer des liens, pas pour des lecteurs.",
       sans_angle:
         "La page ne cite aucune ressource comme la vôtre : pas de raison honnête de demander un lien.",
-      hors_budget_llm: "Pas évalué cette fois : budget de qualification atteint.",
+      hors_budget_llm: "Pas encore évalué : gardé en réserve pour une lecture ultérieure.",
       non_qualifie: "Évaluation impossible cette fois.",
       sans_contact: "Aucun email ni formulaire trouvé.",
       hors_budget_contact: "Contact pas encore cherché : au-delà du nombre prévu.",
@@ -1506,54 +1506,74 @@ export const fr = {
         autre: "autres motifs",
       } as Record<string, string>,
     },
-    /** Suivi de la recherche qui continue après la première liste (18/11). */
+    /**
+     * Suivi de la lecture des autres sites trouvés, après la première liste. Elle est automatique : aucun
+     * bouton tant qu'elle tourne. Jamais de « lot », de coût ni de budget dans ces textes (Jonathan, 18/11).
+     */
     live: {
       running: "La recherche continue.",
-      runningBody: (min: number) =>
-        `Nous lisons encore d'autres sites : fin estimée dans environ ${min} minutes. Vous pouvez déjà valider les cibles ci-dessous, ou fermer cette page : vous recevrez un email à la fin.`,
+      runningBody: (stock: number) =>
+        stock > 0
+          ? `Nous continuons à lire les autres sites trouvés : ${stock} ${stock > 1 ? "restent" : "reste"} à lire. La liste se met à jour toute seule.`
+          : "Nous continuons à lire les autres sites trouvés. La liste se met à jour toute seule.",
+      eta: (min: number) => `Fin estimée dans environ ${min} minutes.`,
+      runningHint:
+        "Vous pouvez déjà valider les cibles ci-dessous, ou fermer cette page : vous recevrez un email à la fin.",
+      progress: (done: number, total: number) =>
+        `${done} ${done > 1 ? "sites examinés" : "site examiné"} sur ${total}`,
+      progressLabel: "Avancement de la lecture des sites trouvés",
       added: (n: number) =>
         `${n} ${n > 1 ? "cibles ajoutées" : "cible ajoutée"} depuis la première liste.`,
       reveal: (n: number) =>
         `${n} ${n > 1 ? "nouveaux sites, afficher" : "nouveau site, afficher"}`,
       done: (n: number) => `Recherche terminée : ${n} ${n > 1 ? "sites" : "site"} à contacter.`,
+      /** Arrêtée alors qu'il reste des sites à lire : « terminée » serait faux. Le détail est sous la liste. */
+      stopped: (n: number) =>
+        `La recherche s'est arrêtée avant la fin : ${n} ${n > 1 ? "sites" : "site"} à contacter pour l'instant. Le détail est sous la liste.`,
       newBadge: "Nouveau",
       newFilter: "Nouveaux",
     },
     more: {
-      stock: (n: number) =>
-        `${n} ${n > 1 ? "autres sites trouvés par la recherche n'ont pas encore été lus" : "autre site trouvé par la recherche n'a pas encore été lu"}.`,
-      hint: "Un clic lit le lot suivant (jusqu'à 150 sites, environ 5 minutes), avec les mêmes exigences. Les bonnes cibles trouvées s'ajoutent à votre liste. Vous pouvez recommencer tant qu'il reste des sites.",
-      button: "Lire le lot suivant",
+      /** Ce que fait le bouton, dit en clair (il reprend la lecture pour une dizaine de minutes). */
+      remaining: (n: number) => `Il reste ${n} ${n > 1 ? "sites" : "site"} à lire.`,
+      hint: "La lecture reprend là où elle s'est arrêtée, pendant une dizaine de minutes. Les cibles trouvées s'ajoutent à votre liste ; s'il reste des sites ensuite, vous pourrez continuer.",
+      button: "Continuer la recherche",
       busy: "Lancement…",
-      running:
-        "Lecture en cours : les nouvelles cibles s'ajouteront à cette liste dans quelques minutes. Vous pouvez rester ici ou revenir plus tard.",
       done: (n: number) =>
         n > 0
           ? `${n} ${n > 1 ? "nouvelles cibles ajoutées" : "nouvelle cible ajoutée"} à la liste.`
-          : "Aucune nouvelle cible dans ce lot : nous n'ajoutons rien pour faire du volume.",
+          : "Cette lecture n'a pas ajouté de nouvelle cible à la liste.",
       auto: {
-        running: (added: number, stock: number) =>
-          `Nous continuons à lire les autres sites trouvés. ${added} ${added > 1 ? "cibles ajoutées" : "cible ajoutée"} depuis la première liste, ${stock} ${stock > 1 ? "sites restent à lire" : "site reste à lire"}. Cette liste se met à jour toute seule.`,
         doneLine: (added: number) =>
           `${added} ${added > 1 ? "cibles ont été ajoutées" : "cible a été ajoutée"} après la première liste.`,
+        /**
+         * Pourquoi la lecture automatique s'est arrêtée (`qualification_runs.auto_stop`, valeurs de
+         * `decideNext` et `failBackground`), et combien de sites ne sont pas lus. `budget` est le plafond
+         * interne de la campagne : on ne parle jamais d'argent au client.
+         */
         stop: {
-          reserve_epuisee: "Lecture terminée : tous les sites trouvés ont été lus.",
-          budget:
-            "Lecture arrêtée : le budget prévu pour la lecture automatique est atteint. Vous pouvez la reprendre à la main.",
-          rendement_faible:
-            "Lecture arrêtée : les deux dernières lectures n'ont presque rien apporté, nous n'ajoutons rien pour faire du volume.",
-          duree:
-            "Lecture arrêtée : la durée maximale de 25 minutes est atteinte. Vous pouvez la reprendre à la main.",
-          erreur: "La lecture automatique s'est arrêtée sur une erreur. Vous pouvez la relancer.",
-        } as Record<string, string>,
+          allRead: "Lecture terminée : tous les sites trouvés ont été lus.",
+          reserve_epuisee: (n: number) =>
+            `La lecture est terminée, mais ${n} ${n > 1 ? "sites n'ont pas pu être lus" : "site n'a pas pu être lu"} cette fois.`,
+          duree: (n: number, minutes: number) =>
+            `La lecture s'est arrêtée au bout de ${minutes} minutes, sa durée maximale : ${n} ${n > 1 ? "sites ne sont pas lus" : "site n'est pas lu"}.`,
+          budget: (n: number) =>
+            `La lecture s'est arrêtée pour cette campagne : ${n} ${n > 1 ? "sites ne sont pas lus" : "site n'est pas lu"}.`,
+          erreur: (n: number) =>
+            `La lecture s'est interrompue à cause d'une erreur de notre côté : ${n} ${n > 1 ? "sites ne sont pas lus" : "site n'est pas lu"}. Les cibles déjà trouvées sont conservées.`,
+          /** Valeur inconnue ou d'une ancienne campagne. */
+          autre: (n: number) =>
+            `La lecture s'est arrêtée avant la fin : ${n} ${n > 1 ? "sites ne sont pas lus" : "site n'est pas lu"}.`,
+        },
       },
-      failedLine: "La lecture s'est arrêtée avant la fin. Vous pouvez la relancer.",
+      failedLine:
+        "La lecture s'est interrompue à cause d'une erreur de notre côté. Les cibles déjà trouvées sont conservées.",
       notReady: "Les cibles ne sont pas encore prêtes.",
       already: "Une lecture est déjà en cours.",
       autoRunning: "La lecture des sites restants est déjà en cours : elle continue toute seule.",
       empty: "Tous les sites trouvés ont déjà été lus.",
       failed: "Impossible de lancer la lecture. Réessayez.",
-      started: "Lecture lancée : les nouvelles cibles s'ajouteront à la liste.",
+      started: "La recherche reprend : les nouvelles cibles s'ajouteront à la liste.",
     },
     publishers: {
       label: "Filtrer par type de site",
@@ -3510,12 +3530,11 @@ export const fr = {
       /** Confirmée, mais aucune étape n'a démarré depuis plus de 2 minutes. */
       slowStart: "Le démarrage prend plus de temps que prévu.",
       slowStartBody:
-        "L'analyse n'a pas encore commencé. Vous pouvez la relancer : rien n'est facturé tant qu'elle n'a pas démarré.",
+        "L'analyse n'a pas encore commencé. Vous pouvez la relancer : rien n'est perdu.",
       slowStartCta: "Relancer le démarrage",
       /** Reprise à partir d'une étape. */
       restartFrom: "Reprendre à partir d'ici",
-      restartConfirm:
-        "Cette étape et les suivantes seront refaites. Ce qui précède est conservé et rien n'est repayé.",
+      restartConfirm: "Cette étape et les suivantes seront refaites. Ce qui précède est conservé.",
       restarting: "Reprise en cours…",
       restartCancel: "Annuler",
     },
@@ -3525,10 +3544,9 @@ export const fr = {
       alreadyStarted: "L'analyse est déjà lancée.",
       alreadyDone: "Cette analyse est terminée.",
       notConfirmed: "Cette analyse n'a pas encore été confirmée.",
-      overCap:
-        "Le coût attendu de l'analyse dépasse ce qui reste du plafond prévu : rien n'est lancé.",
+      overCap: "Cette analyse dépasse la limite prévue pour cette campagne : rien n'est lancé.",
       dailyCap:
-        "Le plafond de sécurité du jour est atteint : l'analyse est reportée, rien n'est facturé.",
+        "La limite de sécurité du jour est atteinte : l'analyse est reportée, rien n'est lancé.",
       saveError: "Impossible d'enregistrer l'analyse. Réessayez.",
       sendFailed: "L'analyse est enregistrée mais n'a pas pu démarrer. Réessayez.",
       started: "Analyse lancée. Rien n'est contacté à cette étape.",
