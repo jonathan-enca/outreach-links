@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { approveReplyAction, editReplyAction } from "@/features/approvals/actions";
-import { markReadAction, setTagAction } from "@/features/conversations/actions";
+import { markReadAction, setArchivedAction, setTagAction } from "@/features/conversations/actions";
 import { Conversations } from "@/features/conversations/conversations";
 import { loadConversations } from "@/features/conversations/service";
 import { queueNoteText } from "@/features/sending/queue-note";
@@ -51,6 +51,7 @@ async function Threads() {
         view={view}
         actions={{
           markRead: markReadAction,
+          setArchived: setArchivedAction,
           setTag: setTagAction,
           approveReply: approveReplyAction,
           editReply: editReplyAction,

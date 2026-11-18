@@ -57,3 +57,12 @@ export function cleanTag(raw: unknown): string | null {
   const tag = raw.toLowerCase().replace(/\s+/g, " ").trim().slice(0, 30).trim();
   return tag.length > 0 ? tag : null;
 }
+
+/**
+ * Archivé (« traité ») : le fil quitte la boîte de réception. Une réponse arrivée après l'archivage le
+ * fait revenir : on n'archive jamais ce qu'on n'a pas lu.
+ */
+export function isArchived(archivedAt: string | null, lastReplyAt: string | null): boolean {
+  if (!archivedAt) return false;
+  return !lastReplyAt || Date.parse(archivedAt) >= Date.parse(lastReplyAt);
+}
