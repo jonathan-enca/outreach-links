@@ -2023,16 +2023,16 @@ La boule de neige multiplie les cibles gardées par le modèle fort (mega-colori
 
 ### Mesures (liste courte rejugée par des agents `opus` avec `WRITER_SYSTEM`, comme MC.6b/MC.6c ; DataForSEO réel ; petit modèle `gpt-4.1-mini` facturé au prix de `claude-haiku-5-5` ; ressources de départ choisies par le produit seul)
 
-| | mega-coloring.com | remove-me.io |
-| --- | --- | --- |
-| 1er passage : liste courte, gardées par le modèle fort | **2 sur 24** lisibles (25 en liste, 1 illisible) | **0 sur 10** |
-| Graines trouvées seules (verdict du petit modèle) | jedessine.com, teteamodeler.com, hugolescargot.com, coloriage.info, supercoloring.com, mescoloriages.com | auditosint.com, crabclear.com, incogni.com, optery.com (services payants du même genre que le site) |
-| Pages nouvelles trouvées / lues / jugées | 399 / 240 / 163 | 111 / 106 / 60 |
-| Liste courte de la boule de neige, gardées par le modèle fort | **10 sur 35** lisibles (40 en liste, 5 illisibles) : 29 % | **3 sur 14** : 21 % |
-| Liste complète | 12 sur 59 lisibles : 20 % | 3 sur 24 : 12 % |
-| Coût DataForSEO de la phase (6 appels au plus) | 0,173 USD | 0,105 USD |
-| Coût du jugement de la phase (prix Haiku 5.5) | 0,039 USD | 0,015 USD |
-| Repli « publiques » forcé (`MC6D_PUBLIC=1`) | non mesuré | **aucune ressource retenue** (60 sites proposés) |
+|                                                               | mega-coloring.com                                                                                        | remove-me.io                                                                                        |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| 1er passage : liste courte, gardées par le modèle fort        | **2 sur 24** lisibles (25 en liste, 1 illisible)                                                         | **0 sur 10**                                                                                        |
+| Graines trouvées seules (verdict du petit modèle)             | jedessine.com, teteamodeler.com, hugolescargot.com, coloriage.info, supercoloring.com, mescoloriages.com | auditosint.com, crabclear.com, incogni.com, optery.com (services payants du même genre que le site) |
+| Pages nouvelles trouvées / lues / jugées                      | 399 / 240 / 163                                                                                          | 111 / 106 / 60                                                                                      |
+| Liste courte de la boule de neige, gardées par le modèle fort | **10 sur 35** lisibles (40 en liste, 5 illisibles) : 29 %                                                | **3 sur 14** : 21 %                                                                                 |
+| Liste complète                                                | 12 sur 59 lisibles : 20 %                                                                                | 3 sur 24 : 12 %                                                                                     |
+| Coût DataForSEO de la phase (6 appels au plus)                | 0,173 USD                                                                                                | 0,105 USD                                                                                           |
+| Coût du jugement de la phase (prix Haiku 5.5)                 | 0,039 USD                                                                                                | 0,015 USD                                                                                           |
+| Repli « publiques » forcé (`MC6D_PUBLIC=1`)                   | non mesuré                                                                                               | **aucune ressource retenue** (60 sites proposés)                                                    |
 
 - **Rendement par graine** (pages lues, cibles du petit modèle, liste courte) : mega-coloring.com hugolescargot.com 68/23/12, supercoloring.com 40/13/11, coloriage.info 56/19/9, mescoloriages.com 31/16/8, teteamodeler.com 46/11/5, jedessine.com 26/2/1 ; remove-me.io incogni.com 95/20/13, optery.com 15/1/1, crabclear.com 1/0/0, auditosint.com non lue. Le pilotage abandonne netclearer.fr, toutsurlacyber.fr (première passe) et coloriageetdessins.com. Les graines de mega-coloring.com sont à peu près celles de MC.6c (trouvées avec le verdict du modèle fort) : le produit les retrouve seul.
 - **Cibles gardées de la boule de neige** (mega-coloring.com) : mairie de Saint-Étienne-d'Orthe (liens utiles), association de garde d'enfants au Québec, blogs de mamans, blog de patchwork, webzine sur le coloriage anti-stress. remove-me.io : deux listes de services (pasqualepillitteri.it, fr.simeononsecurity.com), sitegeek.fr, plus syskb.com sans contact. Le modèle fort refuse surtout : fermes à liens et articles sponsorisés (webcleaner.fr), grands médias où le site n'est qu'une source, pages sur un seul produit, pages où le catalogue du rédacteur (80 pages) n'a pas le sujet cherché (gâteaux, voitures, Pâques) : c'est la dette du catalogue.
