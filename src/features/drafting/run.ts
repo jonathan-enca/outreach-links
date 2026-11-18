@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import type { CataloguePage } from "./catalogue";
+import type { CatalogueEntry } from "./shortlist";
 import { DRAFT_LIMITS } from "./limits";
 import type { DraftBrief, DraftContext, DraftDecline, DraftItem, DraftResult } from "./types";
 
@@ -72,13 +73,22 @@ export async function loadDraftInput(
         .limit(500),
       // Messages déjà écrits : jamais réécrits (un message modifié ou validé par la personne est gardé).
       service.from("target_drafts").select("plan_item_id").eq("plan_id", run.planId).limit(1000),
-      service.from("draft_declines").select("plan_item_id").eq("plan_id", run.planId).limit(1000),
+      service
+        .from("draft_declines")
+        .select("plan_item_id, retry_requested")
+        .eq("plan_id", run.planId)
+        .limit(1000),
     ]);
   if (contactsRes.error) throw new Error(`loadDraftInput : ${contactsRes.error.message}`);
   if (declinedRes.error) throw new Error(`loadDraftInput : ${declinedRes.error.message}`);
-  // Déjà traitées : message écrit, ou cible écartée faute d'angle.
+  // Déjà traitées : message écrit, ou cible écartée (sauf si la personne a demandé « rédiger quand même »).
+  const forced = new Set(
+    (declinedRes.data ?? []).filter((d) => d.retry_requested).map((d) => d.plan_item_id),
+  );
   const written = new Set(
-    [...(writtenRes.data ?? []), ...(declinedRes.data ?? [])].map((d) => d.plan_item_id),
+    [...(writtenRes.data ?? []), ...(declinedRes.data ?? []).filter((d) => !d.retry_requested)].map(
+      (d) => d.plan_item_id,
+    ),
   );
   if (briefsRes.error) throw new Error(`loadDraftInput : ${briefsRes.error.message}`);
   const briefs = new Map(
@@ -126,10 +136,11 @@ export async function loadDraftInput(
       pageTitle: tr.page_title,
       hook,
       brief,
+      force: forced.has(it.id) || undefined,
       pos: it.position,
     });
   }
-  all.sort((a, b) => a.pos - b.pos);
+  all.sort((a, b) => Number(!!b.force) - Number(!!a.force) || a.pos - b.pos);
   const items = all.slice(0, DRAFT_LIMITS.maxItems).map((x) => {
     const rest: DraftItem & { pos?: number } = { ...x };
     delete rest.pos;
@@ -139,25 +150,46 @@ export async function loadDraftInput(
 }
 
 /**
- * Catalogue du site à promouvoir, s'il est assez récent ; null s'il faut le (re)lire. Sans le texte
- * des pages par défaut : seul le rédacteur en a besoin, pour ses pages candidates.
+ * Catalogue COMPLET du site (MC.6e) : tout le sitemap plus les pages visitées (titre, titre principal,
+ * description), sans le texte. Null s'il est absent ou trop vieux : il faut alors le (re)construire.
  */
-export async function loadCatalogue(
+export async function loadCatalogueEntries(
   service: Client,
   siteId: string,
   now: Date = new Date(),
-): Promise<CataloguePage[] | null> {
+): Promise<CatalogueEntry[] | null> {
   const { data, error } = await service
-    .from("site_pages")
-    .select("url, title, description, content, read_at")
+    .from("site_catalogue")
+    .select("url, title, heading, description, read_at")
     .eq("site_id", siteId)
     .order("url")
-    .limit(DRAFT_LIMITS.cataloguePages + 20);
-  if (error) throw new Error(`loadCatalogue : ${error.message}`);
+    .limit(1_000);
+  if (error) throw new Error(`loadCatalogueEntries : ${error.message}`);
   if (!data || data.length === 0) return null;
   const oldest = Math.min(...data.map((r) => new Date(r.read_at).getTime()));
   if (now.getTime() - oldest > DRAFT_LIMITS.catalogueMaxAgeDays * 86_400_000) return null;
   return data.map((r) => ({
+    url: r.url,
+    title: r.title,
+    heading: r.heading || undefined,
+    description: r.description,
+  }));
+}
+
+/** Texte des pages du site déjà lues (le rédacteur lit en entier les 1 à 3 pages candidates). */
+export async function loadSitePages(
+  service: Client,
+  siteId: string,
+  urls: readonly string[],
+): Promise<CataloguePage[]> {
+  if (urls.length === 0) return [];
+  const { data, error } = await service
+    .from("site_pages")
+    .select("url, title, description, content")
+    .eq("site_id", siteId)
+    .in("url", [...urls]);
+  if (error) throw new Error(`loadSitePages : ${error.message}`);
+  return (data ?? []).map((r) => ({
     url: r.url,
     title: r.title,
     description: r.description,
@@ -165,12 +197,38 @@ export async function loadCatalogue(
   }));
 }
 
-/** Vide le catalogue avant une relecture (les pages disparues du site n'y restent pas). */
+/** Vide le catalogue avant une reconstruction (les pages disparues du site n'y restent pas). */
 export async function clearCatalogue(service: Client, siteId: string) {
-  const { error } = await service.from("site_pages").delete().eq("site_id", siteId);
-  if (error) throw new Error(`clearCatalogue : ${error.message}`);
+  for (const table of ["site_pages", "site_catalogue"] as const) {
+    const { error } = await service.from(table).delete().eq("site_id", siteId);
+    if (error) throw new Error(`clearCatalogue : ${error.message}`);
+  }
 }
 
+/** Enregistre les adresses du sitemap (sans titre) : le catalogue complet, avant toute lecture. */
+export async function saveCatalogueUrls(
+  service: Client,
+  siteId: string,
+  workspaceId: string,
+  urls: readonly string[],
+) {
+  const now = new Date().toISOString();
+  for (let i = 0; i < urls.length; i += 500) {
+    const { error } = await service.from("site_catalogue").upsert(
+      urls.slice(i, i + 500).map((url) => ({
+        site_id: siteId,
+        workspace_id: workspaceId,
+        url,
+        source: "sitemap",
+        read_at: now,
+      })),
+      { onConflict: "site_id,url", ignoreDuplicates: true },
+    );
+    if (error) throw new Error(`saveCatalogueUrls : ${error.message}`);
+  }
+}
+
+/** Pages visitées : texte pour le rédacteur, et titre, titre principal et description au catalogue. */
 export async function saveCataloguePages(
   service: Client,
   siteId: string,
@@ -178,6 +236,7 @@ export async function saveCataloguePages(
   pages: readonly CataloguePage[],
 ) {
   if (pages.length === 0) return;
+  const now = new Date().toISOString();
   const { error } = await service.from("site_pages").upsert(
     pages.map((p) => ({
       site_id: siteId,
@@ -186,11 +245,25 @@ export async function saveCataloguePages(
       title: p.title,
       description: p.description,
       content: p.text,
-      read_at: new Date().toISOString(),
+      read_at: now,
     })),
     { onConflict: "site_id,url" },
   );
   if (error) throw new Error(`saveCataloguePages : ${error.message}`);
+  const { error: ce } = await service.from("site_catalogue").upsert(
+    pages.map((p) => ({
+      site_id: siteId,
+      workspace_id: workspaceId,
+      url: p.url,
+      title: p.title,
+      heading: p.heading ?? "",
+      description: p.description,
+      source: "lue",
+      read_at: now,
+    })),
+    { onConflict: "site_id,url" },
+  );
+  if (ce) throw new Error(`saveCataloguePages (catalogue) : ${ce.message}`);
 }
 
 /** Garde la décision « pas d'angle » : la cible ne sera pas rejouée, et l'utilisateur voit le motif. */
@@ -209,6 +282,7 @@ export async function saveDecline(
       declined_by: d.by,
       page_url: pageUrl,
       cost_usd: d.costUsd,
+      retry_requested: false,
     },
     { onConflict: "plan_item_id" },
   );
@@ -246,12 +320,16 @@ export async function saveDraft(service: Client, run: DraftRun, r: DraftResult) 
       url_checked_at: new Date().toISOString(),
       lint_issues: r.issues as unknown as Json,
       ready: r.ready,
+      review_note: r.reviewNote,
       cost_usd: r.costUsd,
       generated_at: new Date().toISOString(),
     },
     { onConflict: "plan_item_id" },
   );
   if (error) throw new Error(`saveDraft : ${error.message}`);
+  // Une cible écartée puis rédigée « quand même » n'est plus écartée.
+  const { error: de } = await service.from("draft_declines").delete().eq("plan_item_id", r.itemId);
+  if (de) throw new Error(`saveDraft (écartée) : ${de.message}`);
   if (r.channel === "formulaire") {
     // Seule une tâche encore « à faire » reçoit le message : une tâche faite n'est pas touchée.
     const { error: te } = await service

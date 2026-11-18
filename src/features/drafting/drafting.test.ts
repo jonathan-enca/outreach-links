@@ -284,6 +284,7 @@ type Written = {
   situation: DraftSituation;
   verdict: "angle" | "pas_d_angle";
   angle: string;
+  a_relire: string | null;
   page_proposee: string | null;
   passage: string | null;
   objet: string | null;
@@ -301,6 +302,7 @@ const written = (over: Partial<Written> = {}): Written => ({
   verdict: "angle",
   angle:
     "La liste d'activités calmes n'a aucun coloriage licorne ; notre planche en propose douze.",
+  a_relire: null,
   page_proposee: URL_OK,
   passage: "Activités calmes",
   objet: "Votre liste d'activités calmes",
@@ -402,12 +404,65 @@ describe("rédaction d'un message", () => {
     expect(out.declined.costUsd).toBeCloseTo(0.002);
   });
 
-  it("un angle sans page réelle du catalogue est écarté, pas inventé", async () => {
+  it("MC.6e : « le catalogue n'a pas la page » n'est jamais un refus : la page la plus proche est proposée", async () => {
     const tr = llm<Triage>([{ ...ANGLE, pages: ["https://mega-coloring.com/page-inconnue"] }]);
     const wr = llm<Written>([written()]);
     const out = await draftItem(item(), CTX, deps(tr, wr));
-    expect("declined" in out && out.declined.by).toBe("tri");
-    expect(wr.calls()).toBe(0);
+    expect("result" in out).toBe(true);
+    expect(wr.calls()).toBe(1);
+  });
+
+  it("MC.6e : une réserve du rédacteur (lien unique, ancre optimisée) devient une note « à relire », pas un refus", async () => {
+    const wr = llm<Written>([written({ a_relire: "La page ne cite qu'un seul lien, à relire." })]);
+    const out = await draftItem(item(), CTX, deps(llm<Triage>([ANGLE]), wr));
+    if (!("result" in out)) throw new Error("attendu");
+    expect(out.result.reviewNote).toBe("La page ne cite qu'un seul lien, à relire.");
+    expect(out.result.ready).toBe(true);
+    const plain = await draftItem(
+      item(),
+      CTX,
+      deps(llm<Triage>([ANGLE]), llm<Written>([written()])),
+    );
+    expect("result" in plain && plain.result.reviewNote).toBe(null);
+  });
+
+  it("MC.6e : « rédiger quand même » saute le tri et écrit avec la page la plus proche", async () => {
+    const tr = llm<Triage>([ANGLE]);
+    const wr = llm<Written>([written()]);
+    const out = await draftItem(item({ force: true }), CTX, deps(tr, wr));
+    expect("result" in out).toBe(true);
+    expect(tr.calls()).toBe(0);
+    expect(wr.prompts[0]).toContain("malgré un premier refus automatique");
+  });
+
+  it("MC.6e : le modèle ne voit que la présélection d'un grand catalogue, texte des pages lues à la demande", async () => {
+    const big = [
+      ...CATALOGUE.map(({ url, title, description }) => ({ url, title, description })),
+      ...Array.from({ length: 300 }, (_, i) => ({
+        url: `https://mega-coloring.com/page-${i}`,
+        title: `Sujet sans rapport numéro ${i}`,
+        description: "",
+      })),
+    ];
+    const tr = llm<Triage>([ANGLE]);
+    const wr = llm<Written>([written()]);
+    const asked: string[][] = [];
+    const out = await draftItem(
+      item(),
+      CTX,
+      deps(tr, wr, {
+        catalogue: big,
+        loadPages: async (urls) => {
+          asked.push([...urls]);
+          return CATALOGUE.filter((p) => urls.includes(p.url));
+        },
+      }),
+    );
+    expect("result" in out).toBe(true);
+    const shown = (tr.prompts[0]!.match(/"adresse":/g) ?? []).length;
+    expect(shown).toBeLessThanOrEqual(25);
+    expect(tr.prompts[0]).toContain("coloriage-licorne");
+    expect(asked).toEqual([[URL_OK]]);
   });
 
   it("une page de cible illisible ou un catalogue vide : rien n'est écrit, aucun modèle appelé", async () => {
@@ -509,24 +564,28 @@ describe("consignes et schémas", () => {
   it("encadrent le contenu externe, interdisent l'IA et les contreparties, exigent les deux adresses", () => {
     for (const sys of [TRIAGE_SYSTEM, WRITER_SYSTEM]) {
       expect(sys).toContain("donnees_non_fiables");
-      expect(sys).toContain("Ne fabrique jamais un angle");
+      expect(sys).toContain("TOUJOURS rédigée");
       expect(sys).toContain("document juridique");
+      expect(sys).toContain("JAMAIS un motif de refus");
     }
     expect(WRITER_SYSTEM).toContain("l'adresse exacte de SA page");
     expect(WRITER_SYSTEM).toContain("Rien en échange");
     expect(WRITER_SYSTEM).toMatch(/jamais d'outil, d'automatisation, de robot ni d'IA/);
-    expect(WRITER_SYSTEM).toContain("rejuge par toi-même");
+    expect(WRITER_SYSTEM).toContain("a_relire");
   });
 
-  it("MC.6b : les trois cas sont reconnus, un billet ancien n'est plus un refus, fermes à liens et pages commerciales écartées", () => {
+  it("MC.6b/MC.6e : les trois cas sont reconnus, un billet ancien n'est plus un refus, seuls cinq cas refusent, le reste est une note", () => {
     for (const sys of [TRIAGE_SYSTEM, WRITER_SYSTEM]) {
       for (const cas of ["lien_mort", "petit_editeur_ressources", "cite_des_comparables"]) {
         expect(sys).toContain(`"${cas}"`);
       }
       expect(sys).toContain("Un billet ancien n'est PAS une raison de refuser");
       expect(sys).not.toMatch(/billet ancien que personne ne met plus à jour/);
-      expect(sys).toContain("ferme à liens");
-      expect(sys).toContain("page commerciale");
+      expect(sys).toContain("Ne refuse");
+      expect(sys).toContain("concurrent direct");
+      expect(sys).toContain("articles écrits pour vendre des liens");
+      expect(sys).toContain("« lien unique »");
+      expect(sys).toContain("« ancre optimisée »");
       // La page à proposer n'est plus forcément un article (un site de thèmes n'a pas d'articles).
       expect(sys).not.toContain("n'est presque jamais la bonne réponse");
     }
@@ -610,8 +669,8 @@ describe("synthèse, service et fonction", () => {
       costUsd: 0,
     };
     const results = [
-      { ...base, itemId: "1", ready: true },
-      { ...base, itemId: "2", ready: false, channel: "formulaire" as const },
+      { ...base, itemId: "1", ready: true, reviewNote: null },
+      { ...base, itemId: "2", ready: false, channel: "formulaire" as const, reviewNote: null },
     ];
     expect(summarize(results, 1, 2, 3)).toEqual({
       drafted: 2,
@@ -685,5 +744,55 @@ describe("messages manquants (18/11)", () => {
       ["p1", 1],
       ["p2", 1],
     ]);
+  });
+});
+
+describe("rédiger quand même (MC.6e)", () => {
+  it("une cible écartée avec demande de rédaction compte comme manquante", async () => {
+    const { countMissing } = await import("./service");
+    const contacts = [
+      { plan_id: "p1", plan_item_id: "a" },
+      { plan_id: "p1", plan_item_id: "b" },
+    ];
+    const triage = [{ plan_item_id: "a" }, { plan_item_id: "b" }];
+    const m = countMissing(
+      contacts,
+      triage,
+      [],
+      [
+        { plan_item_id: "a", retry_requested: true },
+        { plan_item_id: "b", retry_requested: false },
+      ],
+    );
+    expect([...m.entries()]).toEqual([["p1", 1]]);
+  });
+
+  it("marque la cible, relance la rédaction du plan et refuse une cible inconnue", async () => {
+    const { draftAnyway } = await import("./service");
+    const PLAN = "33333333-3333-4333-8333-333333333333";
+    const mk = () =>
+      fakeSupabase({
+        draft_declines: [
+          { plan_item_id: "i1", plan_id: PLAN, workspace_id: "w", retry_requested: false },
+        ],
+        draft_runs: [{ plan_id: PLAN, workspace_id: "w", status: "termine" }],
+        events: [],
+      });
+    const sent: { name: string }[] = [];
+    const send = async (e: { name: string }) => void sent.push(e);
+    const db = mk();
+    const ok = await draftAnyway(db.client as never, () => db.client as never, send as never, "i1");
+    expect(ok.status).toBe("ok");
+    expect(db.tables.draft_declines![0]).toMatchObject({ retry_requested: true });
+    expect(db.tables.draft_runs![0]).toMatchObject({ status: "en_cours" });
+    expect(sent.map((e) => e.name)).toEqual(["plan/drafts.requested"]);
+    const unknown = await draftAnyway(
+      db.client as never,
+      () => db.client as never,
+      send as never,
+      "inconnu",
+    );
+    expect(unknown.status).toBe("error");
+    expect(sent).toHaveLength(1);
   });
 });

@@ -2,11 +2,14 @@ import { z } from "zod";
 import { inngest } from "@/inngest/client";
 import { BOT_USER_AGENT } from "@/features/deadlinks/hunt";
 import {
+  catalogueCap,
   listSiteUrls,
   pickCatalogueUrls,
   readCataloguePages,
-  type CataloguePage,
 } from "@/features/drafting/catalogue";
+import type { CatalogueEntry } from "@/features/drafting/shortlist";
+import { BETA_SEND_PLAN, effectivePlan } from "@/features/billing/plans";
+import { betaEnabled } from "@/features/audits/beta";
 import { draftItem } from "@/features/drafting/draft";
 import { DRAFT_LIMITS, DRAFT_MODELS } from "@/features/drafting/limits";
 import {
@@ -15,9 +18,11 @@ import {
   DRAFTS_EVENT,
   failDrafts,
   finalizeDrafts,
-  loadCatalogue,
+  loadCatalogueEntries,
   loadDraftInput,
+  loadSitePages,
   loadWrittenBodies,
+  saveCatalogueUrls,
   saveCataloguePages,
   saveDecline,
   saveDraft,
@@ -70,7 +75,7 @@ const pageFetcher = () =>
 const readerDeps = () => ({ fetch: pageFetcher(), sleep, now: () => Date.now() });
 
 /** Ce que fait le site, tiré de son accueil (titre et description). */
-function siteSummary(catalogue: readonly CataloguePage[], domain: string): string | null {
+function siteSummary(catalogue: readonly CatalogueEntry[], domain: string): string | null {
   const home =
     catalogue.find((p) => {
       try {
@@ -122,24 +127,30 @@ export const planDrafts = inngest.createFunction(
     const ctx = input.ctx;
     const { siteId } = input;
 
-    // Catalogue des pages du site : relu s'il est absent ou trop vieux, par paquets (un step chacun).
+    // Catalogue COMPLET du site (MC.6e) : tout le sitemap (plafond selon le palier), stocké une fois par
+    // site et gardé quelques jours ; les premières pages sont visitées (titre, titre principal,
+    // description, texte), par paquets (un step chacun).
     if (input.items.length > 0) {
       const toRead = await step.run("catalogue-urls", async () => {
         const service = createServiceClient();
-        if (await loadCatalogue(service, siteId)) return [];
+        if (await loadCatalogueEntries(service, siteId)) return [];
+        const subscribed = await effectivePlan(service, run.workspaceId, new Date());
+        const plan = subscribed === "gratuit" && betaEnabled() ? BETA_SEND_PLAN : subscribed;
+        const cap = catalogueCap(plan);
         const known = await listSiteUrls(ctx.siteDomain, readerDeps());
         const home = `https://${ctx.siteDomain}/`;
         // Les pages déjà prévues par le plan restent proposables même si le sitemap les ignore.
         const planned = [...new Set(input.items.map((i) => i.targetPageUrl))];
-        const urls = [
+        const all = [
           ...new Set([
             home,
             ...planned,
-            ...pickCatalogueUrls(ctx.siteDomain, known, ctx.language, DRAFT_LIMITS.cataloguePages),
+            ...pickCatalogueUrls(ctx.siteDomain, known, ctx.language, cap),
           ]),
-        ].slice(0, DRAFT_LIMITS.cataloguePages + planned.length + 1);
+        ].slice(0, cap + planned.length + 1);
         await clearCatalogue(service, siteId);
-        return urls;
+        await saveCatalogueUrls(service, siteId, run.workspaceId, all);
+        return all.slice(0, DRAFT_LIMITS.cataloguePages + planned.length + 1);
       });
       for (let i = 0; i < toRead.length; i += DRAFT_LIMITS.catalogueChunk) {
         const chunk = toRead.slice(i, i + DRAFT_LIMITS.catalogueChunk);
@@ -161,7 +172,7 @@ export const planDrafts = inngest.createFunction(
         const llms = makeLlms(spentBefore);
         if (!llms) return { skipped: "Rédaction indisponible (clé ou budget LLM).", costUsd: 0 };
         const service = createServiceClient();
-        const catalogue = (await loadCatalogue(service, siteId)) ?? [];
+        const catalogue = (await loadCatalogueEntries(service, siteId)) ?? [];
         const reader = createPageReader({ ...readerDeps(), maxRequests: 4, hostDelayMs: 300 });
         const res = await draftItem(
           item,
@@ -171,6 +182,16 @@ export const planDrafts = inngest.createFunction(
             fetch: pageFetcher(),
             readPage: (url) => reader.fetchText(url),
             catalogue,
+            // Pages candidates : déjà lues, sinon lues maintenant et gardées pour les cibles suivantes.
+            loadPages: async (urls) => {
+              const known = await loadSitePages(service, siteId, urls);
+              const have = new Set(known.map((p) => p.url));
+              const missing = urls.filter((u) => !have.has(u));
+              if (missing.length === 0) return known;
+              const fresh = await readCataloguePages(missing, readerDeps());
+              await saveCataloguePages(service, siteId, run.workspaceId, fresh);
+              return [...known, ...fresh];
+            },
             scope: { workspaceId: run.workspaceId, auditId: run.auditId },
             previousBodies: await loadWrittenBodies(service, planId, item.id),
           },

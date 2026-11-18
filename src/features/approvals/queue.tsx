@@ -22,6 +22,7 @@ export interface QueueActions {
   rejectReply: (id: string) => Result;
   completeForm: (id: string, taskId: string) => Result;
   draftMissing: () => Result;
+  draftAnyway: (itemId: string) => Result;
 }
 
 type Filter = "tout" | "messages" | "reponses" | "formulaires";
@@ -112,6 +113,7 @@ function Item({
   withSubject,
   aside,
   issues,
+  note,
   primary,
   secondary,
   onEdit,
@@ -128,6 +130,8 @@ function Item({
   withSubject: boolean;
   aside: { title: string; text: string }[];
   issues?: string[];
+  /** Réserve « à relire » : un signal, jamais un blocage. */
+  note?: string | null;
   /** `hint` : la raison affichée au survol quand le bouton est désactivé. */
   primary: { label: string; run: () => Result; disabled?: boolean; hint?: string } | null;
   secondary?: { label: string; run: () => Result };
@@ -173,6 +177,11 @@ function Item({
               <li key={i}>{i}</li>
             ))}
           </ul>
+        ) : null}
+        {note ? (
+          <p className="text-sm text-warning">
+            <span className="font-semibold">{V.reviewNote}</span> {note}
+          </p>
         ) : null}
       </div>
       <aside className="flex min-w-0 flex-col gap-2 text-sm text-muted-foreground">
@@ -355,6 +364,21 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
                   <span className="font-semibold">{d.domain}</span>
                 )}
                 <p className="text-muted-foreground">{d.reason}</p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="mt-1"
+                  disabled={pending}
+                  onClick={() =>
+                    start(async () => {
+                      setBulk(await actions.draftAnyway(d.itemId));
+                      router.refresh();
+                    })
+                  }
+                >
+                  {V.anyway}
+                </Button>
               </li>
             ))}
           </ul>
@@ -472,6 +496,7 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
                     { title: V.aside.then, text: V.aside.thenEmail },
                   ]}
                   issues={m.issues.map((i) => i.message)}
+                  note={m.reviewNote}
                   primary={{
                     label: V.approve,
                     run: () => actions.approveMessages([m.id]),

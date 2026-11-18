@@ -24,6 +24,13 @@ export const DRAFT_LIMITS = {
   cataloguePageChars: 6_000,
   catalogueChunk: 20,
   catalogueHostDelayMs: 250,
+  /**
+   * Catalogue COMPLET du site (MC.6e, décision du 18/11/2026) : nombre de pages gardées (sitemap plus
+   * pages visitées) selon le palier. La bêta compte comme Starter.
+   */
+  catalogueCapByPlan: { gratuit: 100, starter: 200, pro: 500, business: 1_000 },
+  /** Pages du catalogue montrées au modèle (présélection gratuite par mots communs). */
+  shortlistPages: 25,
   /** Un catalogue plus vieux est relu (jours). */
   catalogueMaxAgeDays: 7,
   /** Pages du catalogue que le tri transmet au rédacteur (lues en entier par lui). */

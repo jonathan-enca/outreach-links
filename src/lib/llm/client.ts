@@ -72,6 +72,11 @@ export interface LlmCallOptions<T extends z.ZodType> {
    * réfléchissent avant de répondre. La réflexion est comptée dans `maxOutputTokens`. Ignoré ailleurs.
    */
   effort?: "low" | "medium" | "high";
+  /**
+   * Met la consigne système en cache chez Anthropic (génération 5) : relue à 10 % du prix d'entrée dans
+   * les cinq minutes. À réserver aux consignes longues et identiques d'un appel à l'autre.
+   */
+  cacheSystem?: boolean;
   workspaceId?: string | null;
   auditId?: string | null;
 }
@@ -138,7 +143,12 @@ const anthropicReply = z.looseObject({
       text: z.string().optional(),
     }),
   ),
-  usage: z.looseObject({ input_tokens: z.number(), output_tokens: z.number() }),
+  usage: z.looseObject({
+    input_tokens: z.number(),
+    output_tokens: z.number(),
+    cache_creation_input_tokens: z.number().nullish(),
+    cache_read_input_tokens: z.number().nullish(),
+  }),
 });
 
 const openaiReply = z.looseObject({
@@ -230,7 +240,9 @@ export function createLlmClient(options: LlmClientOptions) {
           body: JSON.stringify({
             model,
             max_tokens: maxOutputTokens,
-            system: o.system,
+            system: o.cacheSystem
+              ? [{ type: "text", text: o.system, cache_control: { type: "ephemeral" } }]
+              : o.system,
             messages: [{ role: "user", content: o.prompt }],
             output_config: {
               effort: o.effort ?? "low",
@@ -240,7 +252,12 @@ export function createLlmClient(options: LlmClientOptions) {
         });
         const body = anthropicReply.parse(await readJson(res, "anthropic"));
         const usage = {
-          inputTokens: body.usage.input_tokens,
+          // Jetons d'entrée au prix plein : écriture du cache à 125 %, lecture à 10 %.
+          inputTokens: Math.round(
+            body.usage.input_tokens +
+              1.25 * (body.usage.cache_creation_input_tokens ?? 0) +
+              0.1 * (body.usage.cache_read_input_tokens ?? 0),
+          ),
           outputTokens: body.usage.output_tokens,
           model: body.model ?? model,
         };

@@ -13,6 +13,8 @@ export interface ReadablePage {
   canonicalUrl: string | null;
   title: string;
   description: string;
+  /** Titre principal (premier h1) de la page. */
+  heading: string;
   text: string;
   /** Le texte a été coupé à `maxChars`. */
   truncated: boolean;
@@ -94,6 +96,7 @@ export function readableHtml(html: string, url: string, maxChars: number): Reada
       $('meta[property="og:description"]').attr("content") ??
       "",
   ).slice(0, 300);
+  const heading = clean($("h1").first().text()).slice(0, 200);
   const canonicalRaw =
     $('link[rel="canonical"]').attr("href") ?? $('meta[property="og:url"]').attr("content") ?? "";
   const canonicalUrl = canonicalRaw ? absolute(canonicalRaw, url) : null;
@@ -136,6 +139,7 @@ export function readableHtml(html: string, url: string, maxChars: number): Reada
     canonicalUrl,
     title,
     description,
+    heading,
     text: wellFormed(truncated ? `${full.slice(0, maxChars).trimEnd()} […]` : full),
     truncated,
   };

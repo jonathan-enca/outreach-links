@@ -55,6 +55,8 @@ export interface PendingMessage {
   reason: string;
   ready: boolean;
   issues: LintIssue[];
+  /** Réserve du rédacteur à relire avant l'envoi (lien unique, ancre optimisée...), jamais bloquante. */
+  reviewNote: string | null;
 }
 
 /** Une réponse proposée à un prospect qui a écrit. */
@@ -96,7 +98,7 @@ export interface QueueView {
   missing: number;
   drafting: boolean;
   /** Cibles écartées à la rédaction : aucune raison honnête de demander un lien (motif lisible). */
-  declined: { domain: string; pageUrl: string | null; reason: string }[];
+  declined: { itemId: string; domain: string; pageUrl: string | null; reason: string }[];
 }
 
 /**
@@ -118,7 +120,7 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
     supabase
       .from("target_drafts")
       .select(
-        "id, plan_id, plan_item_id, channel, subject, body, hook, targeting_reason, ready, status, lint_issues",
+        "id, plan_id, plan_item_id, channel, subject, body, hook, targeting_reason, ready, status, lint_issues, review_note",
       )
       .eq("status", "brouillon")
       .limit(300),
@@ -140,7 +142,7 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
     missingDrafts(supabase),
     supabase
       .from("draft_declines")
-      .select("reason, page_url, created_at, link_plan_items(source_domain)")
+      .select("plan_item_id, reason, page_url, created_at, link_plan_items(source_domain)")
       .order("created_at", { ascending: false })
       .limit(200),
   ]);
@@ -245,6 +247,7 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
         signed: signedView(x.body, signatureMap.get(x.plan_id) ?? null, channel === "email"),
         hook: x.hook,
         reason: x.targeting_reason,
+        reviewNote: x.review_note,
         ready: x.ready,
         issues: (Array.isArray(x.lint_issues) ? x.lint_issues : []) as unknown as LintIssue[],
         pos: it.position,
@@ -309,6 +312,7 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
     missing: missing.total,
     drafting: missing.running,
     declined: (declines.data ?? []).map((r) => ({
+      itemId: r.plan_item_id,
       domain:
         (r.link_plan_items as unknown as { source_domain: string } | null)?.source_domain ?? "",
       pageUrl: r.page_url,

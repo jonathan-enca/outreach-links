@@ -1588,6 +1588,7 @@ export type Database = {
           plan_id: string;
           plan_item_id: string;
           reason: string;
+          retry_requested: boolean;
           workspace_id: string;
         };
         Insert: {
@@ -1598,6 +1599,7 @@ export type Database = {
           plan_id: string;
           plan_item_id: string;
           reason: string;
+          retry_requested?: boolean;
           workspace_id: string;
         };
         Update: {
@@ -1608,6 +1610,7 @@ export type Database = {
           plan_id?: string;
           plan_item_id?: string;
           reason?: string;
+          retry_requested?: boolean;
           workspace_id?: string;
         };
         Relationships: [
@@ -3291,6 +3294,54 @@ export type Database = {
           },
         ];
       };
+      site_catalogue: {
+        Row: {
+          description: string;
+          heading: string;
+          read_at: string;
+          site_id: string;
+          source: string;
+          title: string;
+          url: string;
+          workspace_id: string;
+        };
+        Insert: {
+          description?: string;
+          heading?: string;
+          read_at?: string;
+          site_id: string;
+          source?: string;
+          title?: string;
+          url: string;
+          workspace_id: string;
+        };
+        Update: {
+          description?: string;
+          heading?: string;
+          read_at?: string;
+          site_id?: string;
+          source?: string;
+          title?: string;
+          url?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "site_catalogue_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "site_catalogue_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       site_pages: {
         Row: {
           content: string;
@@ -3635,6 +3686,7 @@ export type Database = {
           plan_item_id: string;
           proposed_url: string;
           ready: boolean;
+          review_note: string | null;
           status: string;
           subject: string | null;
           targeting_reason: string;
@@ -3656,6 +3708,7 @@ export type Database = {
           plan_item_id: string;
           proposed_url: string;
           ready?: boolean;
+          review_note?: string | null;
           status?: string;
           subject?: string | null;
           targeting_reason: string;
@@ -3677,6 +3730,7 @@ export type Database = {
           plan_item_id?: string;
           proposed_url?: string;
           ready?: boolean;
+          review_note?: string | null;
           status?: string;
           subject?: string | null;
           targeting_reason?: string;
