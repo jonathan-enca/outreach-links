@@ -4,7 +4,7 @@ import { CATEGORY_LABELS, type Category } from "@/features/classification/types"
 import { t } from "@/lib/messages";
 import type { Database } from "@/lib/supabase/database.types";
 import { loadSendQueue, queuedMessageText, type QueueNote } from "@/features/sending/queue-note";
-import { cleanTag, isUnread, threadStatus, type ThreadStatus } from "./status";
+import { cleanTag, isArchived, isUnread, threadStatus, type ThreadStatus } from "./status";
 
 type Client = SupabaseClient<Database>;
 const M = t.conversations.messages;
@@ -26,6 +26,8 @@ export interface ConversationView {
   status: ThreadStatus;
   category: string | null;
   unread: boolean;
+  /** Traité : hors de la boîte de réception jusqu'à une nouvelle réponse. */
+  archived: boolean;
   tags: string[];
   lastAt: string;
   preview: string;
@@ -104,7 +106,7 @@ export async function loadConversations(
         .not("sent_at", "is", null),
       supabase
         .from("thread_reads")
-        .select("sent_message_id, read_at")
+        .select("sent_message_id, read_at, archived_at")
         .in("sent_message_id", threadIds),
       supabase.from("thread_tags").select("sent_message_id, tag").in("sent_message_id", threadIds),
       supabase.from("target_drafts").select("id, plan_item_id, hook").in("id", draftIds),
@@ -149,6 +151,7 @@ export async function loadConversations(
   );
   const stateMap = new Map((states.data ?? []).map((s) => [s.sent_message_id, s.state]));
   const readMap = new Map((reads.data ?? []).map((r) => [r.sent_message_id, r.read_at]));
+  const archivedMap = new Map((reads.data ?? []).map((r) => [r.sent_message_id, r.archived_at]));
 
   const threads = initial.map((s): ConversationView => {
     const d = draftMap.get(s.draft_id);
@@ -228,6 +231,7 @@ export async function loadConversations(
       status,
       category: category ? CATEGORY_LABELS[category] : null,
       unread: isUnread(lastReply?.received_at ?? null, readMap.get(s.id) ?? null),
+      archived: isArchived(archivedMap.get(s.id) ?? null, lastReply?.received_at ?? null),
       tags: (tagsBy.get(s.id) ?? []).map((x) => x.tag).sort(),
       lastAt: last.at ?? s.sent_at ?? "",
       preview: last.text.replace(/\s+/g, " ").slice(0, 140),
@@ -304,6 +308,7 @@ async function loadQueued(
       status: "en_attente",
       category: null,
       unread: false,
+      archived: false,
       tags: [],
       lastAt: d.edited_at ?? d.generated_at,
       preview: d.body.replace(/\s+/g, " ").slice(0, 140),
@@ -392,4 +397,31 @@ export async function setTag(
     { onConflict: "sent_message_id,tag", ignoreDuplicates: true },
   );
   return error ? { status: "error", message: M.saveError } : { status: "ok" };
+}
+
+/** Archive (« traité ») ou désarchive un fil : il sort de la boîte de réception, ou y revient. */
+export async function setArchived(
+  supabase: Client,
+  getServiceClient: () => Client,
+  threadId: unknown,
+  on: boolean,
+): Promise<AuditActionState> {
+  const own = await ownThread(supabase, threadId);
+  if (!own) return { status: "error", message: M.notFound };
+  const { error } = await getServiceClient()
+    .from("thread_reads")
+    .upsert(
+      {
+        sent_message_id: own.id,
+        workspace_id: own.workspace_id,
+        read_by: own.userId,
+        // Archiver vaut lecture : la pastille « non lu » disparaît aussi.
+        ...(on ? { read_at: new Date().toISOString() } : {}),
+        archived_at: on ? new Date().toISOString() : null,
+      },
+      { onConflict: "sent_message_id" },
+    );
+  return error
+    ? { status: "error", message: M.saveError }
+    : { status: "ok", message: on ? M.archived : M.unarchived };
 }

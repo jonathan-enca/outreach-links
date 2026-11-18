@@ -57,6 +57,8 @@ export interface PendingMessage {
   issues: LintIssue[];
   /** Réserve du rédacteur à relire avant l'envoi (lien unique, ancre optimisée...), jamais bloquante. */
   reviewNote: string | null;
+  /** Remis à plus tard jusqu'à cette date (ISO) : hors de la file tant qu'elle n'est pas passée. */
+  snoozedUntil: string | null;
 }
 
 /** Une réponse proposée à un prospect qui a écrit. */
@@ -70,6 +72,7 @@ export interface PendingReply {
   signed: SignedView | null;
   /** Ce que le prospect a écrit (extrait). */
   theirs: string;
+  snoozedUntil: string | null;
 }
 
 /**
@@ -87,6 +90,7 @@ export interface PendingForm {
   body: string;
   ready: boolean;
   issues: LintIssue[];
+  snoozedUntil: string | null;
 }
 
 export interface QueueView {
@@ -94,6 +98,8 @@ export interface QueueView {
   replies: PendingReply[];
   forms: PendingForm[];
   hasMailbox: boolean;
+  /** Éléments remis à plus tard (hors de la file et du compteur jusqu'à leur date). */
+  snoozed: number;
   /** Cibles validées sans message (plafond de rédaction atteint), et rédaction en cours. */
   missing: number;
   drafting: boolean;
@@ -114,19 +120,27 @@ export function isApprovable(d: {
   return d.status === "brouillon" && d.ready && (d.channel === "formulaire" || d.sendable);
 }
 
+/** Un élément est « remis à plus tard » tant que sa date n'est pas passée (pur, testé). */
+export function isSnoozed(until: string | null, now: Date): boolean {
+  return until !== null && Date.parse(until) > now.getTime();
+}
+
+/** Durée d'un « Plus tard » : jusqu'à demain à la même heure. */
+export const SNOOZE_HOURS = 24;
+
 /** Tout ce qui attend l'accord de la personne, toutes campagnes confondues (RLS). */
-export async function loadQueue(supabase: Client): Promise<QueueView> {
+export async function loadQueue(supabase: Client, now: Date = new Date()): Promise<QueueView> {
   const [drafts, replyDrafts, tasks, boxes, missing, declines] = await Promise.all([
     supabase
       .from("target_drafts")
       .select(
-        "id, plan_id, plan_item_id, channel, subject, body, hook, targeting_reason, ready, status, lint_issues, review_note",
+        "id, plan_id, plan_item_id, channel, subject, body, hook, targeting_reason, ready, status, lint_issues, review_note, snoozed_until",
       )
       .eq("status", "brouillon")
       .limit(300),
     supabase
       .from("reply_drafts")
-      .select("id, inbound_message_id, sent_message_id, subject, body, created_at")
+      .select("id, inbound_message_id, sent_message_id, subject, body, created_at, snoozed_until")
       .eq("status", "brouillon")
       .order("created_at", { ascending: false })
       .limit(100),
@@ -248,6 +262,7 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
         hook: x.hook,
         reason: x.targeting_reason,
         reviewNote: x.review_note,
+        snoozedUntil: x.snoozed_until,
         ready: x.ready,
         issues: (Array.isArray(x.lint_issues) ? x.lint_issues : []) as unknown as LintIssue[],
         pos: it.position,
@@ -266,7 +281,7 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
     ? ((
         await supabase
           .from("target_drafts")
-          .select("id, plan_item_id, body, ready, lint_issues")
+          .select("id, plan_item_id, body, ready, lint_issues, snoozed_until")
           .in("plan_item_id", formItemIds)
       ).data ?? [])
     : [];
@@ -274,40 +289,48 @@ export async function loadQueue(supabase: Client): Promise<QueueView> {
   const toMap = new Map((sent.data ?? []).map((s) => [s.id, s.to_email]));
   const sentPlan = new Map((sent.data ?? []).map((s) => [s.id, s.plan_id]));
   const clsMap = new Map((cls.data ?? []).map((c) => [c.inbound_message_id, c.id]));
+  const allReplies: PendingReply[] = r.map((x) => ({
+    kind: "reponse",
+    id: x.id,
+    classificationId: clsMap.get(x.inbound_message_id) ?? null,
+    to: toMap.get(x.sent_message_id) ?? null,
+    subject: x.subject,
+    body: x.body,
+    signed: signedView(
+      x.body,
+      signatureMap.get(sentPlan.get(x.sent_message_id) ?? "") ?? null,
+      true,
+    ),
+    theirs: inMap.get(x.inbound_message_id) ?? "",
+    snoozedUntil: x.snoozed_until,
+  }));
+  const allForms = formDrafts
+    .map((f): PendingForm | null => {
+      const task = taskRows.find((x) => x.plan_item_id === f.plan_item_id);
+      const it = itemMap.get(f.plan_item_id);
+      if (!task || !it) return null;
+      return {
+        kind: "formulaire",
+        id: f.id,
+        taskId: task.id,
+        domain: it.source_domain,
+        campaign: campaignMap.get(task.plan_id) ?? "",
+        formUrl: task.form_url,
+        body: f.body,
+        ready: f.ready,
+        issues: (Array.isArray(f.lint_issues) ? f.lint_issues : []) as unknown as LintIssue[],
+        snoozedUntil: f.snoozed_until,
+      };
+    })
+    .filter((x): x is PendingForm => x !== null);
+  const due = (x: { snoozedUntil: string | null }) => !isSnoozed(x.snoozedUntil, now);
   return {
-    messages,
-    replies: r.map((x) => ({
-      kind: "reponse",
-      id: x.id,
-      classificationId: clsMap.get(x.inbound_message_id) ?? null,
-      to: toMap.get(x.sent_message_id) ?? null,
-      subject: x.subject,
-      body: x.body,
-      signed: signedView(
-        x.body,
-        signatureMap.get(sentPlan.get(x.sent_message_id) ?? "") ?? null,
-        true,
-      ),
-      theirs: inMap.get(x.inbound_message_id) ?? "",
-    })),
-    forms: formDrafts
-      .map((f): PendingForm | null => {
-        const task = taskRows.find((x) => x.plan_item_id === f.plan_item_id);
-        const it = itemMap.get(f.plan_item_id);
-        if (!task || !it) return null;
-        return {
-          kind: "formulaire",
-          id: f.id,
-          taskId: task.id,
-          domain: it.source_domain,
-          campaign: campaignMap.get(task.plan_id) ?? "",
-          formUrl: task.form_url,
-          body: f.body,
-          ready: f.ready,
-          issues: (Array.isArray(f.lint_issues) ? f.lint_issues : []) as unknown as LintIssue[],
-        };
-      })
-      .filter((x): x is PendingForm => x !== null),
+    messages: messages.filter(due),
+    replies: allReplies.filter(due),
+    forms: allForms.filter(due),
+    snoozed:
+      [...messages, ...allReplies, ...allForms].length -
+      [...messages.filter(due), ...allReplies.filter(due), ...allForms.filter(due)].length,
     hasMailbox: (boxes.count ?? 0) > 0,
     missing: missing.total,
     drafting: missing.running,
@@ -535,4 +558,142 @@ export async function completeForm(
     if (r.status === "error") return r;
   }
   return completeTask(supabase, getServiceClient, taskId);
+}
+
+/**
+ * « Plus tard » durable : les éléments choisis sortent de la file (et du compteur) pendant 24 h.
+ * Les identifiants peuvent être ceux de messages, de réponses ou de formulaires (brouillons).
+ * Lecture avec les droits de la personne : elle ne peut remettre à plus tard que ce qu'elle voit.
+ */
+export async function snoozeItems(
+  supabase: Client,
+  getServiceClient: () => Client,
+  rawIds: readonly string[],
+  now: Date = new Date(),
+): Promise<AuditActionState> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { status: "error", message: M.unauthenticated };
+  const ids = [...new Set(rawIds)].slice(0, 500);
+  if (ids.length === 0) return { status: "error", message: M.nothing };
+  const [d, r] = await Promise.all([
+    supabase.from("target_drafts").select("id").in("id", ids).eq("status", "brouillon"),
+    supabase.from("reply_drafts").select("id").in("id", ids).eq("status", "brouillon"),
+  ]);
+  const draftIds = (d.data ?? []).map((x) => x.id);
+  const replyIds = (r.data ?? []).map((x) => x.id);
+  if (draftIds.length + replyIds.length === 0) return { status: "error", message: M.notFound };
+  let service: Client;
+  try {
+    service = getServiceClient();
+  } catch {
+    return { status: "error", message: M.unavailable };
+  }
+  const until = new Date(now.getTime() + SNOOZE_HOURS * 3_600_000).toISOString();
+  const [a, b] = await Promise.all([
+    draftIds.length
+      ? service
+          .from("target_drafts")
+          .update({ snoozed_until: until })
+          .in("id", draftIds)
+          .eq("status", "brouillon")
+      : { error: null },
+    replyIds.length
+      ? service
+          .from("reply_drafts")
+          .update({ snoozed_until: until })
+          .in("id", replyIds)
+          .eq("status", "brouillon")
+      : { error: null },
+  ]);
+  if (a.error || b.error) return { status: "error", message: M.saveError };
+  return { status: "ok", message: M.snoozed(draftIds.length + replyIds.length) };
+}
+
+/** Remet dans la file tout ce qui avait été mis à plus tard. */
+export async function wakeSnoozed(
+  supabase: Client,
+  getServiceClient: () => Client,
+): Promise<AuditActionState> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { status: "error", message: M.unauthenticated };
+  const [d, r] = await Promise.all([
+    supabase
+      .from("target_drafts")
+      .select("id")
+      .eq("status", "brouillon")
+      .not("snoozed_until", "is", null),
+    supabase
+      .from("reply_drafts")
+      .select("id")
+      .eq("status", "brouillon")
+      .not("snoozed_until", "is", null),
+  ]);
+  const draftIds = (d.data ?? []).map((x) => x.id);
+  const replyIds = (r.data ?? []).map((x) => x.id);
+  let service: Client;
+  try {
+    service = getServiceClient();
+  } catch {
+    return { status: "error", message: M.unavailable };
+  }
+  const [a, b] = await Promise.all([
+    draftIds.length
+      ? service.from("target_drafts").update({ snoozed_until: null }).in("id", draftIds)
+      : { error: null },
+    replyIds.length
+      ? service.from("reply_drafts").update({ snoozed_until: null }).in("id", replyIds)
+      : { error: null },
+  ]);
+  if (a.error || b.error) return { status: "error", message: M.saveError };
+  return { status: "ok", message: M.woken };
+}
+
+/**
+ * Refuse des premiers messages : la cible est écartée avec le motif « refusé par vous » (elle garde le
+ * bouton « Rédiger quand même ») et le brouillon est supprimé. Rien n'est envoyé.
+ */
+export async function refuseMessages(
+  supabase: Client,
+  getServiceClient: () => Client,
+  rawIds: readonly string[],
+): Promise<AuditActionState> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { status: "error", message: M.unauthenticated };
+  const ids = [...new Set(rawIds)].slice(0, 300);
+  if (ids.length === 0) return { status: "error", message: M.nothing };
+  const { data: drafts } = await supabase
+    .from("target_drafts")
+    .select("id, plan_id, plan_item_id, workspace_id, proposed_url")
+    .in("id", ids)
+    .eq("status", "brouillon");
+  if (!drafts?.length) return { status: "error", message: M.notFound };
+  let service: Client;
+  try {
+    service = getServiceClient();
+  } catch {
+    return { status: "error", message: M.unavailable };
+  }
+  const { error: declineError } = await service.from("draft_declines").upsert(
+    drafts.map((x) => ({
+      plan_item_id: x.plan_item_id,
+      plan_id: x.plan_id,
+      workspace_id: x.workspace_id,
+      reason: M.refusedReason,
+      declined_by: "utilisateur",
+      page_url: null,
+      retry_requested: false,
+    })),
+    { onConflict: "plan_item_id" },
+  );
+  if (declineError) return { status: "error", message: M.saveError };
+  const { error } = await service
+    .from("target_drafts")
+    .delete()
+    .in(
+      "id",
+      drafts.map((x) => x.id),
+    )
+    .eq("status", "brouillon");
+  if (error) return { status: "error", message: M.saveError };
+  return { status: "ok", message: M.refused(drafts.length) };
 }

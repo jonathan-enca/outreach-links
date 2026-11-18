@@ -16,6 +16,7 @@ type Result = Promise<AuditActionState>;
 
 export interface ConversationActions {
   markRead: (id: string) => Result;
+  setArchived: (id: string, on: boolean) => Result;
   setTag: (id: string, tag: string, on: boolean) => Result;
   approveReply: (draftId: string) => Result;
   editReply: (draftId: string, input: { subject: string; body: string }) => Result;
@@ -45,10 +46,13 @@ function Pane({
   thread,
   actions,
   onBack,
+  onArchived,
 }: {
   thread: ConversationView;
   actions: ConversationActions;
   onBack: () => void;
+  /** Après un archivage ou un désarchivage : l'écran passe au fil suivant (boîte à zéro). */
+  onArchived: (on: boolean) => void;
 }) {
   const router = useRouter();
   const [tag, setTag] = useState("");
@@ -80,6 +84,23 @@ function Pane({
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge tone={TONE[thread.status]}>{C.status[thread.status]}</Badge>
+          {thread.status === "en_attente" ? null : (
+            <Button
+              type="button"
+              size="sm"
+              variant={thread.archived ? "outline" : "default"}
+              disabled={pending}
+              onClick={() =>
+                run(async () => {
+                  const r = await actions.setArchived(thread.id, !thread.archived);
+                  if (r.status !== "error") onArchived(!thread.archived);
+                  return r;
+                })
+              }
+            >
+              {thread.archived ? C.unarchive : C.archive}
+            </Button>
+          )}
           {thread.tags.map((x) => (
             <button
               key={x}
@@ -217,8 +238,14 @@ export function Conversations({
   const [read, setRead] = useState("all");
   const [status, setStatus] = useState("all");
   const [tag, setTag] = useState("all");
+  const [box, setBox] = useState<"inbox" | "archived" | "all">("inbox");
+  /** Archivages faits pendant cette visite : l'écran suit aussitôt, sans attendre le rechargement. */
+  const [override, setOverride] = useState<Map<string, boolean>>(() => new Map());
+  const isArchived = (x: ConversationView) => override.get(x.id) ?? x.archived;
   const [q, setQ] = useState("");
-  const [selected, setSelected] = useState<string | null>(view.threads[0]?.id ?? null);
+  const [selected, setSelected] = useState<string | null>(
+    (view.threads.find((x) => !x.archived) ?? view.threads[0])?.id ?? null,
+  );
   /** Téléphone : le fil n'est affiché qu'après un choix dans la liste. */
   const [opened, setOpened] = useState(false);
   const [seen, setSeen] = useState<Set<string>>(() => new Set());
@@ -226,13 +253,23 @@ export function Conversations({
     const needle = q.trim().toLowerCase();
     return view.threads.filter(
       (x) =>
+        (box === "all" || (box === "archived" ? isArchived(x) : !isArchived(x))) &&
         (campaign === "all" || x.campaignId === campaign) &&
         (read === "all" || (x.unread && !seen.has(x.id))) &&
         (status === "all" || x.status === status) &&
         (tag === "all" || x.tags.includes(tag)) &&
         (!needle || `${x.domain} ${x.email}`.toLowerCase().includes(needle)),
     );
-  }, [view.threads, campaign, read, status, tag, q, seen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- isArchived ne dépend que de `override`
+  }, [view.threads, campaign, read, status, tag, q, seen, box, override]);
+  const archivedCount = view.threads.filter(isArchived).length;
+  const archive = (id: string, on: boolean) => {
+    const at = rows.findIndex((x) => x.id === id);
+    const next = rows[at + 1] ?? rows[at - 1] ?? null;
+    setOverride((prev) => new Map(prev).set(id, on));
+    // Le fil quitte la liste affichée : on passe au suivant (boîte à zéro).
+    if (box !== "all") setSelected(next && next.id !== id ? next.id : null);
+  };
   const current = view.threads.find((x) => x.id === selected) ?? null;
   const open = (x: ConversationView) => {
     setSelected(x.id);
@@ -262,6 +299,16 @@ export function Conversations({
             ))}
           </select>
         ) : null}
+        <select
+          aria-label={C.filters.box}
+          className={SELECT}
+          value={box}
+          onChange={(e) => setBox(e.target.value as typeof box)}
+        >
+          <option value="inbox">{C.filters.inbox(view.threads.length - archivedCount)}</option>
+          <option value="archived">{C.filters.archivedBox(archivedCount)}</option>
+          <option value="all">{C.filters.allBox}</option>
+        </select>
         <select
           aria-label={C.filters.read}
           className={SELECT}
@@ -316,7 +363,11 @@ export function Conversations({
           }`}
         >
           {rows.length === 0 ? (
-            <li className="p-4 text-sm text-muted-foreground">{C.noMatch}</li>
+            <li className="p-4 text-sm text-muted-foreground">
+              {box === "inbox" && view.threads.length > archivedCount ? C.noMatch : null}
+              {box === "inbox" && view.threads.length === archivedCount ? C.inboxZero : null}
+              {box !== "inbox" ? C.noMatch : null}
+            </li>
           ) : null}
           {rows.map((x) => (
             <li key={x.id} className="border-b border-border">
@@ -363,9 +414,10 @@ export function Conversations({
           {current ? (
             <Pane
               key={current.id}
-              thread={current}
+              thread={{ ...current, archived: isArchived(current) }}
               actions={actions}
               onBack={() => setOpened(false)}
+              onArchived={(on) => archive(current.id, on)}
             />
           ) : null}
         </div>

@@ -18,6 +18,10 @@ export interface QueueActions {
   approveMessages: (ids: string[]) => Result;
   editMessage: Edit;
   approveReply: (id: string) => Result;
+  approveReplies: (ids: string[]) => Result;
+  snooze: (ids: string[]) => Result;
+  wakeSnoozed: () => Result;
+  refuseItems: (messageIds: string[], replyIds: string[]) => Result;
   editReply: Edit;
   rejectReply: (id: string) => Result;
   completeForm: (id: string, taskId: string) => Result;
@@ -119,6 +123,8 @@ function Item({
   onEdit,
   onLater,
   extra,
+  selected,
+  onSelect,
 }: {
   tone: "info" | "warning" | "neutral";
   tag: string;
@@ -136,8 +142,10 @@ function Item({
   primary: { label: string; run: () => Result; disabled?: boolean; hint?: string } | null;
   secondary?: { label: string; run: () => Result };
   onEdit?: Edit extends (id: string, i: infer I) => Result ? (i: I) => Result : never;
-  onLater: () => void;
+  onLater: () => Result;
   extra?: React.ReactNode;
+  selected: boolean;
+  onSelect: (on: boolean) => void;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -157,6 +165,13 @@ function Item({
     <Card className="grid gap-x-6 gap-y-3 p-4 md:p-5 xl:grid-cols-[minmax(0,1fr)_17rem]">
       <div className="flex min-w-0 flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="checkbox"
+            aria-label={V.select}
+            checked={selected}
+            onChange={(e) => onSelect(e.target.checked)}
+            className="size-4 shrink-0 accent-primary"
+          />
           <Badge tone={tone}>{tag}</Badge>
           <span className="min-w-0 break-all text-sm text-muted-foreground">
             {to ? `${V.to} ${to}` : ""}
@@ -248,7 +263,14 @@ function Item({
                 {secondary.label}
               </Button>
             ) : null}
-            <Button type="button" size="sm" variant="ghost" onClick={onLater}>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={pending}
+              title={V.laterHelp}
+              onClick={() => run(onLater)}
+            >
               {V.later}
             </Button>
           </>
@@ -290,18 +312,25 @@ function CopyButton({ text }: { text: string }) {
 /**
  * File « À valider » (maquette validée le 18/11) : premiers messages, réponses proposées et formulaires
  * dans une seule liste. Chaque élément s'approuve, se modifie ou se remet à plus tard sur place.
- * « Plus tard » masque l'élément pour cette visite seulement : rien n'est supprimé.
+ * « Plus tard » est durable (24 h, enregistré en base : le compteur du menu baisse). On peut aussi
+ * cocher plusieurs éléments pour les approuver, les refuser ou les remettre à plus tard d'un coup.
  */
 export function ApprovalQueue({ view, actions }: { view: QueueView; actions: QueueActions }) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>("tout");
-  const [later, setLater] = useState<Set<string>>(() => new Set());
+  const [picked, setPicked] = useState<Set<string>>(() => new Set());
   const [bulk, setBulk] = useState<AuditActionState>({ status: "idle" });
   const [pending, start] = useTransition();
-  const hide = (id: string) => setLater((prev) => new Set(prev).add(id));
-  const msgs = view.messages.filter((m) => !later.has(m.id));
-  const replies = view.replies.filter((r) => !later.has(r.id));
-  const forms = view.forms.filter((f) => !later.has(f.id));
+  const msgs = view.messages;
+  const replies = view.replies;
+  const forms = view.forms;
+  const pick = (id: string, on: boolean) =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
   // Approbation groupée : les emails prêts, et seulement avec une boîte d'envoi connectée.
   const ready = view.hasMailbox ? msgs.filter((m) => m.ready) : [];
   const total = msgs.length + replies.length + forms.length;
@@ -312,6 +341,26 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
     ["formulaires", V.filters.forms, forms.length],
   ];
   const show = (f: Filter) => filter === "tout" || filter === f;
+  // Ce qui est affiché maintenant (selon le filtre) : « tout sélectionner » ne touche que cela.
+  const visible = [
+    ...(show("reponses") ? replies.map((r) => r.id) : []),
+    ...(show("messages") ? msgs.map((m) => m.id) : []),
+    ...(show("formulaires") ? forms.map((f) => f.id) : []),
+  ];
+  const chosen = visible.filter((id) => picked.has(id));
+  const chosenReplies = replies.filter((r) => picked.has(r.id) && show("reponses"));
+  const chosenMsgs = msgs.filter((m) => picked.has(m.id) && show("messages"));
+  const chosenForms = forms.filter((f) => picked.has(f.id) && show("formulaires"));
+  const approvableMsgs = view.hasMailbox ? chosenMsgs.filter((m) => m.ready) : [];
+  const bulk_ = (fn: () => Result, confirm?: string) => {
+    if (confirm && !window.confirm(confirm)) return;
+    start(async () => {
+      const r = await fn();
+      setBulk(r);
+      if (r.status !== "error") setPicked(new Set());
+      router.refresh();
+    });
+  };
   // Pendant une rédaction, l'écran se met à jour seul : les nouveaux messages arrivent sans recharger.
   useEffect(() => {
     if (!view.drafting) return;
@@ -340,6 +389,21 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
       </Button>
     </Card>
   ) : null;
+  const snoozedBanner =
+    view.snoozed > 0 ? (
+      <Card className="flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
+        <span>{V.snoozedBanner(view.snoozed)}</span>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={pending}
+          onClick={() => bulk_(() => actions.wakeSnoozed())}
+        >
+          {V.wake}
+        </Button>
+      </Card>
+    ) : null;
   const declinedCard =
     view.declined.length > 0 ? (
       <Card className="p-4 text-sm">
@@ -395,6 +459,7 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
           </p>
         ) : null}
         <Card className="p-6 text-muted-foreground">{V.none}</Card>
+        {snoozedBanner}
         {declinedCard}
       </div>
     );
@@ -450,7 +515,85 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
           {bulk.message}
         </p>
       ) : null}
-      {total === 0 ? <Card className="p-6 text-muted-foreground">{V.allLater}</Card> : null}
+      {snoozedBanner}
+      {visible.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-card border border-border bg-card px-3 py-2 text-sm">
+          <label className="flex cursor-pointer items-center gap-2 font-medium">
+            <input
+              type="checkbox"
+              className="size-4 accent-primary"
+              checked={chosen.length === visible.length}
+              ref={(el) => {
+                if (el) el.indeterminate = chosen.length > 0 && chosen.length < visible.length;
+              }}
+              onChange={(e) =>
+                setPicked(e.target.checked ? new Set([...picked, ...visible]) : new Set())
+              }
+            />
+            {chosen.length === 0 ? V.selectAll(visible.length) : V.selected(chosen.length)}
+          </label>
+          {chosen.length > 0 ? (
+            <>
+              <Button
+                type="button"
+                size="sm"
+                disabled={pending || approvableMsgs.length + chosenReplies.length === 0}
+                onClick={() =>
+                  bulk_(async () => {
+                    const parts: AuditActionState[] = [];
+                    if (approvableMsgs.length > 0)
+                      parts.push(await actions.approveMessages(approvableMsgs.map((m) => m.id)));
+                    if (chosenReplies.length > 0)
+                      parts.push(await actions.approveReplies(chosenReplies.map((r) => r.id)));
+                    const ok = parts.filter((p) => p.status !== "error");
+                    const skipped = chosenForms.length;
+                    if (ok.length === 0) return parts[0] ?? { status: "error" };
+                    return {
+                      status: "ok",
+                      message: [
+                        ...ok.map((p) => p.message),
+                        skipped > 0 ? V.bulkSkipped(skipped) : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" "),
+                    };
+                  })
+                }
+              >
+                {pending ? V.busy : V.bulkApprove(approvableMsgs.length + chosenReplies.length)}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={pending || chosenMsgs.length + chosenReplies.length === 0}
+                onClick={() =>
+                  bulk_(
+                    () =>
+                      actions.refuseItems(
+                        chosenMsgs.map((m) => m.id),
+                        chosenReplies.map((r) => r.id),
+                      ),
+                    V.bulkRefuseConfirm(chosenMsgs.length + chosenReplies.length),
+                  )
+                }
+              >
+                {V.bulkRefuse(chosenMsgs.length + chosenReplies.length)}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={pending}
+                onClick={() => bulk_(() => actions.snooze(chosen))}
+              >
+                {V.bulkLater(chosen.length)}
+              </Button>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+      {total === 0 ? <Card className="p-6 text-muted-foreground">{V.none}</Card> : null}
       <ul className="flex flex-col gap-4">
         {show("reponses")
           ? replies.map((r: PendingReply) => (
@@ -467,7 +610,9 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
                   primary={{ label: V.approve, run: () => actions.approveReply(r.id) }}
                   secondary={{ label: V.noReply, run: () => actions.rejectReply(r.id) }}
                   onEdit={(i) => actions.editReply(r.id, i)}
-                  onLater={() => hide(r.id)}
+                  onLater={() => actions.snooze([r.id])}
+                  selected={picked.has(r.id)}
+                  onSelect={(on) => pick(r.id, on)}
                   extra={
                     r.classificationId ? (
                       <Button asChild size="sm" variant="outline">
@@ -504,7 +649,9 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
                     hint: !m.ready ? V.hintNotReady : !view.hasMailbox ? V.hintMailbox : undefined,
                   }}
                   onEdit={(i) => actions.editMessage(m.id, i)}
-                  onLater={() => hide(m.id)}
+                  onLater={() => actions.snooze([m.id])}
+                  selected={picked.has(m.id)}
+                  onSelect={(on) => pick(m.id, on)}
                 />
               </li>
             ))
@@ -528,7 +675,9 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
                     run: () => actions.completeForm(f.id, f.taskId),
                   }}
                   onEdit={(i) => actions.editMessage(f.id, { subject: "", body: i.body })}
-                  onLater={() => hide(f.id)}
+                  onLater={() => actions.snooze([f.id])}
+                  selected={picked.has(f.id)}
+                  onSelect={(on) => pick(f.id, on)}
                   extra={
                     <>
                       <CopyButton text={f.body} />
