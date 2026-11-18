@@ -67,6 +67,19 @@ describe("fil d'étapes", () => {
     for (const label of Object.values(t.journey.steps)) expect(html).toContain(label);
     expect(html).toContain('aria-current="step"');
     expect(html).toContain("Étape 4 sur 5");
+    expect(html).not.toContain("<a ");
+  });
+  it("une étape dont l'écran existe est un lien, jamais l'étape en cours", () => {
+    const html = renderToStaticMarkup(
+      createElement(JourneySteps, {
+        current: "cibles",
+        links: { analyse: "/app/site/s1/analyse?etapes=1", cibles: "/app/site/s1/cibles" },
+      }),
+    );
+    expect(html).toContain('href="/app/site/s1/analyse?etapes=1"');
+    expect(html).toContain("Ouvrir l&#x27;étape Analyse");
+    expect(html).not.toContain('href="/app/site/s1/cibles"');
+    expect((html.match(/<a /g) ?? []).length).toBe(1);
   });
 });
 

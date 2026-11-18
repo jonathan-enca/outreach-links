@@ -1520,6 +1520,8 @@ export const fr = {
       newFilter: "Nouveaux",
     },
     more: {
+      title: (n: number) =>
+        n > 1 ? `Il reste ${n} sites trouvés à lire` : "Il reste 1 site trouvé à lire",
       stock: (n: number) =>
         `${n} ${n > 1 ? "autres sites trouvés par la recherche n'ont pas encore été lus" : "autre site trouvé par la recherche n'a pas encore été lu"}.`,
       hint: "Un clic lit le lot suivant (jusqu'à 150 sites, environ 5 minutes), avec les mêmes exigences. Les bonnes cibles trouvées s'ajoutent à votre liste. Vous pouvez recommencer tant qu'il reste des sites.",
@@ -2437,6 +2439,7 @@ export const fr = {
     stepOf: (i: number, n: number) => `Étape ${i} sur ${n}`,
     done: "terminée",
     current: "en cours",
+    open: (name: string) => `Ouvrir l'étape ${name}`,
   },
   shell: {
     nav: {

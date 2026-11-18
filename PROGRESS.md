@@ -2211,6 +2211,19 @@ Démonstration sans base : `NEXT_PUBLIC_APP_URL=http://localhost:3100 NEXT_PUBLI
 - Raison détaillée de chaque concurrent écarté pour les liens morts (aujourd'hui : un nombre).
 - Dire « N sites restent à lire » pendant la lecture des autres sites (compte de la réserve : une requête de plus) et la raison d'arrêt (`auto_stop`, textes `targets…auto.stop`).
 
+### Complément (PR séparée) : étapes du haut cliquables, carte « Lire le lot suivant »
+
+Deux demandes de Jonathan relayées par la session parente (affichage seulement, aucune condition changée) :
+
+| Constat                                                                         | Ce que fait le code                                                                                                                      | Verdict     | Après                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Barre d'étapes du haut (« 4 Analyse », « 5 Vos cibles ») : rien n'est cliquable | `JourneySteps` n'affichait que du texte ; seul « Voir le détail de l'analyse », en bas de « Vos cibles », menait à l'analyse.            | Manque      | `JourneySteps` reçoit `links` : depuis « Vos cibles », « Analyse » ouvre `/app/site/<id>/analyse?etapes=1` (ou l'écran en cours si l'analyse tourne) ; depuis le détail d'une analyse finie, « Vos cibles » est cliquable. Lien, survol, focus clavier, nom accessible « Ouvrir l'étape Analyse » ; l'étape en cours n'est jamais un lien. |
+| Bouton « Lire le lot suivant » introuvable                                      | `MoreSites` : carte sans titre, bouton en contour, sous la liste ; conditions `funnel.stock`, `more.status`, `auto.status` (inchangées). | Peu visible | Carte teintée avec un titre « Il reste N sites trouvés à lire », le texte qui dit ce qu'un clic fait, bouton plein.                                                                                                                                                                                                                        |
+
+- Les étapes « Votre site », « Vérification » et « Vous » ne sont pas cliquables : je n'ai pas vérifié que leurs écrans se rouvrent sans effet une fois l'analyse lancée (backlog).
+- La carte n'apparaît pas pendant qu'une lecture tourne ni quand il ne reste rien à lire (conditions existantes, non touchées : MC.6f retravaille la lecture de la réserve).
+- Vérifié sur une page de démonstration (`/demo/lot-suivant`, absente en production), pas sur « Vos cibles » avec de vraies données.
+
 ### Prochain sous-jalon recommandé : MC.6f (inchangé)
 
 (1) Faire relire 10 messages « par proximité » rédigés pour de vrai, et caler la consigne ; (2) réduire la première passe de ressources ; (3) graines sans services payants, repli « publiques » alimenté par une recherche ; (4) liens morts.

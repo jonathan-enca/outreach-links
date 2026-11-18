@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { formatUsd } from "@/features/audits/format";
 import type { AuditActionState } from "@/features/audits/service";
 import { t } from "@/lib/messages";
+import { cn } from "@/lib/utils";
 import {
   cardTactics,
   countByTactic,
@@ -604,7 +605,14 @@ export function MoreSites({
   if (running) return null;
   if (funnel.stock === 0 && more.status === "aucun" && auto.status === "aucun") return null;
   return (
-    <Card className="flex flex-col gap-2 p-4" data-testid="more-sites">
+    <Card
+      className={cn(
+        "flex flex-col gap-2 p-5",
+        // Des sites restent à lire : la carte se détache de la liste (retour de Jonathan, 18/11 : bouton introuvable).
+        funnel.stock > 0 && "border-primary/40 bg-primary/5",
+      )}
+      data-testid="more-sites"
+    >
       {auto.status === "aucun" && more.status === "termine" && more.added !== null ? (
         <p className="font-medium">{R.done(more.added)}</p>
       ) : null}
@@ -618,12 +626,14 @@ export function MoreSites({
       ) : null}
       {funnel.stock > 0 ? (
         <>
-          <p>{R.stock(funnel.stock)}</p>
+          <h3 className="font-display text-lg font-semibold text-balance">
+            {R.title(funnel.stock)}
+          </h3>
           <p className="text-sm text-muted-foreground">{R.hint}</p>
-          <div>
+          <div className="pt-1">
             <Button
               type="button"
-              variant="outline"
+              className="h-11 px-5"
               disabled={pending}
               onClick={() =>
                 begin(async () => {

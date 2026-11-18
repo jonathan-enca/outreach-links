@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Check } from "lucide-react";
 import { t } from "@/lib/messages";
 import { cn } from "@/lib/utils";
@@ -7,7 +8,14 @@ import { JOURNEY_STEPS, type JourneyStep } from "./next-step";
  * Le fil d'étapes commun à tout le parcours (MU.2) : où j'en suis, ce qui reste. Sur mobile, seule
  * l'étape en cours garde son nom (« Étape 4 sur 5 : Analyse ») pour tenir sur une ligne.
  */
-export function JourneySteps({ current }: { current: JourneyStep }) {
+export function JourneySteps({
+  current,
+  links,
+}: {
+  current: JourneyStep;
+  /** Étapes dont l'écran existe déjà pour ce site : elles deviennent des liens (jamais l'étape en cours). */
+  links?: Partial<Record<JourneyStep, string>>;
+}) {
   const index = JOURNEY_STEPS.indexOf(current);
   const j = t.journey;
   return (
@@ -27,28 +35,53 @@ export function JourneySteps({ current }: { current: JourneyStep }) {
                 i === index ? "" : "flex-1 md:flex-none",
               )}
             >
-              <span
-                aria-hidden
-                className={cn(
-                  "grid size-6 shrink-0 place-items-center rounded-full text-xs font-semibold",
-                  state === "done" && "bg-primary text-primary-foreground",
-                  state === "current" && "bg-primary/10 text-primary ring-2 ring-primary",
-                  state === "todo" && "bg-muted text-muted-foreground",
-                )}
-              >
-                {state === "done" ? <Check className="size-3.5" /> : i + 1}
-              </span>
-              <span
-                className={cn(
-                  "hidden text-sm md:inline",
-                  state === "current" ? "font-semibold text-foreground" : "text-muted-foreground",
-                )}
-              >
-                {j.steps[step]}
-                <span className="sr-only">
-                  {state === "done" ? ` (${j.done})` : state === "current" ? ` (${j.current})` : ""}
-                </span>
-              </span>
+              {(() => {
+                const href = state === "current" ? undefined : links?.[step];
+                const inner = (
+                  <>
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "grid size-6 shrink-0 place-items-center rounded-full text-xs font-semibold",
+                        state === "done" && "bg-primary text-primary-foreground",
+                        state === "current" && "bg-primary/10 text-primary ring-2 ring-primary",
+                        state === "todo" && "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {state === "done" ? <Check className="size-3.5" /> : i + 1}
+                    </span>
+                    <span
+                      className={cn(
+                        "hidden text-sm md:inline",
+                        state === "current"
+                          ? "font-semibold text-foreground"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {j.steps[step]}
+                      <span className="sr-only">
+                        {state === "done"
+                          ? ` (${j.done})`
+                          : state === "current"
+                            ? ` (${j.current})`
+                            : ""}
+                      </span>
+                    </span>
+                  </>
+                );
+                return href ? (
+                  <Link
+                    href={href}
+                    aria-label={j.open(j.steps[step])}
+                    data-step-link={step}
+                    className="group -m-1.5 flex items-center gap-2 rounded-md p-1.5 hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  >
+                    {inner}
+                  </Link>
+                ) : (
+                  inner
+                );
+              })()}
               {i < JOURNEY_STEPS.length - 1 ? (
                 <span aria-hidden className="hidden h-px w-6 bg-border md:block" />
               ) : null}
