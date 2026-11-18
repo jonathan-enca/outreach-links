@@ -301,6 +301,7 @@ describe.skipIf(!live)(
             pages: seedPages,
             used: progress.stats.citations.resources ?? [],
             known,
+            skipSeeds: process.env.MC6D_PUBLIC === "1",
           },
         );
         const second = await executeQualification(

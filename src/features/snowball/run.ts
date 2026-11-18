@@ -33,6 +33,8 @@ export interface SnowballStats {
   /** Sites proposés au modèle comme graines, puis comme ressources publiques (repli). */
   seedCandidates: number;
   publicCandidates: number;
+  /** Premiers sites montrés au modèle pour le repli (diagnostic : pourquoi aucun n'a été retenu). */
+  publicShown: string[];
   resources: string[];
   reasons: Record<string, string>;
   /** Appels « qui cite » faits, pages trouvées, domaines nouveaux. */
@@ -59,6 +61,8 @@ export interface SnowballInput {
   /** Domaines déjà candidats : la phase n'ajoute que des domaines nouveaux. */
   known: ReadonlySet<string>;
   max?: number;
+  /** Mesure : saute les graines et prend directement le repli « ressources publiques et gratuites ». */
+  skipSeeds?: boolean;
 }
 
 export interface SnowballOutcome {
@@ -93,6 +97,7 @@ export async function executeSnowball(
     targetPages: 0,
     seedCandidates: 0,
     publicCandidates: 0,
+    publicShown: [],
     resources: [],
     reasons: {},
     calls: 0,
@@ -131,7 +136,7 @@ export async function executeSnowball(
     return out;
   };
 
-  const seeds = seedCandidates(input.pages, ctx, input.used);
+  const seeds = input.skipSeeds ? [] : seedCandidates(input.pages, ctx, input.used);
   stats.targetPages = input.pages.filter(isTargetPage).length;
   stats.seedCandidates = seeds.length;
   let picked = await pick("graines", seeds);
@@ -141,6 +146,7 @@ export async function executeSnowball(
     // Repli : aucune graine retenue (ou aucune cible) → services publics et gratuits cités par les pages lues.
     const pub = publicCandidates(input.pages, ctx, input.used);
     stats.publicCandidates = pub.length;
+    stats.publicShown = pub.slice(0, 40).map((c) => `${c.domain} (${c.citedBy})`);
     picked = await pick("publiques", pub);
     if (picked && picked.resources.length > 0) stats.by = "repli";
   }

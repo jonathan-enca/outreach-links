@@ -10,7 +10,7 @@ export const SNOWBALL_LIMITS = {
   /** Ressources interrogées au plus (6 comme la collecte : ~0,03 USD chacune, mesuré). */
   maxResources: 6,
   /** Candidats montrés au modèle au plus (les plus cités d'abord). */
-  maxSeedCandidates: 40,
+  maxSeedCandidates: 60,
   /** Sous ce nombre de graines retenues, le repli « ressources publiques et gratuites » prend la main. */
   minSeeds: 1,
   /** Un site doit être cité par au moins ce nombre de pages lues pour être proposé en repli. */

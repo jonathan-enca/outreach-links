@@ -103,7 +103,7 @@ describe("coût annoncé de l'analyse", () => {
     // annoncée à part : décision de produit à confirmer (voir PROGRESS.md).
     expect(e.expectedUsd).toBeLessThanOrEqual(AUDIT_BUDGET.targetUsd + snowballCostUsd().worstUsd);
     // Chantier G : budget de jugement porté à 0,40 USD ; le pire cas dépasse la cible, jamais le plafond.
-    expect(e.worstUsd).toBeLessThanOrEqual(1.5);
+    expect(e.worstUsd).toBeLessThanOrEqual(1.5 + snowballCostUsd().worstUsd);
     expect(e.worstUsd).toBeLessThanOrEqual(PLAN_LIMITS.payant.costCapUsd);
     expect(e.expectedUsd).toBeCloseTo(e.discoveryUsd + e.analysisUsd, 6);
     expect(linksStateUsd()).toBeLessThan(0.1);
@@ -122,7 +122,9 @@ describe("coût annoncé de l'analyse", () => {
     expect(next.chain.backlinksUsd).toBe(0);
     expect(next.chain.opportunitiesUsd).toBe(0);
     expect(next.chain.uncovered).toEqual([]);
-    expect(next.chain.totalUsd).toBeLessThanOrEqual(AUDIT_BUDGET.targetUsd + snowballCostUsd().worstUsd);
+    expect(next.chain.totalUsd).toBeLessThanOrEqual(
+      AUDIT_BUDGET.targetUsd + snowballCostUsd().worstUsd,
+    );
     const legacy = computeAuditEstimate({ ...site, legacyChain: true });
     expect(legacy.chain.analysisUsd).toBeUndefined();
     expect(legacy.chain.backlinksUsd).toBeGreaterThan(0);

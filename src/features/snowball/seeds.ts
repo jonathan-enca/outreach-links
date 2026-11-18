@@ -29,6 +29,13 @@ const BAD_PAGE_REASONS: ReadonlySet<string> = new Set([
   "parque",
 ]);
 
+const BAD_SITUATIONS: ReadonlySet<string> = new Set([
+  "juridique",
+  "ferme_a_liens",
+  "commercial",
+  "pas_une_page_de_contenu",
+]);
+
 /** Une page est une cible du premier passage si son jugement montre une des trois situations. */
 export const isTargetPage = (s: Pick<SeedSource, "situation">): boolean =>
   s.situation !== null && TARGET_SITUATIONS.has(s.situation);
@@ -90,6 +97,13 @@ export function publicCandidates(
   ctx: CollectionContext,
   used: readonly string[],
 ): ResourceCandidate[] {
-  const readable = pages.filter((p) => !(p.reason && BAD_PAGE_REASONS.has(p.reason)));
+  // Seulement des pages JUGÉES et pas refusées comme page légale, commerciale, rubrique ou ferme à liens :
+  // les liens d'une ferme (autres fermes, annuaires, boutons de partage) ne sont jamais des services publics.
+  const readable = pages.filter(
+    (p) =>
+      p.situation !== null &&
+      !BAD_SITUATIONS.has(p.situation) &&
+      !(p.reason && BAD_PAGE_REASONS.has(p.reason)),
+  );
   return asCandidates(citedSites(readable, ctx, used, SNOWBALL_LIMITS.minCitedByFallback));
 }

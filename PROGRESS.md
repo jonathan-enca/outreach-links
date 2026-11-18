@@ -2012,3 +2012,61 @@ Mesure d'un site à ressources imposées : `MC6C_RESOURCES=a.fr,b.fr MC6C_JUDGE_
 ### Prochain sous-jalon recommandé : MC.6d, la boule de neige dans le produit
 
 Après la qualification (premier passage), prendre les sites cités par les cibles retenues (`page.cites`, déjà relevé gratuitement), les faire juger par le même modèle que `resource-judge` (même offre que le site, pas un site commercial), puis appeler « qui cite cette ressource » pour au plus 6 nouvelles ressources (≈0,03 USD chacune, coût annoncé et plafonné, nouvelle phase `boule_de_neige`), fusionner les pages obtenues et les passer au même entonnoir avec le pilotage par ressource. À mesurer sur les deux sites avec les graines que le produit trouve seul (verdict du petit modèle, pas du modèle fort). Quand aucune cible n'existe (remove-me.io), prévoir le repli : ressources publiques et gratuites.
+
+## Session du 18/11 (suite 5) : MC.6d, la boule de neige dans le produit (codée et mesurée ; objectif de 30 % NON atteint sur la liste complète)
+
+Périmètre tenu : phase `boule_de_neige` dans le produit, repli « ressources publiques et gratuites », mesure sur les deux sites avec les graines que le produit trouve seul, vérification de Haiku. **Pas** fait : liens morts, catalogue du rédacteur par sujet, écran du rendement par ressource.
+
+### En une phrase
+
+La boule de neige multiplie les cibles gardées par le modèle fort (mega-coloring.com : 2 puis 10 de plus ; remove-me.io : 0 puis 3 de plus), mais sur la liste courte COMPLÈTE le critère de 30 % n'est atteint ni sur l'un (12 sur 59 pages lisibles, 20 %) ni sur l'autre (3 sur 24, 12 %). La part des seules pages de la boule de neige est de 29 % (mega-coloring.com) et 21 % (remove-me.io). Le repli « publiques » ne retient rien sur remove-me.io.
+
+### Mesures (liste courte rejugée par des agents `opus` avec `WRITER_SYSTEM`, comme MC.6b/MC.6c ; DataForSEO réel ; petit modèle `gpt-4.1-mini` facturé au prix de `claude-haiku-5-5` ; ressources de départ choisies par le produit seul)
+
+| | mega-coloring.com | remove-me.io |
+| --- | --- | --- |
+| 1er passage : liste courte, gardées par le modèle fort | **2 sur 24** lisibles (25 en liste, 1 illisible) | **0 sur 10** |
+| Graines trouvées seules (verdict du petit modèle) | jedessine.com, teteamodeler.com, hugolescargot.com, coloriage.info, supercoloring.com, mescoloriages.com | auditosint.com, crabclear.com, incogni.com, optery.com (services payants du même genre que le site) |
+| Pages nouvelles trouvées / lues / jugées | 399 / 240 / 163 | 111 / 106 / 60 |
+| Liste courte de la boule de neige, gardées par le modèle fort | **10 sur 35** lisibles (40 en liste, 5 illisibles) : 29 % | **3 sur 14** : 21 % |
+| Liste complète | 12 sur 59 lisibles : 20 % | 3 sur 24 : 12 % |
+| Coût DataForSEO de la phase (6 appels au plus) | 0,173 USD | 0,105 USD |
+| Coût du jugement de la phase (prix Haiku 5.5) | 0,039 USD | 0,015 USD |
+| Repli « publiques » forcé (`MC6D_PUBLIC=1`) | non mesuré | **aucune ressource retenue** (60 sites proposés) |
+
+- **Rendement par graine** (pages lues, cibles du petit modèle, liste courte) : mega-coloring.com hugolescargot.com 68/23/12, supercoloring.com 40/13/11, coloriage.info 56/19/9, mescoloriages.com 31/16/8, teteamodeler.com 46/11/5, jedessine.com 26/2/1 ; remove-me.io incogni.com 95/20/13, optery.com 15/1/1, crabclear.com 1/0/0, auditosint.com non lue. Le pilotage abandonne netclearer.fr, toutsurlacyber.fr (première passe) et coloriageetdessins.com. Les graines de mega-coloring.com sont à peu près celles de MC.6c (trouvées avec le verdict du modèle fort) : le produit les retrouve seul.
+- **Cibles gardées de la boule de neige** (mega-coloring.com) : mairie de Saint-Étienne-d'Orthe (liens utiles), association de garde d'enfants au Québec, blogs de mamans, blog de patchwork, webzine sur le coloriage anti-stress. remove-me.io : deux listes de services (pasqualepillitteri.it, fr.simeononsecurity.com), sitegeek.fr, plus syskb.com sans contact. Le modèle fort refuse surtout : fermes à liens et articles sponsorisés (webcleaner.fr), grands médias où le site n'est qu'une source, pages sur un seul produit, pages où le catalogue du rédacteur (80 pages) n'a pas le sujet cherché (gâteaux, voitures, Pâques) : c'est la dette du catalogue.
+- **Pourquoi remove-me.io reste bas** : le modèle accepte des services payants comme « même offre » (incogni, optery) parce que le site propose aussi un service ; la consigne des graines demande d'écarter ceux qui vivent de leur référencement mais le petit modèle ne distingue pas. Le repli n'a pas été déclenché dans la mesure normale (des graines existaient) ; forcé, il ne retient rien : les sites cités par les pages lues sont des institutions, des médias et des fermes ; les ressources publiques de MC.0b (haveibeenpwned.com, 33700.fr) n'y figurent pas. **Le repli est codé et testé mais n'a pas démontré de gain.**
+- **Haiku 5.5, jeu des trois cas** (20 cas annotés, même consigne que `demo:angle-eval`) : précision 1,00, rappel 0,90, situation juste 19 sur 20 (une cible manquée, d01). Réalisé par un sous-agent `haiku` (l'API Anthropic n'est pas joignable d'ici sans clé) : le modèle exact n'est pas garanti, et les cas sont courts (le test sur 6 000 caractères reste à faire avec `LLM_PROVIDER=anthropic` en production). Le jugement des pages complètes par `gpt-4.1-mini` dans les mesures ci-dessus coûte 0,015 à 0,04 USD ; budget de lecture réel de la phase, 0,08 USD d'arrière-plan.
+- **Limites à dire** : 2 sites ; effectifs petits (une cible de plus ou de moins change de 3 points) ; modèle fort = agent, deux relectures peuvent différer ; des pages « illisibles » (6 sur mega-coloring.com) comptées à part ; aucun message envoyé ; le second passage de la mesure s'arrête sur « objectif de pages » (mega-coloring.com), donc la production (lots en arrière-plan) lirait davantage.
+- **Dépense de la session** : ~1,3 USD de DataForSEO (3 collectes + 3 phases + 1 repli), ~0,15 USD de petit modèle, plus les agents.
+
+### Ce qui change dans le code
+
+- **`src/features/snowball/`** (nouveau) : `limits.ts` (6 ressources au plus, coût annoncé `snowballCostUsd()` : attendu ~0,18 USD, pire cas ~0,20 USD), `seeds.ts` (sites cités par les pages jugées cibles ; repli : sites cités par les pages lues, jugées et non refusées), `run.ts` (`executeSnowball` : choix des graines par `pickResources`, repli « publiques », appels `runCitationsCall`, domaines nouveaux seulement ; sans modèle rien n'est fait), `service.ts` (`runSnowballForAudit`, `persistSnowball`), tests `snowball.test.ts`.
+- **Intégration** : `inngest/functions/audit-qualify-auto-start.ts`, step `boule-de-neige` avant le premier lot de lecture en arrière-plan. Les pages nouvelles deviennent des candidats de la collecte ET des lignes « en réserve » de la qualification ; les lots existants les lisent avec le pilotage par ressource (file `citation:<domaine>`). Une panne laisse l'arrière-plan faire comme avant ; rejouée, la phase ne refait rien (`qualification_runs.stats.snowball`).
+- **`collection/resource-judge.ts`** : modes `comparables` / `graines` / `publiques` (consignes `SEEDS_SYSTEM`, `PUBLIC_RESOURCES_SYSTEM`), origine `citee`. **`collection/run.ts`** : `loadCollectionContext` extrait de `beginCollection`, `CitationsRun`, `toRow` exporté.
+- **Coût annoncé** (`analysis/estimate.ts`) : la phase s'ajoute au coût annoncé de l'analyse (attendu ~1,16 USD, pire cas ~1,64 USD, plafond d'audit 2 USD). **Décision de Jonathan à prendre** : l'objectif de 1,00 USD par analyse est dépassé de ~0,18 USD ; options : accepter, ou réduire la collecte (la première passe de ressources donne peu : 2 sur 24 et 0 sur 10).
+- **Outil de mesure** : `citations-funnel.live.test.ts` (`MC6D=1` enchaîne première passe, boule de neige et second passage ; `MC6D_PUBLIC=1` force le repli ; `MC6D_BUDGET`).
+
+### Commandes
+
+`MC6D=1 MC6C_JUDGE_MODEL=gpt-4.1-mini MC6B_PRICE_MODEL=claude-haiku-5-5 MC6B_LIVE=1 MC6B_INPUT=entree.json MC6B_OUT=rapport.json MC6B_CACHE=dfs.json MC6B_PAGES=pages.json MC6B_CASES=cas/ NODE_USE_ENV_PROXY=1 DATAFORSEO_PROXY_AUTH=true LLM_PROXY_AUTH=true pnpm vitest run src/features/qualification/citations-funnel.live.test.ts` ; le dossier de cas contient `liste_courte` (premier passage) et `boule_de_neige`. Entrées : voir MC.6c (base Supabase).
+
+### Dettes et pièges
+
+- **Le critère de 30 % sur la liste complète n'est pas atteint** ; le gain vient de la boule de neige mais la première passe dilue. Pistes : réduire la première passe de ressources (6 appels qui donnent 2 cibles sur 24 et 0 sur 10), et réserver la lecture en arrière-plan aux files de la boule de neige.
+- **Choix des graines** : un site qui vend le même service (remove-me.io) fait accepter des concurrents payants. Le modèle voit la présentation de l'accueil ; ajouter « gratuit ou payant » au profil de la ressource, ou lire la page « tarifs ».
+- **Repli publiques** : les candidats (sites cités par les pages lues) ne contiennent pas les services publics ; piste : proposer aussi au modèle les pages « ressources » connues du thème, ou une recherche Google « outils gratuits pour <besoin> ».
+- **Catalogue du rédacteur** (80 pages) : encore la première cause de refus à tort des agents de rejugement (pages « gâteaux », « voitures », « Pâques » existantes mais absentes du catalogue).
+- Les pages d'une ressource déjà connue dans la réserve (domaine existant) ne reçoivent pas la source « boule de neige » : un domaine à la fois dans la réserve et cité par une graine n'est pas lu en priorité.
+- Haiku 5.5 : à vérifier en production avec une clé Anthropic (test des 6 000 caractères).
+
+### Backlog
+
+- Montrer à l'écran le rendement par ressource et la phase boule de neige (`stats.snowball`).
+- Marquer les domaines déjà en réserve qui citent une graine.
+
+### Prochain sous-jalon recommandé : MC.6e
+
+Rendre le critère atteignable : (1) catalogue du rédacteur par sujet de la cible (conserver les adresses du sitemap avec leurs mots d'adresse, lire les 5 à 10 plus proches) ; (2) réduire ou supprimer la première passe de ressources choisies d'avance au profit de la boule de neige, après un essai sur les deux sites ; (3) choix des graines : écarter les services payants quand le site est gratuit ; repli « publiques » alimenté par une recherche. Mesure : cibles gardées / liste courte sur remove-me.io et mega-coloring.com.
