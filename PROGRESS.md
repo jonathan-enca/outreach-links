@@ -553,6 +553,8 @@ Demande : « design ok », reprendre le wording pour qu'il soit meilleur et plus
 
 ## Backlog (idées hors périmètre)
 
+- **MC.7 puis MC.2 (18/11, après l'audit de la campagne squadraplanning.com)** : MC.7 (pages à pousser choisies par volume et position dès l'onboarding, formule fixe, voir `PLAN.md`) puis MC.2 en partant des mots-clés de ces pages. Autres constats du même audit, non planifiés : liste courte triée par score global plutôt que par pertinence (18 cibles sur 34 à fit 0,3) ; concurrents qui passent le filtre (shifty-app, kazalendar, dimo-rh, elevo) et ne sont refusés qu'à la rédaction ; cibles hors pays (Canada, Québec, Belgique) ; 36 appels du modèle sur 72 en échec par « sortie tronquée » à la qualification ; contrôle « promesse » du linter peut-être trop sévère (brouillon logiciels-solutions.fr) ; le mail dit « fondateur » alors que `founder_confirmed_at` est vide.
+
 - **Arrière-plan (17/11, étape 1)** : pas d'étape « liens morts » pour les cibles ajoutées par la lecture de la réserve (manuel ou automatique) ; jugement des lots d'arrière-plan à tarif réduit (étape 2) ; barre fixe « Valider ces demandes » qui recouvre le message de fin sur mobile (MU.10).
 - Essai de 7 jours (16/11) : le coder dans la facturation (début, fin, blocage ou passage à l'offre), avec ou sans carte ; aligner la page d'inscription, les conditions et le sort de l'audit gratuit public (`/audit-gratuit`).
 - Tarifs (16/11) : imposer par offre le nombre de sites, de boîtes, d'audits par mois et les réponses prêtes à insérer (aujourd'hui seul le plafond d'envois l'est) ; TVA incluse côté Stripe (prix TTC) ; facturation annuelle ; faire correspondre `workspaces.plan` (gratuit/payant) aux trois offres.
@@ -623,6 +625,8 @@ Demande : « design ok », reprendre le wording pour qu'il soit meilleur et plus
 « Lis CLAUDE.md et PROGRESS.md (section Bilan V1). Applique la migration de la PR #20 (M1.6) sur Supabase, régénère les types, fusionne la PR et vérifie la production. Puis enchaîne sur M2.1 de PLAN.md : un sous-jalon par session, en autonomie, sans aucun envoi d'email réel. »
 
 ## Prochain sous-jalon recommandé
+
+**Priorité NOW (18/11/2026) : MC.7** (pages à pousser par volume et position, calcul à l'onboarding ; `PLAN.md > MC.7`), **puis MC.2** (recherches de cibles à partir des mots-clés de ces pages). Décisions de Jonathan : calcul à l'onboarding malgré le léger surcoût, mélange volume et position, formule fixe sans calibrage coûteux.
 
 **Priorité NOW (16/11/2026) : MU.0 fait. Suite : MU.1** (une seule analyse, de bout en bout ; `docs/jalon-mu.md`, prompt à copier dans le sous-jalon). MB.2 et MT.7 passent après MU. (Les textes ci-dessous sont d'anciennes recommandations.)
 
