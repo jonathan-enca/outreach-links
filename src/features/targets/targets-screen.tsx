@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { ExternalLink } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -64,17 +65,32 @@ export function MessageSettingsForm({
   onSubmit: (fd: FormData) => void;
   onCancel: () => void;
 }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  // Fenêtre modale native : le focus y reste, Échap la ferme (retour de Jonathan, 18/11 : cette
+  // question n'a pas sa place comme section de la page).
+  useEffect(() => {
+    const d = ref.current;
+    if (d && !d.open) d.showModal();
+  }, []);
   return (
-    <Card className="p-4 md:p-6" data-testid="message-settings">
+    <dialog
+      ref={ref}
+      onClose={onCancel}
+      aria-labelledby="message-settings-title"
+      data-testid="message-settings"
+      className="m-auto w-full max-w-[30rem] rounded-panel border border-border bg-card p-5 text-foreground shadow-float backdrop:bg-foreground/45 max-sm:mb-0 max-sm:max-w-none max-sm:rounded-b-none sm:p-6"
+    >
       <form
-        className="flex flex-col gap-3"
+        className="flex flex-col gap-3.5"
         onSubmit={(e) => {
           e.preventDefault();
           onSubmit(new FormData(e.currentTarget));
         }}
       >
-        <h2 className="font-display text-xl font-semibold">{M.founder.title}</h2>
-        <p className="text-muted-foreground">{M.founder.body}</p>
+        <h2 id="message-settings-title" className="font-display text-xl font-semibold">
+          {M.founder.title}
+        </h2>
+        <p className="text-muted-foreground text-pretty">{M.founder.body}</p>
         <label className="flex flex-col gap-1 text-sm font-medium" htmlFor="firstName">
           {M.founder.firstName}
           <input
@@ -85,35 +101,41 @@ export function MessageSettingsForm({
             required
             maxLength={60}
             autoComplete="given-name"
-            className="h-11 rounded-control border border-border bg-card px-3 font-normal md:h-10 md:max-w-xs"
+            className="h-11 rounded-control border border-border bg-card px-3 text-base font-normal sm:h-10 sm:text-sm"
           />
         </label>
-        <fieldset className="flex flex-col gap-1">
-          <legend className="sr-only">{M.founder.title}</legend>
+        <fieldset className="flex flex-col">
+          <legend className="mb-1 text-sm font-medium">{M.founder.roleLegend}</legend>
           {FOUNDER_ROLES.map((r) => (
-            <label key={r} className="flex min-h-11 items-center gap-2 md:min-h-8">
+            <label key={r} className="flex min-h-11 items-center gap-2.5 sm:min-h-9">
               <input
                 type="radio"
                 name="role"
                 value={r}
                 defaultChecked={role === r}
                 required
-                className="size-5 accent-primary md:size-4"
+                className="size-5 shrink-0 accent-primary sm:size-[1.125rem]"
               />
               <span>{M.founder.roles[r].replace("{site}", site)}</span>
             </label>
           ))}
         </fieldset>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" disabled={pending} className="w-full md:w-auto">
-            {pending ? M.validate.busy : M.founder.saveAndValidate.replace("{n}", String(count))}
+        <p className="text-sm text-muted-foreground">{M.founder.hint}</p>
+        <div className="flex flex-col gap-2 sm:flex-row-reverse">
+          <Button type="submit" disabled={pending} className="h-11 w-full sm:h-10 sm:w-auto">
+            {pending ? M.validate.busy : M.founder.saveAndValidate(count)}
           </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 w-full sm:h-10 sm:w-auto"
+            onClick={onCancel}
+          >
             {M.founder.cancel}
           </Button>
         </div>
       </form>
-    </Card>
+    </dialog>
   );
 }
 
@@ -278,6 +300,8 @@ function contactLine(card: TargetCard): string {
 
 const TB = M.table;
 const NONE: ReadonlySet<string> = new Set();
+/** Sites sans contact affichés d'emblée ; le reste derrière un bouton. */
+const LOST_FIRST = 10;
 
 function contactShort(card: TargetCard): string {
   const k = card.contact;
@@ -302,6 +326,8 @@ const REQUEST_TONE = {
  * colonne de plus sans écraser la raison.
  */
 const COLS = "xl:grid-cols-[1.25rem_1.75rem_19rem_minmax(0,1fr)_9.5rem_7.5rem_2.25rem]";
+/** Sites sans contact : pas de case, et la colonne « Contact » porte le bouton « Ouvrir la page ». */
+const COLS_PAGE = "xl:grid-cols-[1.75rem_19rem_minmax(0,1fr)_9.5rem_9.75rem_2.25rem]";
 
 /**
  * Une cible = une ligne qui se déplie (retour de Jonathan, 18/11 : tableau dense, le détail au clic).
@@ -314,6 +340,7 @@ export function TargetRow({
   open,
   selected,
   isNew = false,
+  pageAction = false,
   onOpen,
   onToggle,
 }: {
@@ -322,6 +349,8 @@ export function TargetRow({
   open: boolean;
   selected: boolean;
   isNew?: boolean;
+  /** Site sans contact : ni case ni contact, un bouton qui ouvre la page lue. */
+  pageAction?: boolean;
   onOpen: (id: string) => void;
   onToggle: (id: string) => void;
 }) {
@@ -337,14 +366,14 @@ export function TargetRow({
   return (
     <li className="border-b border-border last:border-b-0" data-testid="target-row">
       <div
-        className={`grid cursor-pointer grid-cols-[1.25rem_minmax(0,1fr)_2.5rem] items-start gap-x-3 gap-y-1.5 px-3 py-3 hover:bg-muted/60 xl:items-center xl:px-4 xl:py-2.5 ${COLS}`}
+        className={`grid cursor-pointer items-start gap-x-3 gap-y-1.5 px-3 py-3 hover:bg-muted/60 xl:items-center xl:px-4 xl:py-2.5 ${pageAction ? `grid-cols-[minmax(0,1fr)_2.5rem] ${COLS_PAGE}` : `grid-cols-[1.25rem_minmax(0,1fr)_2.5rem] ${COLS}`}`}
         onClick={(e) => {
           // Un clic sur la case, un lien ou la flèche garde son propre effet.
           if ((e.target as HTMLElement).closest("input,a,button")) return;
           onOpen(card.id);
         }}
       >
-        {eligible ? (
+        {pageAction ? null : eligible ? (
           <input
             type="checkbox"
             checked={selected}
@@ -387,20 +416,37 @@ export function TargetRow({
           ) : null}
         </div>
         <p
-          className={`col-start-2 min-w-0 text-sm xl:col-auto xl:text-[13.5px] ${open ? "xl:invisible xl:line-clamp-1" : "line-clamp-2"}`}
+          className={`${pageAction ? "col-start-1" : "col-start-2"} min-w-0 text-sm xl:col-auto xl:text-[13.5px] ${open ? "xl:invisible xl:line-clamp-1" : "line-clamp-2"}`}
         >
-          {card.why ?? req.lines[0] ?? ""}
+          {card.why ?? card.hook ?? req.lines[0] ?? ""}
         </p>
-        <div className="col-start-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 xl:contents">
+        <div
+          className={`${pageAction ? "col-span-2 col-start-1" : "col-start-2"} flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2 xl:contents`}
+        >
           <span>
             <Badge tone={REQUEST_TONE[req.kind]}>{TB.requestTags[req.kind]}</Badge>
           </span>
-          <span className="text-sm text-muted-foreground">
-            <span aria-hidden="true" className="xl:hidden">
-              ·{" "}
+          {pageAction ? (
+            <Button asChild variant="outline" size="sm" className="w-full sm:w-fit">
+              <a
+                href={card.pageUrl ?? `https://${card.domain}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={card.pageUrl ?? undefined}
+                aria-label={M.noContact.openLabel.replace("{domain}", card.domain)}
+              >
+                {M.noContact.open}
+                <ExternalLink aria-hidden="true" />
+              </a>
+            </Button>
+          ) : (
+            <span className="text-sm text-muted-foreground">
+              <span aria-hidden="true" className="xl:hidden">
+                ·{" "}
+              </span>
+              {contactShort(card)}
             </span>
-            {contactShort(card)}
-          </span>
+          )}
         </div>
         <button
           type="button"
@@ -408,7 +454,7 @@ export function TargetRow({
           aria-controls={detailId}
           aria-label={`${open ? TB.close : TB.open} : ${card.domain}`}
           onClick={() => onOpen(card.id)}
-          className="col-start-3 row-start-1 flex size-10 items-center justify-center justify-self-end rounded-control text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring xl:col-auto xl:row-auto xl:size-8"
+          className={`${pageAction ? "col-start-2" : "col-start-3"} row-start-1 flex size-10 items-center justify-center justify-self-end rounded-control text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring xl:col-auto xl:row-auto xl:size-8`}
         >
           <svg
             viewBox="0 0 16 16"
@@ -429,7 +475,7 @@ export function TargetRow({
       {open ? (
         <div
           id={detailId}
-          className="flex flex-col gap-3 px-3 pb-4 xl:pb-5 xl:pl-[5.75rem] xl:pr-4"
+          className={`flex flex-col gap-3 px-3 pb-4 xl:pb-5 xl:pr-4 ${pageAction ? "xl:pl-[3.5rem]" : "xl:pl-[5.75rem]"}`}
         >
           {card.why ? (
             <p className="hidden text-sm xl:block">
@@ -540,6 +586,7 @@ export function TargetsTable({
   open,
   selected,
   fresh = NONE,
+  pageAction = false,
   onOpen,
   onToggle,
 }: {
@@ -548,6 +595,8 @@ export function TargetsTable({
   selected: ReadonlySet<string>;
   /** Cibles arrivées depuis la dernière visite (pastille « Nouveau »). */
   fresh?: ReadonlySet<string>;
+  /** Sites sans contact : pas de case, bouton « Ouvrir la page » à la place du contact. */
+  pageAction?: boolean;
   onOpen: (id: string) => void;
   onToggle: (id: string) => void;
 }) {
@@ -555,14 +604,14 @@ export function TargetsTable({
     <Card className="overflow-hidden p-0" data-testid="targets-table">
       <div
         aria-hidden="true"
-        className={`hidden gap-x-3 border-b border-border bg-muted px-4 py-2 text-xs font-semibold text-muted-foreground xl:grid ${COLS}`}
+        className={`hidden gap-x-3 border-b border-border bg-muted px-4 py-2 text-xs font-semibold text-muted-foreground xl:grid ${pageAction ? COLS_PAGE : COLS}`}
       >
-        <span />
+        {pageAction ? null : <span />}
         <span>#</span>
         <span>{TB.site}</span>
         <span>{TB.why}</span>
         <span>{TB.request}</span>
-        <span>{TB.contact}</span>
+        <span>{pageAction ? M.noContact.column : TB.contact}</span>
         <span />
       </div>
       <ul>
@@ -574,6 +623,7 @@ export function TargetsTable({
             open={open.has(c.id)}
             selected={selected.has(c.id)}
             isNew={fresh.has(c.id)}
+            pageAction={pageAction}
             onOpen={onOpen}
             onToggle={onToggle}
           />
@@ -921,6 +971,14 @@ export function TargetsScreen({
       if (!next.delete(id)) next.add(id);
       return next;
     });
+  const eligibleCount = useMemo(() => eligibleIds(cards).length, [cards]);
+  const validatedCount = cards.filter((x) => x.alreadyValidated).length;
+  // Sans contact : les mentions sans lien prouvées d'abord, puis les autres sites pertinents.
+  const lost = useMemo(
+    () => [...view.contactless, ...view.noContact],
+    [view.contactless, view.noContact],
+  );
+  const [allLost, setAllLost] = useState(false);
   const c = view.collection;
   const qDone = q.status === "termine";
   const m = M.steps;
@@ -1111,6 +1169,34 @@ export function TargetsScreen({
                 </div>
               </div>
             ) : null}
+            {/* Choisir (compteur et deux boutons) est séparé de l'action principale, qui vit dans la barre. */}
+            <div
+              className="flex flex-wrap items-center gap-x-3 gap-y-2"
+              data-testid="selection-tools"
+            >
+              <p className="w-full sm:mr-auto sm:w-auto">
+                <strong>{M.list.selected(chosen.length)}</strong>{" "}
+                <span className="text-muted-foreground">{M.list.selectedOf(eligibleCount)}</span>
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-10 flex-1 sm:h-9 sm:flex-none"
+                onClick={() => setSelected(new Set(eligibleIds(cards)))}
+              >
+                {M.list.selectAll}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-10 flex-1 sm:h-9 sm:flex-none"
+                onClick={() => setSelected(new Set())}
+              >
+                {M.list.selectNone}
+              </Button>
+            </div>
             {shown.length === 0 ? (
               <p className="text-muted-foreground">
                 {publisher !== undefined && publisher !== null
@@ -1143,9 +1229,58 @@ export function TargetsScreen({
                   )}
               </p>
             ) : null}
-            {view.funnel ? (
-              <MoreSites funnel={view.funnel} more={view.more} start={actions.readMore} />
+            {/* Barre collante : suit la liste, puis se pose sous le tableau. Une seule action principale. */}
+            <Card
+              role="region"
+              aria-label={M.validate.region}
+              data-testid="validate-bar"
+              className="sticky bottom-3 z-10 flex flex-col gap-2 border-foreground/15 p-3 shadow-[0_10px_30px_-10px_rgb(14_26_43/0.3),0_1px_2px_rgb(14_26_43/0.08)] sm:flex-row sm:items-center sm:gap-4 sm:py-3 sm:pr-3 sm:pl-4 md:bottom-4"
+            >
+              <p className="flex min-w-0 items-baseline justify-between gap-2 sm:mr-auto sm:block">
+                <strong className="shrink-0 sm:block" aria-live="polite">
+                  {M.validate.count(chosen.length)}
+                </strong>
+                <span className="text-right text-sm text-muted-foreground sm:hidden">
+                  {chosen.length === 0 ? M.validate.empty : M.validate.noteShort}
+                </span>
+                <span className="hidden text-sm text-muted-foreground sm:block">
+                  {chosen.length === 0 ? M.validate.empty : M.validate.note}
+                </span>
+              </p>
+              {validatedCount > 0 ? (
+                <Button asChild variant="outline" className="hidden shrink-0 sm:inline-flex">
+                  <Link href={`/app/audit/${auditId}/plan`}>{M.toPlan(validatedCount)}</Link>
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                className="h-11 w-full shrink-0 sm:h-10 sm:w-auto"
+                disabled={vPending || chosen.length === 0}
+                onClick={() => (settingsOk ? runValidate() : setAskSettings(true))}
+              >
+                {vPending ? M.validate.busy : M.validate.button(chosen.length)}
+              </Button>
+            </Card>
+            {validatedCount > 0 ? (
+              <Button asChild variant="outline" className="h-11 w-full sm:hidden">
+                <Link href={`/app/audit/${auditId}/plan`}>{M.toPlan(validatedCount)}</Link>
+              </Button>
             ) : null}
+            {settingsOk && view.founderRole ? (
+              <p className="text-sm text-muted-foreground">
+                {M.founder.recap
+                  .replace("{name}", view.signatureFirstName ?? "")
+                  .replace("{role}", M.founder.shortRoles[view.founderRole])}{" "}
+                <button
+                  type="button"
+                  className="text-foreground underline underline-offset-4"
+                  onClick={() => setAskSettings(true)}
+                >
+                  {M.founder.change}
+                </button>
+              </p>
+            ) : null}
+            <Message state={vState} />
             {askSettings ? (
               <MessageSettingsForm
                 site={view.siteDomain}
@@ -1157,132 +1292,51 @@ export function TargetsScreen({
                 onCancel={() => setAskSettings(false)}
               />
             ) : null}
-            {/* Téléphone : le bouton prend toute la largeur, les actions secondaires tiennent sur une rangée. */}
-            <Card className="sticky bottom-3 flex flex-col gap-2 p-3 md:bottom-4 md:p-4">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <Button
-                  type="button"
-                  className="w-full md:w-auto"
-                  disabled={vPending || chosen.length === 0}
-                  onClick={() => (settingsOk ? runValidate() : setAskSettings(true))}
-                >
-                  {vPending
-                    ? M.validate.busy
-                    : M.validate.button.replace("{n}", String(chosen.length))}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelected(new Set(eligibleIds(cards)))}
-                >
-                  {M.list.selectAll}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelected(new Set())}
-                >
-                  {M.list.selectNone}
-                </Button>
-                <Link
-                  href={`/app/audit/${auditId}/plan`}
-                  className="hidden text-sm underline underline-offset-4 md:inline"
-                >
-                  {M.toPlan}
-                </Link>
-              </div>
-              <p
-                className={`text-xs text-muted-foreground ${chosen.length > 0 ? "hidden md:block" : ""}`}
-              >
-                {chosen.length === 0 ? M.validate.empty : M.validate.note}
-              </p>
-              {settingsOk && view.founderRole ? (
-                <p className="hidden text-xs text-muted-foreground md:block">
-                  {M.founder.recap
-                    .replace("{name}", view.signatureFirstName ?? "")
-                    .replace("{role}", M.founder.shortRoles[view.founderRole])}{" "}
-                  <button
-                    type="button"
-                    className="underline underline-offset-4"
-                    onClick={() => setAskSettings(true)}
-                  >
-                    {M.founder.change}
-                  </button>
-                </p>
-              ) : null}
-              <Message state={vState} />
-            </Card>
+            {view.funnel ? (
+              <MoreSites funnel={view.funnel} more={view.more} start={actions.readMore} />
+            ) : null}
           </>
         )}
       </section>
 
-      {view.contactless.length > 0 ? (
-        <section className="flex flex-col gap-3" aria-labelledby="contactless">
-          <h2 id="contactless" className="font-display text-xl font-semibold">
-            {M.contactless.title}
+      {lost.length > 0 ? (
+        <section className="flex flex-col gap-3" aria-labelledby="no-contact">
+          <h2 id="no-contact" className="font-display text-xl font-semibold text-balance">
+            {M.noContact.title(lost.length)}
           </h2>
-          <p className="text-muted-foreground">{M.contactless.body}</p>
+          <p className="max-w-[76ch] text-muted-foreground text-pretty">{M.noContact.body}</p>
           <TargetsTable
-            cards={view.contactless}
+            cards={allLost ? lost : lost.slice(0, LOST_FIRST)}
             open={open}
             selected={NONE}
+            pageAction
             onOpen={toggleOpen}
             onToggle={toggle}
           />
+          {!allLost && lost.length > LOST_FIRST ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-fit"
+              onClick={() => setAllLost(true)}
+            >
+              {M.noContact.more(lost.length - LOST_FIRST)}
+            </Button>
+          ) : null}
         </section>
       ) : null}
 
-      {view.noContact.length > 0 ? (
-        <details className="rounded-card border border-border bg-card p-4">
-          <summary className="cursor-pointer font-medium">
-            {M.noContact.title.replace("{n}", String(view.noContact.length))}
-          </summary>
-          <p className="mt-2 text-sm text-muted-foreground">{M.noContact.body}</p>
-          <ul className="mt-2 flex flex-col gap-2 text-sm">
-            {view.noContact.map((c) => (
-              <li key={c.id} className="flex flex-col gap-0.5">
-                <span className="font-medium">{c.domain}</span>
-                {(c.hook ?? c.why) ? (
-                  <span className="text-muted-foreground">{c.hook ?? c.why}</span>
-                ) : null}
-                {c.pageUrl ? (
-                  <a
-                    href={c.pageUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-fit underline underline-offset-4"
-                  >
-                    {M.noContact.open}
-                  </a>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
-
-      <details className="rounded-card border border-border bg-card p-4">
-        <summary className="cursor-pointer font-medium">{M.serp.title}</summary>
-        <p className="mt-2 text-sm text-muted-foreground">{M.serp.body}</p>
-        {view.competitors.length === 0 ? (
-          <p className="mt-2 text-sm">{M.serp.empty}</p>
-        ) : (
-          <ul className="mt-2 flex flex-col gap-1 text-sm">
-            {view.competitors.map((c) => (
-              <li key={c.domain} className="flex flex-wrap gap-2">
-                <span className="font-medium">{c.domain}</span>
-                <span className="text-muted-foreground">
-                  {M.serp.row
-                    .replace("{queries}", String(c.queries))
-                    .replace("{rank}", c.bestRank === null ? "-" : String(c.bestRank))}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </details>
+      <section
+        className="flex max-w-[72ch] flex-col gap-1.5 border-t border-border pt-5"
+        aria-labelledby="origin"
+      >
+        <h2 id="origin" className="font-semibold">
+          {M.origin.title}
+        </h2>
+        <p className="text-muted-foreground text-pretty">
+          {M.origin.body(view.competitors.length)}
+        </p>
+      </section>
     </div>
   );
 }
