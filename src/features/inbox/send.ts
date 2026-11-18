@@ -117,21 +117,21 @@ async function sendNextReply(db: Client, box: MailboxRow, deps: SendDeps): Promi
     db
       .from("sent_messages")
       .select("claimed_at")
-      .eq("mailbox_id", box.id)
+      .eq("from_email", box.email)
       .eq("dry_run", dry)
       .in("status", COUNTED)
       .gte("claimed_at", since),
     db
       .from("reply_sends")
       .select("claimed_at")
-      .eq("mailbox_id", box.id)
+      .eq("from_email", box.email)
       .eq("dry_run", dry)
       .in("status", COUNTED)
       .gte("claimed_at", since),
     db
       .from("sent_messages")
       .select("claimed_at")
-      .eq("mailbox_id", box.id)
+      .eq("from_email", box.email)
       .eq("dry_run", dry)
       .in("status", COUNTED)
       .order("claimed_at", { ascending: true })
@@ -224,6 +224,7 @@ async function attempt(
     inbound_message_id: inbound.id,
     sent_message_id: inbound.sent_message_id,
     mailbox_id: box.id,
+    from_email: box.email,
     dry_run: dry,
     claimed_at: now.toISOString(),
     subject,

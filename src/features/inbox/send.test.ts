@@ -58,6 +58,7 @@ function world(
       {
         id: "s1",
         mailbox_id: "mb1",
+        from_email: "jo@alice-site.fr",
         subject: "Une idée de lien",
         message_id: "<orig@alice-site.fr>",
         status: "simule",
@@ -182,6 +183,7 @@ describe("envoi des réponses : dry run", () => {
     db.tables.sent_messages!.push({
       id: "s9",
       mailbox_id: "mb1",
+      from_email: "jo@alice-site.fr",
       status: "simule",
       dry_run: true,
       claimed_at: new Date(MONDAY_10H.getTime() - 10 * 60_000).toISOString(),

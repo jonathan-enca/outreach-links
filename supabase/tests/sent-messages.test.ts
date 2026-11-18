@@ -560,4 +560,52 @@ describe.skipIf(!adminUrl)("envois : garde-fous en base", () => {
       await db.query("rollback");
     }
   });
+  it("plafonds par adresse : supprimer puis recréer la boîte ne remet pas les compteurs à zéro", async () => {
+    // Constat réel (18/11/2026) : 7 emails en une heure depuis la même adresse, parce que la nouvelle ligne
+    // de boîte repartait de zéro. Les comptes suivent désormais l'adresse d'envoi.
+    await db.query("begin");
+    try {
+      await db.query("set local role service_role");
+      const b = await validatedBatch(db, 4);
+      const mailbox = async () =>
+        (
+          await db.query(
+            `insert into public.mailboxes (workspace_id, site_id, email, from_name, username, password_enc,
+               key_version, smtp_host, smtp_port, imap_host, imap_port, status, smtp_ok, imap_ok, hourly_cap)
+             values ($1, $2, 'meme-adresse@alice-site.fr', 'Jo', 'jo', 'v1.x.y.z', 'v1', 'smtp.alice-site.fr',
+               587, 'imap.alice-site.fr', 993, 'verifiee', true, true, 2) returning id`,
+            [workspaceId, siteId],
+          )
+        ).rows[0].id as string;
+      const first = await mailbox();
+      for (const d of [drafts[0]!, drafts[1]!]) {
+        await claim(db, { batch: b, draft: d, mailbox: first, dry: false });
+      }
+      // L'adresse est enregistrée sur chaque envoi, sans que le serveur ait à la fournir.
+      expect(
+        (
+          await db.query(
+            "select distinct from_email from public.sent_messages where mailbox_id = $1",
+            [first],
+          )
+        ).rows,
+      ).toEqual([{ from_email: "meme-adresse@alice-site.fr" }]);
+      await db.query("savepoint s1");
+      await expect(
+        claim(db, { batch: b, draft: drafts[2]!, mailbox: first, dry: false }),
+      ).rejects.toThrow(/plafond horaire atteint/);
+      await db.query("rollback to savepoint s1");
+
+      // Suppression et recréation : l'historique est détaché, mais compté pour la même adresse.
+      await db.query("delete from public.mailboxes where id = $1", [first]);
+      const second = await mailbox();
+      await db.query("savepoint s2");
+      await expect(
+        claim(db, { batch: b, draft: drafts[2]!, mailbox: second, dry: false }),
+      ).rejects.toThrow(/plafond horaire atteint/);
+      await db.query("rollback to savepoint s2");
+    } finally {
+      await db.query("rollback");
+    }
+  });
 });

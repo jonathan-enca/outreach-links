@@ -59,7 +59,7 @@ export async function loadSendQueue(
   const { data: boxes } = await supabase
     .from("mailboxes")
     .select(
-      "id, site_id, hourly_cap, daily_cap, timezone, send_window_start, send_window_end, send_days",
+      "id, site_id, email, hourly_cap, daily_cap, timezone, send_window_start, send_window_end, send_days",
     )
     .eq("status", "verifiee")
     .order("created_at");
@@ -75,12 +75,12 @@ export async function loadSendQueue(
       .in("draft_id", draftIds),
     supabase
       .from("sent_messages")
-      .select("mailbox_id, claimed_at")
+      .select("from_email, claimed_at")
       .eq("dry_run", false)
       .in("status", COUNTED)
       .in(
-        "mailbox_id",
-        (boxes ?? []).map((b) => b.id),
+        "from_email",
+        (boxes ?? []).map((b) => b.email),
       )
       .order("claimed_at")
       .limit(2000),
@@ -100,7 +100,7 @@ export async function loadSendQueue(
         return va.localeCompare(vb) || pa - pb;
       });
     const mine = (sent ?? [])
-      .filter((s) => s.mailbox_id === box.id)
+      .filter((s) => s.from_email === box.email)
       .map((s) => new Date(s.claimed_at));
     const slots = planSendTimes(now, queue.length, {
       window: windowOf(box),
