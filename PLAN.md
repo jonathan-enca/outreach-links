@@ -340,6 +340,17 @@ Un sous-jalon = une session. Chaque sous-jalon se termine par une mesure compar�
 
 **Résultat de MC.0 (18/11/2026) : critère non atteint** (4 % et 3 % de pages avec angle, détail dans `PROGRESS.md`). Les 10 premiers résultats d'une recherche par sujet ou par public sont de gros médias, des sites officiels et des concurrents. Conséquences : MC.2 n'est pas à coder tel quel ; MC.1 commence par rétablir les vraies adresses des résultats (`resolve_goto_urls`), défaut réel du produit ; un essai MC.0b doit mesurer les familles non testées (pages de liens de petits sites, résultats au-delà du rang 10, qui cite déjà une page comparable, pages disparues encore citées) avant tout développement.
 
+**Résultat de MC.0b (18/11/2026) : la bonne direction.** Référence terrain de Jonathan : ses liens viennent de pages qui citent DÉJÀ des ressources comme la sienne (petit éditeur de son public, page qui cite plusieurs ressources comparables, lien mort). En partant des liens entrants de ressources comparables : 10 % et 15 % de cibles (4 % et 3 % en MC.0), 300 à 900 domaines candidats pour 0,20 USD, et des cibles du type qu'il décrit. Le rendement dépend de la ressource de départ. Les liens morts ne sortent pas encore. **Ordre de travail révisé** : MC.1 (vraies adresses et filtre gratuit), puis MC.6, puis un essai dédié aux liens morts ; MC.2, MC.3b et MC.4 sont à relire à la lumière de MC.6 avant d'être codés.
+
+### MC.6 Qui cite déjà des ressources comparables (nouvelle source principale)
+
+- **Ressources comparables** : pour chaque site, les sites et pages que les autres citent pour le même besoin. Deux origines, sans règle propre à un thème : les concurrents qui sortent sur les recherches par sujet (les « concurrents » écartés jusqu'ici sont la liste de départ), et les ressources que citent les pages déjà retenues.
+- **Liens entrants** de chaque ressource (DataForSEO, une page par domaine, langue de la campagne, spam plafonné) : chaque page qui la cite est candidate. Coût mesuré : 0,024 à 0,03 USD par ressource pour 150 pages.
+- **Pilotage par ressource** : lire 6 à 8 pages par ressource, puis ne poursuivre que celles qui donnent des cibles ; une ressource citée surtout dans des pages légales ou des fermes à liens est abandonnée.
+- **Critère de jugement** aligné sur les trois cas de Jonathan (lien mort remplaçable, petit éditeur du public qui cite des ressources, page de contenu qui cite plusieurs ressources comparables), y compris dans le tri du rédacteur ; un billet ancien n'est pas un motif de refus ; les fermes à liens sont écartées.
+- **Boule de neige** : depuis chaque cible retenue, suivre ses liens vers des sites du même genre et lire leurs pages de ressources (gratuit).
+- Mesure sur les deux sites : cibles par campagne (objectif 30 à 40 messages envoyables), part de cibles par ressource, coût.
+
 ### MC.1 Filtre gratuit par nature de page
 
 - **D'abord les vraies adresses** : demander `resolve_goto_urls` à la recherche DataForSEO, pour ne plus lire une page d'accueil ou une page approximative à la place de l'article trouvé (`resolveRedirect`, `exact: false`). Mesurer le coût et le délai réels.

@@ -1791,3 +1791,25 @@ Essai sans code produit, sur remove-me.io et mega-coloring.com (règle de géné
 - **Non testé** : les résultats au-delà du rang 10, les recherches de pages de liens (« liens utiles », « sites à découvrir ») tenues par de petits sites, « qui cite déjà une page comme la nôtre » (backlinks de page), les pages disparues de sites comparables.
 - **Coût** : 0,12 USD de DataForSEO (dont deux passes inutilisables à cause des adresses masquées). Fichiers de l'essai hors dépôt (session).
 - **Suite proposée** : corriger les adresses (MC.1, sûr) ; avant de coder MC.2, refaire un essai MC.0b sur les familles non testées ; demander à Jonathan quels types de pages lui ont réellement donné des liens.
+
+## Session du 18/11 (suite) : MC.0b, « qui cite déjà des ressources comparables » : 4 fois mieux, critère pas encore atteint
+
+Référence terrain donnée par Jonathan (voir `CLAUDE.md` section 5) : ses liens sont venus (1) de petits éditeurs de son public qui citent des ressources, (2) des liens morts, (3) de pages de contenu qui citent plusieurs ressources comparables. Point commun : la page cite DÉJÀ des ressources comme la nôtre. Essai sans code produit sur les deux sites : 6 ressources comparables par site (concurrents vus dans les recherches de MC.0, ressources de référence du thème), liens entrants de chacune par DataForSEO (`backlinks/backlinks/live`, 150 lignes, une par domaine, pages en français, spam sous 40), plus 2 appels « liens cassés » ; 40 pages lues par site ; critère de jugement recalé sur les trois cas (un billet ancien n'est plus un motif de refus) ; petit modèle puis modèle fort.
+
+|                                      | remove-me.io | mega-coloring.com |
+| ------------------------------------ | ------------ | ----------------- |
+| Coût DataForSEO                      | 0,23 USD     | 0,20 USD          |
+| Domaines candidats                   | 929          | 300               |
+| Pages lues                           | 39           | 33                |
+| Citent encore la ressource (vérifié) | 37           | 27                |
+| Cibles, petit modèle                 | 5 (13 %)     | 8 (24 %)          |
+| Cibles, modèle fort                  | **4 (10 %)** | **5 (15 %)**      |
+| MC.0 (rappel)                        | 4 %          | 3 %               |
+
+- **Critère de 30 % : pas atteint**, mais l'approche donne 3 à 4 fois plus que MC.0, et les cibles retenues sont celles que décrit Jonathan : blog d'une enseignante de CP, page « Coloriages » de l'accueil périscolaire d'une commune, sélection « 5 sites gratuits pour télécharger des coloriages », blog d'art-thérapie avec sa liste de mandalas, centre de médiation de la consommation, blog de sécurité avec sa rubrique « Pour en savoir plus ».
+- **Le volume, lui, est là** : à ce rendement, 300 à 900 domaines candidats pour 0,20 USD donnent 45 à 90 cibles par campagne (extrapolation, à vérifier), contre une dizaine aujourd'hui.
+- **Le rendement dépend surtout de la ressource de départ** : 33700.fr 3 sur 7, coloriageenfant.com 3 sur 8, moncoloriage.fr 2 sur 4, hugolescargot 2 sur 4 ; mais bloctel.gouv.fr 0 sur 6 (cité dans des CGU et des mentions légales), incogni.com 0 sur 5, magicoloriage.com 0 sur 7 (fermes à liens). D'où l'idée d'un pilotage : quelques pages lues par ressource, puis on ne continue que celles qui rendent.
+- **Ce qui fait perdre** : fermes à liens (10 sur 33 pour mega-coloring.com), pages commerciales (14 sur 39 pour remove-me.io), pages juridiques (5), sites trop gros (6), hors sujet (13 au total). Une partie se filtre gratuitement (adresse de page légale, page d'accueil).
+- **Liens morts : toujours rien de probant.** Les liens « cassés » annoncés par le fournisseur vers cnil.fr et cybermalveillance.gouv.fr mènent à des pages juridiques ou commerciales (0 sur 11). Une seule page lue avait de vrais liens cassés. L'angle que Jonathan juge le meilleur reste à trouver autrement (pages disparues de sites comparables, sites comparables fermés).
+- **Limites** : 72 pages jugées par des modèles, pas par des réponses réelles ; ressources de départ choisies à la main pour cet essai (dans le produit, elles devront venir du profil du site et des recherches) ; aucun contact cherché.
+- **Suite proposée** : construire cette famille dans le produit (ressources comparables, liens entrants, pilotage par ressource, critère des trois cas), et traiter les liens morts dans un essai à part.
