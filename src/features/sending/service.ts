@@ -113,7 +113,7 @@ async function sendNext(db: Client, box: MailboxRow, deps: SendDeps): Promise<Ma
   const { data: recent } = await db
     .from("sent_messages")
     .select("claimed_at, sent_at")
-    .eq("mailbox_id", box.id)
+    .eq("from_email", box.email)
     .eq("dry_run", dry)
     .in("status", COUNTED)
     .gte("claimed_at", addDays(now, -1).toISOString());
@@ -121,7 +121,7 @@ async function sendNext(db: Client, box: MailboxRow, deps: SendDeps): Promise<Ma
   const { data: replies } = await db
     .from("reply_sends")
     .select("claimed_at")
-    .eq("mailbox_id", box.id)
+    .eq("from_email", box.email)
     .eq("dry_run", dry)
     .in("status", COUNTED)
     .gte("claimed_at", addDays(now, -1).toISOString());
@@ -131,7 +131,7 @@ async function sendNext(db: Client, box: MailboxRow, deps: SendDeps): Promise<Ma
   const { data: first } = await db
     .from("sent_messages")
     .select("claimed_at")
-    .eq("mailbox_id", box.id)
+    .eq("from_email", box.email)
     .eq("dry_run", dry)
     .in("status", COUNTED)
     .order("claimed_at", { ascending: true })
@@ -232,6 +232,7 @@ async function attempt(
     batch_id: item.batch_id,
     draft_id: draftId,
     mailbox_id: box.id,
+    from_email: box.email,
     step: "initial",
     dry_run: dry,
     claimed_at: now.toISOString(),
@@ -439,7 +440,9 @@ async function sendNextFollowUp(
   const { data: initials } = await db
     .from("sent_messages")
     .select("*")
-    .eq("mailbox_id", box.id)
+    // Les relances suivent l'adresse d'envoi : un message parti d'une boîte supprimée puis reconnectée
+    // (même adresse) est relancé comme les autres.
+    .eq("from_email", box.email)
     .eq("step", "initial")
     .eq("dry_run", dry)
     .in("status", ["envoye", "simule"]);
@@ -496,6 +499,7 @@ async function sendNextFollowUp(
       batch_id: initial.batch_id,
       draft_id: initial.draft_id,
       mailbox_id: box.id,
+      from_email: box.email,
       step: "relance",
       dry_run: dry,
       claimed_at: now.toISOString(),

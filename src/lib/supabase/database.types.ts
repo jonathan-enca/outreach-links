@@ -3005,6 +3005,7 @@ export type Database = {
           claimed_at: string;
           created_at: string;
           dry_run: boolean;
+          from_email: string | null;
           error: string | null;
           id: string;
           in_reply_to: string;
@@ -3027,6 +3028,7 @@ export type Database = {
           claimed_at?: string;
           created_at?: string;
           dry_run: boolean;
+          from_email?: string | null;
           error?: string | null;
           id?: string;
           in_reply_to: string;
@@ -3049,6 +3051,7 @@ export type Database = {
           claimed_at?: string;
           created_at?: string;
           dry_run?: boolean;
+          from_email?: string | null;
           error?: string | null;
           id?: string;
           in_reply_to?: string;
@@ -3154,6 +3157,7 @@ export type Database = {
           created_at: string;
           draft_id: string;
           dry_run: boolean;
+          from_email: string | null;
           error: string | null;
           follow_up_due_at: string | null;
           id: string;
@@ -3178,6 +3182,7 @@ export type Database = {
           created_at?: string;
           draft_id: string;
           dry_run: boolean;
+          from_email?: string | null;
           error?: string | null;
           follow_up_due_at?: string | null;
           id?: string;
@@ -3202,6 +3207,7 @@ export type Database = {
           created_at?: string;
           draft_id?: string;
           dry_run?: boolean;
+          from_email?: string | null;
           error?: string | null;
           follow_up_due_at?: string | null;
           id?: string;
