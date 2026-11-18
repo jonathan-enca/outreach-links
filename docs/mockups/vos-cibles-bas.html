@@ -1,0 +1,1162 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maquette « Vos cibles », bas de l'écran</title>
+    <style>
+      /* Jetons repris de src/app/globals.css (piste « clair et émeraude », docs/da.md). */
+      :root {
+        --background: #ffffff;
+        --foreground: #0e1a2b;
+        --card: #ffffff;
+        --muted: #f1f5f9;
+        --muted-foreground: #5b6678;
+        --border: #e3e8ef;
+        --primary: #047857;
+        --primary-foreground: #ffffff;
+        --info: #1d4f91;
+        --warning: #8a5300;
+        --success: #166534;
+        --sidebar: #0b1b2e;
+        --sidebar-foreground: #c9d6e3;
+        --sidebar-active: #12304a;
+        --sidebar-accent: #5eead4;
+        --radius-control: 0.5rem;
+        --radius-card: 0.875rem;
+        --radius-panel: 1rem;
+        --shadow-card: 0 1px 2px rgb(14 26 43 / 0.06), 0 1px 1px rgb(14 26 43 / 0.04);
+        --shadow-float: 0 30px 60px -30px rgb(14 26 43 / 0.35);
+        --shadow-bar: 0 10px 30px -10px rgb(14 26 43 / 0.3), 0 1px 2px rgb(14 26 43 / 0.08);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--muted);
+        color: var(--foreground);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        font-variant-numeric: tabular-nums;
+      }
+      p,
+      h1,
+      h2,
+      h3,
+      ul,
+      ol {
+        margin: 0;
+        padding: 0;
+      }
+      ul,
+      ol {
+        list-style: none;
+      }
+      svg {
+        width: 16px;
+        height: 16px;
+        flex: none;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.75;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      :focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
+      /* ---------- Page de présentation de la maquette ---------- */
+      .doc {
+        max-width: 1760px;
+        margin: 0 auto;
+        padding: 32px 24px 80px;
+      }
+      .doc > header h1 {
+        font-size: 30px;
+        letter-spacing: -0.03em;
+      }
+      .doc > header p {
+        max-width: 76ch;
+        color: var(--muted-foreground);
+        font-size: 16px;
+        margin-top: 6px;
+      }
+      .state {
+        margin-top: 56px;
+      }
+      .state > h2 {
+        font-size: 22px;
+        letter-spacing: -0.02em;
+      }
+      .state > p {
+        color: var(--muted-foreground);
+        max-width: 84ch;
+        margin: 4px 0 18px;
+        font-size: 15px;
+      }
+      .frames {
+        display: flex;
+        gap: 28px;
+        align-items: flex-start;
+        overflow-x: auto;
+        padding-bottom: 36px;
+      }
+      .cap {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted-foreground);
+        margin-bottom: 8px;
+      }
+
+      /* ---------- Cadres d'écran ---------- */
+      .desk,
+      .phone {
+        position: relative;
+        flex: none;
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--shadow-float);
+        overflow: hidden;
+      }
+      .desk {
+        width: 1240px;
+        display: grid;
+        grid-template-columns: 208px minmax(0, 1fr);
+      }
+      .phone {
+        width: 375px;
+        display: flex;
+        flex-direction: column;
+      }
+      .view.desk {
+        height: 620px;
+      }
+      .view.phone {
+        height: 720px;
+      }
+      .side {
+        background: var(--sidebar);
+        color: var(--sidebar-foreground);
+        padding: 18px 12px;
+        font-size: 13.5px;
+      }
+      .side .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #fff;
+        font-weight: 700;
+        font-size: 15px;
+        padding: 0 8px 16px;
+      }
+      .side .brand i {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: var(--sidebar-accent);
+      }
+      .side .it {
+        padding: 7px 8px;
+        border-radius: var(--radius-control);
+      }
+      .side .it.on {
+        background: var(--sidebar-active);
+        color: #fff;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 52px;
+        padding: 0 16px;
+        border-bottom: 1px solid var(--border);
+        font-weight: 700;
+        flex: none;
+      }
+      .screen {
+        min-width: 0;
+        padding: 24px 32px 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+      .view .screen {
+        overflow-y: auto;
+        height: 100%;
+      }
+      .phone .screen {
+        padding: 16px 16px 24px;
+        gap: 20px;
+        min-height: 0;
+        flex: 1;
+      }
+
+      /* ---------- Composants (Button, Badge, Card de src/components/ui) ---------- */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 40px;
+        padding: 0 16px;
+        border-radius: var(--radius-control);
+        font: inherit;
+        font-weight: 500;
+        white-space: nowrap;
+        border: 1px solid transparent;
+        background: none;
+        color: var(--foreground);
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .btn.sm {
+        height: 36px;
+        padding: 0 12px;
+      }
+      .btn.p {
+        background: var(--primary);
+        color: var(--primary-foreground);
+        font-weight: 600;
+      }
+      .btn.p:hover {
+        background: #036349;
+      }
+      .btn.o {
+        border-color: #cbd5e1;
+        background: var(--card);
+        box-shadow: var(--shadow-card);
+      }
+      .btn.o:hover {
+        background: var(--muted);
+      }
+      .btn.g {
+        font-size: 14px;
+        height: 36px;
+        padding: 0 12px;
+      }
+      .btn[disabled] {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .phone .btn.w {
+        width: 100%;
+        height: 44px;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--muted);
+        color: var(--muted-foreground);
+        padding: 1px 9px;
+        font-size: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .badge.info {
+        border-color: rgb(29 79 145 / 0.3);
+        background: rgb(29 79 145 / 0.1);
+        color: var(--info);
+      }
+      .badge.warning {
+        border-color: rgb(138 83 0 / 0.3);
+        background: rgb(138 83 0 / 0.1);
+        color: var(--warning);
+      }
+      .badge.accent {
+        border-color: rgb(4 120 87 / 0.3);
+        background: rgb(4 120 87 / 0.08);
+        color: var(--primary);
+      }
+      .card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card);
+        background: var(--card);
+        box-shadow: var(--shadow-card);
+      }
+      .mut {
+        color: var(--muted-foreground);
+      }
+      .sm-t {
+        font-size: 13px;
+      }
+      h2.t {
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        text-wrap: balance;
+      }
+      a.lnk {
+        color: var(--primary);
+        text-decoration: underline;
+        text-underline-offset: 4px;
+        font-weight: 500;
+      }
+      .ph {
+        border: 1px dashed #cbd5e1;
+        border-radius: var(--radius-control);
+        color: var(--muted-foreground);
+        font-size: 12.5px;
+        padding: 8px 12px;
+        text-align: center;
+        background: repeating-linear-gradient(-45deg, #fff, #fff 8px, #f8fafc 8px, #f8fafc 16px);
+      }
+      .note {
+        display: inline-block;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--info);
+        background: rgb(29 79 145 / 0.08);
+        border-radius: 999px;
+        padding: 1px 9px;
+      }
+
+      /* ---------- Liste (TargetsTable / TargetRow) ---------- */
+      .sec {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .tools {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 12px;
+      }
+      .tools .cnt {
+        margin-right: auto;
+        font-weight: 600;
+      }
+      .tools .cnt span {
+        font-weight: 400;
+        color: var(--muted-foreground);
+      }
+      .tools .vb {
+        display: none;
+      }
+      .varB .tools .vb {
+        display: inline-flex;
+      }
+      .phone .tools .cnt {
+        width: 100%;
+      }
+      .phone .tools .btn {
+        flex: 1;
+        height: 40px;
+      }
+      .table {
+        overflow: hidden;
+      }
+      .cols {
+        display: grid;
+        grid-template-columns: 20px 24px 224px minmax(0, 1fr) 132px 124px 32px;
+        gap: 0 12px;
+        align-items: center;
+        padding: 10px 16px;
+      }
+      .thead {
+        background: var(--muted);
+        border-bottom: 1px solid var(--border);
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted-foreground);
+        padding-top: 8px;
+        padding-bottom: 8px;
+      }
+      .row {
+        border-bottom: 1px solid var(--border);
+      }
+      .row:last-child {
+        border-bottom: 0;
+      }
+      .row h3 {
+        font-size: 14px;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+      }
+      .row .type {
+        font-size: 12px;
+        color: var(--muted-foreground);
+      }
+      .row .why {
+        font-size: 13.5px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .row input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        accent-color: var(--primary);
+      }
+      .row .n,
+      .row .ct {
+        font-size: 13.5px;
+        color: var(--muted-foreground);
+      }
+      .chev {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        background: none;
+        border-radius: var(--radius-control);
+        color: var(--muted-foreground);
+        cursor: pointer;
+      }
+      .row .open {
+        justify-self: start;
+      }
+      .gap-row {
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      /* Téléphone : la ligne devient une carte (comme le code actuel). */
+      .phone .thead {
+        display: none;
+      }
+      .phone .cols {
+        grid-template-columns: 20px minmax(0, 1fr) 40px;
+        align-items: start;
+        gap: 6px 12px;
+        padding: 12px;
+      }
+      .phone .row input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        margin-top: 1px;
+      }
+      .phone .row .n {
+        display: none;
+      }
+      .phone .row .why,
+      .phone .row .meta,
+      .phone .row .open {
+        grid-column: 2 / 4;
+      }
+      .phone .row .chev {
+        grid-column: 3;
+        grid-row: 1;
+        width: 40px;
+        height: 40px;
+        margin: -8px -8px 0 0;
+        justify-self: end;
+      }
+      .phone .row .open {
+        width: 100%;
+        height: 40px;
+        margin-top: 4px;
+      }
+      .meta {
+        display: contents;
+      }
+      .phone .meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 8px;
+      }
+      /* Sans contact : la colonne « Contact » porte le bouton « Ouvrir la page ». */
+      .nc .cols {
+        grid-template-columns: 24px 224px minmax(0, 1fr) 132px 148px 32px;
+      }
+      .phone .nc .cols {
+        grid-template-columns: minmax(0, 1fr) 40px;
+      }
+      .phone .nc .row .why,
+      .phone .nc .row .meta,
+      .phone .nc .row .open {
+        grid-column: 1 / 3;
+      }
+      .phone .nc .row .chev {
+        grid-column: 2;
+      }
+
+      /* ---------- Barre de validation ---------- */
+      .bar {
+        position: sticky;
+        bottom: 12px;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 12px 16px;
+        padding: 12px 12px 12px 18px;
+        border: 1px solid #cbd5e1;
+        border-radius: var(--radius-card);
+        background: var(--card);
+        box-shadow: var(--shadow-bar);
+      }
+      .bar .txt {
+        margin-right: auto;
+        min-width: 0;
+      }
+      .bar .txt strong {
+        display: block;
+        font-size: 15px;
+      }
+      .bar .txt span {
+        font-size: 13px;
+        color: var(--muted-foreground);
+      }
+      .varB .bar {
+        position: static;
+        box-shadow: var(--shadow-card);
+        border-color: var(--border);
+      }
+      .phone .bar {
+        bottom: 0;
+        margin: 0 -16px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding: 10px 16px 14px;
+        border-width: 1px 0 0;
+        border-radius: 0;
+        box-shadow: 0 -8px 24px -12px rgb(14 26 43 / 0.25);
+      }
+      .phone .bar .txt {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .phone .bar .txt strong {
+        font-size: 14px;
+      }
+      .phone .bar .seen {
+        display: none;
+      }
+      .phone.varB .bar {
+        margin: 0;
+        border-width: 1px;
+        border-radius: var(--radius-card);
+        padding: 12px;
+      }
+      .under {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px 16px;
+        font-size: 13px;
+        color: var(--muted-foreground);
+      }
+      .under .seen-m {
+        display: none;
+      }
+      .phone .under .seen-m {
+        display: inline-flex;
+        width: 100%;
+        height: 44px;
+        color: var(--foreground);
+      }
+      .linkbtn {
+        font: inherit;
+        color: var(--foreground);
+        background: none;
+        border: 0;
+        padding: 0;
+        text-decoration: underline;
+        text-underline-offset: 4px;
+        cursor: pointer;
+      }
+
+      /* ---------- Carte de la lecture des autres sites (MoreSites, PR 172 : inchangée) ---------- */
+      .more {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .more .line {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+      .phone .more {
+        padding: 16px;
+      }
+      .phone .more .line {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+      }
+      .origin {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        border-top: 1px solid var(--border);
+        padding-top: 20px;
+        max-width: 72ch;
+      }
+
+      /* ---------- Fenêtre « Qui signe vos messages » ---------- */
+      .dim {
+        position: absolute;
+        inset: 0;
+        background: rgb(14 26 43 / 0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 5;
+      }
+      .phone .dim {
+        align-items: flex-end;
+      }
+      .dialog {
+        width: 480px;
+        max-width: 100%;
+        background: var(--card);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--shadow-float);
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .phone .dialog {
+        border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+        padding: 20px 16px 16px;
+      }
+      .dialog label.f {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-weight: 500;
+      }
+      .dialog input[type="text"] {
+        height: 40px;
+        border: 1px solid #cbd5e1;
+        border-radius: var(--radius-control);
+        padding: 0 12px;
+        font: inherit;
+        color: inherit;
+      }
+      .phone .dialog input[type="text"] {
+        height: 44px;
+        font-size: 16px;
+      }
+      .dialog fieldset {
+        border: 0;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .dialog legend {
+        padding: 0;
+        font-weight: 500;
+        margin-bottom: 2px;
+      }
+      .dialog .radio {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 36px;
+      }
+      .phone .dialog .radio {
+        min-height: 44px;
+      }
+      .dialog .radio input {
+        width: 18px;
+        height: 18px;
+        margin: 0;
+        accent-color: var(--primary);
+      }
+      .dialog .acts {
+        display: flex;
+        flex-direction: row-reverse;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .phone .dialog .acts {
+        flex-direction: column;
+      }
+
+      /* ---------- « Avant » (reconstitution du code actuel) ---------- */
+      .old-bar {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .old-bar .r {
+        display: flex;
+        align-items: center;
+        gap: 4px 12px;
+        flex-wrap: wrap;
+      }
+      .old-det {
+        padding: 16px;
+        font-weight: 500;
+      }
+      .old-form {
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .old-form input[type="text"] {
+        height: 40px;
+        width: 320px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-control);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="doc">
+      <header>
+        <h1>« Vos cibles » : le bas de l'écran</h1>
+        <p>
+          Maquette à valider avant tout codage (18/11/2026). Rien n'est branché : données de
+          démonstration, domaines en « .example ». Les cases, « Tout cocher » et « Tout décocher »
+          fonctionnent dans la maquette pour voir la barre réagir ; les cadres « pendant le
+          défilement » défilent vraiment.
+        </p>
+      </header>
+
+      <section class="state" id="avant">
+        <h2>Avant : le bas de l'écran aujourd'hui (reconstitution)</h2>
+        <p>
+          Reconstitué d'après le code actuel, avec des données de démonstration. Dans l'ordre : la
+          carte de la lecture des autres sites, le formulaire « Avant de rédiger vos messages » posé
+          dans la page, la barre collante, puis deux blocs repliés et le lien vers le détail.
+        </p>
+        <div class="frames">
+          <div>
+            <p class="cap">Bureau, aujourd'hui</p>
+            <div class="desk" id="shot-avant">
+              <div class="side">
+                <div class="brand"><i></i>Démonstration</div>
+                <div class="it">Campagnes</div>
+                <div class="it on">Vos cibles</div>
+                <div class="it">À valider</div>
+                <div class="it">Conversations</div>
+              </div>
+              <div class="screen">
+                <div class="ph">… fin de la liste des 64 sites à contacter …</div>
+                <div class="card more">
+                  <p style="font-weight: 500">
+                    La lecture s'est arrêtée au bout de 45 minutes, sa durée maximale : 211 sites ne
+                    sont pas lus.
+                  </p>
+                  <div class="line">
+                    <span class="btn o">Continuer la recherche</span>
+                    <p class="mut">
+                      La lecture reprend là où elle s'est arrêtée, pendant une dizaine de minutes.
+                    </p>
+                  </div>
+                </div>
+                <div class="card old-form">
+                  <h2 class="t">Avant de rédiger vos messages</h2>
+                  <p class="mut" style="font-size: 16px">
+                    Vos messages sont signés de votre prénom. Pour rester honnête avec ceux qui les
+                    lisent, choisissez ce qui est vrai : on n'écrit jamais « fondateur » sans votre
+                    accord. Ces réglages se changent à tout moment.
+                  </p>
+                  <p style="font-weight: 500">Votre prénom de signature</p>
+                  <input type="text" disabled aria-label="Votre prénom de signature" />
+                  <p>○ Je suis le fondateur de atelier-papier.example</p>
+                  <p>○ Je fais partie de l'équipe de atelier-papier.example</p>
+                  <p>○ Je travaille pour l'agence ou le prestataire de atelier-papier.example</p>
+                </div>
+                <div class="card old-bar">
+                  <div class="r">
+                    <span class="btn p">Valider ces demandes (27)</span>
+                    <span class="btn g">Tout retenir</span>
+                    <span class="btn g">Tout écarter</span>
+                    <span style="text-decoration: underline; text-underline-offset: 4px"
+                      >Voir les messages et le lot</span
+                    >
+                  </div>
+                  <p class="mut" style="font-size: 12px">
+                    Les messages seront rédigés avec le point précis cité sur chaque page, puis
+                    réunis dans un lot que vous relisez et validez avant tout envoi. Rien n'est
+                    envoyé maintenant.
+                  </p>
+                </div>
+                <div class="card old-det">▸ Sites pertinents sans contact trouvé (6)</div>
+                <div class="card old-det">▸ Vos concurrents sur Google</div>
+                <p><span class="lnk sm-t">Voir le détail de l'analyse</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="state" id="a">
+        <h2>Proposition A (recommandée) : la barre suit la liste</h2>
+        <p>
+          Choisir et valider sont séparés. Au-dessus de la liste : le compteur et deux vrais boutons
+          « Tout cocher » et « Tout décocher ». En bas de l'écran, tant qu'on parcourt la liste :
+          une barre avec une seule action verte. Arrivée en fin de liste, la barre se pose sous le
+          tableau et ne recouvre plus rien. Viennent ensuite la carte de la lecture des autres sites
+          (inchangée), les sites sans contact présentés comme les cibles, et une phrase sur
+          l'origine de la liste à la place du bloc « Vos concurrents sur Google ».
+        </p>
+        <div class="frames">
+          <div>
+            <p class="cap">Bureau, pendant le défilement de la liste</p>
+            <div class="desk view" id="shot-a-bureau-defilement" data-render="A"></div>
+          </div>
+          <div>
+            <p class="cap">Téléphone, pendant le défilement</p>
+            <div class="phone view" id="shot-a-mobile-defilement" data-render="A"></div>
+          </div>
+        </div>
+        <div class="frames">
+          <div>
+            <p class="cap">Bureau, le bas de page en entier</p>
+            <div class="desk" id="shot-a-bureau" data-render="A"></div>
+          </div>
+          <div>
+            <p class="cap">Téléphone, le bas de page en entier</p>
+            <div class="phone" id="shot-a-mobile" data-render="A"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="state" id="signature">
+        <h2>« Avant de rédiger vos messages » : une fenêtre, plus une section</h2>
+        <p>
+          Cette question n'a pas sa place dans la page. Elle s'ouvre seulement au clic sur « Valider
+          ces demandes », et seulement tant que le prénom ou le rôle manque. Une fois renseignés,
+          une ligne discrète sous la barre les rappelle, avec « Modifier ».
+        </p>
+        <div class="frames">
+          <div>
+            <p class="cap">Bureau : fenêtre au centre</p>
+            <div class="desk" id="shot-signature-bureau" style="height: 560px">
+              <div class="side">
+                <div class="brand"><i></i>Démonstration</div>
+                <div class="it on">Vos cibles</div>
+              </div>
+              <div class="screen">
+                <div class="ph" style="flex: 1">… la liste, derrière la fenêtre …</div>
+              </div>
+              <div class="dim" data-dialog></div>
+            </div>
+          </div>
+          <div>
+            <p class="cap">Téléphone : panneau qui monte du bas</p>
+            <div class="phone" id="shot-signature-mobile" style="height: 720px">
+              <div class="topbar">Vos cibles</div>
+              <div class="screen">
+                <div class="ph" style="flex: 1">… la liste, derrière le panneau …</div>
+              </div>
+              <div class="dim" data-dialog></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="state" id="b">
+        <h2>Variante B : pas de barre collante</h2>
+        <p>
+          Le bouton vert est en haut de la liste, à côté du compteur, et répété en fin de liste.
+          Plus calme, mais avec 64 lignes il faut remonter ou descendre pour valider, et on ne voit
+          pas le compteur bouger pendant qu'on coche. Le reste du bas de page est identique à A.
+        </p>
+        <div class="frames">
+          <div>
+            <p class="cap">Bureau, variante B</p>
+            <div class="desk varB" id="shot-b-bureau" data-render="B"></div>
+          </div>
+          <div>
+            <p class="cap">Téléphone, variante B</p>
+            <div class="phone varB" id="shot-b-mobile" data-render="B"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const CHEV =
+        '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6l5 5 5-5" stroke-width="2"/></svg>';
+      const EXT =
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5M19 5l-8 8M11 7H6v11h11v-5"/></svg>';
+      const TAG = {
+        ressources: ["info", "Page ressources"],
+        mort: ["warning", "Lien mort"],
+        mention: ["info", "Mention sans lien"],
+        inconnu: ["accent", "Jamais sollicité"],
+      };
+      // Données de démonstration. Champs réels d'une cible : domaine, type d'éditeur, raison, demande, contact.
+      const ROWS = [
+        [
+          1,
+          "ecole-des-tilleuls.example",
+          "École ou enseignant",
+          "Sa page « Ressources pour la classe » cite déjà quatre sites comparables au vôtre.",
+          "ressources",
+          "Email vérifié",
+          1,
+        ],
+        [
+          2,
+          "mairie-saint-aubin.example",
+          "Mairie ou collectivité",
+          "La page des activités pour les familles renvoie vers un site qui n'existe plus.",
+          "mort",
+          "Email vérifié",
+          1,
+        ],
+        [
+          3,
+          "les-ptites-mains.example",
+          "Blog",
+          "Billet « Nos sites préférés pour les mercredis » : une liste que l'auteure complète encore.",
+          "ressources",
+          "Formulaire",
+          1,
+        ],
+        [
+          4,
+          "asso-loisirs-creatifs.example",
+          "Association",
+          "Parle de votre site dans son bulletin de mars, sans faire de lien.",
+          "mention",
+          "Email à vérifier",
+          0,
+        ],
+        [
+          5,
+          "maitresse-clara.example",
+          "École ou enseignant",
+          "Blog de classe qui partage ses trouvailles chaque mois ; personne ne semble la solliciter.",
+          "inconnu",
+          "Email vérifié",
+          1,
+        ],
+        null,
+        [
+          62,
+          "centre-social-des-acacias.example",
+          "Association",
+          "Sa page d'idées d'ateliers cite deux ressources proches de la vôtre.",
+          "ressources",
+          "Email vérifié",
+          1,
+        ],
+        [
+          63,
+          "boutique-du-prefet.example",
+          "Boutique en ligne",
+          "Guide d'achat avec une rubrique « Pour aller plus loin » tenue à jour.",
+          "inconnu",
+          "Formulaire",
+          0,
+        ],
+        [
+          64,
+          "forum-parents-bricoleurs.example",
+          "Forum modéré",
+          "Sujet épinglé de liens utiles, mis à jour par les modérateurs.",
+          "ressources",
+          "Email vérifié",
+          1,
+        ],
+      ];
+      const LOST = [
+        [
+          "bibliotheque-vernay.example",
+          "Mairie ou collectivité",
+          "Sa sélection de sites pour les familles cite deux ressources proches de la vôtre.",
+          "ressources",
+          "/jeunesse/selection-de-sites",
+        ],
+        [
+          "carnet-de-nounou.example",
+          "Blog",
+          "Liste « Mes adresses » tenue par une assistante maternelle, complétée cette année.",
+          "ressources",
+          "/mes-adresses",
+        ],
+        [
+          "ludotheque-du-canal.example",
+          "Association",
+          "Sa page de liens renvoie vers un site qui n'existe plus.",
+          "mort",
+          "/liens-utiles",
+        ],
+        [
+          "club-photo-des-quais.example",
+          "Association",
+          "Petit site associatif actif, sur votre sujet, que personne ne semble solliciter.",
+          "inconnu",
+          "/ateliers-enfants",
+        ],
+        [
+          "papeterie-margot.example",
+          "Boutique en ligne",
+          "Nomme votre site dans un article de son journal, sans faire de lien.",
+          "mention",
+          "/journal/idees-de-rentree",
+        ],
+        [
+          "ecole-jean-moulin.example",
+          "École ou enseignant",
+          "Page « Sites conseillés aux parents » avec une rubrique sur votre sujet.",
+          "ressources",
+          "/parents/sites-conseilles",
+        ],
+      ];
+      const HIDDEN_CHECKED = 21; // lignes 6 à 61 non dessinées : 21 retenues, pour un total de 27.
+      const tag = (k) => `<span class="badge ${TAG[k][0]}">${TAG[k][1]}</span>`;
+
+      function row(r) {
+        if (!r)
+          return `<li class="gap-row"><div class="ph">… lignes 6 à 61 (non dessinées) …</div></li>`;
+        const [n, d, type, why, k, ct, on] = r;
+        return `<li class="row"><div class="cols">
+          <input type="checkbox" ${on ? "checked" : ""} aria-label="Retenir cette demande : ${d}" />
+          <span class="n">${n}</span>
+          <div><h3>${d}</h3><p class="type">${type}</p></div>
+          <p class="why">${why}</p>
+          <div class="meta"><span>${tag(k)}</span><span class="ct">${ct}</span></div>
+          <button type="button" class="chev" aria-expanded="false" aria-label="Voir le détail : ${d}">${CHEV}</button>
+        </div></li>`;
+      }
+      function lost(r, i) {
+        const [d, type, why, k, path] = r;
+        return `<li class="row"><div class="cols">
+          <span class="n">${i + 1}</span>
+          <div><h3>${d}</h3><p class="type">${type}</p></div>
+          <p class="why">${why}</p>
+          <div class="meta"><span>${tag(k)}</span></div>
+          <a class="btn o sm open" href="https://${d}${path}" target="_blank" rel="noopener noreferrer" title="https://${d}${path}">Ouvrir la page ${EXT}<span style="position:absolute;clip-path:inset(50%)"> de ${d} (nouvel onglet)</span></a>
+          <button type="button" class="chev" aria-expanded="false" aria-label="Voir le détail : ${d}">${CHEV}</button>
+        </div></li>`;
+      }
+
+      const bar = () => `<div class="bar" role="region" aria-label="Valider les demandes retenues">
+          <p class="txt"><strong data-count aria-live="polite"></strong><span data-sub></span></p>
+          <a class="btn o seen" href="#">Voir les messages rédigés (12)</a>
+          <button type="button" class="btn p w" data-go></button>
+        </div>`;
+
+      function page(variant, phone) {
+        return `
+        ${phone ? '<div class="topbar">Vos cibles</div>' : `<div class="side"><div class="brand"><i></i>Démonstration</div><div class="it">Campagnes</div><div class="it on">Vos cibles</div><div class="it">À valider</div><div class="it">Conversations</div></div>`}
+        <div class="screen">
+          <div class="ph">… haut de l'écran inchangé : titre « 64 sites à contacter », suivi de la recherche, filtres …</div>
+          <div class="sec">
+            <div class="tools">
+              <p class="cnt"><span data-top></span></p>
+              <button type="button" class="btn o sm" data-all>Tout cocher</button>
+              <button type="button" class="btn o sm" data-none>Tout décocher</button>
+              <button type="button" class="btn p sm vb" data-go></button>
+            </div>
+            <div class="card table">
+              <div class="cols thead" aria-hidden="true"><span></span><span>#</span><span>Site</span><span>Pourquoi ce site</span><span>Demande</span><span>Contact</span><span></span></div>
+              <ul>${ROWS.map(row).join("")}</ul>
+            </div>
+            ${bar()}
+            <div class="under">
+              <a class="btn o seen-m" href="#">Voir les messages rédigés (12)</a>
+              <p>Messages signés Camille, présentés comme membre de l'équipe. <button type="button" class="linkbtn">Modifier</button></p>
+            </div>
+          </div>
+
+          <div class="sec">
+            <p><span class="note">Carte existante, non redessinée</span></p>
+            <div class="card more" role="status">
+              <p style="font-weight:500">La lecture s'est arrêtée au bout de 45 minutes, sa durée maximale : 211 sites ne sont pas lus.</p>
+              <p class="mut sm-t" style="margin-top:-6px">14 cibles ont été ajoutées après la première liste.</p>
+              <div class="line">
+                <button type="button" class="btn o" style="flex:none">Continuer la recherche</button>
+                <p class="mut">La lecture reprend là où elle s'est arrêtée, pendant une dizaine de minutes. Les cibles trouvées s'ajoutent à votre liste ; s'il reste des sites ensuite, vous pourrez continuer.</p>
+              </div>
+            </div>
+          </div>
+
+          <section class="sec nc" aria-labelledby="nc-${variant}-${phone}">
+            <h2 class="t" id="nc-${variant}-${phone}">6 sites pertinents, sans contact trouvé</h2>
+            <p class="mut" style="max-width:76ch">Ces sites méritent une demande, mais nous n'avons trouvé ni email ni formulaire. Ouvrez la page pour chercher vous-même comment joindre l'éditeur. Ils ne font pas partie des demandes à valider.</p>
+            <div class="card table">
+              <div class="cols thead" aria-hidden="true"><span>#</span><span>Site</span><span>Pourquoi ce site</span><span>Demande</span><span>Sa page</span><span></span></div>
+              <ul>${LOST.map(lost).join("")}</ul>
+            </div>
+          </section>
+
+          <div class="origin">
+            <h2 class="t" style="font-size:16px">D'où vient cette liste</h2>
+            <p class="mut">Nous sommes partis des 18 sites qui apparaissent avant vous sur Google pour vos recherches. Nous ne les contactons pas : nous avons regardé qui fait des liens vers eux, puis lu ces sites un par un.</p>
+            <p><a class="lnk" href="#">Voir le détail de l'analyse</a></p>
+          </div>
+        </div>`;
+      }
+
+      const DIALOG = `<form class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-t" onsubmit="return false">
+          <h2 class="t" id="dlg-t">Qui signe vos messages</h2>
+          <p class="mut">Vos messages partent sous votre prénom. Dites-nous votre lien réel avec le site : nous n'écrivons jamais « fondateur » sans votre accord.</p>
+          <label class="f">Votre prénom de signature<input type="text" value="Camille" autocomplete="given-name" /></label>
+          <fieldset>
+            <legend>Votre rôle</legend>
+            <label class="radio"><input type="radio" name="r" /> Je suis le fondateur de atelier-papier.example</label>
+            <label class="radio"><input type="radio" name="r" checked /> Je fais partie de l'équipe</label>
+            <label class="radio"><input type="radio" name="r" /> Je travaille pour son agence ou son prestataire</label>
+          </fieldset>
+          <p class="mut sm-t">Modifiable à tout moment, avec « Modifier » sous la liste.</p>
+          <div class="acts">
+            <button type="submit" class="btn p w">Enregistrer et valider (27 demandes)</button>
+            <button type="button" class="btn o w">Annuler</button>
+          </div>
+        </form>`;
+
+      document.querySelectorAll("[data-render]").forEach((frame) => {
+        const phone = frame.classList.contains("phone");
+        frame.innerHTML = page(frame.dataset.render, phone);
+        const boxes = [...frame.querySelectorAll('.row input[type="checkbox"]')];
+        let hidden = HIDDEN_CHECKED;
+        const sync = () => {
+          const n = hidden + boxes.filter((b) => b.checked).length;
+          const plural = n > 1 ? "s" : "";
+          frame.querySelector("[data-top]").innerHTML =
+            `<strong style="color:var(--foreground)">${n} site${plural} retenu${plural}</strong> sur 64`;
+          frame.querySelector("[data-count]").textContent = phone
+            ? `${n} retenu${plural} sur 64`
+            : `${n} demande${plural} retenue${plural}`;
+          frame.querySelector("[data-sub]").textContent =
+            n === 0
+              ? "Cochez au moins un site."
+              : phone
+                ? "Rien n'est envoyé"
+                : "Rien n'est envoyé maintenant : nous rédigeons les messages, vous les relisez avant tout envoi.";
+          frame.querySelectorAll("[data-go]").forEach((b) => {
+            b.textContent = `Valider ces demandes (${n})`;
+            b.disabled = n === 0;
+          });
+        };
+        boxes.forEach((b) => b.addEventListener("change", sync));
+        const setAll = (v) => {
+          boxes.forEach((b) => (b.checked = v));
+          hidden = v ? 56 : 0;
+          sync();
+        };
+        frame.querySelector("[data-all]").addEventListener("click", () => setAll(true));
+        frame.querySelector("[data-none]").addEventListener("click", () => setAll(false));
+        sync();
+      });
+      document.querySelectorAll("[data-dialog]").forEach((d) => (d.innerHTML = DIALOG));
+    </script>
+  </body>
+</html>
