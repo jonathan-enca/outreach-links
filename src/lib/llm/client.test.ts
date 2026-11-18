@@ -201,6 +201,30 @@ describe("client LLM Anthropic, modèles de génération 5", () => {
     expect(db.tables.cost_ledger![0]).toMatchObject({ operation: "llm.audit_summary" });
   });
 
+  it("met la consigne système en cache sur demande et compte les jetons du cache au bon prix", async () => {
+    const { client, fetchImpl } = setup(
+      "anthropic",
+      () =>
+        reply({
+          usage: {
+            input_tokens: 200,
+            output_tokens: 500,
+            cache_creation_input_tokens: 400,
+            cache_read_input_tokens: 4000,
+          },
+        }),
+      { model: "claude-opus-5-5" },
+    );
+    const out = await client.generate({ ...call, cacheSystem: true });
+    const body = JSON.parse(String((fetchImpl.mock.calls[0]![1] as RequestInit).body));
+    expect(body.system).toEqual([
+      { type: "text", text: call.system, cache_control: { type: "ephemeral" } },
+    ]);
+    // 200 + 1,25 × 400 + 0,1 × 4 000 = 1 100 jetons d'entrée à 4 USD, 500 en sortie à 20 USD par million.
+    expect(out.inputTokens).toBe(1100);
+    expect(out.costUsd).toBeCloseTo(0.0144, 6);
+  });
+
   it("un refus du modèle est une erreur, et son coût est journalisé", async () => {
     const { client, db } = setup(
       "anthropic",

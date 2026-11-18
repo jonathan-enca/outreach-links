@@ -41,6 +41,8 @@ export interface DraftItem {
   hook: string;
   /** Demande précise issue des constats de page (MT.5) ; absent pour un plan d'opportunités. */
   brief?: DraftBrief | null;
+  /** « Rédiger quand même » : la personne a demandé un message pour cette cible écartée. */
+  force?: boolean;
 }
 
 /** Page de la cible, relue en entier au moment de rédiger. */
@@ -83,6 +85,8 @@ export interface DraftResult {
   issues: LintIssue[];
   /** Vrai seulement si le linter ne trouve rien ET l'URL a répondu 200. */
   ready: boolean;
+  /** Réserve du rédacteur à relire avant d'envoyer (lien unique, ancre optimisée...) : un signal, pas un refus. */
+  reviewNote: string | null;
   costUsd: number;
 }
 

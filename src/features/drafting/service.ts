@@ -122,6 +122,7 @@ export interface DraftRowView {
   urlStatus: number | null;
   issues: LintIssue[];
   ready: boolean;
+  reviewNote: string | null;
 }
 
 export interface DraftsView {
@@ -172,6 +173,7 @@ export async function loadDrafts(supabase: Client, auditId: string): Promise<Dra
           urlStatus: r.url_status,
           issues: (Array.isArray(r.lint_issues) ? r.lint_issues : []) as unknown as LintIssue[],
           ready: r.ready,
+          reviewNote: r.review_note,
         } satisfies DraftRowView,
       };
     })
@@ -202,10 +204,13 @@ export function countMissing(
   contacts: readonly { plan_id: string; plan_item_id: string }[],
   triage: readonly { plan_item_id: string }[],
   drafts: readonly { plan_item_id: string }[],
-  declines: readonly { plan_item_id: string }[] = [],
+  declines: readonly { plan_item_id: string; retry_requested?: boolean }[] = [],
 ): Map<string, number> {
   const draftable = new Set(triage.map((x) => x.plan_item_id));
-  const done = new Set([...drafts, ...declines].map((d) => d.plan_item_id));
+  // Une cible écartée est traitée, sauf si la personne a demandé « rédiger quand même ».
+  const done = new Set(
+    [...drafts, ...declines.filter((d) => !d.retry_requested)].map((d) => d.plan_item_id),
+  );
   const out = new Map<string, number>();
   for (const c of contacts) {
     if (!draftable.has(c.plan_item_id) || done.has(c.plan_item_id)) continue;
@@ -230,7 +235,7 @@ export async function missingDrafts(supabase: Client): Promise<MissingDrafts> {
       .limit(3000),
     supabase.from("target_drafts").select("plan_item_id").limit(3000),
     supabase.from("draft_runs").select("plan_id, status").limit(500),
-    supabase.from("draft_declines").select("plan_item_id").limit(3000),
+    supabase.from("draft_declines").select("plan_item_id, retry_requested").limit(3000),
   ]);
   const missing = countMissing(
     contacts.data ?? [],
@@ -251,6 +256,113 @@ export async function missingDrafts(supabase: Client): Promise<MissingDrafts> {
     plans,
     running: (runs.data ?? []).some((r) => r.status === "en_cours"),
   };
+}
+
+/**
+ * Lance (ou relance) la rédaction d'un plan : une seule exécution à la fois, (absent | termine | echoue)
+ * -> en_cours. Vrai si l'événement est parti.
+ */
+async function launchRun(
+  service: Client,
+  p: { planId: string; workspaceId: string; status: string | null },
+  userId: string,
+  sendEvent: SendEvent,
+): Promise<boolean> {
+  const nonce = new Date().toISOString();
+  const write = p.status
+    ? await service
+        .from("draft_runs")
+        .update({
+          status: "en_cours",
+          error_message: null,
+          started_at: nonce,
+          finished_at: null,
+          requested_by: userId,
+        })
+        .eq("plan_id", p.planId)
+        .in("status", ["termine", "echoue"])
+        .select("plan_id")
+    : await service
+        .from("draft_runs")
+        .insert({
+          plan_id: p.planId,
+          workspace_id: p.workspaceId,
+          status: "en_cours",
+          requested_by: userId,
+          started_at: nonce,
+        })
+        .select("plan_id");
+  if (write.error || !write.data?.length) return false;
+  try {
+    await sendEvent({
+      id: `plan-drafts-${p.planId}-${nonce}`,
+      name: DRAFTS_EVENT,
+      data: { planId: p.planId, workspaceId: p.workspaceId },
+    });
+    return true;
+  } catch {
+    await service
+      .from("draft_runs")
+      .update({ status: "echoue", error_message: M.sendFailed })
+      .eq("plan_id", p.planId)
+      .eq("status", "en_cours");
+    return false;
+  }
+}
+
+/**
+ * « Rédiger quand même » (MC.6e, décision du 18/11/2026) : la personne demande un message pour une cible
+ * que la rédaction a écartée. La cible est marquée, puis la rédaction du plan est relancée ; elle saute
+ * le tri et écrit avec la page du site la plus proche. Une rédaction déjà en cours reprendra la cible à
+ * la prochaine exécution (« Rédiger les messages manquants »).
+ */
+export async function draftAnyway(
+  supabase: Client,
+  getServiceClient: () => Client,
+  sendEvent: SendEvent,
+  itemId: string,
+): Promise<AuditActionState> {
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth.user?.id ?? null;
+  if (!userId) return { status: "error", message: M.unauthenticated };
+  // Lecture avec la session de la personne : la politique d'accès (RLS) vérifie qu'elle voit cette cible.
+  const { data: decline } = await supabase
+    .from("draft_declines")
+    .select("plan_id, workspace_id")
+    .eq("plan_item_id", itemId)
+    .maybeSingle();
+  if (!decline) return { status: "error", message: M.anywayUnknown };
+  let service: Client;
+  try {
+    service = getServiceClient();
+  } catch {
+    return { status: "error", message: M.unavailable };
+  }
+  const { error } = await service
+    .from("draft_declines")
+    .update({ retry_requested: true })
+    .eq("plan_item_id", itemId);
+  if (error) return { status: "error", message: M.saveError };
+  const { data: run } = await service
+    .from("draft_runs")
+    .select("status")
+    .eq("plan_id", decline.plan_id)
+    .maybeSingle();
+  if (run?.status === "en_cours") return { status: "ok", message: M.anywayQueued };
+  const sent = await launchRun(
+    service,
+    { planId: decline.plan_id, workspaceId: decline.workspace_id, status: run?.status ?? null },
+    userId,
+    sendEvent,
+  );
+  if (!sent) return { status: "error", message: M.sendFailed };
+  await supabase.from("events").insert({
+    workspace_id: decline.workspace_id,
+    actor_id: userId,
+    type: "plan.draft_anyway_requested",
+    payload: { plan_item_id: itemId, plan_id: decline.plan_id },
+  });
+  return { status: "ok", message: M.anywayStarted };
 }
 
 /**
@@ -278,45 +390,7 @@ export async function draftMissing(
   }
   let started = 0;
   for (const p of todo) {
-    const nonce = new Date().toISOString();
-    const write = p.status
-      ? await service
-          .from("draft_runs")
-          .update({
-            status: "en_cours",
-            error_message: null,
-            started_at: nonce,
-            finished_at: null,
-            requested_by: userId,
-          })
-          .eq("plan_id", p.planId)
-          .in("status", ["termine", "echoue"])
-          .select("plan_id")
-      : await service
-          .from("draft_runs")
-          .insert({
-            plan_id: p.planId,
-            workspace_id: p.workspaceId,
-            status: "en_cours",
-            requested_by: userId,
-            started_at: nonce,
-          })
-          .select("plan_id");
-    if (write.error || !write.data?.length) continue;
-    try {
-      await sendEvent({
-        id: `plan-drafts-${p.planId}-${nonce}`,
-        name: DRAFTS_EVENT,
-        data: { planId: p.planId, workspaceId: p.workspaceId },
-      });
-      started += p.missing;
-    } catch {
-      await service
-        .from("draft_runs")
-        .update({ status: "echoue", error_message: M.sendFailed })
-        .eq("plan_id", p.planId)
-        .eq("status", "en_cours");
-    }
+    if (await launchRun(service, p, userId, sendEvent)) started += p.missing;
   }
   if (started === 0) return { status: "error", message: M.sendFailed };
   await supabase.from("events").insert({

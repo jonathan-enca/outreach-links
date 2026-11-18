@@ -4,6 +4,7 @@ import { findCataloguePage, type CataloguePage } from "./catalogue";
 import { DRAFT_LIMITS } from "./limits";
 import { lintMessage, maxSimilarity } from "./lint";
 import { movedAway, readableHtml } from "./readable";
+import { shortlistCatalogue, type CatalogueEntry } from "./shortlist";
 import type {
   DeclinedBy,
   DraftContext,
@@ -22,8 +23,13 @@ export interface DraftDeps {
   fetch: PageFetcher;
   /** Lit le HTML d'une page de cible (robots.txt respecté) ; null si illisible. */
   readPage: (url: string) => Promise<{ status: number; text: string } | null>;
-  /** Pages précises du site à promouvoir, avec leur texte. */
-  catalogue: readonly CataloguePage[];
+  /** Catalogue COMPLET du site à promouvoir (adresse, titre, titre principal, description). */
+  catalogue: readonly CatalogueEntry[];
+  /**
+   * Texte des pages candidates (lues en entier par le rédacteur) : celles déjà lues, les autres lues au
+   * besoin. Absent : le texte est pris dans le catalogue quand il y figure.
+   */
+  loadPages?: (urls: readonly string[]) => Promise<CataloguePage[]>;
   scope: { workspaceId: string; auditId: string };
   /** Corps des messages déjà écrits dans ce lot (détection des doublons). */
   previousBodies: readonly string[];
@@ -93,30 +99,50 @@ export async function draftItem(
     return { skipped: "Les pages du site à promouvoir n'ont pas pu être lues.", costUsd: 0 };
   }
 
-  let triage;
+  // Le modèle ne voit que les pages les plus proches de la cible, choisies gratuitement par mots communs.
+  const shortlist = shortlistCatalogue(
+    { url: page.url, title: page.title, description: page.description, text: page.text },
+    deps.catalogue,
+    DRAFT_LIMITS.shortlistPages,
+  );
+  let triagePassage: string | null = null;
+  let chosenUrls: string[];
+  if (item.force) {
+    // « Rédiger quand même » : pas de tri, les pages les plus proches vont droit au rédacteur.
+    chosenUrls = shortlist.slice(0, DRAFT_LIMITS.candidatePages).map((p) => p.url);
+  } else {
+    let triage;
+    try {
+      triage = await triageTarget(deps.triage, item, ctx, page, shortlist, deps.scope);
+    } catch (e) {
+      return { skipped: `Tri impossible : ${errorText(e)}.`, costUsd: cost };
+    }
+    cost += triage.costUsd;
+    if (triage.verdict === "pas_d_angle") {
+      return { declined: { reason: triage.motif, by: "tri", costUsd: cost } };
+    }
+    triagePassage = triage.passage;
+    chosenUrls = triage.pages
+      .map((u) => findCataloguePage(shortlist, u) ?? findCataloguePage(deps.catalogue, u))
+      .filter((p): p is CatalogueEntry => p !== null)
+      .map((p) => p.url);
+    // « Le catalogue n'a pas la page » n'est jamais un motif de refus : à défaut, la plus proche.
+    if (chosenUrls.length === 0) chosenUrls = shortlist.map((p) => p.url);
+  }
+  chosenUrls = [...new Set(chosenUrls)].slice(0, DRAFT_LIMITS.candidatePages);
+  let candidates: CataloguePage[];
   try {
-    triage = await triageTarget(deps.triage, item, ctx, page, deps.catalogue, deps.scope);
+    candidates = deps.loadPages
+      ? await deps.loadPages(chosenUrls)
+      : chosenUrls.flatMap((u) => {
+          const p = findCataloguePage(deps.catalogue as readonly CataloguePage[], u);
+          return p && typeof p.text === "string" ? [p] : [];
+        });
   } catch (e) {
-    return { skipped: `Tri impossible : ${errorText(e)}.`, costUsd: cost };
+    return { skipped: `Pages du site illisibles : ${errorText(e)}.`, costUsd: cost };
   }
-  cost += triage.costUsd;
-  if (triage.verdict === "pas_d_angle") {
-    return { declined: { reason: triage.motif, by: "tri", costUsd: cost } };
-  }
-  const candidates = triage.pages
-    .map((u) => findCataloguePage(deps.catalogue, u))
-    .filter((p): p is CataloguePage => p !== null)
-    .filter((p, i, all) => all.findIndex((x) => x.url === p.url) === i)
-    .slice(0, DRAFT_LIMITS.candidatePages);
   if (candidates.length === 0) {
-    // Le tri voit un angle mais ne cite aucune page réelle du site : rien d'honnête à proposer.
-    return {
-      declined: {
-        reason: "Aucune page précise du site ne répond à ce que dit cette page.",
-        by: "tri",
-        costUsd: cost,
-      },
-    };
+    return { skipped: "Les pages candidates du site n'ont pas pu être lues.", costUsd: cost };
   }
 
   const allowedUrls = [page.url, ...(item.brief?.linkUrl ? [item.brief.linkUrl] : [])];
@@ -124,6 +150,7 @@ export async function draftItem(
     subject: string | null;
     body: string;
     reason: string;
+    note: string | null;
     hook: string;
     proposedUrl: string;
     issues: LintIssue[];
@@ -173,7 +200,8 @@ export async function draftItem(
       subject,
       body,
       reason: w.angle,
-      hook: w.passage?.trim() || triage.passage?.trim() || page.title,
+      note: w.a_relire?.trim() || null,
+      hook: w.passage?.trim() || triagePassage?.trim() || page.title,
       proposedUrl: chosen.url,
       issues,
     };
@@ -211,6 +239,7 @@ export async function draftItem(
       urlStatus,
       issues: best.issues,
       ready: best.issues.length === 0,
+      reviewNote: best.note,
       costUsd: cost,
     },
   };

@@ -3,17 +3,20 @@ import type { PageFetcher } from "@/features/sites/verify";
 import { createPageReader } from "@/features/triage/page-reader";
 import { DRAFT_LIMITS } from "./limits";
 import { readableHtml } from "./readable";
+import type { CatalogueEntry } from "./shortlist";
 
 /**
  * Catalogue des pages du site à promouvoir : toutes ses pages précises (articles, guides, outils), avec
  * titre, description et texte. Le rédacteur y choisit LA page qui répond au point relevé chez la cible,
  * au lieu de proposer « le blog » à tout le monde (79 messages du 17/11 : 68 vers deux pages générales).
  */
-export interface CataloguePage {
-  url: string;
-  title: string;
-  description: string;
+export interface CataloguePage extends CatalogueEntry {
   text: string;
+}
+
+/** Plafond de pages du catalogue selon le palier (la bêta compte comme Starter, voir `BETA_SEND_PLAN`). */
+export function catalogueCap(plan: keyof typeof DRAFT_LIMITS.catalogueCapByPlan): number {
+  return DRAFT_LIMITS.catalogueCapByPlan[plan] ?? DRAFT_LIMITS.catalogueCapByPlan.gratuit;
 }
 
 export interface CatalogueDeps {
@@ -69,17 +72,30 @@ export function pickCatalogueUrls(
       ? urls.filter((u) => first(u).slice(0, 2).toLowerCase() === lang)
       : urls;
   // Les pages précises (profondes) d'abord : ce sont elles qu'un éditeur a une raison de citer.
-  const depth = (u: URL) => u.pathname.split("/").filter(Boolean).length;
-  return kept
-    .map((u, i) => ({ u, i, d: Math.min(depth(u), 4) }))
-    .sort((a, b) => b.d - a.d || a.i - b.i)
-    .slice(0, max)
-    .map((x) => x.u.toString());
+  const depth = (u: URL) => Math.min(u.pathname.split("/").filter(Boolean).length, 4);
+  const byDepth = new Map<number, URL[]>();
+  for (const u of kept) byDepth.set(depth(u), [...(byDepth.get(depth(u)) ?? []), u]);
+  const out: URL[] = [];
+  for (const d of [...byDepth.keys()].sort((a, b) => b - a)) {
+    const group = byDepth.get(d)!;
+    const room = max - out.length;
+    if (room <= 0) break;
+    // Le plafond coupe au milieu d'un niveau : on prend une page sur N, de bout en bout du sitemap, pour que
+    // toutes les rubriques restent représentées (la tête d'un sitemap n'est souvent qu'une rubrique).
+    out.push(...(group.length <= room ? group : evenly(group, room)));
+  }
+  return out.map((u) => u.toString());
+}
+
+/** `n` éléments répartis régulièrement sur toute la liste (dans l'ordre d'origine). */
+function evenly<T>(list: readonly T[], n: number): T[] {
+  if (n >= list.length) return [...list];
+  return Array.from({ length: n }, (_, i) => list[Math.floor((i * list.length) / n)]!);
 }
 
 /** Adresses connues du site : sitemaps déclarés, puis /sitemap.xml ; à défaut, les liens de l'accueil. */
 export async function listSiteUrls(domain: string, deps: CatalogueDeps): Promise<string[]> {
-  const reader = createPageReader({ ...deps, maxRequests: 12, hostDelayMs: 300 });
+  const reader = createPageReader({ ...deps, maxRequests: 30, hostDelayMs: 150 });
   const origin = `https://${domain}`;
   const sameSite = (u: string) => {
     try {
@@ -97,7 +113,7 @@ export async function listSiteUrls(domain: string, deps: CatalogueDeps): Promise
     if (parsed.urls.length === 0) continue;
     if (!parsed.isIndex) found.push(...parsed.urls);
     else {
-      for (const child of rankChildSitemaps(parsed.urls.filter(sameSite)).slice(0, 4)) {
+      for (const child of rankChildSitemaps(parsed.urls.filter(sameSite)).slice(0, 16)) {
         const c = await reader.fetchText(child).catch(() => null);
         if (c && c.status === 200) found.push(...parseSitemap(c.text).urls);
       }
@@ -125,7 +141,13 @@ export async function readCataloguePages(
     if (!res || res.status !== 200) continue;
     const page = readableHtml(res.text, url, DRAFT_LIMITS.cataloguePageChars);
     if (page.text.length < 200 && page.title.length === 0) continue;
-    out.push({ url, title: page.title, description: page.description, text: page.text });
+    out.push({
+      url,
+      title: page.title,
+      heading: page.heading,
+      description: page.description,
+      text: page.text,
+    });
   }
   return out;
 }

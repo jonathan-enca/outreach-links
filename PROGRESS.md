@@ -2070,3 +2070,54 @@ La boule de neige multiplie les cibles gardées par le modèle fort (mega-colori
 ### Prochain sous-jalon recommandé : MC.6e
 
 Rendre le critère atteignable : (1) catalogue du rédacteur par sujet de la cible (conserver les adresses du sitemap avec leurs mots d'adresse, lire les 5 à 10 plus proches) ; (2) réduire ou supprimer la première passe de ressources choisies d'avance au profit de la boule de neige, après un essai sur les deux sites ; (3) choix des graines : écarter les services payants quand le site est gratuit ; repli « publiques » alimenté par une recherche. Mesure : cibles gardées / liste courte sur remove-me.io et mega-coloring.com.
+
+## Session du 18/11 (suite 6) : MC.6e, catalogue complet, refus assouplis, « rédiger quand même » (faite ; mesure à nuancer)
+
+Périmètre tenu. **Pas** fait : liens morts, première passe de ressources réduite, graines, repli « publiques ».
+
+### En une phrase
+
+Sur les mêmes 25 cibles par site, le modèle fort garde **12 sur 23 (mega-coloring.com, avant : 3) et 11 sur 25 (remove-me.io, avant : 0)** avec la consigne assouplie et le catalogue complet présélectionné. Le gain vient de la règle de refus (cibles proches gardées en situation « autre », avec une note « à relire »), presque pas du catalogue : l'ancienne consigne n'a signalé « faute de page » que sur 1 cible sur 48.
+
+### Constat sur le code (point 2 demandé)
+
+Aucun refus ne pouvait être forcé : `loadDraftInput` sautait toute cible présente dans `draft_declines`, et l'écran « À valider » les listait sans bouton. Ajouté : colonne `draft_declines.retry_requested`, `draftAnyway` (`drafting/service.ts`), action `draftAnywayAction`, bouton « Rédiger quand même ». La cible rejouée saute le tri, reçoit les pages les plus proches, et la décision d'écart est supprimée une fois le message écrit. Une rédaction déjà en cours la reprendra à la prochaine exécution (`countMissing` la compte comme manquante).
+
+### Mesure
+
+Cohorte : 25 cibles par site tirées de façon régulière dans la `liste_courte` du 16-17/11 en base (mega-coloring.com 36 cibles, remove-me.io 80), donc l'ancienne chaîne, pas la liste de MC.6d (ses caches n'existent plus). Mêmes pages lues, deux conditions : ancienne (consigne de `main`, catalogue de 80 pages) et nouvelle (consigne MC.6e, catalogue du palier Starter = 200 pages sur 2 857 adresses de sitemap pour mega-coloring.com, 745 pour remove-me.io, 25 pages présélectionnées). Jugement par 8 agents `opus` appliquant la consigne du rédacteur, sans savoir quelle condition (pas de message rédigé, pas de lecture du texte des pages candidates). Deux cibles illisibles écartées (mega-coloring.com).
+
+|                                                         | mega-coloring.com                | remove-me.io                     |
+| ------------------------------------------------------- | -------------------------------- | -------------------------------- |
+| Ancienne consigne, catalogue de 80 pages                | 3 sur 23                         | 0 sur 25                         |
+| **Nouvelle consigne, catalogue complet présélectionné** | **12 sur 23** (dont 7 « autre ») | **11 sur 25** (toutes « autre ») |
+| Notes « à relire » sur les gardées                      | 12 sur 12                        | 9 sur 11                         |
+| « Faute de page » signalé                               | 1 (ancienne) / 1 (nouvelle)      | 0 / 1 (nouvelle)                 |
+
+- **Ce que le chiffre veut dire** : « gardée » = « sera rédigée et soumise à validation ». Les 11 cibles de remove-me.io ne citent aucune ressource comparable ; elles sont gardées par proximité de thème ou de public (le modèle l'a dit lui-même : la consigne n'a pas d'étiquette pour la simple proximité, d'où « autre »). L'objectif de 30 % est dépassé mais **ne prouve pas que les messages seront bons** : en MC.6a, 2 messages sur 20 méritaient l'envoi. À relire avec Jonathan avant de croire ce chiffre.
+- **Catalogue** : n'a presque rien changé au verdict (une cible sur 48 gênée par l'absence de page). Il sert à choisir une page plus proche ; effet non mesuré ici (pas de rédaction).
+- **Limites** : un seul passage par condition, agents non indépendants des consignes, 2 sites, cohorte de l'ancienne chaîne et non de MC.6d, effectifs de 25.
+- **Dépense** : aucun appel DataForSEO ni LLM de production ; 8 agents de rejugement. Lectures de pages web gratuites.
+
+### Ce qui change dans le code
+
+- **Migration `2026121300000000_site_catalogue.sql`** (appliquée à la vraie base via l'API de gestion ; absente de `list_migrations`) : table `site_catalogue`, `draft_declines.retry_requested` (+ droit `delete` pour `service_role`), `target_drafts.review_note`. `database.types.ts` patché à la main.
+- **`drafting/shortlist.ts`** (nouveau) : `shortlistCatalogue` (mots communs pondérés par rareté, titre et adresse comptent double, 8 pages au moins) ; **`catalogue.ts`** : `catalogueCap(plan)`, plafond du sitemap en « une page sur N » (toutes les rubriques représentées), jusqu'à 16 sous-sitemaps ; **`limits.ts`** : `catalogueCapByPlan`, `shortlistPages: 25`.
+- **`run.ts`** : `loadCatalogueEntries`, `loadSitePages`, `saveCatalogueUrls`, `saveCataloguePages` (alimente aussi le catalogue), `clearCatalogue` ; **`inngest/functions/plan-drafts.ts`** : catalogue construit une fois par site (7 jours), 80 pages visitées par paquets, pages candidates lues à la demande puis gardées.
+- **`write.ts`** : cinq refus (concurrent direct, page légale, ferme à liens manifeste, grand média inatteignable, aucun rapport), « le catalogue n'a pas la page » n'est jamais un refus, champ `a_relire`, mode `force`. **`draft.ts`** : présélection, repli sur la page la plus proche, `reviewNote`.
+- **`lib/llm/client.ts`** : option `cacheSystem` (cache de la consigne système Anthropic génération 5 ; jetons du cache comptés à 125 % / 10 %). Seule la consigne est en cache : la sélection de pages change à chaque cible.
+- **UI** : note « À relire » sur chaque message, bouton « Rédiger quand même » sur chaque cible écartée.
+- **Outil de mesure** : `drafting/catalogue-measure.live.test.ts` (`MC6E_LIVE=1`, voir l'en-tête).
+
+### Dettes et pièges
+
+- **Qualité des messages « par proximité »** non mesurée : à lire avec Jonathan. Si trop faibles, resserrer « autre » (exiger une ressource ou un public nommé) plutôt que remettre des refus.
+- Plafond du catalogue : mega-coloring.com compte 2 857 adresses ; à 200 pages (bêta) le catalogue n'en couvre que 7 %.
+- Titres des pages hors des 80 visitées : seulement les mots de l'adresse (le modèle voit l'adresse sans titre).
+- Le cache de consigne ne joue que si la consigne dépasse le minimum du modèle (Opus 4 096 jetons, à vérifier : le rédacteur fait ~2 500).
+- Un refus du rédacteur sur une cible « rédiger quand même » reste possible (concurrent, légal, sans rapport) : le bouton reste affiché.
+- Vérifications : typecheck, lint et tests des dossiers touchés verts en local ; suite complète à la CI.
+
+### Prochain sous-jalon recommandé : MC.6f
+
+(1) Faire relire 10 messages « par proximité » rédigés pour de vrai, et caler la consigne ; (2) réduire la première passe de ressources ; (3) graines sans services payants, repli « publiques » alimenté par une recherche ; (4) liens morts.

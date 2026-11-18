@@ -1914,6 +1914,11 @@ export const fr = {
       saveError: "Impossible de lancer la rédaction. Réessayez.",
       sendFailed: "Le lancement du travail a échoué. Cliquez de nouveau pour le relancer.",
       started: "Rédaction lancée.",
+      anywayUnknown: "Cette cible n'est plus dans la liste des cibles écartées.",
+      anywayStarted:
+        "Rédaction lancée pour cette cible. Le message arrive dans « À valider » dans une minute.",
+      anywayQueued:
+        "Une rédaction est en cours : cette cible sera rédigée à la prochaine exécution (« Rédiger les messages manquants »).",
       nothingMissing: "Tous les messages sont déjà rédigés.",
       missingStarted: (n: number) =>
         `Rédaction lancée pour ${n} ${n > 1 ? "cibles" : "cible"}. Les messages arrivent ici dans quelques minutes.`,
@@ -2867,9 +2872,11 @@ export const fr = {
       `${n} ${n > 1 ? "cibles validées n'ont" : "cible validée n'a"} pas encore de message.`,
     missingCta: "Rédiger les messages manquants",
     declined: (n: number) =>
-      `${n} ${n > 1 ? "cibles écartées" : "cible écartée"} : aucune raison honnête de leur demander un lien.`,
+      `${n} ${n > 1 ? "cibles écartées" : "cible écartée"} : la rédaction a jugé qu'elles n'avaient pas leur place.`,
     declinedHelp:
-      "Avant d'écrire, nous relisons la page de chaque cible. Sans point précis où votre lien rendrait service à ses lecteurs, aucun message n'est écrit : un message sans raison part à la corbeille et abîme votre réputation d'expéditeur.",
+      "Une cible proche de votre contenu est toujours rédigée. Celles-ci sont écartées pour une raison nette : concurrent direct, page juridique, ferme à liens, très gros média ou sujet sans rapport. Vous restez libre d'en juger autrement : « Rédiger quand même » écrit un message avec la page de votre site la plus proche, que vous relisez avant tout envoi.",
+    anyway: "Rédiger quand même",
+    reviewNote: "À relire :",
     hintMailbox: "Connectez d'abord une boîte d'envoi pour approuver et envoyer ce message.",
     hintNotReady: "Corrigez d'abord les points signalés en rouge.",
     drafting: "Rédaction en cours : les nouveaux messages apparaissent ici dans quelques minutes.",
