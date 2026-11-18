@@ -386,7 +386,7 @@ const emptyYield = (): YieldRow => ({
  * étages 1-2 (calcul, filtre avant lecture, robots.txt), 3 (lecture), 5 (contact, sans finder payant).
  * Payant : étage 4 seulement. La lecture se fait PAR LOTS : chaque lot est lu puis jugé, et le
  * rendement mesuré décide de la composition du lot suivant. Arrêts : candidats épuisés, objectif de
- * pages jugées atteint, durée maximale, budget de jugement, rendement décroissant. Les candidats non
+ * pages jugées atteint, durée maximale, budget de jugement (MC.6f : plus d'arrêt par rendement décroissant). Les candidats non
  * lus restent en stock (« en réserve ») avec leur score.
  */
 export async function executeQualification(
@@ -585,7 +585,6 @@ export async function executeQualification(
   let aliveAfterRead = 0;
   let judgedCount = 0;
   let judgeKept = 0;
-  let dry = 0;
   let lots = 0;
   let homeTried = 0;
   let homeRescued = 0;
@@ -675,10 +674,6 @@ export async function executeQualification(
     }
     if (lastAt - startedAt >= L.maxReadMs) {
       readStop = "duree";
-      break;
-    }
-    if (lots >= L.minLots && dry >= L.dryLots) {
-      readStop = "rendement";
       break;
     }
     lots++;
@@ -776,7 +771,6 @@ export async function executeQualification(
       }
     }
     const doing = batches.slice(0, planned);
-    let lotRelevant = 0;
     if (doing.length > 0) {
       const judgedBefore = judgedCount;
       const keptBeforeJudge = judgeKept;
@@ -857,11 +851,10 @@ export async function executeQualification(
         }
       } else {
         doing.forEach((batch, b) => {
-          lotRelevant += applyOutcome(batch, res.batches[b]!);
+          applyOutcome(batch, res.batches[b]!);
         });
       }
     }
-    dry = lotRelevant <= L.dryLotMaxRelevant ? dry + 1 : 0;
     // MC.6b : après le jugement du lot, les ressources qui ne donnent rien sont abandonnées.
     if (reviewResources()) queues = buildQueues();
   }

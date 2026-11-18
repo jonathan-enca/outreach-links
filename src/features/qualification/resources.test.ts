@@ -16,6 +16,7 @@ import {
 } from "./funnel";
 import { QUALIFY_LIMITS, SYSTEM_CHARS, TARGET_CHARS } from "./limits";
 import { buildBatchPrompt, checkSituation, SYSTEM_PROMPT } from "./llm";
+import { FIVE_REFUSALS } from "./refusals";
 import { mergeStats } from "./more";
 import { pageCites, snapshotOf } from "./page";
 import { finalScore, judgementExclusion, requestAndWhy } from "./score";
@@ -103,27 +104,44 @@ describe("ce que la page cite déjà (relevé gratuit à la lecture)", () => {
 });
 
 describe("jugement des trois cas (MC.6b)", () => {
-  it("les trois situations font une cible ; les autres donnent un motif lisible", () => {
+  it("MC.6f : seuls les cinq refus excluent ; les trois cas, « autre » et les signaux sont gardés", () => {
     for (const s of [
       "lien_mort",
       "petit_editeur_ressources",
       "cite_des_comparables",
+      "autre",
+      // Ces situations ne sont plus des refus : rubrique, page commerciale... deviennent une note.
+      "commercial",
+      "pas_une_page_de_contenu",
     ] as Situation[]) {
       expect(judgementExclusion(J({ situation: s })), s).toBeNull();
     }
     expect(judgementExclusion(J({ situation: "juridique" }))?.reason).toBe("page_legale");
-    expect(judgementExclusion(J({ situation: "commercial" }))?.reason).toBe("page_commerciale");
     expect(judgementExclusion(J({ situation: "ferme_a_liens" }))?.reason).toBe("ferme_a_liens");
-    expect(judgementExclusion(J({ situation: "pas_une_page_de_contenu" }))?.reason).toBe(
-      "pas_de_contenu",
-    );
-    expect(judgementExclusion(J({ situation: "aucune" }))?.reason).toBe("sans_angle");
+    expect(judgementExclusion(J({ sameOffer: true }))?.reason).toBe("concurrent");
+    expect(judgementExclusion(J({ unrealistic: true }))?.reason).toBe("irrealiste");
+    // Aucun rapport avec le sujet : sous le seuil de proximité.
+    expect(judgementExclusion(J({ situation: "aucune", fit: 0.1 }))?.reason).toBe("hors_sujet");
   });
 
-  it("une page sur le sujet mais qui ne cite rien n'est plus une cible, même très proche", () => {
-    expect(judgementExclusion(J({ situation: "aucune", fit: 0.95 }))?.reason).toBe("sans_angle");
-    // Hors sujet reste hors sujet, même quand la page cite des ressources.
+  it("MC.6f : une page proche (thème ou public voisin) est gardée même sans rien citer, et classée après les trois cas", () => {
+    expect(judgementExclusion(J({ situation: "autre", fit: 0.35 }))).toBeNull();
+    // « aucune » = aucun rapport avec le sujet : refus, même avec une note de proximité haute.
+    expect(judgementExclusion(J({ situation: "aucune", fit: 0.95 }))?.reason).toBe("hors_sujet");
     expect(judgementExclusion(J({ fit: 0.2 }))?.reason).toBe("hors_sujet");
+    const c = cand("asso.fr");
+    const contact = {
+      status: "email_verifie" as const,
+      email: "a@asso.fr",
+      contactUrl: null,
+      formUrl: null,
+      sendable: true,
+      reason: "",
+    };
+    const score = (s: Situation) =>
+      finalScore(c, J({ situation: s, fit: 0.7 }), null, contact)!.score;
+    expect(score("cite_des_comparables")).toBeGreaterThan(score("autre"));
+    expect(score("autre")).toBeGreaterThan(score("pas_une_page_de_contenu"));
   });
 
   it("les motifs les plus graves passent d'abord", () => {
@@ -134,12 +152,12 @@ describe("jugement des trois cas (MC.6b)", () => {
     expect(judgementExclusion(J({ unrealistic: true }))?.reason).toBe("irrealiste");
   });
 
-  it("exception : la page qui cite déjà le site sans lien garde sa propre preuve", () => {
+  it("la page qui cite déjà le site sans lien reste gardée ; un document juridique reste refusé", () => {
     const mention = cand("asso.fr", {
       sources: [{ source: "mention", query: null, persona: null, rank: null, pageType: null }],
     });
     expect(
-      judgementExclusion(J({ situation: "aucune" }), QUALIFY_LIMITS.minFit, mention),
+      judgementExclusion(J({ situation: "autre" }), QUALIFY_LIMITS.minFit, mention),
     ).toBeNull();
     expect(
       judgementExclusion(J({ situation: "juridique" }), QUALIFY_LIMITS.minFit, mention)?.reason,
@@ -155,10 +173,10 @@ describe("jugement des trois cas (MC.6b)", () => {
         cand("blog.fr", resourceFound ? { sources: cites("site-0.fr") } : {}),
       );
     // « Plusieurs ressources comparables » exige au moins deux sites cités dans le contenu.
-    expect(checkSituation("cite_des_comparables", pageWith(1))).toBe("aucune");
+    expect(checkSituation("cite_des_comparables", pageWith(1))).toBe("autre");
     expect(checkSituation("cite_des_comparables", pageWith(2))).toBe("cite_des_comparables");
     // Un petit éditeur qui ne renvoie vers aucun site ne recommande rien.
-    expect(checkSituation("petit_editeur_ressources", pageWith(0))).toBe("aucune");
+    expect(checkSituation("petit_editeur_ressources", pageWith(0))).toBe("autre");
     expect(checkSituation("petit_editeur_ressources", pageWith(1, true))).toBe(
       "petit_editeur_ressources",
     );
@@ -175,7 +193,7 @@ describe("jugement des trois cas (MC.6b)", () => {
     const old = J();
     delete old.situation;
     expect(judgementExclusion(old)).toBeNull();
-    expect(judgementExclusion({ ...old, fit: 0.3 })?.reason).toBe("hors_sujet");
+    expect(judgementExclusion({ ...old, fit: 0.2 })?.reason).toBe("hors_sujet");
   });
 
   it("classement : lien mort, puis petit éditeur, puis page qui cite des comparables", () => {
@@ -216,7 +234,10 @@ describe("jugement des trois cas (MC.6b)", () => {
     for (const s of ["lien_mort", "petit_editeur_ressources", "cite_des_comparables"]) {
       expect(SYSTEM_PROMPT).toContain(`- ${s} :`);
     }
-    expect(SYSTEM_PROMPT).toContain("Un billet ancien n'est PAS une raison de refuser");
+    expect(SYSTEM_PROMPT).toContain("Un billet ancien n'est jamais une raison de refuser");
+    // MC.6f : les cinq refus du rédacteur, définis une seule fois.
+    expect(SYSTEM_PROMPT).toContain(FIVE_REFUSALS);
+    expect(SYSTEM_PROMPT).toContain("TOUJOURS gardée");
     expect(SYSTEM_PROMPT).toContain("ferme_a_liens");
     expect(SYSTEM_PROMPT).toContain("NON FIABLE");
     expect(SYSTEM_PROMPT).not.toMatch(/coloriage|rgpd|données personnelles|bloctel/i);
@@ -383,7 +404,8 @@ function fakeDeps() {
                 id: c.id,
                 site_type: "blog",
                 situation: situationOf(c.domaine),
-                fit: 0.8,
+                // MC.6f : « aucune » = aucun rapport avec le sujet (fit sous le seuil) ; le reste est gardé.
+                fit: situationOf(c.domaine) === "aucune" ? 0.1 : 0.8,
                 fit_reason: "Jugement d'essai.",
                 sells_links: false,
                 same_offer: false,
@@ -422,7 +444,7 @@ const input = (candidates: QualCandidate[], extra: object = {}) => ({
   candidates,
   budgetUsd: 5,
   model: "gpt-4o-mini",
-  tuning: { targetJudged: 1000, maxLlmTargets: 1000, maxPagesRead: 2000, dryLots: 1000 },
+  tuning: { targetJudged: 1000, maxLlmTargets: 1000, maxPagesRead: 2000 },
   ...extra,
 });
 const citing = (n: number, prefix: string, resource: string, path = "/blog/article") =>
@@ -476,7 +498,7 @@ describe("pilotage par ressource : dans la lecture", () => {
     const { stats } = await executeQualification(
       deps,
       input(cands, {
-        tuning: { targetJudged: 48, maxLlmTargets: 1000, maxPagesRead: 2000, dryLots: 1000 },
+        tuning: { targetJudged: 48, maxLlmTargets: 1000, maxPagesRead: 2000 },
       }),
       step,
     );
@@ -573,7 +595,7 @@ describe("pilotage par ressource : dans la lecture", () => {
     expect(merged.byResource!["muette.fr"]!.status).toBe("abandonnee");
   });
 
-  it("une page que le modèle juge « sans angle » sort de la liste avec son motif", async () => {
+  it("une page sans aucun rapport avec le sujet sort de la liste avec son motif", async () => {
     const { deps } = fakeDeps();
     const { results } = await executeQualification(
       deps,
@@ -581,6 +603,6 @@ describe("pilotage par ressource : dans la lecture", () => {
       step,
     );
     expect(results.filter((r) => r.status === "liste_courte")).toHaveLength(3);
-    expect(results.filter((r) => r.exclusionReason === "sans_angle")).toHaveLength(2);
+    expect(results.filter((r) => r.exclusionReason === "hors_sujet")).toHaveLength(2);
   });
 });

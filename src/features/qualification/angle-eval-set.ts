@@ -28,7 +28,11 @@ export interface AngleEvalCase {
     /** Liens du contenu vers d'autres sites : [texte du lien, adresse]. */
     cites: [string, string][];
   };
-  /** Une cible ? (une des trois situations) */
+  /**
+   * Gardée ? MC.6f (décision du 18/11) : oui pour une des trois situations (PRIORITÉ) et pour une page proche du
+   * contenu visé (« autre », gardée avec une note) ; non seulement pour un des cinq refus (concurrent direct,
+   * page légale, ferme à liens manifeste, grand site inatteignable, aucun rapport).
+   */
   keep: boolean;
   /** Situations acceptées (la première est la plus juste). */
   situations: Situation[];
@@ -253,10 +257,9 @@ export const ANGLE_EVAL_CASES: AngleEvalCase[] = [
       text: "Coffret de 48 crayons de couleur, mine tendre, bois certifié. 24,90 € TTC. Livraison offerte dès 39 €. Ajouter au panier. Idée : imprimez des modèles gratuits sur Coloriages des petits pour les essayer. Avis clients (132). Produits associés : taille-crayon, gomme.",
       cites: [["Coloriages des petits", "https://coloriages-des-petits.fr/"]],
     },
-    keep: false,
-    situations: ["commercial"],
-    reasons: ["page_commerciale"],
-    note: "Fiche de produit : on ne la fait pas modifier pour un lien gratuit.",
+    keep: true,
+    situations: ["autre"],
+    note: "MC.6f : fiche de produit d'une boutique du même public, qui renvoie déjà vers la ressource : gardée par proximité, avec une note « page commerciale » (avant MC.6f : refusée).",
   },
   {
     id: "c09",
@@ -272,10 +275,9 @@ export const ANGLE_EVAL_CASES: AngleEvalCase[] = [
       text: "Catégorie : Activités. Un gâteau au yaourt avec les enfants - Lire la suite. Nos coloriages de la semaine (dessins : Coloriages des petits) - Lire la suite. Sortie au zoo - Lire la suite. Bricolage de Pâques - Lire la suite. Articles plus anciens. Page 2 sur 14.",
       cites: [["Coloriages des petits", "https://coloriages-des-petits.fr/"]],
     },
-    keep: false,
-    situations: ["pas_une_page_de_contenu"],
-    reasons: ["pas_de_contenu"],
-    note: "Page de rubrique (liste d'articles) : pas une page où ajouter un lien.",
+    keep: true,
+    situations: ["autre", "petit_editeur_ressources"],
+    note: "MC.6f : page de rubrique d'un blog du public visé qui cite déjà la ressource : gardée par proximité, avec une note « rubrique » (avant MC.6f : refusée).",
   },
   {
     id: "c10",
@@ -292,8 +294,8 @@ export const ANGLE_EVAL_CASES: AngleEvalCase[] = [
       cites: [["Coloriages des petits", "https://coloriages-des-petits.fr/"]],
     },
     keep: false,
-    situations: ["commercial", "aucune", "pas_une_page_de_contenu"],
-    reasons: ["concurrent", "page_commerciale", "sans_angle", "pas_de_contenu"],
+    situations: ["aucune", "autre", "cite_des_comparables"],
+    reasons: ["concurrent"],
     note: "Concurrent direct : il propose la même chose que le site.",
   },
   {
@@ -312,8 +314,27 @@ export const ANGLE_EVAL_CASES: AngleEvalCase[] = [
     },
     keep: false,
     situations: ["aucune"],
-    reasons: ["sans_angle", "hors_sujet"],
+    reasons: ["hors_sujet"],
     note: "Cite la ressource en passant, dans un billet de jardinage : ni liste de ressources ni même public.",
+  },
+  {
+    id: "c12",
+    site: "coloriages",
+    candidate: {
+      domain: "ecole-des-lilas-exemple.fr",
+      url: "https://ecole-des-lilas-exemple.fr/informations/utilisation-du-site",
+      sources: cite("coloriages-des-petits.fr", "https://coloriages-des-petits.fr/"),
+    },
+    page: {
+      title: "Conditions générales d'utilisation du site - École des Lilas",
+      headings: ["Conditions générales d'utilisation", "Données personnelles"],
+      text: "Conditions générales d'utilisation du site de l'école des Lilas. L'accès au site implique l'acceptation des présentes conditions. Les contenus sont la propriété de l'école. Ressources conseillées aux familles : Coloriages des petits. Données personnelles : vous disposez d'un droit d'accès et de rectification.",
+      cites: [["Coloriages des petits", "https://coloriages-des-petits.fr/"]],
+    },
+    keep: false,
+    situations: ["juridique"],
+    reasons: ["page_legale"],
+    note: "Document juridique d'un site d'école, même s'il cite la ressource : on ne le fait pas modifier par un inconnu (refus conservé en MC.6f).",
   },
   // ---------- Données personnelles : cibles ----------
   {
@@ -440,9 +461,9 @@ export const ANGLE_EVAL_CASES: AngleEvalCase[] = [
       cites: [["Suis-je exposé", "https://suis-je-expose-exemple.com/"]],
     },
     keep: false,
-    situations: ["commercial"],
-    reasons: ["page_commerciale", "concurrent"],
-    note: "Page de vente d'un abonnement.",
+    situations: ["aucune", "autre"],
+    reasons: ["concurrent"],
+    note: "Page de vente d'un abonnement de surveillance des données : il propose la même chose que le site (concurrent direct).",
   },
   {
     id: "d07",
@@ -461,8 +482,8 @@ export const ANGLE_EVAL_CASES: AngleEvalCase[] = [
       cites: [["Suis-je exposé", "https://suis-je-expose-exemple.com/"]],
     },
     keep: false,
-    situations: ["aucune", "cite_des_comparables"],
-    reasons: ["irrealiste", "sans_angle"],
+    situations: ["aucune", "autre"],
+    reasons: ["irrealiste"],
     note: "Dépêche d'un grand quotidien national : personne n'y modifiera une page pour un inconnu.",
   },
   {
@@ -508,10 +529,9 @@ export const ANGLE_EVAL_CASES: AngleEvalCase[] = [
         ["l'article 17 du règlement", "https://autorite-donnees-exemple.fr/reglement/article-17"],
       ],
     },
-    keep: false,
-    situations: ["aucune", "commercial"],
-    reasons: ["sans_angle", "page_commerciale", "hors_sujet"],
-    note: "Article sur le sujet, mais qui ne recommande aucune ressource à ses lecteurs (une seule source juridique).",
+    keep: true,
+    situations: ["autre"],
+    note: "MC.6f : article sur le thème du site (le droit à l'effacement) qui ne recommande aucune ressource (une seule source juridique) : gardé par proximité, avec une note « lien unique » (avant MC.6f : refusé « sans angle »).",
   },
 ];
 

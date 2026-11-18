@@ -5,14 +5,14 @@ import { newIds, remainingMinutes, roundedMinutes } from "./live";
 const T0 = 1_000_000_000_000;
 
 describe("temps restant de la recherche", () => {
-  it("un lot par tranche de 80 sites, 5 minutes par lot", () => {
-    expect(remainingMinutes({ stock: 60, costUsd: 0, startedAtMs: T0, nowMs: T0 })).toBe(5);
-    expect(remainingMinutes({ stock: 150, costUsd: 0, startedAtMs: T0, nowMs: T0 })).toBe(10);
+  it("un lot par tranche de 250 sites, 9 minutes par lot (MC.6f)", () => {
+    expect(remainingMinutes({ stock: 60, costUsd: 0, startedAtMs: T0, nowMs: T0 })).toBe(9);
+    expect(remainingMinutes({ stock: 600, costUsd: 0, startedAtMs: T0, nowMs: T0 })).toBe(27);
   });
-  it("borné par le budget restant : 0,08 USD, lots de 0,03 USD au moins", () => {
-    // 0,06 USD dépensés : reste 0,02, mais au moins un dernier lot est annoncé
-    expect(remainingMinutes({ stock: 900, costUsd: 0.06, startedAtMs: T0, nowMs: T0 })).toBe(5);
-    expect(remainingMinutes({ stock: 900, costUsd: 0, startedAtMs: T0, nowMs: T0 })).toBe(10);
+  it("borné par le budget restant : 0,30 USD, lots de 0,03 USD au moins", () => {
+    // 0,28 USD dépensés : reste 0,02, mais au moins un dernier lot est annoncé
+    expect(remainingMinutes({ stock: 900, costUsd: 0.28, startedAtMs: T0, nowMs: T0 })).toBe(9);
+    expect(remainingMinutes({ stock: 900, costUsd: 0, startedAtMs: T0, nowMs: T0 })).toBe(36);
   });
   it("borné par la durée maximale, jamais moins de 1 minute", () => {
     const late = T0 + AUTO_LIMITS.maxMs - 2 * 60_000;

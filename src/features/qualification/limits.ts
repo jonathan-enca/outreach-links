@@ -39,12 +39,9 @@ export const QUALIFY_LIMITS = {
   targetJudged: 150,
   /** Durée maximale de la lecture et du jugement (12 minutes). */
   maxReadMs: 12 * 60_000,
-  /** Rendement décroissant : arrêt après ce nombre de lots de suite presque sans page pertinente. */
-  dryLots: 3,
-  /** Un lot « n'apporte presque rien » s'il donne au plus ce nombre de pages pertinentes. */
-  dryLotMaxRelevant: 1,
-  /** Jamais d'arrêt par rendement avant ce nombre de lots. */
-  minLots: 4,
+  // MC.6f : plus d'arrêt « rendement décroissant » tant qu'il reste des candidats (il avait arrêté la
+  // première lecture à 560 pages sur 1 400 candidats). Seul le pilotage par ressource (ci-dessous), qui
+  // abandonne une ressource dont les pages sont manifestement des fermes à liens, écarte encore des pages.
   /** Part minimale d'un lot donnée à chaque source qui a encore des candidats (exploration). */
   sourceFloor: 2,
   /**
@@ -97,10 +94,15 @@ export const QUALIFY_LIMITS = {
   /** MC.6b : liens du contenu montrés au modèle (texte et site), et passage autour de la ressource citée. */
   citedLinks: 14,
   citedContextChars: 320,
-  /** Jetons de sortie par cible (borne du coût). 230 depuis MC.6b : la situation s'ajoute à la réponse. */
-  outputTokensPerTarget: 230,
-  /** Adéquation minimale pour rester candidat. */
-  minFit: 0.5,
+  /**
+   * Jetons de sortie par cible (plafond de l'appel). MC.6f : 230 était trop juste (la situation de MC.6b
+   * s'ajoute à une phrase de motif en français et à la citation) : sur la campagne mega-coloring.com du
+   * 18/11, 64 appels de jugement sur 81 ont échoué (« sortie tronquée ») et 256 pages lues sont restées
+   * « non_qualifie » sans aucun jugement. 360 laisse de la marge pour la note ajoutée ; ne coûte que ce qui est écrit.
+   */
+  outputTokensPerTarget: 360,
+  /** Adéquation minimale pour rester candidat (MC.6f : 0,3 au lieu de 0,5, « thème ou public voisin » reste gardé ; en dessous, aucun rapport). */
+  minFit: 0.3,
   // --- Étage 5 : contact ---
   /** Cibles dont on cherche le contact (dans l'ordre du score provisoire après LLM). */
   maxContactTargets: 150,
@@ -134,7 +136,7 @@ export function qualificationBudgetUsd(auditTargetUsd: number = AUDIT_BUDGET.tar
 }
 
 /** Prompt système + contexte du site (caractères) : borne vérifiée par un test sur le vrai prompt. */
-export const SYSTEM_CHARS = 5_600;
+export const SYSTEM_CHARS = 6_300;
 /**
  * Caractères par cible au plus (extrait, titre, description, 8 intertitres, liens du contenu, passage
  * autour de la ressource citée, lien mort annoncé, échappement JSON).

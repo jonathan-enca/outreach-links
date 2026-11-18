@@ -9,14 +9,27 @@ type Client = SupabaseClient<Database>;
  * lot : pages jugées, durée, budget de jugement (les plafonds durs de l'analyse restent contrôlés).
  */
 export const MORE_LIMITS = {
-  targetJudged: 40,
-  maxReadMs: 5 * 60_000,
+  /** MC.6f : 120 pages utilisables par lot (40 avant) : le jugement par lots attend ~3 minutes quelle que soit sa taille. */
+  targetJudged: 120,
+  maxReadMs: 9 * 60_000,
   budgetUsd: 0.15,
-  preflightMax: 150,
+  preflightMax: 300,
 } as const;
 
-/** Motifs « en stock » : jamais lus, ou lus mais pas encore jugés faute de budget. */
-export const STOCK_REASONS = ["hors_budget_lecture", "hors_budget_llm"] as const;
+/**
+ * Motifs « en stock » : jamais lus, lus mais pas encore jugés faute de budget, ou lus dont le jugement
+ * a échoué (MC.6f : « non_qualifie », 301 pages sur la campagne mega-coloring.com du 18/11, sortie du
+ * modèle tronquée). Ces dernières sont relues et rejugées par la lecture de fond.
+ */
+export const STOCK_REASONS = [
+  "hors_budget_lecture",
+  "hors_budget_llm",
+  "non_qualifie",
+  // Motifs d'avant MC.6f, qui ne sont plus rendus : ces pages sont rejugées sous la nouvelle règle.
+  "sans_angle",
+  "pas_de_contenu",
+  "page_commerciale",
+] as const;
 
 /** Nombre de sites encore en stock pour cette analyse (lecture avec les droits de l'appelant). */
 export async function countStock(supabase: Client, runId: string): Promise<number> {

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { LlmClient } from "@/lib/llm/client";
 import { presentationText } from "@/features/signature/signature";
+import { FIVE_REFUSALS, keepNear, SIGNALS } from "@/features/qualification/refusals";
 import type { CataloguePage } from "./catalogue";
 import type { CatalogueEntry } from "./shortlist";
 import { DRAFT_LIMITS } from "./limits";
@@ -37,13 +38,9 @@ Un billet ancien n'est PAS une raison de refuser : beaucoup de petits sites gard
 D'autres angles honnêtes existent ("autre") : la page cite déjà l'expéditeur sans faire de lien, ou elle donne une information périmée que notre page corrige. Ils sont plus rares : ne les retiens que si la page les montre vraiment.`;
 
 const NO_ANGLE = `Ne refuse (situation "aucune") que dans ces cinq cas :
-- le site de la cible propose lui-même la même chose que l'expéditeur : un concurrent direct ne recommandera pas son site ;
-- c'est un document juridique (mentions légales, CGU, CGV, politique de confidentialité) : on ne le fait pas modifier par un inconnu ;
-- c'est un site d'articles écrits pour vendre des liens ou pour le référencement, manifestement : sujets sans rapport entre eux sur le même site, auteur anonyme (« admin », « la rédaction »), liens vers des commerces sans rapport ;
-- c'est un très gros site (grand média, opérateur, grande enseigne, administration nationale) ou une dépêche d'agence figée : personne n'y modifiera une page pour un inconnu ;
-- la page n'a aucun rapport avec le sujet du site de l'expéditeur : ni le thème ni le public ne se recoupent.
-Dans tous les autres cas la cible est écrite. Contacter pour rien coûte presque rien ; ne pas contacter à tort fait perdre un lien. Une cible proche du contenu visé (même thème, même public, ressources voisines) est TOUJOURS rédigée : propose la page du catalogue la plus proche, même imparfaite, et dis honnêtement en quoi elle peut servir ses lecteurs. « Le catalogue n'a pas la page exacte » n'est JAMAIS un motif de refus.
-Ces points ne sont PAS des refus, mais des signaux à reporter dans "a_relire" (une phrase, pour la personne qui relira le message avant l'envoi) : la page ne cite qu'un seul lien (« lien unique »), le texte du lien existant paraît optimisé pour le référencement (« ancre optimisée »), la page ressemble à un article sponsorisé, un billet ancien, une page d'accueil, une rubrique ou une page commerciale qui garde un angle de ressources, un partenaire commercial. "a_relire" vaut null quand rien de tel ne se voit.`;
+${FIVE_REFUSALS}
+Dans tous les autres cas la cible est écrite. ${keepNear("rédigée")}
+Ces points ne sont PAS des refus, mais des signaux à reporter dans "a_relire" (une phrase, pour la personne qui relira le message avant l'envoi) : ${SIGNALS}. "a_relire" vaut null quand rien de tel ne se voit.`;
 
 const PAGE_CHOICE = `La page à proposer est celle qui a sa place à l'endroit relevé. Quand sa page liste des sites ou des ressources du même genre, c'est la page du catalogue qui correspond à ce que cette liste recommande (la rubrique, la page de thème ou l'outil voisin de ce qu'elle cite déjà), pas forcément un article. Quand le point est précis (un lien cassé, un passage), c'est la page qui traite exactement ce point. Si aucune page ne répond exactement, prends la plus proche du sujet et du public de sa page.`;
 

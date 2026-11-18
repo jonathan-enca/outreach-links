@@ -16,31 +16,30 @@ export const AUTO_EVENT = "audit/qualification.auto.requested";
  */
 export const AUTO_LIMITS = {
   /**
-   * Durée maximale de tout l'arrière-plan (depuis la fin de la première liste). 25 minutes depuis le
-   * jugement par lots (18/11/2026) : chaque lot attend sa réponse environ 3 minutes (mesuré : 183 s pour
-   * 8 requêtes, 154 s pour 5), en plus d'environ 1 min 30 de lecture.
+   * Durée maximale de tout l'arrière-plan (depuis la fin de la première liste). MC.6f : 45 minutes (25
+   * avant) pour lire TOUTE la réserve. Mesuré le 18/11 : un lot attend sa réponse 154 à 183 s (API par
+   * lots, indépendante de la taille du lot) et lit environ 55 pages par minute ; un lot de MC.6f lit
+   * jusqu'à 300 pages (5 min 30) puis attend 3 min, soit ~8,5 min pour 300 pages : 1 000 pages de réserve
+   * demandent 3 à 4 lots, environ 30 minutes, avec de la marge pour les sites lents.
    */
-  maxMs: 25 * 60_000,
+  maxMs: 45 * 60_000,
   /**
-   * Budget de jugement TOTAL de l'arrière-plan (USD), au tarif des lots. Recalé le 18/11/2026 sur les
-   * mesures pour que l'analyse COMPLÈTE reste sous 1,00 USD : première liste mesurée 0,92 USD + au plus
-   * 0,07 = 0,99. Mesuré : 0,0041 USD par requête de 5 cibles (0,0079 en appel direct), soit environ
-   * 17 requêtes, 85 pages jugées, 15 à 25 cibles ajoutées. Passer à 0,15 double à peu près le gain
-   * (environ 1,07 USD au total) : décision de produit, un seul chiffre à changer ici.
-   * Étape 3 (18/11/2026) : 0,07 → 0,08. Les économies mesurées (mentions de marque non lancées : 0,033 USD
-   * quand le nom est descriptif) ne valent que pour certains sites ; pour un nom distinctif, 0,92 + 0,08
-   * = 1,00 USD, la limite. Plus haut dépasserait 1,00 USD dans ce cas.
+   * Budget de jugement de l'arrière-plan (USD), au tarif des lots. MC.6f : le budget est celui de la
+   * CAMPAGNE (`CAMPAIGN_JUDGE_USD`, 0,50 USD au total, décision de Jonathan du 18/11/2026) moins ce que la
+   * première liste a dépensé ; ce plafond n'est qu'une borne haute de l'arrière-plan seul. Mesuré :
+   * 0,0041 USD par requête de 5 cibles : 0,30 USD = environ 70 requêtes, 350 pages jugées.
    */
-  budgetUsd: 0.08,
-  /** Un lot « rapporte peu » s'il ajoute moins de cibles que cela. */
+  budgetUsd: 0.3,
+  /** Un lot « rapporte peu » s'il ajoute moins de cibles que cela (indicateur seulement : plus d'arrêt, MC.6f). */
   minAdded: 5,
-  /** Arrêt après ce nombre de lots de suite qui rapportent peu. */
-  lowLotsInARow: 2,
   /** Sous ce reste de budget, plus de lot (un appel de jugement coûte jusqu'à environ 0,02 USD). */
   minLotBudgetUsd: 0.03,
   /** Sous ce reste de temps, plus de lot. */
   minLotMs: 60_000,
 } as const;
+
+/** Budget TOTAL de lecture et de jugement d'une campagne (première liste + arrière-plan), USD. */
+export const CAMPAIGN_JUDGE_USD = 0.5;
 
 /** Part du budget d'arrière-plan attendue dépensée (mesure du 18/11 : 0,054 USD dépensés, réserve épuisée, sur 0,07). */
 export const AUTO_EXPECTED_SHARE = 0.8;
@@ -49,8 +48,14 @@ export type AutoStop = "reserve_epuisee" | "budget" | "rendement_faible" | "dure
 
 export interface AutoState {
   lots: number;
+  /** Lots de suite qui ajoutent peu : mesuré et affiché, mais n'arrête plus rien (MC.6f). */
   lowStreak: number;
+  /** Coût de l'arrière-plan seul. */
   costUsd: number;
+  /** Coût de toute la qualification de la campagne (première liste + lots) ; absent = non contrôlé. */
+  spentTotalUsd?: number;
+  /** Le lot n'a lu aucune page : rien ne bougerait au lot suivant (garde contre une boucle sans fin). */
+  noProgress?: boolean;
   startedAtMs: number;
   nowMs: number;
   stock: number;
@@ -64,9 +69,15 @@ const r6 = (n: number) => Math.round(n * 1e6) / 1e6;
 /** Faut-il lancer un lot de plus ? (pur ; l'ordre des arrêts est celui de l'écran). */
 export function decideNext(s: AutoState): AutoDecision {
   if (s.stock <= 0) return { continue: false, stop: "reserve_epuisee" };
-  if (s.lowStreak >= AUTO_LIMITS.lowLotsInARow)
-    return { continue: false, stop: "rendement_faible" };
-  const budgetLeft = r6(AUTO_LIMITS.budgetUsd - s.costUsd);
+  // MC.6f : plus d'arrêt « rendement faible » tant que la réserve n'est pas vide. Un lot qui n'a rien lu
+  // arrête la chaîne : le suivant ne lirait rien non plus.
+  if (s.noProgress) return { continue: false, stop: "reserve_epuisee" };
+  const budgetLeft = r6(
+    Math.min(
+      AUTO_LIMITS.budgetUsd - s.costUsd,
+      s.spentTotalUsd === undefined ? Infinity : CAMPAIGN_JUDGE_USD - s.spentTotalUsd,
+    ),
+  );
   if (budgetLeft < AUTO_LIMITS.minLotBudgetUsd) return { continue: false, stop: "budget" };
   const timeLeft = AUTO_LIMITS.maxMs - (s.nowMs - s.startedAtMs);
   if (timeLeft < AUTO_LIMITS.minLotMs) return { continue: false, stop: "duree" };
@@ -147,7 +158,7 @@ export async function advanceBackground(
   service: Client,
   run: { id: string; auditId: string },
   lot: number,
-  stats: Pick<FunnelStats, "costUsd">,
+  stats: Pick<FunnelStats, "costUsd"> & { pagesRead?: number },
   added: number,
   now: Date = new Date(),
 ): Promise<AdvanceResult> {
@@ -155,7 +166,7 @@ export async function advanceBackground(
     const { data, error } = await service
       .from("qualification_runs")
       .select(
-        "auto_status, auto_started_at, auto_lots, auto_low_streak, auto_added, auto_cost_usd, auto_stop",
+        "auto_status, auto_started_at, auto_lots, auto_low_streak, auto_added, auto_cost_usd, auto_stop, actual_cost_usd",
       )
       .eq("id", run.id)
       .maybeSingle();
@@ -181,6 +192,9 @@ export async function advanceBackground(
     startedAtMs: Date.parse(row.auto_started_at),
     nowMs: now.getTime(),
     stock: await countStock(service, run.id),
+    // `actual_cost_usd` cumule déjà ce lot (finalizeMore tourne avant).
+    spentTotalUsd: Number(row.actual_cost_usd),
+    noProgress: stats.pagesRead === 0,
   });
   const base = {
     auto_lots: lot,

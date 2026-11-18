@@ -3,7 +3,7 @@ import { PLAN_LIMITS } from "@/features/audits/plans";
 import { SIZE_SPARES } from "@/features/backlinks/limits";
 import { collectionTargetUsd } from "@/features/collection/limits";
 import { findingsBudgetUsd } from "@/features/findings/limits";
-import { AUTO_EXPECTED_SHARE, AUTO_LIMITS } from "@/features/qualification/background";
+import { AUTO_EXPECTED_SHARE, CAMPAIGN_JUDGE_USD } from "@/features/qualification/background";
 import { qualificationBudgetUsd } from "@/features/qualification/limits";
 import { snowballCostUsd } from "@/features/snowball/limits";
 import { PRICING } from "@/lib/dataforseo/endpoints";
@@ -70,16 +70,17 @@ export function estimateAnalysis(discoveryUsd: number): AnalysisEstimate {
     collectionTargetUsd() * EXPECTED_SHARE.collection +
     qualificationBudgetUsd() * EXPECTED_SHARE.qualification +
     findingsBudgetUsd() * EXPECTED_SHARE.findings +
-    // Lecture de la réserve en arrière-plan : budget de jugement propre, ajouté aux plafonds durs.
-    AUTO_LIMITS.budgetUsd * AUTO_EXPECTED_SHARE +
+    // Lecture de la réserve en arrière-plan (MC.6f) : ce qui reste du budget de la campagne (0,50 USD au total).
+    Math.max(0, CAMPAIGN_JUDGE_USD - qualificationBudgetUsd() * EXPECTED_SHARE.qualification) *
+      AUTO_EXPECTED_SHARE +
     // Boule de neige (MC.6d) : jusqu'à 6 appels « qui cite cette ressource » après la première liste.
     snowballCostUsd().expectedUsd;
   const worstRest =
     fixed +
     collectionTargetUsd() +
-    qualificationBudgetUsd() +
+    // Première liste (0,40) + arrière-plan : au plus 0,50 USD en tout pour la qualification.
+    Math.max(qualificationBudgetUsd(), CAMPAIGN_JUDGE_USD) +
     findingsBudgetUsd() +
-    AUTO_LIMITS.budgetUsd +
     snowballCostUsd().worstUsd;
   return {
     discoveryUsd: r6(discoveryUsd),
