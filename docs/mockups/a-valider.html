@@ -1,0 +1,1509 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maquette « À valider »</title>
+    <style>
+      /* Jetons repris de src/app/globals.css (piste « clair et émeraude », docs/da.md). */
+      :root {
+        --background: #ffffff;
+        --foreground: #0e1a2b;
+        --card: #ffffff;
+        --muted: #f1f5f9;
+        --muted-foreground: #5b6678;
+        --border: #e3e8ef;
+        --primary: #047857;
+        --primary-foreground: #ffffff;
+        --info: #1d4f91;
+        --warning: #8a5300;
+        --success: #166534;
+        --danger: #a3301d;
+        --highlight: #fde68a;
+        --sidebar: #0b1b2e;
+        --sidebar-foreground: #c9d6e3;
+        --sidebar-border: #1c3550;
+        --sidebar-active: #12304a;
+        --sidebar-label: #6f859c;
+        --sidebar-accent: #5eead4;
+        --radius-control: 0.5rem;
+        --radius-card: 0.875rem;
+        --radius-panel: 1rem;
+        --shadow-card: 0 1px 2px rgb(14 26 43 / 0.06), 0 1px 1px rgb(14 26 43 / 0.04);
+        --shadow-float: 0 30px 60px -30px rgb(14 26 43 / 0.35);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--muted);
+        color: var(--foreground);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        font-variant-numeric: tabular-nums;
+      }
+      p,
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+      }
+      svg {
+        width: 16px;
+        height: 16px;
+        flex: none;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.75;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      /* ---------- Page de présentation de la maquette ---------- */
+      .doc {
+        max-width: 1720px;
+        margin: 0 auto;
+        padding: 32px 24px 80px;
+      }
+      .doc > header h1 {
+        font-size: 30px;
+        letter-spacing: -0.03em;
+      }
+      .doc > header p {
+        max-width: 72ch;
+        color: var(--muted-foreground);
+        font-size: 16px;
+        margin-top: 6px;
+      }
+      .toc {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 16px;
+      }
+      .toc a {
+        border: 1px solid var(--border);
+        background: var(--card);
+        border-radius: 999px;
+        padding: 4px 12px;
+        color: var(--foreground);
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 13px;
+      }
+      .state {
+        margin-top: 56px;
+      }
+      .state > h2 {
+        font-size: 22px;
+        letter-spacing: -0.02em;
+      }
+      .state > p {
+        color: var(--muted-foreground);
+        max-width: 80ch;
+        margin: 4px 0 18px;
+        font-size: 15px;
+      }
+      .frames {
+        display: flex;
+        gap: 28px;
+        align-items: flex-start;
+        overflow-x: auto;
+        padding-bottom: 36px;
+      }
+      .cap {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted-foreground);
+        margin-bottom: 8px;
+      }
+
+      /* ---------- Cadres d'écran ---------- */
+      .desk {
+        width: 1240px;
+        flex: none;
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--shadow-float);
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: 208px 1fr;
+        position: relative;
+      }
+      .phone {
+        width: 390px;
+        height: 800px;
+        flex: none;
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        box-shadow: var(--shadow-float);
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* ---------- Menu latéral et barre mobile ---------- */
+      .side {
+        background: var(--sidebar);
+        color: var(--sidebar-foreground);
+        padding: 16px 10px;
+        font-size: 13.5px;
+      }
+      .side .brand {
+        color: #fff;
+        font-weight: 600;
+        font-size: 17px;
+        padding: 2px 8px 12px;
+      }
+      .side .site {
+        border: 1px solid var(--sidebar-border);
+        border-radius: var(--radius-control);
+        padding: 7px 9px;
+        font-size: 12.5px;
+        margin-bottom: 4px;
+      }
+      .side .grp {
+        font-size: 10.5px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--sidebar-label);
+        padding: 12px 8px 4px;
+      }
+      .side .it {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 7px 8px;
+        border-radius: var(--radius-control);
+      }
+      .side .it.on {
+        background: var(--sidebar-active);
+        color: #fff;
+      }
+      .side .it.on svg {
+        color: var(--sidebar-accent);
+      }
+      .side .it span {
+        flex: 1;
+      }
+      .side .cnt {
+        background: var(--sidebar-accent);
+        color: var(--sidebar);
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 0 7px;
+      }
+      .mtop {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        font-weight: 600;
+        font-size: 16px;
+      }
+      .mnav {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        background: var(--sidebar);
+        color: var(--sidebar-foreground);
+        font-size: 10.5px;
+        padding: 7px 4px 10px;
+        margin-top: auto;
+        flex: none;
+      }
+      .mnav div {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        position: relative;
+      }
+      .mnav .on {
+        color: var(--sidebar-accent);
+        font-weight: 600;
+      }
+      .mnav .dot {
+        position: absolute;
+        top: -4px;
+        left: 54%;
+        background: var(--sidebar-accent);
+        color: var(--sidebar);
+        border-radius: 999px;
+        font-size: 9.5px;
+        font-weight: 700;
+        padding: 0 5px;
+      }
+
+      /* ---------- Composants (Button, Badge, Card de src/components/ui) ---------- */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 36px;
+        padding: 0 12px;
+        border-radius: var(--radius-control);
+        font: inherit;
+        font-size: 14px;
+        font-weight: 500;
+        white-space: nowrap;
+        border: 1px solid transparent;
+        background: none;
+        color: var(--foreground);
+      }
+      .btn.p {
+        background: var(--primary);
+        color: var(--primary-foreground);
+      }
+      .btn.o {
+        border-color: var(--border);
+        background: var(--card);
+      }
+      .btn.lg {
+        height: 44px;
+      }
+      .btn.w {
+        width: 100%;
+      }
+      .btn.dis {
+        opacity: 0.5;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--muted);
+        color: var(--muted-foreground);
+        padding: 1px 9px;
+        font-size: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .badge svg {
+        width: 12px;
+        height: 12px;
+      }
+      .badge.info {
+        border-color: rgb(29 79 145 / 0.3);
+        background: rgb(29 79 145 / 0.1);
+        color: var(--info);
+      }
+      .badge.warning {
+        border-color: rgb(138 83 0 / 0.3);
+        background: rgb(138 83 0 / 0.1);
+        color: var(--warning);
+      }
+      .badge.danger {
+        border-color: rgb(163 48 29 / 0.3);
+        background: rgb(163 48 29 / 0.1);
+        color: var(--danger);
+      }
+      .badge.success {
+        border-color: rgb(22 101 52 / 0.3);
+        background: rgb(22 101 52 / 0.1);
+        color: var(--success);
+      }
+      .card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card);
+        background: var(--card);
+        box-shadow: var(--shadow-card);
+      }
+      .hook {
+        background: linear-gradient(
+          transparent 0.12em,
+          var(--highlight) 0.12em,
+          var(--highlight) 0.92em,
+          transparent 0.92em
+        );
+      }
+      .mut {
+        color: var(--muted-foreground);
+      }
+      .lab {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted-foreground);
+        margin-bottom: 2px;
+      }
+      .lnk {
+        color: var(--primary);
+        font-weight: 600;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      /* ---------- Zone principale ---------- */
+      .main {
+        padding: 24px 28px 28px;
+        min-width: 0;
+      }
+      .phone .main {
+        padding: 14px 0 0;
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .phone .pad {
+        padding: 0 16px;
+      }
+      .eyebrow {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--primary);
+      }
+      .title {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+      }
+      .phone .title {
+        font-size: 21px;
+      }
+      .lead {
+        color: var(--muted-foreground);
+        font-size: 15px;
+      }
+      .phone .lead {
+        font-size: 13.5px;
+      }
+      .tabs {
+        display: flex;
+        gap: 4px;
+        border-bottom: 1px solid var(--border);
+        margin-top: 16px;
+        overflow: hidden;
+      }
+      .tab {
+        padding: 9px 12px;
+        font-weight: 500;
+        color: var(--muted-foreground);
+        white-space: nowrap;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .tab b {
+        font-weight: 600;
+        background: var(--muted);
+        border-radius: 999px;
+        padding: 0 7px;
+        font-size: 12px;
+      }
+      .tab.on {
+        color: var(--foreground);
+        border-bottom-color: var(--primary);
+        font-weight: 600;
+      }
+      .tab.on b {
+        background: rgb(4 120 87 / 0.1);
+        color: var(--primary);
+      }
+      .tab.sep {
+        margin-left: auto;
+      }
+      .phone .tabs {
+        padding-left: 8px;
+        margin-top: 10px;
+      }
+      .phone .tab {
+        padding: 8px 9px;
+        font-size: 13px;
+      }
+      .camps {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin: 14px 0 16px;
+      }
+      .camps .lab {
+        margin: 0 4px 0 0;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 4px 12px 4px 5px;
+        font-weight: 500;
+        background: var(--card);
+        font-size: 13px;
+      }
+      .chip.all {
+        padding-left: 12px;
+      }
+      .chip.on {
+        border-color: var(--foreground);
+        background: var(--foreground);
+        color: #fff;
+      }
+      .chip .n {
+        color: var(--muted-foreground);
+      }
+      .chip.on .n {
+        color: #c9d6e3;
+      }
+      /* Pastille de campagne : l'initiale du site, jamais la couleur seule. */
+      .av {
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        flex: none;
+      }
+      .av.a {
+        background: var(--foreground);
+        color: #fff;
+      }
+      .av.e {
+        background: var(--muted-foreground);
+        color: #fff;
+      }
+      .av.j {
+        background: var(--card);
+        color: var(--foreground);
+        border: 1.5px solid var(--foreground);
+      }
+      .msel {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-control);
+        padding: 9px 12px;
+        margin: 10px 16px;
+        font-weight: 500;
+        flex: none;
+      }
+      .msel span.g {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .cols {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 448px;
+        gap: 20px;
+        align-items: start;
+      }
+
+      /* ---------- Liste ---------- */
+      .list {
+        overflow: hidden;
+      }
+      .phone .list {
+        border: 0;
+        border-top: 1px solid var(--border);
+        border-radius: 0;
+        box-shadow: none;
+        flex: 1;
+      }
+      .gh {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 14px;
+        background: var(--muted);
+        border-bottom: 1px solid var(--border);
+        font-weight: 600;
+      }
+      .gh:not(:first-child) {
+        border-top: 1px solid var(--border);
+      }
+      .gh .sub {
+        font-weight: 400;
+        color: var(--muted-foreground);
+        font-size: 13px;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .gh .only {
+        font-weight: 500;
+        font-size: 13px;
+        color: var(--primary);
+        white-space: nowrap;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+        padding: 11px 14px;
+        border-bottom: 1px solid var(--border);
+        align-items: flex-start;
+      }
+      .row.cur {
+        background: rgb(4 120 87 / 0.06);
+        box-shadow: inset 3px 0 0 var(--primary);
+      }
+      .row.sel {
+        background: rgb(4 120 87 / 0.06);
+      }
+      .row.zz {
+        background: var(--card);
+        align-items: center;
+      }
+      .row.zz .r3 {
+        white-space: normal;
+      }
+      .cb {
+        width: 18px;
+        height: 18px;
+        border: 1.5px solid #9aa6b6;
+        border-radius: 5px;
+        flex: none;
+        margin-top: 2px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--card);
+      }
+      .cb.on,
+      .cb.mid {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: #fff;
+      }
+      .cb svg {
+        width: 12px;
+        height: 12px;
+        stroke-width: 3;
+      }
+      .rm {
+        flex: 1;
+        min-width: 0;
+      }
+      .r1 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .r1 b {
+        font-weight: 600;
+      }
+      .r1 .when {
+        margin-left: auto;
+        color: var(--muted-foreground);
+        font-size: 12.5px;
+        white-space: nowrap;
+      }
+      .r2,
+      .r3 {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .r2 {
+        margin-top: 2px;
+      }
+      .r3 {
+        color: var(--muted-foreground);
+        font-size: 13px;
+      }
+      .r3.warn {
+        color: var(--warning);
+      }
+      .r3.bad {
+        color: var(--danger);
+      }
+      .more {
+        padding: 10px 14px 10px 44px;
+        color: var(--primary);
+        font-weight: 600;
+        border-bottom: 1px solid var(--border);
+      }
+      .foot {
+        padding: 10px 14px;
+        color: var(--muted-foreground);
+        font-size: 13px;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .seltop {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 14px;
+        border-bottom: 1px solid var(--border);
+        font-weight: 500;
+      }
+      .seltop .r {
+        margin-left: auto;
+        color: var(--muted-foreground);
+        font-weight: 400;
+        font-size: 13px;
+      }
+
+      /* ---------- Panneau de lecture ---------- */
+      .pane {
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .pane .hd {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .pane .camp {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-weight: 600;
+      }
+      .pane .pos {
+        margin-left: auto;
+        color: var(--muted-foreground);
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .pane .pos .nb {
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--foreground);
+      }
+      .subj {
+        font-weight: 600;
+        font-size: 15.5px;
+      }
+      .mail {
+        background: var(--muted);
+        border-radius: var(--radius-control);
+        padding: 12px 14px;
+        white-space: pre-line;
+        font-size: 13.5px;
+        overflow-wrap: anywhere;
+      }
+      .mail .sig {
+        display: block;
+        margin-top: 10px;
+      }
+      .facts {
+        display: grid;
+        gap: 10px;
+        font-size: 13.5px;
+      }
+      .facts a {
+        color: var(--info);
+        text-decoration: underline;
+        overflow-wrap: anywhere;
+      }
+      .acts {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        border-top: 1px solid var(--border);
+        padding-top: 14px;
+      }
+      .acts .three {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        width: 100%;
+      }
+      .note {
+        border-radius: var(--radius-control);
+        padding: 10px 12px;
+        font-size: 13.5px;
+        border: 1px solid rgb(138 83 0 / 0.3);
+        background: rgb(138 83 0 / 0.06);
+      }
+      .note.ok {
+        border-color: rgb(22 101 52 / 0.3);
+        background: rgb(22 101 52 / 0.07);
+      }
+      .recap li {
+        margin: 3px 0;
+      }
+      .recap ul {
+        margin: 4px 0 0;
+        padding-left: 18px;
+      }
+
+      /* ---------- Barre d'actions groupées ---------- */
+      .bulk {
+        position: absolute;
+        left: 236px;
+        right: 28px;
+        bottom: 20px;
+        background: var(--foreground);
+        color: #fff;
+        border-radius: var(--radius-card);
+        box-shadow: var(--shadow-float);
+        padding: 12px 14px 12px 18px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .bulk .txt {
+        flex: 1;
+        min-width: 0;
+      }
+      .bulk .txt b {
+        font-size: 15px;
+      }
+      .bulk .txt span {
+        display: block;
+        color: #c9d6e3;
+        font-size: 13px;
+      }
+      .bulk .btn {
+        color: #fff;
+      }
+      .bulk .btn.o {
+        background: transparent;
+        border-color: #3b526d;
+      }
+      .bulk .btn.p {
+        background: var(--sidebar-accent);
+        color: var(--sidebar);
+        font-weight: 600;
+      }
+      .phone .bulk {
+        position: static;
+        border-radius: 16px 16px 0 0;
+        flex-direction: column;
+        align-items: stretch;
+        padding: 12px 14px;
+        flex: none;
+        box-shadow: 0 -12px 30px -12px rgb(14 26 43 / 0.5);
+      }
+      .phone .bulk .two {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .phone .bulk .hdl {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .desk.hasbulk .main {
+        padding-bottom: 104px;
+      }
+      .toast {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid rgb(22 101 52 / 0.3);
+        background: rgb(22 101 52 / 0.07);
+        border-radius: var(--radius-control);
+        padding: 9px 12px;
+        margin-bottom: 12px;
+      }
+      .toast .sp {
+        flex: 1;
+      }
+      .phone .toast {
+        margin: 10px 16px 0;
+        font-size: 13px;
+      }
+
+      /* ---------- Boîte à zéro ---------- */
+      .zero {
+        max-width: 640px;
+        margin: 28px auto 12px;
+        padding: 30px 32px;
+        text-align: center;
+      }
+      .zero .ok {
+        width: 52px;
+        height: 52px;
+        border-radius: 999px;
+        background: rgb(4 120 87 / 0.1);
+        color: var(--primary);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .zero .ok svg {
+        width: 26px;
+        height: 26px;
+        stroke-width: 2.25;
+      }
+      .zero h3 {
+        font-size: 21px;
+        letter-spacing: -0.02em;
+        margin-top: 12px;
+      }
+      .next {
+        text-align: left;
+        margin-top: 20px;
+        border-top: 1px solid var(--border);
+      }
+      .next > div {
+        display: flex;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border);
+        align-items: flex-start;
+      }
+      .next svg {
+        margin-top: 3px;
+        color: var(--muted-foreground);
+      }
+      .next p {
+        flex: 1;
+      }
+      .zero .cta {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 18px;
+      }
+      .phone .zero {
+        margin: 14px 16px;
+        padding: 22px 18px;
+        box-shadow: none;
+      }
+
+      /* ---------- Lecture sur mobile ---------- */
+      .sheet {
+        flex: 1;
+        overflow: hidden;
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .sheetbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 11px 12px;
+        border-bottom: 1px solid var(--border);
+        font-weight: 600;
+      }
+      .sheetbar .sp {
+        flex: 1;
+      }
+      .sticky {
+        border-top: 1px solid var(--border);
+        padding: 10px 14px 14px;
+        display: grid;
+        gap: 8px;
+        background: var(--card);
+        flex: none;
+      }
+      .sticky .three {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      /* ---------- Variantes (schémas) ---------- */
+      .vars {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+      }
+      .var {
+        padding: 18px;
+      }
+      .var h3 {
+        font-size: 16px;
+      }
+      .var .sk {
+        border: 1px dashed #b8c2cf;
+        border-radius: var(--radius-control);
+        padding: 10px;
+        margin: 12px 0;
+        display: grid;
+        gap: 8px;
+        background: var(--muted);
+        font-size: 12.5px;
+      }
+      .var .sk > div {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        padding: 7px 9px;
+      }
+      .var .sk .two {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        padding: 0;
+        border: 0;
+        background: none;
+      }
+      .var .sk .two > div {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        padding: 7px 9px;
+      }
+      .var ul {
+        margin: 6px 0 0;
+        padding-left: 18px;
+        color: var(--muted-foreground);
+      }
+      .reco {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 1px var(--primary);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="doc">
+      <header>
+        <p class="eyebrow">Maquette, à valider avant tout code · 18/11/2026</p>
+        <h1>
+          « À valider » : une liste par campagne, un panneau pour lire, une barre pour traiter en
+          lot
+        </h1>
+        <p>
+          Données de démonstration : trois campagnes fictives, 66 éléments en attente (4 réponses,
+          54 emails, 8 formulaires). Rien ici n'est branché : c'est une image de ce que serait
+          l'écran. La note
+          <code>a-valider.md</code>, dans le même dossier, explique les choix.
+        </p>
+        <nav class="toc" aria-label="États de la maquette">
+          <a href="#pleine">1. File pleine</a>
+          <a href="#lot">2. Sélection en lot</a>
+          <a href="#campagne">3. Filtre de campagne</a>
+          <a href="#plus-tard">4. Remis à plus tard</a>
+          <a href="#zero">5. Boîte à zéro</a>
+          <a href="#lecture">6. Lecture sur mobile</a>
+          <a href="#variantes">Variantes</a>
+        </nav>
+      </header>
+      <div id="app"></div>
+    </div>
+
+    <script>
+      // Icônes au trait (même esprit que lucide-react, 1,75 px).
+      const I = {
+        check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+        minus: '<svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg>',
+        mail: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
+        reply:
+          '<svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v4"/></svg>',
+        form: '<svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h4"/></svg>',
+        clock:
+          '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+        left: '<svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>',
+        right: '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
+        down: '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
+        home: '<svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/></svg>',
+        flag: '<svg viewBox="0 0 24 24"><path d="M5 21V4h11l-2 4 2 4H5"/></svg>',
+        chat: '<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>',
+        link: '<svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1"/><path d="M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"/></svg>',
+        gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>',
+        send: '<svg viewBox="0 0 24 24"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/></svg>',
+      };
+
+      const CAMP = {
+        a: {
+          name: "atelier-coloriage.fr",
+          n: 41,
+          sub: "2 réponses · 34 emails · 5 formulaires",
+          L: "A",
+        },
+        e: {
+          name: "effacer-mes-donnees.fr",
+          n: 19,
+          sub: "2 réponses · 15 emails · 2 formulaires",
+          L: "E",
+        },
+        j: { name: "jardin-des-petits.fr", n: 6, sub: "5 emails · 1 formulaire", L: "J" },
+      };
+      const KIND = {
+        reply: ["warning", "Réponse", I.reply],
+        email: ["info", "Email", I.mail],
+        form: ["", "Formulaire", I.form],
+      };
+      // k = nature, d = site contacté, s = objet ou extrait, h = pourquoi ce site, w = repère de temps.
+      const ROWS = [
+        {
+          id: "a1",
+          c: "a",
+          k: "reply",
+          d: "lesptitsloupsdecp.fr",
+          s: "« Avec plaisir, je l'ajoute cette semaine. Auriez-vous une image à me fournir ? »",
+          h: "Réponse proposée : merci, et l'image en pièce jointe.",
+          w: "Reçue hier, 17 h 42",
+        },
+        {
+          id: "a2",
+          c: "a",
+          k: "reply",
+          d: "mairie-saint-aubin.fr",
+          s: "« Nous ne référençons que les associations de la commune, désolé. »",
+          h: "Réponse proposée : un mot de remerciement, sans insister.",
+          w: "Reçue lundi",
+        },
+        {
+          id: "a3",
+          c: "a",
+          k: "email",
+          d: "blog-maitresse-claire.fr",
+          s: "Une ressource pour votre page « Coloriages d'automne »",
+          h: "Sa page liste déjà 12 sites de coloriages gratuits.",
+        },
+        {
+          id: "a4",
+          c: "a",
+          k: "email",
+          d: "assistante-maternelle-vannes.fr",
+          s: "Un lien de votre page « Activités calmes » ne fonctionne plus",
+          h: "Lien mort repéré vers un site de coloriages fermé.",
+        },
+        {
+          id: "a5",
+          c: "a",
+          k: "email",
+          d: "ludotheque-du-lac.org",
+          s: "Pour votre sélection « Sites pour occuper les enfants »",
+          h: "À relire : la page date de 2019, elle n'est peut-être plus tenue à jour.",
+          f: "warn",
+        },
+        {
+          id: "a6",
+          c: "a",
+          k: "email",
+          d: "ecole-des-tilleuls.fr",
+          s: "Des coloriages de saison pour votre rubrique « Ressources »",
+          h: "À corriger : l'adresse de la page proposée ne répond pas.",
+          f: "bad",
+        },
+        {
+          id: "a7",
+          c: "a",
+          k: "form",
+          d: "centre-loisirs-bellevue.fr",
+          s: "Message à coller dans leur formulaire",
+          h: "Ce site n'a pas d'adresse email : à envoyer vous-même.",
+        },
+        {
+          id: "e1",
+          c: "e",
+          k: "reply",
+          d: "numerique-senior.org",
+          s: "« Pouvez-vous m'en dire plus sur qui tient ce site ? »",
+          h: "Réponse proposée : qui vous êtes, en trois lignes.",
+          w: "Reçue ce matin",
+        },
+        {
+          id: "e2",
+          c: "e",
+          k: "email",
+          d: "blog-vie-privee.fr",
+          s: "Pour votre guide « Reprendre la main sur ses données »",
+          h: "Son guide cite quatre outils comparables au vôtre.",
+        },
+        {
+          id: "e3",
+          c: "e",
+          k: "email",
+          d: "asso-parents-connectes.fr",
+          s: "Une fiche pratique pour votre page « Liens utiles »",
+          h: "Page de ressources tenue à jour (modifiée en octobre).",
+        },
+        {
+          id: "j1",
+          c: "j",
+          k: "email",
+          d: "potager-ecole.fr",
+          s: "Un calendrier des semis pour votre page « Outils »",
+          h: "Sa page recommande déjà trois calendriers de jardinage.",
+        },
+        {
+          id: "j2",
+          c: "j",
+          k: "form",
+          d: "jardins-partages-nantes.org",
+          s: "Message à coller dans leur formulaire",
+          h: "Ce site n'a pas d'adresse email : à envoyer vous-même.",
+        },
+      ];
+      const SNOOZED = [
+        {
+          c: "a",
+          k: "email",
+          d: "blog-maitresse-claire.fr",
+          s: "Une ressource pour votre page « Coloriages d'automne »",
+          w: "Revient demain vers 14&nbsp;h&nbsp;30",
+          fresh: 1,
+        },
+        {
+          c: "a",
+          k: "email",
+          d: "creche-les-lutins.fr",
+          s: "Pour votre page « Idées d'activités »",
+          w: "Revient demain vers 9&nbsp;h&nbsp;10",
+        },
+        {
+          c: "a",
+          k: "form",
+          d: "relais-petite-enfance-albi.fr",
+          s: "Message à coller dans leur formulaire",
+          w: "Revient demain vers 9&nbsp;h&nbsp;10",
+        },
+        {
+          c: "e",
+          k: "reply",
+          d: "club-informatique-dole.fr",
+          s: "« Nous en reparlons après notre réunion de jeudi. »",
+          w: "Revient demain vers 9&nbsp;h&nbsp;15",
+        },
+        {
+          c: "e",
+          k: "email",
+          d: "mediatheque-val-de-saone.fr",
+          s: "Pour votre page « Ateliers numériques »",
+          w: "Revient demain vers 11&nbsp;h&nbsp;00",
+        },
+        {
+          c: "j",
+          k: "email",
+          d: "amap-des-coteaux.fr",
+          s: "Un calendrier des semis pour vos adhérents",
+          w: "Revient demain vers 11&nbsp;h&nbsp;00",
+        },
+      ];
+
+      const av = (c) => `<span class="av ${c}" aria-hidden="true">${CAMP[c].L}</span>`;
+      const badge = (k) => `<span class="badge ${KIND[k][0]}">${KIND[k][2]}${KIND[k][1]}</span>`;
+      const cb = (s) =>
+        `<span class="cb ${s || ""}">${s === "on" ? I.check : s === "mid" ? I.minus : ""}</span>`;
+
+      function row(r, o) {
+        const sel = o.sel && o.sel.includes(r.id);
+        return `<div class="row ${o.cur === r.id ? "cur" : ""} ${sel ? "sel" : ""}">
+          ${cb(sel ? "on" : "")}
+          <div class="rm">
+            <div class="r1">${badge(r.k)}<b>${r.d}</b>${r.w && !o.phone ? `<span class="when">${r.w}</span>` : ""}</div>
+            <div class="r2">${r.s}</div>
+            <div class="r3 ${r.f || ""}">${r.h}</div>
+          </div>
+        </div>`;
+      }
+
+      function group(c, o) {
+        const rows = ROWS.filter((r) => r.c === c);
+        const picked = o.sel ? rows.filter((r) => o.sel.includes(r.id)).length : 0;
+        const rest = CAMP[c].n - rows.length;
+        const head = o.camp
+          ? ""
+          : `<div class="gh">${cb(picked ? "mid" : "")}${av(c)}<span>${CAMP[c].name}</span>
+              <span class="sub">${CAMP[c].n} à valider</span>
+              ${o.phone ? "" : '<span class="only">Ne voir que cette campagne</span>'}</div>`;
+        return `${head}${rows.map((r) => row(r, o)).join("")}<div class="more">Afficher les ${rest} autres</div>`;
+      }
+
+      function tabs(o) {
+        const n = o.counts;
+        const t = (id, label, v) =>
+          `<div class="tab ${o.tab === id ? "on" : ""}">${label} <b>${v}</b></div>`;
+        return `<div class="tabs" role="tablist" aria-label="Filtrer par nature">
+          ${t("all", "Tout", n[0])}${t("rep", "Réponses", n[1])}${t("mail", o.phone ? "Emails" : "Emails à envoyer", n[2])}${t("form", o.phone ? "Formulaires" : "Formulaires à remplir", n[3])}
+          ${o.phone ? "" : `<div class="tab sep ${o.tab === "later" ? "on" : ""}">${I.clock}Plus tard <b>${n[4]}</b></div>`}
+        </div>`;
+      }
+
+      function camps(o) {
+        if (o.phone)
+          return `<div class="msel">${o.camp ? av(o.camp) : ""}<span class="g">${
+            o.camp ? CAMP[o.camp].name + " (" + CAMP[o.camp].n + ")" : "Toutes les campagnes (3)"
+          }</span>${o.camp ? '<span class="lnk" style="font-size:13px">Tout voir</span>' : I.down}</div>`;
+        const chip = (c) =>
+          `<span class="chip ${o.camp === c ? "on" : ""}">${av(c)}${CAMP[c].name} <span class="n">${CAMP[c].n}</span></span>`;
+        return `<div class="camps" role="group" aria-label="Filtrer par campagne"><span class="lab">Campagne</span>
+          <span class="chip all ${o.camp ? "" : "on"}">Toutes <span class="n">${o.allCount || 66}</span></span>${chip("a")}${chip("e")}${chip("j")}</div>`;
+      }
+
+      const MAIL = `Bonjour Claire,
+
+Je vous écris au sujet de votre page « Coloriages d'automne pour la classe », où vous recommandez plusieurs sites de coloriages gratuits à imprimer.
+
+Nous venons de publier une série de 24 coloriages de feuilles et de champignons, gratuits et sans inscription :
+https://atelier-coloriage.fr/coloriages/automne
+
+Si elle vous semble utile à vos lecteurs, elle aurait sa place dans votre liste.
+
+Bonne journée,<span class="sig"><b>Julien Morel</b>
+Atelier Coloriage
+atelier-coloriage.fr</span>`;
+
+      const FACTS = `<div class="facts">
+          <div><p class="lab">Pourquoi ce site</p><p><span class="hook">« Voici les sites où je trouve mes coloriages gratuits à imprimer »</span>, lu sur <a>blog-maitresse-claire.fr/coloriages-automne</a></p></div>
+          <div><p class="lab">Page proposée</p><p><a>atelier-coloriage.fr/coloriages/automne</a> · en ligne, vérifiée ce matin</p></div>
+          <div><p class="lab">Si vous approuvez</p><p>Départ prévu demain jeudi, entre 9 h et 10 h, depuis votre boîte. Une seule relance dix jours après, sans réponse.</p></div>
+        </div>`;
+
+      function pane() {
+        return `<div class="card pane">
+          <div class="hd"><span class="camp">${av("a")}atelier-coloriage.fr</span>${badge("email")}
+            <span class="pos">3 sur 66 <span class="nb" aria-label="Précédent">${I.left}</span><span class="nb" aria-label="Suivant">${I.right}</span></span></div>
+          <p class="mut">À : claire@blog-maitresse-claire.fr</p>
+          <p class="subj">Une ressource pour votre page « Coloriages d'automne »</p>
+          <div class="mail">${MAIL}</div>
+          ${FACTS}
+          <div class="acts"><span class="btn p w lg">${I.send}Approuver et envoyer</span><div class="three"><span class="btn o">Modifier</span><span class="btn o">Refuser</span><span class="btn o">Plus tard</span></div></div>
+          <p class="mut" style="font-size:12.5px">Après chaque décision, le suivant s'ouvre tout seul.</p>
+        </div>`;
+      }
+
+      function paneBulk() {
+        return `<div class="card pane recap">
+          <p class="subj">6 éléments sélectionnés</p>
+          <div class="note"><b>Votre sélection touche 2 campagnes.</b>
+            <ul><li>${CAMP.a.name} : 5</li><li>${CAMP.e.name} : 1</li></ul></div>
+          <div><p class="lab">Si vous approuvez</p>
+            <p><b>4 emails partent</b> de votre boîte, au rythme prévu (10 par heure au plus). Premier départ demain jeudi à 9 h.</p></div>
+          <div><p class="lab">Ce qui ne part pas</p>
+            <ul><li><b>1 email à corriger</b> (ecole-des-tilleuls.fr) : il reste dans la file.</li>
+            <li><b>1 formulaire</b> (centre-loisirs-bellevue.fr) : à envoyer vous-même, il reste dans la file.</li></ul></div>
+          <div><p class="lab">Si vous refusez</p><p>Les 5 emails sont écartés, rien n'est envoyé. Vous les retrouvez dans les cibles écartées.</p></div>
+          <div><p class="lab">Si vous remettez à plus tard</p><p>Les 6 éléments quittent la file et reviennent demain.</p></div>
+        </div>`;
+      }
+
+      function paneLater() {
+        return `<div class="card pane">
+          <p class="subj">« Plus tard », comment ça marche</p>
+          <p>Un élément remis à plus tard quitte la file et le compteur du menu pendant 24 heures, puis il revient tout seul à sa place.</p>
+          <p>Entre-temps, <b>rien n'est envoyé</b> et rien n'est perdu. Vous pouvez le remettre dans la file à tout moment.</p>
+          <p class="mut">Pour ne plus jamais voir un élément, utilisez « Refuser » : il part dans les cibles écartées.</p>
+        </div>`;
+      }
+
+      function bulk(phone) {
+        if (phone)
+          return `<div class="bulk"><div class="hdl"><b>6 sélectionnés · 2 campagnes</b><span style="color:#c9d6e3;font-size:13px">Annuler</span></div>
+            <span class="btn p lg">${I.send}Approuver et envoyer (4)</span>
+            <div class="two"><span class="btn o lg">Refuser (5)</span><span class="btn o lg">Plus tard (6)</span></div></div>`;
+        return `<div class="bulk"><div class="txt"><b>6 sélectionnés</b><span>${CAMP.a.name} (5) · ${CAMP.e.name} (1)</span></div>
+          <span class="btn">Annuler</span><span class="btn o">Plus tard (6)</span><span class="btn o">Refuser (5)</span><span class="btn p">${I.send}Approuver et envoyer (4)</span></div>`;
+      }
+
+      function laterList(phone) {
+        const rows = SNOOZED.map(
+          (r) => `<div class="row zz"><div class="rm">
+            <div class="r1">${av(r.c)}<b>${r.d}</b>${badge(r.k)}${r.fresh ? '<span class="badge success">À l\'instant</span>' : ""}</div>
+            <div class="r2">${r.s}</div>
+            <div class="r3">${CAMP[r.c].name} · ${r.w}</div></div>
+            ${phone ? "" : '<span class="btn o">Remettre dans la file</span>'}</div>`,
+        ).join("");
+        return `<div class="card list"><div class="seltop"><span>6 éléments remis à plus tard</span><span class="r lnk">Tout remettre dans la file</span></div>${rows}
+          <div class="foot"><span>Ils reviennent seuls, dans l'ordre indiqué.</span></div></div>`;
+      }
+
+      function zero(phone) {
+        return `<div class="card zero">
+          <span class="ok">${I.check}</span>
+          <h3>Tout est traité</h3>
+          <p class="mut">Rien n'attend votre accord. Voici ce qui se passe maintenant, sans vous.</p>
+          <div class="next">
+            <div>${I.send}<p><b>38 emails approuvés</b> partent de votre boîte, 10 par heure au plus, du lundi au vendredi de 9 h à 18 h. Dernier départ prévu vendredi vers 11 h.</p></div>
+            <div>${I.clock}<p><b>6 éléments remis à plus tard</b> reviennent ici demain. <span class="lnk">Les traiter maintenant</span></p></div>
+            <div>${I.chat}<p>Les réponses arrivent dans <b>Conversations</b>. Celles qui demandent votre accord reviennent ici, et vous êtes prévenu par email.</p></div>
+          </div>
+          <div class="cta"><span class="btn p ${phone ? "w lg" : ""}">Voir les envois prévus</span><span class="btn o ${phone ? "w lg" : ""}">Trouver d'autres cibles</span></div>
+        </div>
+        <p class="mut" style="text-align:center;font-size:13px;${phone ? "padding:0 16px" : ""}">7 cibles écartées par la rédaction · <span class="lnk">Voir et rédiger quand même</span></p>`;
+      }
+
+      function side(n) {
+        const it = (ic, l, on, c) =>
+          `<div class="it ${on ? "on" : ""}">${ic}<span>${l}</span>${c ? `<b class="cnt">${c}</b>` : ""}</div>`;
+        return `<div class="side"><div class="brand">Autolink.ai</div><div class="site">Voir tous vos sites</div>
+          ${it(I.home, "Accueil")}<div class="grp">Prospection</div>${it(I.flag, "Campagnes")}
+          <div class="grp">Messagerie</div>${it(I.check, "À valider", 1, n)}${it(I.chat, "Conversations")}
+          <div class="grp">Résultats</div>${it(I.link, "Liens obtenus")}
+          <div class="grp">Réglages</div>${it(I.mail, "Boîte d'envoi")}${it(I.gear, "Vos messages")}</div>`;
+      }
+      const mnav = (
+        n,
+      ) => `<div class="mnav"><div>${I.home}Accueil</div><div>${I.flag}Campagnes</div>
+        <div class="on">${I.check}À valider${n ? `<b class="dot">${n}</b>` : ""}</div><div>${I.chat}Échanges</div><div>${I.gear}Réglages</div></div>`;
+
+      function head(o) {
+        return `<div class="${o.phone ? "pad" : ""}"><p class="eyebrow">Messagerie</p><h1 class="title">À valider</h1><p class="lead">${o.lead}</p></div>`;
+      }
+
+      function screen(o) {
+        const lead = o.lead;
+        const listAll = `<div class="card list">
+            <div class="seltop">${cb(o.sel ? "mid" : "")}<span>${o.sel ? "6 sélectionnés" : "Tout sélectionner (" + (o.camp ? CAMP[o.camp].n : 66) + ")"}</span><span class="r">Les réponses d'abord : quelqu'un attend.</span></div>
+            ${o.camp ? group(o.camp, o) : ["a", "e", "j"].map((c) => group(c, o)).join("")}
+          </div>`;
+        const toast = o.toast
+          ? `<div class="toast" role="status">${I.clock}<span><b>blog-maitresse-claire.fr</b> est remis à demain.</span><span class="sp"></span><span class="lnk">Annuler</span></div>`
+          : "";
+        const only = o.camp
+          ? `<div class="toast" style="border-color:var(--border);background:var(--muted)">${av(o.camp)}<span>Vous ne voyez que <b>${CAMP[o.camp].name}</b> : sélection et actions ne touchent que cette campagne.</span><span class="sp"></span><span class="lnk" style="white-space:nowrap">Tout voir</span></div>`
+          : "";
+        if (o.phone) {
+          const p = { ...o, phone: 1, cur: null };
+          const laterLink = `<span class="r lnk" style="display:inline-flex;gap:5px;align-items:center">${I.clock}Plus tard (${o.counts ? o.counts[4] : 0})</span>`;
+          let body;
+          if (o.zero) body = zero(1);
+          else if (o.tab === "later")
+            body =
+              toast +
+              `<div style="margin-top:10px;flex:1;overflow:hidden">${laterList(1).replace('class="card list"', 'class="card list" style="border-left:0;border-right:0"')}</div>`;
+          else
+            body = `${camps(p)}<div class="list card">
+              <div class="seltop">${cb(o.sel ? "mid" : "")}<span>${o.sel ? "6 sélectionnés" : "Tout sélectionner (" + (o.camp ? CAMP[o.camp].n : 66) + ")"}</span>${laterLink}</div>
+              ${o.camp ? group(o.camp, p) : ["a", "e"].map((c) => group(c, p)).join("")}</div>`;
+          return `<div class="phone"><div class="mtop"><span>Autolink.ai</span></div>
+            <div class="main">${head({ phone: 1, lead: o.mlead || lead })}${o.zero ? "" : o.tab === "later" ? `<div class="sheetbar" style="margin-top:10px;border-top:1px solid var(--border)">${I.left}<span>Retour à la file</span><span class="sp"></span><span class="mut" style="font-weight:400">Plus tard (6)</span></div>` : tabs(p)}${body}</div>
+            ${o.sel ? bulk(1) : ""}${mnav(o.badge)}</div>`;
+        }
+        let body;
+        if (o.zero) body = zero();
+        else if (o.tab === "later")
+          body = `<div class="cols" style="margin-top:16px"><div>${toast}${laterList()}</div>${paneLater()}</div>`;
+        else
+          body = `${camps(o)}<div class="cols"><div>${only}${listAll}</div>${o.sel ? paneBulk() : pane()}</div>`;
+        return `<div class="desk ${o.sel ? "hasbulk" : ""}">${side(o.badge)}<div class="main">${head({ lead })}${o.zero ? "" : tabs(o)}${body}</div>${o.sel ? bulk() : ""}</div>`;
+      }
+
+      function reading() {
+        return `<div class="phone"><div class="sheetbar">${I.left}<span>Retour</span><span class="sp"></span><span class="mut" style="font-weight:400">3 sur 66</span>${I.left}${I.right}</div>
+          <div class="sheet">
+            <div class="pane" style="padding:0;gap:8px"><div class="hd"><span class="camp">${av("a")}atelier-coloriage.fr</span>${badge("email")}</div>
+            <p class="mut" style="font-size:13px">À : claire@blog-maitresse-claire.fr</p>
+            <p class="subj">Une ressource pour votre page « Coloriages d'automne »</p></div>
+            <div class="mail" style="font-size:13px">${MAIL}</div>
+            ${FACTS}
+          </div>
+          <div class="sticky"><span class="btn p lg w">${I.send}Approuver et envoyer</span>
+            <div class="three"><span class="btn o lg">Modifier</span><span class="btn o lg">Refuser</span><span class="btn o lg">Plus tard</span></div></div></div>`;
+      }
+
+      const FULL = [66, 4, 54, 8, 5];
+      const STATES = [
+        {
+          id: "pleine",
+          t: "1. File pleine",
+          p: "66 éléments, rangés par campagne. Une ligne par élément (qui, quoi, pourquoi) ; le message complet se lit à droite, avec ses boutons. Sur mobile, toucher une ligne ouvre le message en plein écran (état 6).",
+          o: {
+            tab: "all",
+            counts: FULL,
+            cur: "a3",
+            badge: 66,
+            lead: "66 éléments attendent votre accord, dans 3 campagnes. Rien n'est envoyé sans vous.",
+            mlead: "66 éléments, dans 3 campagnes. Rien n'est envoyé sans vous.",
+          },
+        },
+        {
+          id: "lot",
+          t: "2. Sélection en lot",
+          p: "Dès qu'une case est cochée, une barre reste collée en bas de l'écran. Chaque bouton dit sur combien d'éléments il agit. Le panneau de droite explique ce qui va se passer et prévient si la sélection touche plusieurs campagnes.",
+          o: {
+            tab: "all",
+            counts: FULL,
+            sel: ["a3", "a4", "a5", "a6", "a7", "e2"],
+            badge: 66,
+            lead: "66 éléments attendent votre accord, dans 3 campagnes. Rien n'est envoyé sans vous.",
+            mlead: "66 éléments, dans 3 campagnes. Rien n'est envoyé sans vous.",
+          },
+        },
+        {
+          id: "campagne",
+          t: "3. Filtre de campagne",
+          p: "Une campagne choisie : les compteurs, « Tout sélectionner » et les actions ne concernent plus qu'elle. Un bandeau le rappelle tant que le filtre est actif. Sur mobile, le choix se fait dans un menu.",
+          o: {
+            tab: "all",
+            counts: [41, 2, 34, 5, 3],
+            camp: "a",
+            cur: "a3",
+            badge: 66,
+            lead: "41 éléments attendent votre accord dans cette campagne, 66 en tout.",
+            mlead: "41 éléments dans cette campagne, 66 en tout.",
+          },
+        },
+        {
+          id: "plus-tard",
+          t: "4. Élément remis à plus tard",
+          p: "« Plus tard » devient un onglet à part : on voit ce qui a été mis de côté, de quelle campagne, et quand chaque élément revient. Un message confirme l'action et permet de l'annuler.",
+          o: {
+            tab: "later",
+            counts: [65, 4, 53, 8, 6],
+            toast: 1,
+            badge: 65,
+            lead: "65 éléments attendent votre accord, dans 3 campagnes. Rien n'est envoyé sans vous.",
+            mlead: "65 éléments, dans 3 campagnes.",
+          },
+        },
+        {
+          id: "zero",
+          t: "5. File vide, « boîte à zéro »",
+          p: "Plus rien à valider : l'écran dit ce qui se passe maintenant sans l'utilisateur (envois prévus, éléments qui reviendront, réponses à venir) et propose la suite.",
+          o: {
+            zero: 1,
+            badge: 0,
+            lead: "Tout ce qui attend votre accord avant de partir. Rien n'est envoyé sans vous.",
+          },
+        },
+      ];
+
+      const app = document.getElementById("app");
+      app.innerHTML =
+        STATES.map(
+          (s) => `<section class="state" id="${s.id}"><h2>${s.t}</h2><p>${s.p}</p>
+            <div class="frames"><div><p class="cap">Ordinateur</p>${screen(s.o)}</div><div><p class="cap">Mobile</p>${screen({ ...s.o, phone: 1 })}</div></div></section>`,
+        ).join("") +
+        `<section class="state" id="lecture"><h2>6. Lecture d'un message sur mobile</h2>
+          <p>Le message en plein écran, les boutons collés en bas sous le pouce. Après chaque décision, le suivant s'affiche : on traite la file un par un, sans revenir à la liste.</p>
+          <div class="frames"><div><p class="cap">Mobile</p>${reading()}</div></div></section>
+        <section class="state" id="variantes"><h2>Variantes</h2>
+          <p>Trois façons d'organiser le même écran. Les états ci-dessus montrent la variante A.</p>
+          <div class="vars">
+            <div class="card var reco"><span class="badge success">Recommandée</span><h3 style="margin-top:8px">A. Liste par campagne et panneau de lecture</h3>
+              <div class="sk"><div>Onglets par nature · choix de campagne</div><div class="two"><div>Liste compacte<br>rangée par campagne</div><div>Message complet<br>et boutons</div></div><div>Barre d'actions en lot (en bas)</div></div>
+              <ul><li>66 éléments visibles d'un coup d'œil, campagne toujours nommée.</li><li>Lot et lecture un par un cohabitent.</li><li>Le plus de travail de code.</li></ul></div>
+            <div class="card var"><h3>B. Cartes complètes, comme aujourd'hui, mieux rangées</h3>
+              <div class="sk"><div>Onglets par nature · choix de campagne</div><div>Titre de campagne</div><div>Carte : message entier et boutons</div><div>Carte : message entier et boutons</div><div>Barre d'actions en lot (en bas)</div></div>
+              <ul><li>Peu de changements, rapide à livrer.</li><li>Reste très long à faire défiler : 66 cartes entières.</li><li>On coche sans vue d'ensemble.</li></ul></div>
+            <div class="card var"><h3>C. Un par un, plein écran</h3>
+              <div class="sk"><div>Campagne · 3 sur 66</div><div style="min-height:74px">Un seul message, en grand</div><div class="two"><div>Refuser · Plus tard</div><div>Approuver et suivant</div></div></div>
+              <ul><li>Très confortable pour tout relire, idéal sur mobile.</li><li>Pas de traitement en lot ni de vue d'ensemble.</li><li>Déjà contenu dans A : c'est sa lecture sur mobile.</li></ul></div>
+          </div></section>`;
+    </script>
+  </body>
+</html>

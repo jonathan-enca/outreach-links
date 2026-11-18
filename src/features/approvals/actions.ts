@@ -86,8 +86,9 @@ export async function snoozeAction(ids: string[]): Promise<AuditActionState> {
   return r;
 }
 
-export async function wakeSnoozedAction(): Promise<AuditActionState> {
-  const r = await wakeSnoozed(await createClient(), createServiceClient);
+/** Remet dans la file tout ce qui est « à plus tard », ou seulement les éléments nommés. */
+export async function wakeSnoozedAction(ids?: string[]): Promise<AuditActionState> {
+  const r = await wakeSnoozed(await createClient(), createServiceClient, ids);
   refresh();
   return r;
 }

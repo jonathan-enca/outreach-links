@@ -12,6 +12,7 @@ import type { AuditActionState } from "@/features/audits/service";
 import { lintMessage } from "@/features/drafting/lint";
 import { completeTask } from "@/features/tasks/service";
 import { missingDrafts } from "@/features/drafting/service";
+import { formatSendTime } from "@/features/sending/queue-note";
 import type { LintIssue } from "@/features/drafting/types";
 import { t } from "@/lib/messages";
 import type { Database } from "@/lib/supabase/database.types";
@@ -96,6 +97,23 @@ export interface PendingForm {
   planId: string;
 }
 
+/** Un élément remis à plus tard : de quoi le reconnaître, sa campagne et quand il revient. */
+export interface SnoozedItem {
+  id: string;
+  nature: "reponses" | "messages" | "formulaires";
+  /** Site contacté, ou adresse du correspondant pour une réponse. */
+  title: string;
+  line: string;
+  planId: string;
+  campaign: string;
+  until: string;
+  /** Moment du retour, en clair (« jeudi 19 novembre vers 14 h 30 »). */
+  returns: string;
+}
+
+/** Fuseau d'affichage des retours de « Plus tard » : le produit est français d'abord. */
+const DISPLAY_TIMEZONE = "Europe/Paris";
+
 export interface QueueView {
   /** Campagnes présentes dans la file (une par plan), pour filtrer et ne rien mélanger. */
   campaigns: { id: string; label: string }[];
@@ -105,6 +123,9 @@ export interface QueueView {
   hasMailbox: boolean;
   /** Éléments remis à plus tard (hors de la file et du compteur jusqu'à leur date). */
   snoozed: number;
+  later: SnoozedItem[];
+  /** Un message a déjà été approuvé un jour : une file vide veut alors dire « tout est traité ». */
+  handled: boolean;
   /** Cibles validées sans message (plafond de rédaction atteint), et rédaction en cours. */
   missing: number;
   drafting: boolean;
@@ -135,7 +156,7 @@ export const SNOOZE_HOURS = 24;
 
 /** Tout ce qui attend l'accord de la personne, toutes campagnes confondues (RLS). */
 export async function loadQueue(supabase: Client, now: Date = new Date()): Promise<QueueView> {
-  const [drafts, replyDrafts, tasks, boxes, missing, declines] = await Promise.all([
+  const [drafts, replyDrafts, tasks, boxes, missing, declines, handled] = await Promise.all([
     supabase
       .from("target_drafts")
       .select(
@@ -164,6 +185,10 @@ export async function loadQueue(supabase: Client, now: Date = new Date()): Promi
       .select("plan_item_id, reason, page_url, created_at, link_plan_items(source_domain)")
       .order("created_at", { ascending: false })
       .limit(200),
+    supabase
+      .from("target_drafts")
+      .select("id", { count: "exact", head: true })
+      .neq("status", "brouillon"),
   ]);
   // Les formulaires ne passent pas par l'approbation : ils vont directement dans « Formulaires à remplir ».
   const d = (drafts.data ?? []).filter((x) => x.channel === "email");
@@ -332,6 +357,34 @@ export async function loadQueue(supabase: Client, now: Date = new Date()): Promi
     })
     .filter((x): x is PendingForm => x !== null);
   const due = (x: { snoozedUntil: string | null }) => !isSnoozed(x.snoozedUntil, now);
+  const snoozedItem = (
+    x: { id: string; planId: string; campaign: string; snoozedUntil: string | null },
+    nature: SnoozedItem["nature"],
+    title: string,
+    line: string,
+  ): SnoozedItem => ({
+    id: x.id,
+    nature,
+    title,
+    line,
+    planId: x.planId,
+    campaign: x.campaign,
+    until: x.snoozedUntil ?? "",
+    returns: x.snoozedUntil
+      ? formatSendTime(new Date(x.snoozedUntil), DISPLAY_TIMEZONE, false)
+      : "",
+  });
+  const later: SnoozedItem[] = [
+    ...allReplies
+      .filter((x) => !due(x))
+      .map((x) => snoozedItem(x, "reponses", x.to ?? "", x.theirs ? `« ${x.theirs} »` : "")),
+    ...messages
+      .filter((x) => !due(x))
+      .map((x) => snoozedItem(x, "messages", x.domain, x.subject ?? "")),
+    ...allForms
+      .filter((x) => !due(x))
+      .map((x) => snoozedItem(x, "formulaires", x.domain, t.toValidate.formSubject)),
+  ].sort((a, b) => a.until.localeCompare(b.until));
   const seen = new Map<string, string>();
   for (const x of [...messages, ...allReplies, ...allForms])
     if (x.planId && !seen.has(x.planId)) seen.set(x.planId, campaignMap.get(x.planId) ?? "");
@@ -342,9 +395,9 @@ export async function loadQueue(supabase: Client, now: Date = new Date()): Promi
     messages: messages.filter(due),
     replies: allReplies.filter(due),
     forms: allForms.filter(due),
-    snoozed:
-      [...messages, ...allReplies, ...allForms].length -
-      [...messages.filter(due), ...allReplies.filter(due), ...allForms.filter(due)].length,
+    snoozed: later.length,
+    later,
+    handled: (handled.count ?? 0) > 0,
     hasMailbox: (boxes.count ?? 0) > 0,
     missing: missing.total,
     drafting: missing.running,
@@ -623,13 +676,17 @@ export async function snoozeItems(
   return { status: "ok", message: M.snoozed(draftIds.length + replyIds.length) };
 }
 
-/** Remet dans la file tout ce qui avait été mis à plus tard. */
+/** Remet dans la file ce qui avait été mis à plus tard : tout, ou seulement les éléments nommés. */
 export async function wakeSnoozed(
   supabase: Client,
   getServiceClient: () => Client,
+  onlyIds?: readonly string[],
 ): Promise<AuditActionState> {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { status: "error", message: M.unauthenticated };
+  const only = onlyIds ? new Set(onlyIds) : null;
+  if (only && only.size === 0) return { status: "error", message: M.nothing };
+  // Lecture avec les droits de la personne : elle ne réveille que ce qu'elle voit.
   const [d, r] = await Promise.all([
     supabase
       .from("target_drafts")
@@ -642,8 +699,11 @@ export async function wakeSnoozed(
       .eq("status", "brouillon")
       .not("snoozed_until", "is", null),
   ]);
-  const draftIds = (d.data ?? []).map((x) => x.id);
-  const replyIds = (r.data ?? []).map((x) => x.id);
+  const wanted = (x: { id: string }) => !only || only.has(x.id);
+  const draftIds = (d.data ?? []).filter(wanted).map((x) => x.id);
+  const replyIds = (r.data ?? []).filter(wanted).map((x) => x.id);
+  if (only && draftIds.length + replyIds.length === 0)
+    return { status: "error", message: M.notFound };
   let service: Client;
   try {
     service = getServiceClient();
@@ -659,7 +719,10 @@ export async function wakeSnoozed(
       : { error: null },
   ]);
   if (a.error || b.error) return { status: "error", message: M.saveError };
-  return { status: "ok", message: M.woken };
+  return {
+    status: "ok",
+    message: only ? M.wokenSome(draftIds.length + replyIds.length) : M.woken,
+  };
 }
 
 /**
