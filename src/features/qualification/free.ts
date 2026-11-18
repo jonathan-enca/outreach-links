@@ -15,6 +15,7 @@ import {
 } from "@/features/collection/hosts";
 import { normalizeKey } from "@/features/queries/plan";
 import { QUALIFY_LIMITS } from "./limits";
+import { pageNatureOf, PAGE_NATURE_LABELS } from "./page-nature";
 import { preReadLanguage } from "./prefilter";
 import type { ExclusionReason, QualCandidate, QualContext } from "./types";
 
@@ -71,6 +72,15 @@ export function stageOneReason(
   if (ctx.contactedElsewhere.some((d) => hostOf(d) === host)) {
     return { reason: "deja_contacte", detail: "déjà sollicité récemment par un autre utilisateur" };
   }
+  // Nature de la page reconnue par son adresse (MC.1) : avant toute lecture. Exception : une page
+  // d'accueil reste candidate quand une mention ou un lien mort y est annoncé (la preuve est sur la page).
+  const nature = pageNatureOf(c.url);
+  if (nature) {
+    const homeOk =
+      nature === "page_accueil" &&
+      c.sources.some((x) => x.source === "lien_mort" || x.source === "mention");
+    if (!homeOk) return { reason: nature, detail: PAGE_NATURE_LABELS[nature] };
+  }
   return null;
 }
 
@@ -115,7 +125,9 @@ export function provisionalScore(c: QualCandidate): number {
   const mentions = c.tactics.includes("mentions") ? 1.1 : 1;
   // Une page qui cite une page disparue d'un concurrent : la preuve est sur la page, on la lit d'abord.
   const deadLink = c.sources.some((x) => x.source === "lien_mort") ? 1.4 : 1;
-  return Math.round(40 * overlap * sources * type * auth * mentions * deadLink * 10) / 10;
+  // Une page qui cite déjà une ressource comparable (MC.6a) : la preuve est sur la page, on la lit tôt.
+  const cites = c.sources.some((x) => x.source === "citation") ? 1.25 : 1;
+  return Math.round(40 * overlap * sources * type * auth * mentions * deadLink * cites * 10) / 10;
 }
 
 /**

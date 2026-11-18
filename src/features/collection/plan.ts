@@ -3,6 +3,7 @@ import { normalizeKey } from "@/features/queries/plan";
 import type { PlannedQuery } from "@/features/queries/schema";
 import { estimateCost, type ContentPageType } from "@/lib/dataforseo";
 import {
+  citationsCallUsd,
   COLLECTION_LIMITS,
   collectionTargetUsd,
   contentCallUsd,
@@ -11,6 +12,8 @@ import {
   phaseBudgetUsd,
   type CollectionPhase,
 } from "./limits";
+import { RESOURCE_PICK_LIMITS } from "./resource-judge";
+import { planResources, type PlannedResources } from "./resources";
 import {
   brandMentionPlan,
   deadPagesSkipReason,
@@ -41,6 +44,8 @@ export interface CollectionPlan {
   deadPages: string[];
   /** Ce qui n'est PAS lancé faute de chance de résultat, avec la raison (chantier C du 18/11/2026). */
   skipped: Skipped;
+  /** Ressources comparables dont on cherche les pages qui les citent (MC.6a) ; places complétées par les recherches. */
+  citations: PlannedResources;
 }
 
 export interface PlanInput {
@@ -126,6 +131,11 @@ export function buildCollectionPlan(input: PlanInput): CollectionPlan {
     content,
     deadPages,
     skipped: { deadPages: skippedDead, mentions: brand.skipReason },
+    citations: planResources({
+      competitorDomains: input.competitorDomains,
+      competitors: input.competitors,
+      language: input.language,
+    }),
   };
 }
 
@@ -192,7 +202,21 @@ export function estimateCollection(
     worstUsd: r6(plan.deadPages.length * deadPagesCallUsd(dRows)),
   };
 
-  const phases = { intersection, mentions, morts: deadPages, serp, content };
+  // Citations (MC.6a) : toutes les places sont annoncées (une place libre des concurrents est prise par
+  // une ressource trouvée par les recherches) ; le coût attendu tient compte d'un remplissage partiel.
+  const cRows = L.citations.rowsPerCall;
+  const cites = plan.citations;
+  const citations: PhaseEstimate = {
+    calls: cites.max,
+    // + le choix des ressources par le modèle (un appel court, coût réservé).
+    expectedUsd: r6(
+      cites.max * citationsCallUsd(Math.round(cRows * L.citations.typicalFill)) +
+        RESOURCE_PICK_LIMITS.reservedUsd,
+    ),
+    worstUsd: r6(cites.max * citationsCallUsd(cRows) + RESOURCE_PICK_LIMITS.reservedUsd),
+  };
+
+  const phases = { intersection, mentions, morts: deadPages, serp, content, citations };
   let expected = 0;
   let worst = 0;
   let calls = 0;

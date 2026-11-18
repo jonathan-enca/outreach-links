@@ -48,6 +48,12 @@ export const serpOrganicParams = z.object({
   /** Nombre de résultats (multiple de 10 facturé par page de 10). */
   depth: z.number().int().min(10).max(100).default(30),
   device: z.enum(["desktop", "mobile"]).default("desktop"),
+  /**
+   * Rend la VRAIE adresse de chaque résultat au lieu d'une redirection Google (`google.com/goto?url=`).
+   * Mesuré le 18/11/2026 : même prix (0,002 USD par page de 10), mais 25 à 45 s au lieu de ~11 s et des
+   * refus passagers du fournisseur (« Internal SE Server Error ») : l'appelant prévoit un repli sans l'option.
+   */
+  resolve_goto_urls: z.boolean().optional(),
 });
 
 export const rankedKeywordsParams = z.object({

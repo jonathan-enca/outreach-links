@@ -353,6 +353,8 @@ Un sous-jalon = une session. Chaque sous-jalon se termine par une mesure compar�
 - **Boule de neige** : depuis chaque cible retenue, suivre ses liens vers des sites du même genre et lire leurs pages de ressources (gratuit).
 - Mesure sur les deux sites : cibles par campagne (objectif 30 à 40 messages envoyables), part de cibles par ressource, coût.
 
+**MC.6a faite (18/11/2026)** : phase `citations` de la collecte (6 ressources au plus, coût annoncé et plafonné, ~0,19 USD par site), ressources choisies par le petit modèle parmi les concurrents de l'audit et les sites vus sur les recherches, filtre gratuit d'adresse (accueil, légale, fichier) dans l'étage 1 de la qualification, vraies adresses des résultats Google avec repli. Détail et mesures dans `PROGRESS.md`. Reste pour **MC.6b** : jugement des trois cas dans la qualification et le rédacteur, pilotage par ressource ; pour **MC.6c** : boule de neige et mesure sur une vraie campagne des deux sites.
+
 ### MC.1 Filtre gratuit par nature de page
 
 - **D'abord les vraies adresses** : demander `resolve_goto_urls` à la recherche DataForSEO, pour ne plus lire une page d'accueil ou une page approximative à la place de l'article trouvé (`resolveRedirect`, `exact: false`). Mesurer le coût et le délai réels.

@@ -22,6 +22,7 @@ import {
   CollectionProgress,
   executeCollection,
   finalizeCollection,
+  runCitationsCall,
   runContentCall,
   runDeadPagesCall,
   runIntersectionPage,
@@ -328,17 +329,17 @@ describe("plan et coût annoncé", () => {
     ).toEqual(["Mega Coloring", "megacoloring"]);
   });
 
-  it("attendu <= pire cas <= budget cible (55 % de 1 USD), toutes phases bornées", () => {
+  it("attendu <= pire cas <= budget cible (74 % de 1 USD), toutes phases bornées", () => {
     const plan = buildCollectionPlan(base);
     const est = estimateCollection(plan);
-    expect(est.targetUsd).toBe(0.55);
+    expect(est.targetUsd).toBe(0.74);
     expect(est.expectedUsd).toBeGreaterThan(0.3);
     expect(est.expectedUsd).toBeLessThanOrEqual(est.worstUsd);
     expect(est.worstUsd).toBeLessThanOrEqual(est.targetUsd + 1e-9);
     for (const [phase, p] of Object.entries(est.phases)) {
       expect(p.worstUsd).toBeLessThanOrEqual(phaseBudgetUsd(phase as never) + 1e-9);
     }
-    expect(est.calls).toBe(1 + 2 + 2 + 33 + 4 + 5); // + 5 concurrents pour les liens morts (chantier D)
+    expect(est.calls).toBe(1 + 2 + 2 + 33 + 4 + 5 + 6); // + 5 concurrents pour les liens morts (chantier D) + 6 ressources (MC.6a)
   });
 
   it("moins de 2 concurrents : recoupement sauté et non facturé", () => {
@@ -349,7 +350,7 @@ describe("plan et coût annoncé", () => {
   it("les parts de phase font 100 %", () => {
     const sum = Object.values(COLLECTION_LIMITS.phaseShare).reduce((s, n) => s + n, 0);
     expect(sum).toBeCloseTo(1, 9);
-    expect(collectionTargetUsd(2)).toBe(1.1);
+    expect(collectionTargetUsd(2)).toBe(1.48);
   });
 });
 
@@ -380,7 +381,7 @@ function makeRun(over: Partial<CollectionRun> = {}): CollectionRun {
     ctx,
     plan,
     limits: { auditId: AUDIT, auditCapUsd: 2, safetyCapUsd: 5, dailyCapUsd: 25 },
-    targetUsd: 0.55,
+    targetUsd: 0.74,
     ...over,
   };
 }
@@ -426,7 +427,53 @@ function fakeDfs(opts: { freshUntil?: number } = {}) {
         taskId: null,
       };
     }),
-    backlinksBacklinks: vi.fn(async (p: { target: string }) => {
+    backlinksBacklinks: vi.fn(async (p: { target: string; filters?: unknown[] }) => {
+      if (JSON.stringify(p.filters ?? []).includes("page_from_language")) {
+        calls.push(`cites:${p.target}`);
+        return {
+          result: {
+            items_count: 4,
+            items: [
+              {
+                domain_from: `blog-${p.target}.fr`,
+                url_from: `https://blog-${p.target}.fr/mes-liens`,
+                url_to: `https://${p.target}/page`,
+                anchor: "coloriages",
+                dofollow: true,
+                backlink_spam_score: 5,
+                domain_from_rank: 30,
+                page_from_language: "fr",
+                page_from_title: "Mes liens utiles",
+              },
+              {
+                domain_from: "ferme.fr",
+                url_from: "https://ferme.fr/x",
+                url_to: `https://${p.target}/autre`,
+                dofollow: true,
+                backlink_spam_score: 70,
+              },
+              {
+                domain_from: p.target,
+                url_from: `https://${p.target}/interne`,
+                url_to: `https://${p.target}/autre`,
+                dofollow: true,
+                backlink_spam_score: 1,
+              },
+              {
+                domain_from: "nofollow.fr",
+                url_from: "https://nofollow.fr/p",
+                url_to: `https://${p.target}/autre`,
+                dofollow: false,
+                backlink_spam_score: 1,
+              },
+            ],
+          },
+          actualCostUsd: 0.0294,
+          cacheHit: false,
+          estimatedCostUsd: 0.0294,
+          taskId: null,
+        };
+      }
       calls.push(`morts:${p.target}`);
       return {
         result: {
@@ -610,8 +657,10 @@ describe("erreurs de tâche du fournisseur", () => {
       0,
     );
     expect(flaky).toHaveBeenCalledTimes(2);
+    expect(flaky.mock.calls[0]![0]).toMatchObject({ resolve_goto_urls: true });
+    expect(flaky.mock.calls[1]![0]).not.toHaveProperty("resolve_goto_urls");
     expect(a.failed).toBeUndefined();
-    expect(a.failed).toBeUndefined();
+    expect(a.gotoFallback).toBe(true);
     expect(a.raws.map((r) => r.domain)).toEqual(["asso.fr"]);
     const dead = vi.fn().mockRejectedValue(err());
     const b = await runSerpQuery(
@@ -621,9 +670,9 @@ describe("erreurs de tâche du fournisseur", () => {
       "serp",
       1,
     );
-    expect(dead).toHaveBeenCalledTimes(3);
+    expect(dead).toHaveBeenCalledTimes(4); // 1 essai avec les vraies adresses + 3 sans
     expect(b).toMatchObject({ failed: true, blocked: false, costUsd: 0 });
-    const p = new CollectionProgress(0.55);
+    const p = new CollectionProgress(0.74);
     p.add(b);
     expect(p.stats.serp.failures).toBe(1);
   });
@@ -664,7 +713,7 @@ describe("executeCollection : orchestration complète", () => {
     expect(firstContentMention).toBeGreaterThan(-1);
     expect(progress.stats.intersection.newDomains).toBeGreaterThan(0);
     expect(progress.stats.content.calls).toBe(4);
-    expect(progress.costUsd).toBeLessThanOrEqual(0.55 + 1e-9);
+    expect(progress.costUsd).toBeLessThanOrEqual(0.74 + 1e-9);
   });
 
   it("arrêt par rendement décroissant : les requêtes sans nouveaux domaines s'arrêtent après la fenêtre", async () => {
@@ -714,7 +763,7 @@ describe("executeCollection : orchestration complète", () => {
 
 describe("accumulation, fin et reprise", () => {
   it("le rendement compte les domaines NOUVEAUX, pas les résultats", () => {
-    const p = new CollectionProgress(0.55);
+    const p = new CollectionProgress(0.74);
     const out = (domains: string[]): StepOutcome => ({
       phase: "serp",
       label: "x",
@@ -736,7 +785,7 @@ describe("accumulation, fin et reprise", () => {
       candidate_collections: [{ id: "col-1", audit_id: AUDIT, status: "en_cours" }],
       collection_candidates: [{ id: "old", collection_id: "col-1", domain: "vieux.fr" }],
     });
-    const p = new CollectionProgress(0.55);
+    const p = new CollectionProgress(0.74);
     p.add({
       phase: "serp",
       label: "x",
@@ -774,12 +823,12 @@ describe("accumulation, fin et reprise", () => {
       ],
       competitors: [{ audit_id: AUDIT, domain: "coloriez.com" }],
       candidate_collections: [
-        { id: "col-1", audit_id: AUDIT, workspace_id: WS, status, plan, target_usd: 0.55 },
+        { id: "col-1", audit_id: AUDIT, workspace_id: WS, status, plan, target_usd: 0.74 },
       ],
     });
     const a = fakeSupabase(seed("confirme"));
     const run = await beginCollection(a.client, AUDIT);
-    expect(run).toMatchObject({ id: "col-1", targetUsd: 0.55 });
+    expect(run).toMatchObject({ id: "col-1", targetUsd: 0.74 });
     expect(run!.limits.auditCapUsd).toBe(2);
     expect(run!.ctx.competitorDomains).toEqual(["coloriez.com"]);
     expect(a.tables.candidate_collections![0]!.status).toBe("en_cours");
@@ -837,7 +886,7 @@ describe("service : coût annoncé puis lancement", () => {
     if (!res.ok) return;
     expect(res.preview.plan.intersectionTargets).toEqual(["coloriez.com", "hugolescargot.com"]);
     expect(res.preview.plan.serp).toHaveLength(10);
-    expect(res.preview.estimate.worstUsd).toBeLessThanOrEqual(0.55 + 1e-9);
+    expect(res.preview.estimate.worstUsd).toBeLessThanOrEqual(0.74 + 1e-9);
     expect(res.preview.remainingUsd).toBe(2);
     expect(log.filter((l) => l.op !== "select")).toEqual([]);
   });
@@ -864,7 +913,7 @@ describe("service : coût annoncé puis lancement", () => {
     expect(row).toMatchObject({
       audit_id: AUDIT,
       status: "confirme",
-      target_usd: 0.55,
+      target_usd: 0.74,
       confirmed_by: "user-1",
     });
     expect(Number(row.expected_cost_usd)).toBeGreaterThan(0);
@@ -987,7 +1036,7 @@ describe("chantier A : erreurs du fournisseur et lots parallèles", () => {
       "serp",
       0,
     );
-    expect(net).toHaveBeenCalledTimes(3);
+    expect(net).toHaveBeenCalledTimes(4); // 1 essai avec les vraies adresses + 3 sans
     expect(out.failed).toBe(true);
     for (const code of [400, 401, 403]) {
       const bad = vi.fn().mockRejectedValue(new DataForSeoError(`HTTP ${code}`, "http", code));
@@ -1209,5 +1258,258 @@ describe("chantier H : requêtes garanties et recherche en parallèle", () => {
     expect(raw).toMatchObject({ domain: "blog.exemple.org", language: "en" });
     expect(mergeCandidates([raw!])[0]!.language).toBe("en");
     expect(fromDeadPages([item], ctx, "concurrent.fr")[0]!.language).toBeNull();
+  });
+});
+
+describe("MC.6a : pages qui citent une ressource comparable", () => {
+  const direct = async <T>(_id: string, fn: () => Promise<T>) => fn();
+  const base = {
+    queries: [query(3), query(4)],
+    competitorDomains: Array.from({ length: 12 }, (_, i) => `concurrent${i}.fr`),
+    theme: "coloriages à imprimer",
+    nameVariants: ["Atelier Plumeau"],
+    domain: "atelier-plumeau.fr",
+    goal: "autorite_generale" as const,
+    targetKeywords: [] as string[],
+  };
+
+  it("le plan fige les concurrents retenus comme ressources (6 places) et écarte géants et autres langues", () => {
+    const plan = buildCollectionPlan({
+      ...base,
+      competitorDomains: ["petit.fr", "geant.fr", "anglais.co.uk", "autre.fr"],
+      competitors: [
+        { domain: "petit.fr", referringDomains: 300, sampleUrl: "https://petit.fr/a" },
+        { domain: "geant.fr", referringDomains: 50_000, sampleUrl: "https://geant.fr/a" },
+        { domain: "anglais.co.uk", referringDomains: 40, sampleUrl: "https://anglais.co.uk/a" },
+      ],
+      language: "fr",
+    });
+    expect(plan.citations.resources).toEqual(["petit.fr", "autre.fr"]);
+    expect(plan.citations.max).toBe(6);
+    expect(plan.citations.skipped.map((x) => x.domain)).toEqual(["geant.fr", "anglais.co.uk"]);
+  });
+
+  it("le coût annoncé compte les 6 places, sous le budget de phase", () => {
+    const est = estimateCollection(buildCollectionPlan(base));
+    expect(est.phases.citations.calls).toBe(6);
+    // 6 appels + le choix des ressources par le modèle (0,01 réservé)
+    expect(est.phases.citations.worstUsd).toBeCloseTo(6 * 0.0294 + 0.01, 6);
+    expect(est.phases.citations.worstUsd).toBeLessThanOrEqual(phaseBudgetUsd("citations") + 1e-9);
+    expect(est.phases.citations.expectedUsd).toBeLessThan(est.phases.citations.worstUsd);
+  });
+
+  it("un plan figé avant MC.6a (sans `citations`) reste lisible et ne cherche aucune citation", () => {
+    const plan = {
+      intersectionTargets: [],
+      serp: [],
+      mentionSerp: [],
+      mentionKeywords: [],
+      content: [],
+    };
+    expect(collectionPlanSchema.parse(plan).citations).toEqual({
+      pool: [],
+      resources: [],
+      max: 0,
+      skipped: [],
+    });
+  });
+
+  it("l'appel envoie les réglages de l'essai (langue de la campagne, spam, autorité, une page par domaine)", async () => {
+    const { client } = fakeSupabase();
+    const { dfs, mocks } = fakeDfs();
+    const out = await runCitationsCall({ dfs, service: client }, makeRun(), "ressource.fr", 0, [
+      "ressource.fr",
+    ]);
+    const body = mocks.backlinksBacklinks.mock.calls[0]![0] as Record<string, unknown>;
+    expect(body).toMatchObject({
+      target: "ressource.fr",
+      limit: 150,
+      mode: "one_per_domain",
+      exclude_internal_backlinks: true,
+      order_by: ["first_seen,desc"],
+    });
+    expect(JSON.stringify(body.filters)).toContain('["page_from_language","=","fr"]');
+    expect(JSON.stringify(body.filters)).toContain('["domain_from_rank",">",20]');
+    // spam 70, la ressource elle-même et le lien non suivi sont écartés : reste la page du blog.
+    expect(out.raws).toHaveLength(1);
+    expect(out.raws[0]).toMatchObject({
+      source: "citation",
+      tactic: "ressources",
+      url: "https://blog-ressource.fr.fr/mes-liens",
+      title: "Mes liens utiles",
+      query: "https://ressource.fr/page",
+      persona: "ressource.fr",
+      language: "fr",
+    });
+  });
+
+  it("la phase tourne après les recherches, complète les places avec les sites vus sur plusieurs recherches", async () => {
+    const { client } = fakeSupabase();
+    const { dfs, calls } = fakeDfs();
+    const run = makeRun();
+    run.plan.citations = { pool: [], resources: ["coloriez.com"], max: 3, skipped: [] };
+    const progress = await executeCollection(() => ({ dfs, service: client }), run, direct);
+    const cites = calls.filter((c) => c.startsWith("cites:"));
+    expect(cites[0]).toBe("cites:coloriez.com");
+    expect(progress.stats.citations.calls).toBe(cites.length);
+    expect(cites.length).toBeLessThanOrEqual(3);
+    expect(progress.stats.citations.resources?.[0]).toBe("coloriez.com");
+    const lastSerp = calls.map((c) => c.startsWith("serp:")).lastIndexOf(true);
+    expect(calls.indexOf(cites[0]!)).toBeGreaterThan(lastSerp);
+    expect(progress.raws.some((r) => r.source === "citation")).toBe(true);
+    expect(progress.stats.citations.costUsd).toBeLessThanOrEqual(0.19 + 1e-9);
+  });
+
+  it("sans place (max 0), aucun appel de citations", async () => {
+    const { client } = fakeSupabase();
+    const { dfs, calls } = fakeDfs();
+    const run = makeRun();
+    run.plan.citations = { pool: [], resources: [], max: 0, skipped: [] };
+    const progress = await executeCollection(() => ({ dfs, service: client }), run, direct);
+    expect(calls.some((c) => c.startsWith("cites:"))).toBe(false);
+    expect(progress.stats.citations.calls).toBe(0);
+  });
+
+  it("une panne des citations est comptée sans arrêter la collecte", async () => {
+    const { client } = fakeSupabase();
+    const { dfs } = fakeDfs();
+    const { DataForSeoError } = await import("@/lib/dataforseo");
+    PROVIDER_RETRY.delaysMs = [0, 0];
+    dfs.backlinksBacklinks = vi
+      .fn()
+      .mockRejectedValue(new DataForSeoError("backlinks : HTTP 500", "http", 500)) as never;
+    const run = makeRun();
+    run.plan.citations = { pool: [], resources: ["coloriez.com"], max: 1, skipped: [] };
+    const down = await executeCollection(() => ({ dfs, service: client }), run, direct);
+    expect(down.stats.citations.failures).toBe(1);
+    expect(down.stats.content.calls).toBeGreaterThan(0);
+  });
+
+  it("le petit modèle choisit les ressources parmi les candidats ; un domaine inventé est ignoré ; son coût est compté", async () => {
+    const { client } = fakeSupabase();
+    const { dfs, calls } = fakeDfs();
+    const generate = vi.fn(async () => ({
+      data: {
+        choix: [
+          { domaine: "https://www.coloriez.com/", raison: "même offre" },
+          { domaine: "invente.fr", raison: "hors liste" },
+          { domaine: "hugolescargot.com", raison: "même public" },
+        ],
+      },
+      costUsd: 0.004,
+    }));
+    const run = makeRun();
+    run.plan.citations = {
+      pool: [
+        { domain: "coloriez.com", referringDomains: 500, sampleUrl: "https://coloriez.com/a" },
+        { domain: "hugolescargot.com", referringDomains: 900, sampleUrl: null },
+        { domain: "autre-concurrent.fr", referringDomains: null, sampleUrl: null },
+      ],
+      resources: ["coloriez.com", "hugolescargot.com", "autre-concurrent.fr"],
+      max: 3,
+      skipped: [],
+    };
+    run.ctx.site = {
+      domain: "atelier-plumeau.fr",
+      theme: "coloriages à imprimer",
+      activity: "Coloriages gratuits",
+      offer: "Pages à imprimer",
+      audience: ["parents"],
+      pages: [],
+    };
+    const progress = await executeCollection(
+      () => ({ dfs, service: client, llm: { generate } as never }),
+      run,
+      direct,
+    );
+    expect(generate).toHaveBeenCalledTimes(1);
+    const prompt = (generate.mock.calls[0] as unknown as [{ prompt: string; system: string }])[0];
+    expect(prompt.prompt).toContain("autre-concurrent.fr");
+    expect(prompt.prompt).toContain("donnees_non_fiables");
+    expect(progress.stats.citations.resources).toEqual(["coloriez.com", "hugolescargot.com"]);
+    expect(progress.stats.citations.resourcesBy).toBe("modele");
+    expect(progress.stats.citations.llmUsd).toBe(0.004);
+    expect(calls.filter((c) => c.startsWith("cites:"))).toEqual([
+      "cites:coloriez.com",
+      "cites:hugolescargot.com",
+    ]);
+  });
+
+  it("modèle absent ou en panne : repli sur les concurrents, dit dans les chiffres", async () => {
+    const { client } = fakeSupabase();
+    const { dfs, calls } = fakeDfs();
+    const run = makeRun();
+    run.plan.citations = {
+      pool: [{ domain: "coloriez.com", referringDomains: null, sampleUrl: null }],
+      resources: ["coloriez.com"],
+      max: 1,
+      skipped: [],
+    };
+    const down = {
+      generate: vi.fn(async () => {
+        throw new Error("panne");
+      }),
+    };
+    const progress = await executeCollection(
+      () => ({ dfs, service: client, llm: down as never }),
+      run,
+      direct,
+    );
+    expect(progress.stats.citations.resourcesBy).toBe("concurrents");
+    expect(calls).toContain("cites:coloriez.com");
+    expect(progress.stats.citations.llmUsd).toBeUndefined();
+  });
+
+  it("le modèle qui ne trouve aucune ressource comparable : aucune citation payée", async () => {
+    const { client } = fakeSupabase();
+    const { dfs, calls } = fakeDfs();
+    const run = makeRun();
+    run.plan.citations = {
+      pool: [{ domain: "coloriez.com", referringDomains: null, sampleUrl: null }],
+      resources: ["coloriez.com"],
+      max: 1,
+      skipped: [],
+    };
+    run.ctx.site = {
+      domain: "atelier-plumeau.fr",
+      theme: "x",
+      activity: "activité",
+      offer: "offre",
+      audience: ["parents"],
+      pages: [],
+    };
+    const none = { generate: vi.fn(async () => ({ data: { choix: [] }, costUsd: 0.003 })) };
+    const progress = await executeCollection(
+      () => ({ dfs, service: client, llm: none as never }),
+      run,
+      direct,
+    );
+    expect(calls.some((c) => c.startsWith("cites:"))).toBe(false);
+    expect(progress.stats.citations.calls).toBe(0);
+    expect(progress.stats.citations.resourcesBy).toBe("modele");
+  });
+
+  it("fusion : la page qui cite une ressource remplace l'adresse ET le titre (jamais le titre d'une autre page)", () => {
+    const serp = raw("blog.fr", {
+      url: "https://blog.fr/",
+      title: "Accueil du blog",
+      source: "serp",
+    });
+    const cite = raw("blog.fr", {
+      url: "https://blog.fr/mes-liens",
+      title: "Mes liens utiles",
+      source: "citation",
+    });
+    const [m] = mergeCandidates([serp, cite]);
+    expect(m!.url).toBe("https://blog.fr/mes-liens");
+    expect(m!.title).toBe("Mes liens utiles");
+    // une page de citation sans titre n'hérite pas du titre d'une autre page
+    const [n] = mergeCandidates([
+      serp,
+      raw("blog.fr", { url: "https://blog.fr/autre", title: null, source: "citation" }),
+    ]);
+    expect(n!.url).toBe("https://blog.fr/autre");
+    expect(n!.title).toBeNull();
+    expect(n!.sources.map((x) => x.source)).toEqual(["serp", "citation"]);
   });
 });

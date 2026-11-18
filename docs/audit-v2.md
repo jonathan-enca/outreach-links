@@ -81,14 +81,14 @@ Décision de Jonathan : l'audit est le cœur du produit et sera réservé aux pl
 
 **Budget alloué par phase** (part du budget cible)
 
-| Phase                                                         | Part  | Remarque                                  |
-| ------------------------------------------------------------- | ----- | ----------------------------------------- |
-| 0. Profil de marque                                           | ~1 %  | lecture gratuite + un appel LLM court     |
-| 1. Requêtes de personas                                       | ~2 %  | LLM, mis en cache par recette             |
-| 2. Concurrents (SERP, tailles)                                | ~15 % | requêtes limitées, mesure groupée         |
-| 3. Collecte (recoupement, SERP de personas, Content Analysis) | ~55 % | la plus chère : c'est elle qu'on règle    |
-| 4. Qualification (LLM sur les survivants)                     | ~10 % | modèle économique, après filtres gratuits |
-| Marge                                                         | ~17 % | imprévus, relances                        |
+| Phase                                                                           | Part  | Remarque                                                                 |
+| ------------------------------------------------------------------------------- | ----- | ------------------------------------------------------------------------ |
+| 0. Profil de marque                                                             | ~1 %  | lecture gratuite + un appel LLM court                                    |
+| 1. Requêtes de personas                                                         | ~2 %  | LLM, mis en cache par recette                                            |
+| 2. Concurrents (SERP, tailles)                                                  | ~15 % | requêtes limitées, mesure groupée                                        |
+| 3. Collecte (recoupement, SERP de personas, Content Analysis, pages qui citent) | ~74 % | la plus chère ; MC.6a : +19 % (pages qui citent), la marge est consommée |
+| 4. Qualification (LLM sur les survivants)                                       | ~10 % | modèle économique, après filtres gratuits                                |
+| Marge                                                                           | ~17 % | imprévus, relances                                                       |
 
 **Cinq mécanismes pour tenir le budget sans perdre en exhaustivité**
 

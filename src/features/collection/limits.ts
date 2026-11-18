@@ -9,15 +9,26 @@ import { PRICING } from "@/lib/dataforseo/endpoints";
  * (audit, sécurité, jour) sont contrôlés avant chaque appel payant, en plus.
  */
 export const COLLECTION_LIMITS = {
-  /** Part du budget cible d'audit réservée à la collecte (docs/audit-v2.md section 6). */
-  shareOfTarget: 0.55,
+  /**
+   * Part du budget cible d'audit réservée à la collecte (docs/audit-v2.md section 6). MC.6a (18/11/2026) :
+   * 0,55 -> 0,74 pour loger la phase « citations » (0,19 USD : 6 appels et le choix des ressources par le modèle) SANS réduire les autres : leurs budgets en
+   * USD sont inchangés (ex. recherches Google 0,242 USD).
+   */
+  shareOfTarget: 0.74,
   /**
    * Part de ce budget par phase (somme = 1) : le pire cas annoncé est donc le budget cible.
    * Chantier H (17/11/2026) : les recherches Google passent de 27,5 % à 44 % (40 requêtes garanties
    * par type d'éditeur) ; le recoupement (1 cible pour 169 candidats au run de référence) et les
    * mentions (0 cible) gardent juste de quoi faire leurs appels.
    */
-  phaseShare: { intersection: 0.08, mentions: 0.085, morts: 0.155, serp: 0.44, content: 0.24 },
+  phaseShare: {
+    intersection: 0.0595,
+    mentions: 0.0632,
+    morts: 0.1152,
+    serp: 0.327,
+    content: 0.1784,
+    citations: 0.2567,
+  },
   intersection: {
     /** 8 au plus : le filtre serveur « autorité > 0 » compte une condition par cible (8 conditions maximum). */
     maxTargets: 8,
@@ -68,6 +79,26 @@ export const COLLECTION_LIMITS = {
     /** Pages dont le score de spam atteint ce seuil sont écartées (filtre serveur ET client). */
     spamMax: 50,
   },
+  /**
+   * Pages qui citent déjà une ressource comparable (MC.6a, essai MC.0b du 18/11/2026) : UN appel Backlinks
+   * par ressource, une ligne par domaine source, pages dans la langue de la campagne. Mesuré : 0,024 à
+   * 0,03 USD par ressource pour 150 pages ; 300 à 900 domaines candidats pour 6 ressources.
+   */
+  citations: {
+    /** Ressources interrogées au plus (6 x 0,0294 = 0,176 USD : sous le budget de phase de 0,18 USD ; 6 comme à l'essai MC.0b). */
+    maxResources: 6,
+    /** Concurrents de l'audit proposés au choix du modèle (le reste vient des recherches). */
+    poolSize: 12,
+    rowsPerCall: 150,
+    /** Un lien dont le score de spam atteint ce seuil est écarté (filtre serveur ET client). */
+    spamMax: 40,
+    /** Autorité minimale du domaine qui cite (filtre serveur, valeur de l'essai MC.0b). */
+    minDomainRank: 20,
+    /** Part des lignes demandées réellement renvoyées, pour le coût ATTENDU. */
+    typicalFill: 0.9,
+    /** Une ressource trouvée par les recherches (hors concurrents de l'audit) doit sortir sur au moins N recherches. */
+    minTopicQueries: 2,
+  },
   mentions: {
     maxVariants: 3,
     rowsPerCall: 100,
@@ -99,6 +130,11 @@ export function contentCallUsd(rows: number): number {
 
 /** Coût d'un appel Backlinks (liens morts d'un concurrent) de `rows` lignes (USD). */
 export function deadPagesCallUsd(rows: number): number {
+  return r6(PRICING.backlinksPerRequest + rows * PRICING.backlinksPerRow);
+}
+
+/** Coût d'un appel Backlinks « qui cite cette ressource » de `rows` lignes (USD). */
+export function citationsCallUsd(rows: number): number {
   return r6(PRICING.backlinksPerRequest + rows * PRICING.backlinksPerRow);
 }
 

@@ -1814,6 +1814,51 @@ Référence terrain donnée par Jonathan (voir `CLAUDE.md` section 5) : ses lien
 - **Limites** : 72 pages jugées par des modèles, pas par des réponses réelles ; ressources de départ choisies à la main pour cet essai (dans le produit, elles devront venir du profil du site et des recherches) ; aucun contact cherché.
 - **Suite proposée** : construire cette famille dans le produit (ressources comparables, liens entrants, pilotage par ressource, critère des trois cas), et traiter les liens morts dans un essai à part.
 
+## Session du 18/11 (suite 2) : MC.6a, la nouvelle source « pages qui citent déjà une ressource comparable » (faite)
+
+Périmètre tenu : ressources comparables trouvées automatiquement, appel « qui cite cette ressource » dans la collecte avec coût annoncé et plafonné, filtre gratuit avant lecture, vraies adresses des résultats de recherche. **Pas** fait (MC.6b et suite) : jugement des trois cas dans la qualification et le rédacteur, pilotage par ressource, boule de neige, liens morts. La PR #156 (documentation de l'essai MC.0b) a été fusionnée en premier.
+
+### Ce qui change
+
+- **Nouvelle phase `citations` de la collecte** (`src/features/collection/run.ts`, `runCitationsCall`) : après les recherches Google, un appel Backlinks par ressource (`mode: one_per_domain`, 150 lignes, pages dans la langue de la campagne, spam < 40, autorité du domaine > 20, liens récents d'abord ; réglages de `docs/mc0b-essai.md`, constantes dans `COLLECTION_LIMITS.citations`). Nouvelle source `citation` (`types.ts`), tactique `ressources`, `query` = page citée, `persona` = domaine de la ressource.
+- **Ressources comparables choisies automatiquement** (`resource-judge.ts`, `resources.ts`) : candidats = concurrents retenus par l'audit (sans les géants ni les autres langues, plan figé : `plan.citations.pool`) + sites qui sortent sur plusieurs recherches par sujet de la collecte (`searchCandidates`). UN appel court au petit modèle (profil du site : activité, offre, public, titres de pages) garde au plus 6 sites qui proposent la même chose que le site ; coût mesuré 0,0005 USD, 0,01 USD réservé dans le coût annoncé. Le modèle ne peut rien inventer (domaines validés contre la liste). **Repli sans jugement** (pas de clé, panne) : les premiers concurrents, puis les sites vus sur plusieurs recherches ; `stats.citations.resourcesBy` dit `modele` ou `concurrents`. Si le modèle ne trouve aucune ressource comparable, aucune citation n'est payée. Aucun mot, domaine ou seuil propre à un thème.
+- **Coût annoncé et plafonné** : 6 ressources au plus (0,0294 USD chacune au pire, soit 0,176 + 0,01 réservé). `shareOfTarget` 0,55 -> 0,74 et parts de phase recalculées : les autres phases gardent EXACTEMENT leurs budgets en USD, la phase `citations` a 0,19 USD. Un plan figé avant MC.6a (sans `citations`) reste lisible et ne cherche aucune citation. Coût attendu d'une analyse complète : ~0,97 USD (sous le budget cible de 1 USD ; tests `analysis.test.ts` : borne 0,9 -> 1).
+- **Filtre gratuit par adresse** (`src/features/qualification/page-nature.ts`, utilisé par l'étage 1 de `free.ts` pour TOUTES les sources) : pages d'accueil, pages légales (mentions légales, CGU, CGV, confidentialité, cookies, FR et EN), fichiers et flux, avec motifs lisibles `page_accueil`, `page_legale`, `fichier` (messages ajoutés). Exception : une accueil reste candidate pour une mention sans lien ou un lien mort annoncé. **Généralité vérifiée par test** : « rgpd », « données personnelles », « cookies et navigation privée » ne marquent jamais une page légale (seule la FORME du segment compte). Les plateformes restent écartées par les listes existantes. Une page qui cite une ressource passe avant les autres dans l'ordre de lecture (x1,25).
+- **Vraies adresses des résultats Google** (MC.1, `resolve_goto_urls`) : demandées d'abord, repli sans l'option si le fournisseur refuse (`runSerpQuery`, `gotoFallback`, `approxUrls` comptés dans `stats.serp`).
+- **Correction de fusion** : quand l'adresse d'un candidat est remplacée par la page qui cite (ou le lien mort), son titre la suit (avant : titre d'une autre page du site).
+- Job `audit-collect` : client du petit modèle ajouté (plafond bas, ignoré sans clé).
+
+### Mesures (réelles, 14 recherches Google puis la phase citations, sans recoupement ni contenu ; DataForSEO via le proxy)
+
+|                                                                 | remove-me.io                 | mega-coloring.com   |
+| --------------------------------------------------------------- | ---------------------------- | ------------------- |
+| Coût annoncé (réduit) / réel                                    | 0,257 / 0,241 USD            | 0,257 / 0,248 USD   |
+| dont 14 recherches Google                                       | 0,084                        | 0,078               |
+| dont 6 appels « qui cite » (sans le modèle)                     | 0,157                        | 0,170               |
+| Choix des ressources par le modèle                              | 0,0005 USD                   | 0,0005 USD          |
+| Pages qui citent, avant filtre                                  | 275 à 524 (selon ressources) | 400 à 409           |
+| Filtre gratuit : légales / accueils / fichiers                  | 10 à 64 / 10 à 16 / 5        | 1 / 16 à 31 / 4 à 5 |
+| Pages qui citent après filtre gratuit (à lire ou juger : MC.6b) | 260 à 448                    | 374 à 380           |
+
+- Sans le choix par le modèle, les « concurrents retenus » donnaient des ressources hors sujet (éditeurs de livres jeunesse et vendeur d'étiquettes pour mega-coloring.com, éditeur d'antivirus pour remove-me.io) et des pages hors sujet (catalogues de bibliothèques, podcasts). Avec le modèle : deux vrais sites de coloriages trouvés par les recherches (coloriages-a-imprimer.com, reussiralecole.fr) et plus aucun éditeur de livres ; pour remove-me.io, des sites de protection des données et de formation. Le choix varie un peu d'un essai à l'autre (température 0,2) ; en production il est mémorisé dans un step.
+- **Le bruit reste élevé** : parmi les pages trouvées, des blogs de classe et des pages « ressources à télécharger » (les cibles voulues) côtoient des pages sans rapport (une boutique, une page adulte qui cite la CNIL). Aucun jugement n'est fait ici : c'est le travail de MC.6b. Taux de cibles avec angle **non mesuré dans cette session**.
+- **Vraies adresses (`resolve_goto_urls`), mesure du coût et du délai** : même prix (0,006 USD les 30 résultats). Mais le fournisseur refuse l'option sur une partie des appels (« Internal SE Server Error » après ~30 s, rien n'est facturé) : 6 recherches sur 14 (remove-me.io) et 8 sur 14 (mega-coloring.com) ont dû être refaites sans l'option ; 1 recherche a été manquée même après repli. Résultat : 59 % et 44 % des adresses sont exactes, le reste reste approximatif (fil d'Ariane). Délai : 25 à 60 s par appel avec l'option (11 s sans) ; un lot de 14 recherches parallèles dure 89 à 132 s. Essais isolés : 6 simultanées = 2 refus, 4 réussites (38 à 61 s) ; 4 une par une = 1 refus, 3 réussites (32 à 40 s). **Décision : on garde** (adresses exactes pour la moitié des résultats, même prix, +1 à 2 minutes par lot de recherches). Pièges : un appel qui dépasse 60 s est coupé (peut être facturé) puis refait sans l'option.
+
+### Fichiers clés
+
+`src/features/collection/{resource-judge,resources,run,plan,limits,normalize,types}.ts`, `src/features/qualification/{page-nature,free,types}.ts`, `src/inngest/functions/audit-collect.ts`, `messages/fr.ts`, `docs/audit-v2.md` (section 6). Outil de mesure réel : `src/features/collection/citations.live.test.ts` (ignoré par défaut ; `CITATIONS_LIVE=1 CITATIONS_LIVE_INPUT=entree.json CITATIONS_LIVE_OUT=rapport.json CITATIONS_LIVE_CACHE=cache.json NODE_USE_ENV_PROXY=1 DATAFORSEO_PROXY_AUTH=true pnpm vitest run src/features/collection/citations.live.test.ts` ; l'entrée donne le site, ses concurrents retenus, 14 recherches et son profil).
+
+### Pièges et dettes
+
+- Les « concurrents retenus » de l'audit restent de mauvais candidats (magnific.com, flipkart.com, senat.fr...) : seul le tri par le modèle les rattrape. Piste : demander ce choix plus tôt, dès l'audit.
+- `resolve_goto_urls` n'est demandé que dans la collecte ; les recherches de l'audit (concurrents) et des opportunités ne lisent que des domaines et n'en ont pas besoin.
+- La part des étapes suivantes du budget cible (qualification, contacts) n'a pas été redistribuée : le coût attendu total est ~0,97 USD, sans marge.
+- Le choix des ressources n'a pas de jeu d'évaluation annoté : à faire avec MC.6b (rendement par ressource).
+
+### Prochain sous-jalon recommandé : MC.6b
+
+Le jugement des trois cas (lien mort remplaçable, petit éditeur du public qui cite des ressources, page de contenu qui cite plusieurs ressources comparables) dans la qualification et le tri du rédacteur (consigne de `docs/mc0b-essai.md`), plus le pilotage par ressource (lire 6 à 8 pages par ressource, abandonner celles qui ne rendent pas). À mesurer sur remove-me.io ET mega-coloring.com (objectif : 30 % de cibles avec angle, mesure MC.0b : 10 % et 15 %).
+
 ## Session du 18/11 (matin) : contrôle du premier envoi réel, et site désactivé par Vercel
 
 - **Envois** : 7 emails partis le 17/11 entre 22 h 54 et 23 h 54 (Paris), tous `envoye`, aucune erreur : unistra.fr, asso-generationnumerique.org, isoc.fr, apden.org, grandlyon.com, arcadsoftware.com, bge-picardie.org. Tous les emails approuvés (7) sont partis ; aucune réponse reçue.
