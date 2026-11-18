@@ -20,14 +20,16 @@ export const judgementSchema = z.object({
   // Un modèle écrit parfois « same_offer » ici : une valeur inconnue devient « autre » (jamais un lot perdu pour cela).
   situation: z.enum(SITUATIONS).catch("autre"),
   fit: z.number().min(0).max(1),
-  fit_reason: z.string().min(1).max(240),
+  // Pas de longueur maximale ici : un motif trop long ne doit jamais faire rejeter tout le lot (MC.6g, 49
+  // jugements perdus puis 504 du repli direct) ; `toJudgement` tronque.
+  fit_reason: z.string().min(1),
   sells_links: z.boolean(),
   same_offer: z.boolean(),
   unrealistic: z.boolean(),
-  hook: z.string().max(240).nullable(),
+  hook: z.string().nullable(),
   // Un modèle met parfois null pour un refus : ramené à 0 (jamais une cible perdue pour cela).
   resource: z.number().int().min(0).max(9).nullable().optional(),
-  note: z.string().max(160).nullable().optional(),
+  note: z.string().nullable().optional(),
 });
 
 export const batchSchema = z.object({ results: z.array(judgementSchema).max(10) });
@@ -162,11 +164,11 @@ export function toJudgement(
     siteType: raw.site_type,
     situation: checkSituation(raw.situation, page),
     fit: raw.fit,
-    fitReason: raw.fit_reason,
+    fitReason: raw.fit_reason.slice(0, 240),
     sellsLinks: raw.sells_links,
     sameOffer: raw.same_offer,
     unrealistic: raw.unrealistic,
-    hook: checkHook(raw.hook, page),
+    hook: checkHook(raw.hook ? raw.hook.slice(0, 240) : raw.hook, page),
     resource: raw.resource != null && raw.resource < Math.max(1, resources) ? raw.resource : 0,
     note: raw.note ? raw.note.slice(0, 160) : null,
   };
