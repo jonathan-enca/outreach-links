@@ -239,12 +239,8 @@ function rowText(row: QueueRow): {
   return {
     title: m.domain,
     line: m.subject ?? "",
-    note: issue
-      ? `${V.row.fix} ${issue}`
-      : m.reviewNote
-        ? `${V.reviewNote} ${m.reviewNote}`
-        : m.hook,
-    tone: issue ? "danger" : m.reviewNote ? "warning" : "muted",
+    note: issue ? `${V.row.fix} ${issue}` : m.hook,
+    tone: issue ? "danger" : "muted",
   };
 }
 
@@ -442,11 +438,6 @@ function Reader({
               <li key={i.message}>{i.message}</li>
             ))}
           </ul>
-        ) : null}
-        {row.nature === "messages" && row.item.reviewNote ? (
-          <p className="text-sm text-warning">
-            <span className="font-semibold">{V.reviewNote}</span> {row.item.reviewNote}
-          </p>
         ) : null}
         {row.nature === "messages" ? (
           <>

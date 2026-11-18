@@ -245,6 +245,7 @@ function world(
         daily_cap: opts.daily ?? 20,
       },
     ],
+    mailbox_sites: [{ mailbox_id: "mb1", site_id: "site1", workspace_id: WS }],
     sites: opts.site ? [{ id: "site1", ...opts.site }] : [],
     link_plans: [{ id: "plan1", site_id: "site1" }],
     batches: [

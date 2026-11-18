@@ -59,12 +59,31 @@ export async function loadSendQueue(
   const { data: boxes } = await supabase
     .from("mailboxes")
     .select(
-      "id, site_id, email, hourly_cap, daily_cap, timezone, send_window_start, send_window_end, send_days",
+      "id, email, hourly_cap, daily_cap, timezone, send_window_start, send_window_end, send_days",
     )
     .eq("status", "verifiee")
     .order("created_at");
-  const bySite = new Map((boxes ?? []).map((b) => [b.site_id, b]));
-  const first = (boxes ?? []).find((b) => waiting.some((w) => w.siteId === b.site_id));
+  const { data: links } = await supabase
+    .from("mailbox_sites")
+    .select("mailbox_id, site_id")
+    .in(
+      "mailbox_id",
+      (boxes ?? []).map((b) => b.id),
+    );
+  // Une boîte peut servir plusieurs sites : sa file regroupe leurs messages. Par site, la plus ancienne gagne.
+  const boxSites = new Map<string, Set<string>>();
+  const claimed = new Set<string>();
+  for (const b of boxes ?? []) {
+    const mine = new Set<string>();
+    for (const l of links ?? []) {
+      if (l.mailbox_id === b.id && !claimed.has(l.site_id)) {
+        mine.add(l.site_id);
+        claimed.add(l.site_id);
+      }
+    }
+    boxSites.set(b.id, mine);
+  }
+  const first = (boxes ?? []).find((b) => waiting.some((w) => boxSites.get(b.id)?.has(w.siteId)));
   if (!first) return { note: { state: "sans_boite", waiting: waiting.length }, eta };
 
   const draftIds = waiting.map((w) => w.id);
@@ -91,9 +110,10 @@ export async function loadSendQueue(
     if (batch?.status === "valide") rank.set(it.draft_id, [batch.validated_at ?? "", it.position]);
   }
 
-  for (const [siteId, box] of bySite) {
+  for (const box of boxes ?? []) {
+    const sitesOfBox = boxSites.get(box.id) ?? new Set<string>();
     const queue = waiting
-      .filter((w) => w.siteId === siteId && rank.has(w.id))
+      .filter((w) => sitesOfBox.has(w.siteId) && rank.has(w.id))
       .sort((a, b) => {
         const [va, pa] = rank.get(a.id)!;
         const [vb, pb] = rank.get(b.id)!;

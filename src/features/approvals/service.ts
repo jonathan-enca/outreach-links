@@ -454,12 +454,12 @@ export async function approveMessages(
       .select("id, site_id")
       .in("id", emailPlans);
     const siteIds = [...new Set((plans ?? []).map((p) => p.site_id))];
-    const { data: boxes } = await supabase
-      .from("mailboxes")
-      .select("site_id")
+    const { data: links } = await supabase
+      .from("mailbox_sites")
+      .select("site_id, mailboxes!inner(status)")
       .in("site_id", siteIds)
-      .eq("status", "verifiee");
-    const withBox = new Set((boxes ?? []).map((b) => b.site_id));
+      .eq("mailboxes.status", "verifiee");
+    const withBox = new Set((links ?? []).map((b) => b.site_id));
     if (siteIds.some((s) => !withBox.has(s))) return { status: "error", message: M.needMailbox };
   }
   let service: Client;

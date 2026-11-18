@@ -2457,6 +2457,49 @@ export type Database = {
           },
         ];
       };
+      mailbox_sites: {
+        Row: {
+          created_at: string;
+          mailbox_id: string;
+          site_id: string;
+          workspace_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          mailbox_id: string;
+          site_id: string;
+          workspace_id: string;
+        };
+        Update: {
+          created_at?: string;
+          mailbox_id?: string;
+          site_id?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "mailbox_sites_mailbox_id_fkey";
+            columns: ["mailbox_id"];
+            isOneToOne: false;
+            referencedRelation: "mailboxes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "mailbox_sites_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "mailbox_sites_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       mailboxes: {
         Row: {
           created_at: string;
@@ -2480,7 +2523,7 @@ export type Database = {
           send_days: number[];
           send_window_end: number;
           send_window_start: number;
-          site_id: string;
+          site_id: string | null;
           smtp_host: string;
           smtp_ok: boolean | null;
           smtp_port: number;
@@ -2512,7 +2555,7 @@ export type Database = {
           send_days?: number[];
           send_window_end?: number;
           send_window_start?: number;
-          site_id: string;
+          site_id: string | null;
           smtp_host: string;
           smtp_ok?: boolean | null;
           smtp_port: number;
@@ -2544,7 +2587,7 @@ export type Database = {
           send_days?: number[];
           send_window_end?: number;
           send_window_start?: number;
-          site_id?: string;
+          site_id?: string | null;
           smtp_host?: string;
           smtp_ok?: boolean | null;
           smtp_port?: number;

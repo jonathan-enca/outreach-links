@@ -4,7 +4,8 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
-import { MailboxSection, type MailboxView } from "@/features/mailboxes/mailbox-section";
+import { loadMailboxes } from "@/features/mailboxes/load";
+import { MailboxSection } from "@/features/mailboxes/mailbox-section";
 import { updateSiteAction } from "@/features/sites/actions";
 import { SiteForm } from "@/features/sites/site-form";
 import { t } from "@/lib/messages";
@@ -22,28 +23,7 @@ async function Site({ params }: { params: Promise<{ id: string }> }) {
   if (!auth.user) redirect("/connexion");
   const { data: site } = await supabase.from("sites").select("*").eq("id", id).maybeSingle();
   if (!site) notFound();
-  const { data: rows } = await supabase
-    .from("mailboxes")
-    .select(
-      "id, email, status, smtp_ok, imap_ok, last_error, smtp_host, health, hourly_cap, daily_cap, send_days, send_window_start, send_window_end",
-    )
-    .eq("site_id", site.id)
-    .order("created_at");
-  const boxes: MailboxView[] = (rows ?? []).map((r) => ({
-    id: r.id,
-    email: r.email,
-    status: r.status as MailboxView["status"],
-    smtpOk: r.smtp_ok,
-    imapOk: r.imap_ok,
-    lastError: r.last_error,
-    smtpHost: r.smtp_host,
-    health: (r.health as MailboxView["health"]) ?? null,
-    hourlyCap: r.hourly_cap,
-    dailyCap: r.daily_cap,
-    sendDays: r.send_days,
-    windowStart: r.send_window_start,
-    windowEnd: r.send_window_end,
-  }));
+  const { boxes, available } = await loadMailboxes(supabase, site.id);
   return (
     <div className="flex flex-col gap-6">
       <Card className="p-6">
@@ -62,7 +42,7 @@ async function Site({ params }: { params: Promise<{ id: string }> }) {
           }}
         />
       </Card>
-      <MailboxSection siteId={site.id} boxes={boxes} />
+      <MailboxSection siteId={site.id} boxes={boxes} available={available} />
     </div>
   );
 }

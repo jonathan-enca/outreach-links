@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Check, TriangleAlert } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { MailboxSection, type MailboxView } from "@/features/mailboxes/mailbox-section";
+import { loadMailboxes } from "@/features/mailboxes/load";
+import { MailboxSection } from "@/features/mailboxes/mailbox-section";
 import { checkDomainAuth, type AuthCheck } from "@/features/settings/domain-auth";
 import { SettingsHeader } from "@/features/settings/header";
 import { pickSite, SiteTabs } from "@/features/settings/site-pick";
@@ -42,28 +43,7 @@ async function Mailbox({ searchParams }: { searchParams: Promise<{ site?: string
   if (!auth.user) redirect("/connexion");
   const { site, sites } = await pickSite(supabase, (await searchParams).site);
   if (!site) redirect(START_HREF);
-  const { data: rows } = await supabase
-    .from("mailboxes")
-    .select(
-      "id, email, status, smtp_ok, imap_ok, last_error, smtp_host, health, hourly_cap, daily_cap, send_days, send_window_start, send_window_end",
-    )
-    .eq("site_id", site.id)
-    .order("created_at");
-  const boxes: MailboxView[] = (rows ?? []).map((r) => ({
-    id: r.id,
-    email: r.email,
-    status: r.status as MailboxView["status"],
-    smtpOk: r.smtp_ok,
-    imapOk: r.imap_ok,
-    lastError: r.last_error,
-    smtpHost: r.smtp_host,
-    health: (r.health as MailboxView["health"]) ?? null,
-    hourlyCap: r.hourly_cap,
-    dailyCap: r.daily_cap,
-    sendDays: r.send_days,
-    windowStart: r.send_window_start,
-    windowEnd: r.send_window_end,
-  }));
+  const { boxes, available } = await loadMailboxes(supabase, site.id);
   // Le domaine contrôlé est celui de la boîte connectée ; à défaut, celui du site.
   const domain = boxes[0]?.email.split("@")[1] ?? site.domain;
   const authState = await checkDomainAuth(domain);
@@ -71,7 +51,7 @@ async function Mailbox({ searchParams }: { searchParams: Promise<{ site?: string
     <>
       <SiteTabs sites={sites} current={site.id} base="/app/reglages/boite" />
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <MailboxSection siteId={site.id} boxes={boxes} />
+        <MailboxSection siteId={site.id} boxes={boxes} available={available} />
         <Card className="p-5">
           <h2 className="mb-2 font-semibold">{S.authTitle(domain)}</h2>
           <ul>

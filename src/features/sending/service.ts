@@ -64,8 +64,36 @@ export type MailboxOutcome =
 
 const COUNTED = ["en_cours", "envoye", "simule", "a_reessayer", "echec"];
 
-/** Signature du site de la boîte, lue une fois par passage (réglages « Vos messages »). */
-const SIGNATURES = new WeakMap<MailboxRow, Signature | null>();
+/**
+ * Signatures lues une fois par passage (réglages « Vos messages »). Une boîte peut servir plusieurs sites :
+ * chaque message part avec la signature du site de son plan.
+ */
+interface BoxContext {
+  signatures: Map<string, Signature | null>;
+  planSite: Map<string, string>;
+}
+const SIGNATURES = new WeakMap<MailboxRow, BoxContext>();
+
+async function signatureFor(
+  db: Client,
+  box: MailboxRow,
+  planId: string,
+  appUrl: string,
+): Promise<Signature | null> {
+  let ctx = SIGNATURES.get(box);
+  if (!ctx) SIGNATURES.set(box, (ctx = { signatures: new Map(), planSite: new Map() }));
+  let siteId = ctx.planSite.get(planId);
+  if (!siteId) {
+    const { data } = await db.from("link_plans").select("site_id").eq("id", planId).maybeSingle();
+    if (!data) return null;
+    siteId = data.site_id;
+    ctx.planSite.set(planId, siteId);
+  }
+  if (!ctx.signatures.has(siteId)) {
+    ctx.signatures.set(siteId, await loadSignature(db, siteId, appUrl));
+  }
+  return ctx.signatures.get(siteId) ?? null;
+}
 
 /** Un passage du moteur : au plus UN message par boîte (le cron espace les passages). */
 export async function runSendTick(deps: SendDeps): Promise<MailboxOutcome[]> {
@@ -141,14 +169,18 @@ async function sendNext(db: Client, box: MailboxRow, deps: SendDeps): Promise<Ma
   const daily = effectiveDailyCap(box.daily_cap, firstAt, now);
   if (inHour >= hourly || rows.length >= daily) return { ...base, result: "plafond" };
 
-  SIGNATURES.set(box, await loadSignature(db, box.site_id, deps.appUrl));
-
   // Relances dues d'abord : une relance en retard passe avant un nouvel envoi.
   const followUp = await sendNextFollowUp(db, box, dry, now, deps);
   if (followUp) return { ...base, ...followUp };
 
-  // Candidats : brouillons email des lots VALIDÉS des plans de ce site, dans l'ordre.
-  const { data: plans } = await db.from("link_plans").select("id").eq("site_id", box.site_id);
+  // Candidats : brouillons email des lots VALIDÉS des plans des sites qui utilisent cette boîte, dans l'ordre.
+  const { data: links } = await db.from("mailbox_sites").select("site_id").eq("mailbox_id", box.id);
+  const siteIds = (links ?? []).map((l) => l.site_id);
+  if (siteIds.length === 0) return { ...base, result: "rien_a_envoyer" };
+  const { data: plans } = await db.from("link_plans").select("id, site_id").in("site_id", siteIds);
+  const ctx: BoxContext = { signatures: new Map(), planSite: new Map() };
+  for (const p of plans ?? []) ctx.planSite.set(p.id, p.site_id);
+  SIGNATURES.set(box, ctx);
   const planIds = (plans ?? []).map((p) => p.id);
   if (planIds.length === 0) return { ...base, result: "rien_a_envoyer" };
   const { data: batches } = await db
@@ -217,7 +249,7 @@ async function attempt(
   const draft = {
     ...row,
     subject: row.subject,
-    body: applySignature(row.body, SIGNATURES.get(box) ?? null),
+    body: applySignature(row.body, await signatureFor(db, box, row.plan_id, deps.appUrl)),
   };
   const { data: contact } = await db
     .from("target_contacts")
@@ -372,7 +404,7 @@ async function finish(
     to,
     subject: draft.subject ?? "",
     body: draft.body,
-    signature: SIGNATURES.get(box) ?? null,
+    signature: await signatureFor(db, box, draft.plan_id, deps.appUrl),
     messageId,
     inReplyTo: opts.inReplyTo ?? null,
     unsubscribeUrl: `${deps.appUrl}/api/unsubscribe?t=${makeUnsubscribeToken(rowId, secret)}`,
@@ -507,12 +539,13 @@ async function sendNextFollowUp(
       in_reply_to: initial.message_id,
     };
     const reason = skipReasonForSignals(signalsOf(initial.id));
+    const followSignature = await signatureFor(db, box, initial.plan_id, deps.appUrl);
     const mail = buildFollowUp({
       fromName: box.from_name,
       subject: initial.subject,
       body: initial.body,
       sentAt: new Date(initial.sent_at ?? now),
-      signature: SIGNATURES.get(box) ? signatureText(SIGNATURES.get(box)!) : null,
+      signature: followSignature ? signatureText(followSignature) : null,
     });
     const skip = async (why: string): Promise<Outcome> => {
       if (prev) {
