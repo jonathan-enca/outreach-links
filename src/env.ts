@@ -99,6 +99,12 @@ const schema = z.object({
     .default("false")
     .transform((v) => v === "true"),
   /**
+   * Envoi ponctuel : id d'UN brouillon validé qui part en premier et peut dépasser le quota
+   * d'échauffement (jamais le plafond horaire ni le plafond journalier de la boîte). Absent par
+   * défaut ; à retirer une fois le message parti.
+   */
+  SEND_PRIORITY_DRAFT_ID: z.string().uuid().optional(),
+  /**
    * Mode bêta (MT.0) : tout espace est traité au niveau « payant » (limites de volume levées), sans
    * toucher à la table `plans`. Faux par défaut ; posé à "true" sur Vercel pendant la bêta. Les
    * plafonds de sécurité de coût et les protections d'envoi restent actifs.

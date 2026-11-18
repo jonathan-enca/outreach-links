@@ -31,6 +31,8 @@ export interface SendDeps {
   keyRing: () => KeyRing;
   send: typeof sendOutreachMail;
   appUrl: string;
+  /** Brouillon validé à envoyer en priorité, en dépassant le quota d'échauffement (une fois). */
+  priorityDraftId?: string;
   transportOptions?: TransportOptions;
 }
 
@@ -38,7 +40,11 @@ export function defaultSendDeps(
   getServiceClient: () => Client,
   env: Pick<
     typeof appEnv,
-    "EMAIL_DRY_RUN" | "OUTREACH_SENDING_ENABLED" | "MAILBOX_ENCRYPTION_KEYS" | "NEXT_PUBLIC_APP_URL"
+    | "EMAIL_DRY_RUN"
+    | "OUTREACH_SENDING_ENABLED"
+    | "MAILBOX_ENCRYPTION_KEYS"
+    | "NEXT_PUBLIC_APP_URL"
+    | "SEND_PRIORITY_DRAFT_ID"
   > = appEnv,
 ): SendDeps {
   return {
@@ -48,6 +54,7 @@ export function defaultSendDeps(
     keyRing: () => parseKeyRing(env.MAILBOX_ENCRYPTION_KEYS),
     send: sendOutreachMail,
     appUrl: env.NEXT_PUBLIC_APP_URL,
+    priorityDraftId: env.SEND_PRIORITY_DRAFT_ID,
   };
 }
 
@@ -167,6 +174,13 @@ async function sendNext(db: Client, box: MailboxRow, deps: SendDeps): Promise<Ma
   const firstAt = first?.[0] ? new Date(first[0].claimed_at) : null;
   const hourly = Math.min(box.hourly_cap, SEND_LIMITS.hourlyMax);
   const daily = effectiveDailyCap(box.daily_cap, firstAt, now);
+
+  // Envoi ponctuel : un brouillon désigné passe avant la file et peut dépasser l'échauffement, mais
+  // jamais le plafond horaire ni le plafond journalier de la boîte (aussi appliqués en base).
+  if (deps.priorityDraftId && inHour < hourly && rows.length < box.daily_cap) {
+    const priority = await sendPriorityDraft(db, box, deps.priorityDraftId, dry, now, deps);
+    if (priority) return { ...base, ...priority };
+  }
   if (inHour >= hourly || rows.length >= daily) return { ...base, result: "plafond" };
 
   // Relances dues d'abord : une relance en retard passe avant un nouvel envoi.
@@ -219,6 +233,51 @@ async function sendNext(db: Client, box: MailboxRow, deps: SendDeps): Promise<Ma
     if (outcome) return { ...base, ...outcome };
   }
   return { ...base, result: "rien_a_envoyer" };
+}
+
+/** Brouillon prioritaire : seulement s'il est dans un lot validé de cette boîte et pas encore parti. */
+async function sendPriorityDraft(
+  db: Client,
+  box: MailboxRow,
+  draftId: string,
+  dry: boolean,
+  now: Date,
+  deps: SendDeps,
+) {
+  const { data: item } = await db
+    .from("batch_items")
+    .select("batch_id, draft_id")
+    .eq("draft_id", draftId)
+    .maybeSingle();
+  if (!item) return null;
+  const { data: batch } = await db
+    .from("batches")
+    .select("id, plan_id, status")
+    .eq("id", item.batch_id)
+    .maybeSingle();
+  if (!batch || batch.status !== "valide") return null;
+  const { data: plan } = await db
+    .from("link_plans")
+    .select("site_id")
+    .eq("id", batch.plan_id)
+    .maybeSingle();
+  if (!plan) return null;
+  const { data: link } = await db
+    .from("mailbox_sites")
+    .select("mailbox_id")
+    .eq("mailbox_id", box.id)
+    .eq("site_id", plan.site_id)
+    .maybeSingle();
+  if (!link) return null;
+  const { data: existing } = await db
+    .from("sent_messages")
+    .select("id")
+    .eq("draft_id", draftId)
+    .eq("step", "initial")
+    .eq("dry_run", dry)
+    .limit(1);
+  if (existing && existing.length > 0) return null;
+  return attempt(db, box, item, null, dry, now, deps);
 }
 
 type Prev = { id: string; attempts: number } | null;

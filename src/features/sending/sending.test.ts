@@ -326,6 +326,45 @@ describe("moteur d'envoi : dry run", () => {
     expect(db.tables.sent_messages).toHaveLength(1);
   });
 
+  it("brouillon prioritaire : part en premier malgré l'échauffement, une seule fois", async () => {
+    const db = world({ drafts: 3 });
+    const claimed = new Date(MONDAY_10H.getTime() - 3 * 3_600_000).toISOString();
+    for (let i = 0; i < 5; i++) {
+      db.tables.sent_messages!.push({
+        draft_id: `old${i}`,
+        from_email: "jo@alice-site.fr",
+        dry_run: true,
+        status: "simule",
+        step: "initial",
+        claimed_at: claimed,
+      });
+    }
+    // Sans priorité : quota d'échauffement (5) atteint.
+    expect((await runSendTick(deps(db)))[0]).toMatchObject({ result: "plafond" });
+    // Avec priorité : d3 part, pas d1.
+    const d = deps(db, { priorityDraftId: "d3" });
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "simule", draftId: "d3" });
+    // Une seule fois : ensuite le quota (6 envois) retient tout.
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "plafond" });
+  });
+
+  it("brouillon prioritaire : ne dépasse jamais le plafond journalier de la boîte", async () => {
+    const db = world({ drafts: 2, daily: 5 });
+    const claimed = new Date(MONDAY_10H.getTime() - 3 * 3_600_000).toISOString();
+    for (let i = 0; i < 5; i++) {
+      db.tables.sent_messages!.push({
+        draft_id: `old${i}`,
+        from_email: "jo@alice-site.fr",
+        dry_run: true,
+        status: "simule",
+        step: "initial",
+        claimed_at: claimed,
+      });
+    }
+    const r = await runSendTick(deps(db, { priorityDraftId: "d2" }));
+    expect(r[0]).toMatchObject({ result: "plafond" });
+  });
+
   it("aucun envoi sans lot validé", async () => {
     const db = world({ batchStatus: "brouillon" });
     const r = await runSendTick(deps(db));

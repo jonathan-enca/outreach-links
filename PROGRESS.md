@@ -2491,3 +2491,9 @@ Maquette validée par Jonathan le 18/11 (`docs/mockups/vos-cibles-bas.md`, déci
 - Le mot « lot » reste dans d'autres écrans (plan, lots) : à revoir écran par écran.
 
 ### Prochain sous-jalon recommandé : MC.6g (inchangé)
+
+## Envoi ponctuel d'un message prioritaire (18/11/2026, demande de Jonathan)
+
+- Variable d'environnement facultative `SEND_PRIORITY_DRAFT_ID` (uuid d'un brouillon validé) : ce brouillon part avant la file et peut dépasser le quota d'échauffement (5 par jour la première semaine), **jamais** le plafond horaire ni le plafond journalier de la boîte (appliqués aussi en base). Une seule fois : un brouillon déjà parti est ignoré. Absente par défaut ; à retirer de Vercel après usage.
+- Fichiers : `src/env.ts`, `src/features/sending/service.ts` (`sendPriorityDraft`), 2 tests dans `sending.test.ts`.
+- Usage : test des boîtes mail (message vers info@oma-and-me.com, brouillon `0857c99b-d72d-4d5a-95fb-0ce9dbac30b1`).
