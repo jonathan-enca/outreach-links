@@ -1,13 +1,15 @@
 import { QUALIFY_LIMITS } from "./limits";
-import type {
-  ContactOutcome,
-  ExclusionReason,
-  LlmJudgement,
-  PageSnapshot,
-  QualCandidate,
-  QualContext,
-  ScoreParts,
-  SiteType,
+import {
+  TARGET_SITUATIONS,
+  type ContactOutcome,
+  type ExclusionReason,
+  type LlmJudgement,
+  type PageSnapshot,
+  type QualCandidate,
+  type QualContext,
+  type ScoreParts,
+  type SiteType,
+  type Situation,
 } from "./types";
 
 /**
@@ -59,9 +61,20 @@ export function unsolicitedFactor(
   return f;
 }
 
-/** Pertinence : adéquation du LLM, renforcée par le recoupement des concurrents (un site qui cite déjà le thème). */
+/**
+ * Force de l'angle (MC.6b) : un lien mort à remplacer passe devant un petit éditeur qui recommande des
+ * ressources, lui-même devant une page qui cite plusieurs sites comparables. [HYPOTHÈSE d'ordre, à
+ * recaler sur les réponses réelles.]
+ */
+const ANGLE_BOOST: Partial<Record<Situation, number>> = {
+  lien_mort: 1.15,
+  petit_editeur_ressources: 1.08,
+};
+
+/** Pertinence : adéquation du LLM, renforcée par le recoupement des concurrents et par la force de l'angle. */
 export function pertinence(j: LlmJudgement, c: QualCandidate): number {
-  return clamp(j.fit * (1 + 0.08 * Math.min(c.competitorsCount, 3)));
+  const angle = (j.situation && ANGLE_BOOST[j.situation]) ?? 1;
+  return clamp(j.fit * (1 + 0.08 * Math.min(c.competitorsCount, 3)) * angle);
 }
 
 /** Score final (0-100) = pertinence × personne ne la sollicite × facilité de contact × autorité plafonnée. */
@@ -83,15 +96,36 @@ export function finalScore(
   return { score: Math.round(score * 10) / 10, parts };
 }
 
-/** Exclusion après le LLM (étage 4), dans l'ordre de gravité. */
+/** Motif d'exclusion d'une situation de refus (MC.6b). */
+const SITUATION_REASON: Partial<Record<Situation, ExclusionReason>> = {
+  pas_une_page_de_contenu: "pas_de_contenu",
+  juridique: "page_legale",
+  commercial: "page_commerciale",
+  ferme_a_liens: "ferme_a_liens",
+};
+
+/**
+ * Exclusion après le LLM (étage 4), dans l'ordre de gravité. Depuis MC.6b, une page n'est une cible que
+ * si elle montre une des trois situations (lien mort remplaçable, petit éditeur qui cite des ressources,
+ * page qui cite plusieurs ressources comparables). Exception : la page qui cite déjà le site sans faire
+ * de lien (`mention`) porte une autre preuve, jugée par le rédacteur. Un jugement rendu avant MC.6b
+ * (sans situation) garde l'ancien critère.
+ */
 export function judgementExclusion(
   j: LlmJudgement,
   minFit: number = QUALIFY_LIMITS.minFit,
+  c?: Pick<QualCandidate, "sources">,
 ): { reason: ExclusionReason; detail: string } | null {
   if (j.sellsLinks) return { reason: "vend_des_liens", detail: j.fitReason };
   if (j.sameOffer) return { reason: "concurrent", detail: j.fitReason };
   if (j.unrealistic) return { reason: "irrealiste", detail: j.fitReason };
+  const refusal = j.situation ? SITUATION_REASON[j.situation] : undefined;
+  if (refusal) return { reason: refusal, detail: j.fitReason };
   if (j.fit < minFit) return { reason: "hors_sujet", detail: j.fitReason };
+  if (j.situation && !TARGET_SITUATIONS.has(j.situation)) {
+    const mentioned = c?.sources.some((x) => x.source === "mention") ?? false;
+    if (!mentioned) return { reason: "sans_angle", detail: j.fitReason };
+  }
   return null;
 }
 
@@ -154,6 +188,20 @@ export function requestAndWhy(
     `Pour lui : ${ANGLE[j.siteType]}.`,
   ];
   const signals: string[] = [];
+  // MC.6b : la preuve que le lien a sa place, dite simplement.
+  const cited = page.cites?.resource;
+  if (j.situation === "lien_mort") signals.push("sa page contient un lien qui ne répond plus");
+  else if (cited?.found) {
+    const others = Math.max(0, (page.cites?.sites ?? 1) - 1);
+    signals.push(
+      others > 0
+        ? `sa page cite déjà ${cited.domain} et ${others} autre${others > 1 ? "s" : ""} site${others > 1 ? "s" : ""}`
+        : `sa page cite déjà ${cited.domain}`,
+    );
+  } else if (j.situation && TARGET_SITUATIONS.has(j.situation) && (page.cites?.sites ?? 0) > 0) {
+    const n = page.cites!.sites;
+    signals.push(`sa page recommande déjà ${n} site${n > 1 ? "s" : ""} à ses lecteurs`);
+  }
   if (c.competitorsCount >= 2) signals.push(`il lie déjà ${c.competitorsCount} de vos concurrents`);
   if (
     ["mairie", "association", "ecole", "photographe", "forum_modere", "ecommerce"].includes(

@@ -3,7 +3,7 @@ import type { AuditActionState, SendEvent } from "@/features/audits/service";
 import { logger } from "@/lib/logger";
 import { t } from "@/lib/messages";
 import type { Database, Json } from "@/lib/supabase/database.types";
-import type { FunnelStats, QualInput } from "./funnel";
+import type { FunnelStats, QualInput, ResourceYield } from "./funnel";
 import { loadQualificationInput, toRow, type QualRunRow } from "./run";
 import { AUTO_LIMITS, failBackground } from "./background";
 import { countStock, MORE_LIMITS, STOCK_REASONS } from "./reserve";
@@ -68,6 +68,8 @@ export async function requestMore(
 export interface MoreRun extends QualRunRow {
   /** Rendement déjà mesuré par source, pour composer le premier lot. */
   priorYield: Record<string, { read: number; relevant: number }>;
+  /** Rendement et décisions déjà pris par ressource comparable (MC.6b) : une ressource abandonnée le reste. */
+  priorResources?: Record<string, ResourceYield>;
   /** Durée maximale de la lecture de ce lot (ms) ; 5 minutes si absent. */
   maxReadMs?: number;
   /** Lecture automatique : numéro du lot et début de la chaîne. */
@@ -137,6 +139,7 @@ export async function beginMore(
     model: plan.model ?? "",
     auditCapUsd: Number(audit?.cost_cap_usd ?? 0),
     priorYield,
+    priorResources: stats.byResource ?? {},
   };
 }
 
@@ -183,6 +186,7 @@ export function toMoreInput(
       preflightMax: MORE_LIMITS.preflightMax,
     },
     priorYield: run.priorYield,
+    priorResources: run.priorResources,
   };
 }
 
@@ -208,6 +212,11 @@ export function mergeStats(
         }
       : y;
   }
+  // Par ressource : le lot rend des compteurs CUMULÉS (il part de ceux de la base), sauf la liste courte.
+  const byResource = { ...(base.byResource ?? {}) };
+  for (const [k, y] of Object.entries(lot.byResource ?? {})) {
+    byResource[k] = { ...y, shortlist: (byResource[k]?.shortlist ?? 0) + y.shortlist };
+  }
   return {
     ...base,
     pagesRead: add(base.pagesRead, lot.pagesRead),
@@ -223,6 +232,7 @@ export function mergeStats(
     stock: lot.stock,
     shortlist,
     bySource,
+    ...(Object.keys(byResource).length > 0 ? { byResource } : {}),
   };
 }
 

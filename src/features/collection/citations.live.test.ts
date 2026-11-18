@@ -8,6 +8,7 @@ import { createLlmClient } from "@/lib/llm";
 import { fileCache } from "./demo-input";
 import { mergeCandidates } from "./normalize";
 import { buildCollectionPlan, estimateCollection } from "./plan";
+import { describeCandidates } from "./resource-judge";
 import { executeCollection, type CollectionRun, type StepOutcome } from "./run";
 
 /**
@@ -118,7 +119,7 @@ describe.skipIf(!live)("mesure réelle : pages qui citent des ressources compara
     };
     const steps: { id: string; costUsd: number; rows: number; ms: number | undefined }[] = [];
     const progress = await executeCollection(
-      () => ({ dfs: dfs as never, service: ledger.client, llm }),
+      () => ({ dfs: dfs as never, service: ledger.client, llm, describe: describeCandidates }),
       run,
       async (id, fn) => {
         const out = await fn();

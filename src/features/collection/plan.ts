@@ -61,6 +61,8 @@ export interface PlanInput {
   language?: string;
   /** Taille et adresse connues des concurrents ; sans elles, aucun concurrent n'est écarté. */
   competitors?: readonly CompetitorFacts[];
+  /** Concurrents non retenus par l'audit (MC.6b) : proposés seulement au choix des ressources comparables. */
+  otherCompetitors?: readonly CompetitorFacts[];
 }
 
 /** Écritures distinctes du nom (« Mega Coloring » et « mega-coloring » = une, « megacoloring » = une autre). */
@@ -134,6 +136,7 @@ export function buildCollectionPlan(input: PlanInput): CollectionPlan {
     citations: planResources({
       competitorDomains: input.competitorDomains,
       competitors: input.competitors,
+      otherCompetitors: input.otherCompetitors,
       language: input.language,
     }),
   };

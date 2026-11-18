@@ -185,6 +185,7 @@ function fakeDeps(o: Fake = {}) {
               results: data.cibles.map((c) => ({
                 id: c.id,
                 site_type: "blog",
+                situation: "lien_mort",
                 fit: o.fit ? o.fit(c.domaine) : 0.8,
                 fit_reason: "Même public.",
                 sells_links: false,

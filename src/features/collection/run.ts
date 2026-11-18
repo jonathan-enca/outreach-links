@@ -733,7 +733,13 @@ export interface ExecuteOptions {
  * après toutes les tentatives est « manqué » : compté, jamais fatal. Aucun envoi, aucun achat.
  */
 export async function executeCollection(
-  deps: () => { dfs: Dfs; service: Client; llm?: LlmClient | null },
+  deps: () => {
+    dfs: Dfs;
+    service: Client;
+    llm?: LlmClient | null;
+    /** Présentation des candidats au choix des ressources (MC.6b) : lecture des accueils ; absent = aucune. */
+    describe?: (candidates: readonly ResourceCandidate[]) => Promise<ResourceCandidate[]>;
+  },
   run: CollectionRun,
   runStep: StepRunner,
   opts: ExecuteOptions = {},
@@ -952,10 +958,14 @@ export async function executeCollection(
       if (!(await guarded(deps().service, run, RESOURCE_PICK_LIMITS.reservedUsd))) {
         return { ok: false as const };
       }
+      // MC.6b : le modèle juge sur ce que chaque candidat dit de lui-même (titre et description de son
+      // accueil, lecture gratuite), pas sur un simple nom de domaine.
+      const describe = deps().describe;
+      const described = describe ? await describe(candidates).catch(() => candidates) : candidates;
       const out = await pickResources({
         llm,
         site: brief,
-        candidates,
+        candidates: described,
         max: cites.max,
         language: run.ctx.language,
         workspaceId: run.workspaceId,

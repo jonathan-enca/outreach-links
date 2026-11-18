@@ -256,6 +256,7 @@ describe("étage 4 : LLM (contenu non fiable, citation réelle)", () => {
       {
         id: "c1",
         site_type: "blog",
+        situation: "lien_mort",
         fit: 0.9,
         fit_reason: "ok",
         sells_links: false,
@@ -403,6 +404,7 @@ function fakeDeps(o: FakeOpts = {}) {
                   {
                     id: c.id,
                     site_type: jj.siteType,
+                    situation: "lien_mort",
                     fit: jj.fit,
                     fit_reason: jj.fitReason,
                     sells_links: jj.sellsLinks,

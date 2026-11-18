@@ -59,19 +59,22 @@ export async function previewCollection(service: Client, auditId: string): Promi
       .from("competitors")
       .select("domain, selected, score, referring_domains, sample_url")
       .eq("audit_id", auditId)
-      .eq("selected", true)
       .order("score", { ascending: false }),
   ]);
   if (!universe) return { ok: false, message: M.noUniverse };
 
+  const facts = (c: NonNullable<typeof comps.data>[number]) => ({
+    domain: c.domain,
+    referringDomains: c.referring_domains,
+    sampleUrl: c.sample_url,
+  });
+  const retained = (comps.data ?? []).filter((c) => c.selected);
   const plan = buildCollectionPlan({
     queries: universe.queries,
-    competitorDomains: (comps.data ?? []).map((c) => c.domain),
-    competitors: (comps.data ?? []).map((c) => ({
-      domain: c.domain,
-      referringDomains: c.referring_domains,
-      sampleUrl: c.sample_url,
-    })),
+    competitorDomains: retained.map((c) => c.domain),
+    competitors: retained.map(facts),
+    // MC.6b : les concurrents non retenus servent seulement de candidats au choix des ressources comparables.
+    otherCompetitors: (comps.data ?? []).filter((c) => !c.selected).map(facts),
     language: site.language,
     theme: site.niche ?? "",
     nameVariants: profile?.profile.name_variants ?? [],

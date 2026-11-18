@@ -1,9 +1,16 @@
 import { isLoginWall, isParked, looksHacked, sellsLinks } from "@/features/triage/rules";
 import type { PageRead, PageReader } from "@/features/triage/page-reader";
+import {
+  DEFAULT_EXCLUDED_DOMAINS,
+  hostOf,
+  isExcludedDomain,
+  isValidHost,
+} from "@/features/audits/excluded-domains";
+import { isPlatformUserSite, registrableDomain } from "@/features/collection/hosts";
 import { stageTwoReason } from "./free";
 import { wellFormed } from "@/lib/well-formed";
 import { QUALIFY_LIMITS } from "./limits";
-import type { ExclusionReason, PageSnapshot, QualCandidate, QualContext } from "./types";
+import type { ExclusionReason, PageCites, PageSnapshot, QualCandidate, QualContext } from "./types";
 
 const LINK_SIGNALS: [RegExp, string][] = [
   [/contact|nous-ecrire|ecrivez-nous/i, "page contact"],
@@ -41,7 +48,54 @@ export function hasContributorProgram(text: string): boolean {
   );
 }
 
-export function snapshotOf(read: PageRead): PageSnapshot {
+const sameSite = (host: string, domain: string) => host === domain || host.endsWith(`.${domain}`);
+
+/**
+ * Ce que la page cite déjà (MC.6b), relevé dans les liens sortants déjà lus (gratuit) : les sites
+ * extérieurs cités dans le CONTENU (ni menu, ni pied de page, ni réseaux sociaux ou plateformes), et la
+ * ressource comparable qui a fait trouver la page, avec le passage qui l'entoure. C'est ce qui permet de
+ * reconnaître une page qui recommande des ressources à ses lecteurs, sans lire toute la page au modèle.
+ */
+export function pageCites(
+  read: Pick<PageRead, "outbound">,
+  c: Pick<QualCandidate, "domain" | "sources">,
+): PageCites {
+  const own = registrableDomain(hostOf(c.domain));
+  const sites = new Set<string>();
+  const links: PageCites["links"] = [];
+  for (const o of read.outbound) {
+    if (o.zone !== "body") continue;
+    const host = hostOf(o.url);
+    if (!isValidHost(host)) continue;
+    // Boutons de partage, vidéos, places de marché : ce ne sont pas des ressources citées.
+    if (!isPlatformUserSite(host) && isExcludedDomain(host, [], DEFAULT_EXCLUDED_DOMAINS)) continue;
+    const site = isPlatformUserSite(host) ? host : registrableDomain(host);
+    if (site === own || sites.has(site)) continue;
+    sites.add(site);
+    if (links.length < QUALIFY_LIMITS.citedLinks) {
+      links.push({ anchor: wellFormed(o.anchor.slice(0, 60)), domain: site });
+    }
+  }
+  const resource = c.sources.find((x) => x.source === "citation" && x.persona)?.persona ?? null;
+  if (!resource) return { sites: sites.size, links };
+  const hit =
+    read.outbound.find((o) => o.zone === "body" && sameSite(hostOf(o.url), resource)) ??
+    read.outbound.find((o) => sameSite(hostOf(o.url), resource));
+  return {
+    sites: sites.size,
+    links,
+    resource: {
+      domain: resource,
+      found: Boolean(hit),
+      context: hit ? wellFormed(hit.context.slice(0, QUALIFY_LIMITS.citedContextChars)) : "",
+    },
+  };
+}
+
+export function snapshotOf(
+  read: PageRead,
+  c?: Pick<QualCandidate, "domain" | "sources">,
+): PageSnapshot {
   // Une coupe au milieu d'un émoji laisse une demi-paire UTF-16 : chaque extrait est rendu bien formé.
   return {
     url: read.url,
@@ -53,6 +107,7 @@ export function snapshotOf(read: PageRead): PageSnapshot {
     excerpt: wellFormed(read.text.slice(0, QUALIFY_LIMITS.excerptChars)),
     publisherSignals: publisherSignals(read),
     contributorProgram: hasContributorProgram(read.text),
+    ...(c ? { cites: pageCites(read, c) } : {}),
   };
 }
 
@@ -81,7 +136,7 @@ export function pageVerdict(read: PageRead, c: QualCandidate, ctx: QualContext):
       detail: read.status ? `HTTP ${read.status}` : "pas de réponse",
     };
   }
-  const page = snapshotOf(read);
+  const page = snapshotOf(read, c);
   const all = `${read.title} ${read.description} ${read.text}`;
   if (isParked(all)) return { page, reason: "parque", detail: "site parqué, suspendu ou à vendre" };
   if (looksHacked(all)) return { page, reason: "pirate", detail: "contenu de spam injecté" };

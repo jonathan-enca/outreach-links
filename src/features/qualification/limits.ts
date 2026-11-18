@@ -47,6 +47,24 @@ export const QUALIFY_LIMITS = {
   minLots: 4,
   /** Part minimale d'un lot donnée à chaque source qui a encore des candidats (exploration). */
   sourceFloor: 2,
+  /**
+   * Pilotage par ressource comparable (MC.6b). Essai MC.0b : le rendement dépend surtout de la
+   * ressource de départ (3 cibles sur 8 pages pour l'une, 0 sur 7 pour une autre, citée par des fermes
+   * à liens). On lit donc quelques pages de chaque ressource avant de poursuivre.
+   */
+  resource: {
+    /** Pages lues par ressource avant de décider (sondage). */
+    probePages: 8,
+    /** Pages du sondage lues par lot tant qu'il n'est pas fini (les ressources sont sondées vite). */
+    probeFloor: 4,
+    /** Dès ce nombre de pages lues sans cible, une ressource citée surtout par de mauvaises pages est abandonnée. */
+    earlyPages: 6,
+    /** Part de pages légales ou de fermes à liens à partir de laquelle la ressource est abandonnée. */
+    badShare: 0.5,
+    /** Après ce nombre de pages lues, une ressource qui rend moins que `minYield` est abandonnée. */
+    reviewPages: 24,
+    minYield: 0.05,
+  },
   // --- Avant lecture : robots.txt (vérification légère, en parallèle) ---
   /** Candidats dont le robots.txt est vérifié avant toute lecture (les premiers de chaque source). */
   preflightMax: 450,
@@ -71,8 +89,11 @@ export const QUALIFY_LIMITS = {
   batchMaxWaitMs: 10 * 60_000,
   /** Extrait de page envoyé au modèle (caractères). */
   excerptChars: 1_200,
-  /** Jetons de sortie par cible (borne du coût). */
-  outputTokensPerTarget: 200,
+  /** MC.6b : liens du contenu montrés au modèle (texte et site), et passage autour de la ressource citée. */
+  citedLinks: 14,
+  citedContextChars: 320,
+  /** Jetons de sortie par cible (borne du coût). 230 depuis MC.6b : la situation s'ajoute à la réponse. */
+  outputTokensPerTarget: 230,
   /** Adéquation minimale pour rester candidat. */
   minFit: 0.5,
   // --- Étage 5 : contact ---
@@ -108,9 +129,17 @@ export function qualificationBudgetUsd(auditTargetUsd: number = AUDIT_BUDGET.tar
 }
 
 /** Prompt système + contexte du site (caractères) : borne vérifiée par un test sur le vrai prompt. */
-export const SYSTEM_CHARS = 3_000;
-/** Caractères par cible au plus (extrait, titre, description, 8 intertitres, échappement JSON). */
-export const TARGET_CHARS = QUALIFY_LIMITS.excerptChars + 1_700;
+export const SYSTEM_CHARS = 5_600;
+/**
+ * Caractères par cible au plus (extrait, titre, description, 8 intertitres, liens du contenu, passage
+ * autour de la ressource citée, lien mort annoncé, échappement JSON).
+ */
+export const TARGET_CHARS =
+  QUALIFY_LIMITS.excerptChars +
+  1_700 +
+  QUALIFY_LIMITS.citedLinks * 110 +
+  QUALIFY_LIMITS.citedContextChars +
+  500;
 
 /** Pire coût d'un appel de `n` cibles (USD) : prompt plein et sortie au maximum. */
 export function batchWorstUsd(n: number, model: string = DEFAULT_MODELS.anthropic): number {

@@ -87,8 +87,12 @@ export const COLLECTION_LIMITS = {
   citations: {
     /** Ressources interrogées au plus (6 x 0,0294 = 0,176 USD : sous le budget de phase de 0,18 USD ; 6 comme à l'essai MC.0b). */
     maxResources: 6,
-    /** Concurrents de l'audit proposés au choix du modèle (le reste vient des recherches). */
-    poolSize: 12,
+    /**
+     * Sites de l'audit proposés au choix du modèle (le reste vient des recherches). 40 depuis MC.6b : les
+     * concurrents NON retenus par l'audit en font partie. Mesuré le 18/11/2026 : les vrais sites
+     * comparables d'un site de test étaient presque tous parmi eux, et aucun parmi les 10 retenus.
+     */
+    poolSize: 40,
     rowsPerCall: 150,
     /** Un lien dont le score de spam atteint ce seuil est écarté (filtre serveur ET client). */
     spamMax: 40,
