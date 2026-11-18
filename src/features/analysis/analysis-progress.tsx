@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, ArrowRight, Check, Circle, Loader2 } from "lucide-react";
+import { AlertTriangle, ArrowRight, Check, Loader2, Minus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,69 +12,166 @@ import { siteHref } from "@/features/shell/next-step";
 import { t } from "@/lib/messages";
 import { cn } from "@/lib/utils";
 import type { StepStatus } from "./steps";
-import { buildAnalysisView, type AnalysisSnapshot, type StepView } from "./view";
+import { buildAnalysisView, type AnalysisSnapshot, type FunnelView, type StepView } from "./view";
 
 const POLL_MS = 3000;
+/** Analyse finie, lecture des autres sites encore en cours : on regarde moins souvent. */
+const BACKGROUND_POLL_MS = 10_000;
 /** Délai avant d'ouvrir « Vos cibles » : le temps de voir que c'est fini. */
 const REDIRECT_MS = 4000;
 const S = t.analysis.screen;
 
-function StepIcon({ status }: { status: StepStatus }) {
-  const base = "size-5 shrink-0";
-  if (status === "termine") return <Check aria-hidden className={cn(base, "text-success")} />;
+/** La pastille d'une étape : la FORME change avec l'état (numéro, anneau, coche, tiret, point d'exclamation), pas seulement la couleur. */
+function StepDot({
+  status,
+  position,
+  soft = false,
+}: {
+  status: StepStatus;
+  position: number;
+  soft?: boolean;
+}) {
+  const base =
+    "relative z-10 grid size-7 shrink-0 place-items-center rounded-full border-2 bg-card text-xs font-semibold tabular-nums transition-colors duration-300 motion-reduce:transition-none";
+  if (status === "termine")
+    return (
+      <span aria-hidden className={cn(base, "border-success bg-success/10 text-success")}>
+        <Check className="size-4" />
+      </span>
+    );
   if (status === "en_cours")
-    return <Loader2 aria-hidden className={cn(base, "text-primary motion-safe:animate-spin")} />;
-  if (status === "echoue") return <AlertTriangle aria-hidden className={cn(base, "text-danger")} />;
-  return <Circle aria-hidden className={cn(base, "text-muted-foreground/50")} />;
+    return (
+      <span aria-hidden className={cn(base, "border-primary text-primary")}>
+        <Loader2 className="size-4 motion-safe:animate-spin" />
+      </span>
+    );
+  if (status === "echoue")
+    return (
+      <span
+        aria-hidden
+        className={cn(
+          base,
+          soft
+            ? "border-warning bg-warning/10 text-warning"
+            : "border-danger bg-danger/10 text-danger",
+        )}
+      >
+        <AlertTriangle className="size-3.5" />
+      </span>
+    );
+  if (status === "saute")
+    return (
+      <span aria-hidden className={cn(base, "border-dashed border-border text-muted-foreground")}>
+        <Minus className="size-4" />
+      </span>
+    );
+  return (
+    <span aria-hidden className={cn(base, "border-border text-muted-foreground")}>
+      {position}
+    </span>
+  );
 }
 
 function StepRowView({
   step,
+  last,
   onRestart,
   busy,
 }: {
   step: StepView;
+  last: boolean;
   onRestart: (key: string) => void;
   busy: boolean;
 }) {
   const active = step.status === "en_cours";
+  // L'étape parallèle qui n'aboutit pas n'arrête rien : un avertissement, pas une alerte.
+  const soft = step.status === "echoue" && step.parallel;
+  const failed = step.status === "echoue" && !soft;
+  const idle = step.status === "attente" || step.status === "saute";
   const [armed, setArmed] = useState(false);
   return (
     <li
       data-step={step.key}
       data-status={step.status}
-      className={cn(
-        "flex gap-3 rounded-lg px-3 py-3",
-        active && "bg-primary/5 ring-1 ring-primary/20",
-        step.status === "echoue" && "bg-danger/5 ring-1 ring-danger/30",
-      )}
+      aria-current={active && !step.parallel ? "step" : undefined}
+      className="relative grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-3"
     >
-      <span className="mt-0.5">
-        <StepIcon status={step.status} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+      {/* Le fil qui relie les étapes : vert une fois l'étape faite. */}
+      {last ? null : (
+        <span
+          aria-hidden
+          className={cn(
+            "absolute top-7 bottom-0 left-[0.8125rem] w-0.5 transition-colors duration-300 motion-reduce:transition-none",
+            step.status === "termine" ? "bg-success/40" : "bg-border",
+          )}
+        />
+      )}
+      <StepDot status={step.status} position={step.position} soft={soft} />
+      <div
+        className={cn(
+          "min-w-0 pt-0.5 pb-4",
+          active && "mb-3 rounded-lg border border-primary/30 bg-card px-3 py-2.5 shadow-card",
+          failed && "mb-3 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2.5",
+          soft && "mb-3 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2.5",
+        )}
+      >
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
           <span
             className={cn(
               "font-medium",
-              step.status === "attente" && "text-muted-foreground",
-              step.status === "echoue" && "text-danger",
+              idle && "font-normal text-muted-foreground",
+              failed && "text-danger",
             )}
           >
             {step.label}
+            {step.parallel ? (
+              <Badge tone="info" className="ml-2 align-middle font-normal">
+                {S.parallel}
+              </Badge>
+            ) : null}
           </span>
-          <span className="text-sm text-muted-foreground">{S.stepState[step.status]}</span>
+          <span
+            className={cn(
+              "text-xs whitespace-nowrap text-muted-foreground",
+              active && "font-semibold text-primary",
+              failed && "font-semibold text-danger",
+              soft && "font-semibold text-warning",
+            )}
+          >
+            {soft ? S.parallelFailed : S.stepState[step.status]}
+          </span>
         </div>
-        {step.counter ? <p className="mt-0.5 text-sm tabular-nums">{step.counter}</p> : null}
-        {step.example && step.status !== "echoue" ? (
-          <p className="mt-0.5 truncate text-sm text-muted-foreground">{step.example}</p>
+        {step.counter ? (
+          <p className="mt-0.5 text-sm tabular-nums" data-counter>
+            {step.counter}
+          </p>
         ) : null}
+        {step.progress !== null ? (
+          <div aria-hidden className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-700 motion-reduce:transition-none"
+              style={{ width: `${Math.max(step.progress, 3)}%` }}
+            />
+          </div>
+        ) : null}
+        {step.example ? (
+          <p className="mt-1 line-clamp-2 text-sm break-words text-muted-foreground" data-example>
+            {step.example}
+          </p>
+        ) : null}
+        {step.notes.map((note) => (
+          <p key={note} className="mt-1 text-sm text-muted-foreground" data-note>
+            {note}
+          </p>
+        ))}
         {step.missed ? (
           <p className="mt-1 text-sm text-warning" data-missed>
             {step.missed}
           </p>
         ) : null}
-        {step.error ? <p className="mt-1 text-sm text-danger">{step.error}</p> : null}
+        {step.error ? (
+          <p className={cn("mt-1 text-sm", soft ? "text-warning" : "text-danger")}>{step.error}</p>
+        ) : null}
         {step.canRestart ? (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {armed ? (
@@ -114,10 +211,53 @@ function StepRowView({
   );
 }
 
+/** Du plus large au plus précis : quatre lignes toujours présentes (« à venir »), donc aucun saut quand elles se remplissent. */
+function FunnelCard({ funnel }: { funnel: FunnelView }) {
+  const rows: [string, number | null][] = [
+    [S.funnelRows.found, funnel.found],
+    [S.funnelRows.read, funnel.read],
+    [S.funnelRows.kept, funnel.kept],
+    [S.funnelRows.targets, funnel.targets],
+  ];
+  const max = Math.max(1, funnel.found);
+  return (
+    <Card className="flex flex-col gap-3 p-5" data-block="funnel">
+      <h3 className="font-medium">{S.funnelTitle}</h3>
+      <dl className="flex flex-col gap-3">
+        {rows.map(([label, value]) => (
+          <div key={label} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3">
+            <dt className={cn("text-sm", value === null && "text-muted-foreground")}>{label}</dt>
+            <dd
+              className={cn(
+                "text-sm tabular-nums",
+                value === null ? "text-muted-foreground" : "font-semibold",
+              )}
+            >
+              {value === null ? S.funnelPending : value.toLocaleString("fr-FR")}
+            </dd>
+            <div
+              aria-hidden
+              className="col-span-2 mt-1 h-1.5 overflow-hidden rounded-full bg-muted"
+            >
+              {/* Racine carrée : les petits nombres restent visibles à côté des grands. */}
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-700 motion-reduce:transition-none"
+                style={{
+                  width: value ? `${Math.max(3, Math.round(100 * Math.sqrt(value / max)))}%` : "0%",
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </dl>
+    </Card>
+  );
+}
+
 /**
  * L'écran « Analyse en cours » (MU.3) : les huit étapes avancent en direct (route d'état interrogée
- * toutes les 3 secondes, sans rechargement), l'avancement global et le temps restant, le tri en
- * chiffres, les premières cibles ; en échec, ce qui a marché et un bouton « Reprendre » ; à la fin,
+ * toutes les 3 secondes, sans rechargement), ce qui se passe maintenant, l'avancement et le temps
+ * restant en fourchette, du plus large au plus précis en chiffres, les premières cibles ; en échec, ce qui a marché et un bouton « Reprendre » ; à la fin,
  * ouverture automatique de « Vos cibles ». Fermer puis rouvrir la page retrouve l'état (tout est en base).
  */
 export function AnalysisProgress({
@@ -163,12 +303,14 @@ export function AnalysisProgress({
     }
   }, [initial.auditId, router]);
 
-  // Interroge la route légère tant que l'analyse tourne ; s'arrête à la fin ou à l'échec.
+  // Interroge la route légère tant que l'analyse tourne ; s'arrête à l'échec, ou à la fin une fois la
+  // lecture des autres sites trouvés finie elle aussi (interrogée moins souvent).
+  const pollMs = view.active ? POLL_MS : view.backgroundPending ? BACKGROUND_POLL_MS : 0;
   useEffect(() => {
-    if (!view.active) return;
-    const timer = setInterval(refresh, POLL_MS);
+    if (!pollMs) return;
+    const timer = setInterval(refresh, pollMs);
     return () => clearInterval(timer);
-  }, [view.active, refresh]);
+  }, [pollMs, refresh]);
 
   // Fin : on laisse voir « terminée », puis « Vos cibles » s'ouvre seul.
   useEffect(() => {
@@ -208,16 +350,25 @@ export function AnalysisProgress({
 
   const failed = snap.status === "echoue";
   const finished = snap.status === "termine";
-  const waiting =
-    view.active && view.percent === 0 && snap.steps.every((s) => s.status === "attente");
   const hidden = Math.max(0, view.targetsCount - view.targets.length);
+  const noTargets = finished && !view.backgroundPending && view.targetsCount === 0;
 
   return (
     <div className="flex flex-col gap-6" data-analysis-status={snap.status}>
       {finished ? (
-        <Card className="flex flex-col items-start gap-3 border-success/40 bg-success/5 p-6">
-          <h2 className="font-display text-xl font-semibold">{S.doneTitle}</h2>
-          <p className="text-muted-foreground">{S.doneBody(view.targetsCount)}</p>
+        <Card
+          className="flex flex-col items-start gap-3 border-success/40 bg-success/5 p-5 sm:p-6"
+          data-block="done"
+          data-background={view.backgroundPending ? "en_cours" : "fini"}
+        >
+          <h2 role="status" className="font-display text-xl font-semibold text-balance">
+            {view.backgroundPending
+              ? S.firstReadyTitle(view.targetsCount)
+              : S.doneTitle(view.targetsCount)}
+          </h2>
+          <p className="text-muted-foreground">
+            {view.backgroundPending ? S.firstReadyBody : S.doneBody(view.targetsCount)}
+          </p>
           <div className="flex flex-wrap items-center gap-3">
             <Button asChild className="h-12 px-6 text-base">
               <Link href={siteHref.cibles(snap.siteId)}>
@@ -226,16 +377,19 @@ export function AnalysisProgress({
               </Link>
             </Button>
             {autoOpen ? (
-              <span role="status" className="text-sm text-muted-foreground">
-                {S.redirecting}
-              </span>
+              <span className="text-sm text-muted-foreground">{S.redirecting}</span>
             ) : null}
           </div>
         </Card>
       ) : failed ? (
-        <Card className="flex flex-col gap-4 border-danger/40 p-6">
+        <Card className="flex flex-col gap-4 border-danger/40 p-5 sm:p-6" data-block="failed">
           <div>
-            <h2 className="font-display text-xl font-semibold text-danger">{S.failedTitle}</h2>
+            <h2
+              role="alert"
+              className="font-display text-xl font-semibold text-balance text-danger"
+            >
+              {view.failedStep ? S.failedTitleAt(view.failedStep.position) : S.failedTitle}
+            </h2>
             <p className="mt-1 text-muted-foreground">{S.failedBody}</p>
           </div>
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
@@ -268,21 +422,29 @@ export function AnalysisProgress({
           </form>
         </Card>
       ) : (
-        <Card className="flex flex-col gap-3 p-6">
+        <Card className="flex flex-col gap-3 p-5 sm:p-6" data-block="running">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <p role="status" aria-live="polite" className="font-display text-xl font-semibold">
-              {waiting ? S.starting : S.percent(view.percent)}
+            {/* Seule cette phrase est annoncée : elle ne change qu'au passage d'une étape à l'autre. */}
+            <h2
+              role="status"
+              aria-live="polite"
+              className="font-display text-xl font-semibold text-balance"
+            >
+              {view.headline}
+            </h2>
+            <p className="text-sm text-muted-foreground tabular-nums">
+              <span className="font-medium text-foreground">{S.percent(view.percent)}</span>
+              {view.remainingRange && !view.slowStart
+                ? ` · ${S.remaining(view.remainingRange[0], view.remainingRange[1])}`
+                : null}
             </p>
-            {view.remainingMinutes !== null ? (
-              <p className="text-sm text-muted-foreground">{S.remaining(view.remainingMinutes)}</p>
-            ) : null}
           </div>
           <div
             role="progressbar"
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={view.percent}
-            aria-label={S.percent(view.percent)}
+            aria-label={S.progressLabel(view.percent)}
             className="h-2.5 overflow-hidden rounded-full bg-muted"
           >
             <div
@@ -318,57 +480,53 @@ export function AnalysisProgress({
         </p>
       ) : null}
 
-      {offline ? (
-        <p role="status" className="text-sm text-muted-foreground">
-          {S.offline}
-        </p>
-      ) : null}
+      {/* Toujours dans la page (vide hors panne) : son apparition ne décale rien et elle est annoncée. */}
+      <p role="status" className={cn("text-sm text-muted-foreground", !offline && "sr-only")}>
+        {offline ? S.offline : ""}
+      </p>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <ol className="flex flex-col gap-1" aria-label={t.analysis.screen.intro}>
-          {view.steps.map((step) => (
-            <StepRowView key={step.key} step={step} onRestart={restart} busy={restarting} />
+        <ol className="flex flex-col" aria-label={S.stepsLabel}>
+          {view.steps.map((step, i) => (
+            <StepRowView
+              key={step.key}
+              step={step}
+              last={i === view.steps.length - 1}
+              onRestart={restart}
+              busy={restarting}
+            />
           ))}
         </ol>
 
-        <div className="flex flex-col gap-6">
-          {view.funnel ? (
-            <Card className="flex flex-col gap-3 p-5" data-block="funnel">
-              <h3 className="font-medium">{S.funnelTitle}</h3>
-              <ul className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-                <li className="tabular-nums">{S.funnelExamined(view.funnel.examined)}</li>
-                {view.funnel.afterSort !== null ? (
-                  <>
-                    <li aria-hidden className="text-muted-foreground">
-                      →
-                    </li>
-                    <li className="tabular-nums">{S.funnelAfterSort(view.funnel.afterSort)}</li>
-                  </>
-                ) : null}
-                {view.funnel.targets !== null ? (
-                  <>
-                    <li aria-hidden className="text-muted-foreground">
-                      →
-                    </li>
-                    <li className="font-medium tabular-nums">
-                      {S.funnelTargets(view.funnel.targets)}
-                    </li>
-                  </>
-                ) : null}
-              </ul>
-            </Card>
-          ) : null}
+        <div className="flex min-w-0 flex-col gap-6">
+          {view.funnel ? <FunnelCard funnel={view.funnel} /> : null}
 
           <Card className="flex flex-col gap-3 p-5" data-block="targets">
-            <h3 className="font-medium">{S.targetsTitle}</h3>
+            <h3 className="font-medium">
+              {view.targets.length > 0 ? S.targetsTitle : S.targetsTitleEmpty}
+            </h3>
             {view.targets.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{S.targetsEmpty}</p>
+              noTargets ? (
+                <p className="text-sm text-muted-foreground">{S.targetsNone}</p>
+              ) : failed ? (
+                <p className="text-sm text-muted-foreground">{S.targetsAfterResume}</p>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">{S.targetsEmpty}</p>
+                  {/* Emplacement réservé : la carte garde sa place en attendant les cibles. */}
+                  <div aria-hidden className="flex flex-col gap-2.5 pt-1">
+                    <span className="h-3 w-2/3 rounded-full bg-muted" />
+                    <span className="h-3 w-11/12 rounded-full bg-muted" />
+                    <span className="h-3 w-1/2 rounded-full bg-muted" />
+                  </div>
+                </>
+              )
             ) : (
               <ul className="flex flex-col gap-3">
                 {view.targets.map((target) => (
                   <li key={target.domain} className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="truncate font-medium">{target.domain}</span>
+                      <span className="min-w-0 font-medium break-words">{target.domain}</span>
                       {target.siteType && target.siteType in t.targets.siteTypes ? (
                         <Badge tone="neutral">
                           {t.targets.siteTypes[target.siteType as keyof typeof t.targets.siteTypes]}

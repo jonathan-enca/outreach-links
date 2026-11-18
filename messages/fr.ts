@@ -3201,64 +3201,173 @@ export const fr = {
     /** Noms affichés des huit étapes de l'analyse unique (docs/jalon-mu.md section 2.2). */
     steps: {
       comprendre: "Comprendre votre site",
-      concurrents: "Repérer vos concurrents",
-      etat_des_lieux: "État des lieux de vos liens",
+      concurrents: "Repérer vos concurrents sur Google",
+      etat_des_lieux: "Mesurer vos liens actuels",
       recherche: "Chercher les sites qui peuvent vous citer",
-      tri: "Trier",
-      contacts: "Trouver un contact",
-      constats: "Chercher liens morts et mentions",
+      tri: "Lire et trier les pages trouvées",
+      contacts: "Trouver à qui écrire",
+      constats: "Relire les pages retenues",
       demandes: "Préparer vos demandes",
     },
-    /** Écran « Analyse en cours » (MU.3). */
+    /** Écran « Analyse en cours » (MU.3, textes revus le 18/11/2026 : voir PROGRESS.md, tableau d'audit). */
     screen: {
       intro:
         "Nous cherchons les sites qui peuvent vous citer, et la demande à leur faire. Rien n'est envoyé.",
-      closeWithEmail: "Vous pouvez fermer cette page : vous recevrez un email dès que c'est prêt.",
+      closeWithEmail:
+        "Vous pouvez fermer cette page : vous recevrez un email dès que c'est prêt. Rien n'est envoyé à qui que ce soit.",
       closeNoEmail:
-        "Vous pouvez fermer cette page : l'analyse continue sans vous. Retrouvez-la ici à votre retour.",
+        "Vous pouvez fermer cette page : l'analyse continue sans vous. Retrouvez-la ici à votre retour. Rien n'est envoyé à qui que ce soit.",
       starting: "L'analyse démarre…",
-      percent: (n: number) => `${n} % fait`,
-      remaining: (m: number) =>
-        m <= 1 ? "Environ 1 minute restante" : `Environ ${m} minutes restantes`,
+      /** Ce qui se passe maintenant, en une phrase (titre de l'écran pendant l'analyse). */
+      now: {
+        comprendre: "Nous lisons votre site",
+        concurrents: "Nous repérons vos concurrents sur Google",
+        etat_des_lieux: "Nous mesurons vos liens actuels",
+        recherche: "Nous cherchons les sites qui peuvent vous citer",
+        tri: "Nous lisons les pages trouvées",
+        contacts: "Nous cherchons à qui écrire",
+        constats: "Nous relisons les pages retenues",
+        demandes: "Nous préparons vos demandes",
+        between: "L'analyse avance",
+      },
+      percent: (n: number) => `${n} %`,
+      progressLabel: (n: number) => `Avancement de l'analyse : ${n} %`,
+      /** Fourchette : une minute précise changerait à chaque rafraîchissement. */
+      remaining: (lo: number, hi: number) =>
+        hi <= 2
+          ? "Moins de 2 minutes"
+          : lo === hi
+            ? `Encore ${hi} minutes environ`
+            : `Encore ${lo} à ${hi} minutes`,
+      stepsLabel: "Les étapes de l'analyse",
       stepState: {
         attente: "En attente",
         en_cours: "En cours",
-        termine: "Terminé",
-        echoue: "Interrompu",
-        saute: "Sans objet",
+        termine: "Terminée",
+        echoue: "Interrompue",
+        saute: "Écartée",
       },
-      outOf: (done: number, total: number, unit: string) => `${done} sur ${total} ${unit}`,
-      /** Ce que compte chaque étape à l'écran (jamais de montant). */
-      units: {
-        comprendre: { found: "pages lues" },
-        concurrents: { progress: "recherches", found: "concurrents retenus" },
-        etat_des_lieux: { progress: "relevés" },
-        recherche: { progress: "recherches", found: "sites trouvés" },
-        tri: { progress: "pages lues", judged: "pages jugées", found: "pages pertinentes" },
-        contacts: { progress: "sites vérifiés", found: "contacts trouvés" },
-        constats: { progress: "pages vérifiées", found: "liens morts ou mentions" },
-        demandes: { found: "cibles prêtes" },
+      parallel: "en parallèle",
+      /** L'étape parallèle n'a rien donné : l'analyse n'est pas interrompue pour autant. */
+      parallelFailed: "Non abouti",
+      /** Résultat de chaque étape, en une ligne (jamais de montant). Chaque chiffre est celui que le moteur mesure. */
+      results: {
+        understood: (strong: number) =>
+          strong === 0
+            ? "Votre activité est cernée"
+            : strong === 1
+              ? "Votre activité est cernée · 1 page forte repérée"
+              : `Votre activité est cernée · ${strong} pages fortes repérées`,
+        understoodNote:
+          "Pour chaque site contacté, nous choisirons celle de vos pages qui lui correspond le mieux.",
+        competitorSearch: (i: number, n: number) => `Recherche Google ${i} sur ${n}`,
+        competitorSizing: "Mesure de la taille de chaque concurrent",
+        competitors: (n: number) =>
+          n <= 1
+            ? `${n} vrai concurrent repéré sur Google`
+            : `${n} vrais concurrents repérés sur Google`,
+        competitorsNote:
+          "Les sites qui les citent déjà peuvent vous citer aussi : c'est là que nous cherchons.",
+        linksMeasuring: (done: number, total: number) => `Mesure ${done} sur ${total}`,
+        linksReferring: (n: number) =>
+          n === 0
+            ? "Aucun site ne fait encore de lien vers vous"
+            : n === 1
+              ? "1 site fait déjà un lien vers vous"
+              : `${n} sites font déjà un lien vers vous`,
+        linksKeywords: (n: number) =>
+          n <= 1 ? `visible sur ${n} recherche Google` : `visible sur ${n} recherches Google`,
+        linksMeasured: "Vos liens actuels sont mesurés",
+        linksTopKeyword: (q: string) => `Votre recherche la plus populaire : « ${q} »`,
+        searching: (done: number, total: number) =>
+          done < total
+            ? `${done} ${done <= 1 ? "recherche faite" : "recherches faites"} sur ${total} environ`
+            : `${done} ${done <= 1 ? "recherche faite" : "recherches faites"}`,
+        searched: (n: number) => (n <= 1 ? `${n} recherche` : `${n} recherches`),
+        sitesFound: (n: number) => (n <= 1 ? `${n} site trouvé` : `${n} sites trouvés`),
+        lastSearch: (q: string) => `Dernière recherche : « ${q} »`,
+        lastSite: (d: string) => `Dernier site trouvé : ${d}`,
+        skippedMentions: (reason: string) =>
+          `Recherche de mentions de votre marque écartée : ${reason}.`,
+        skippedDead: (n: number) =>
+          n <= 1
+            ? "Liens morts non cherchés chez 1 concurrent : trop peu de chances d'y trouver quelque chose d'utile."
+            : `Liens morts non cherchés chez ${n} concurrents : trop peu de chances d'y trouver quelque chose d'utile.`,
+        reading: (done: number, total: number) =>
+          `${done} ${done <= 1 ? "page lue" : "pages lues"} sur ${total}`,
+        readable: (n: number) => (n <= 1 ? `${n} lisible` : `${n} lisibles`),
+        readingNote:
+          "Les pages les plus prometteuses sont lues en premier. Les autres sites trouvés restent en réserve.",
+        judging: (done: number, total: number) =>
+          `${done} ${done <= 1 ? "page évaluée" : "pages évaluées"} sur ${total}`,
+        read: (n: number) => (n <= 1 ? `${n} page lue` : `${n} pages lues`),
+        kept: (n: number) => (n === 0 ? "aucune retenue" : n === 1 ? "1 retenue" : `${n} retenues`),
+        keptPages: (n: number) =>
+          n === 0 ? "Aucune page retenue" : n === 1 ? "1 page retenue" : `${n} pages retenues`,
+        pageRead: (d: string) => `Page lue : ${d}`,
+        checking: (done: number, total: number) =>
+          `${done} ${done <= 1 ? "site vérifié" : "sites vérifiés"} sur ${total}`,
+        checked: (n: number) => (n <= 1 ? `${n} site vérifié` : `${n} sites vérifiés`),
+        contacts: (n: number) =>
+          n === 0 ? "aucun contact trouvé" : n === 1 ? "1 contact trouvé" : `${n} contacts trouvés`,
+        noSiteToCheck: "Aucun site à vérifier",
+        siteChecked: (d: string) => `Dernier site vérifié : ${d}`,
+        rereading: (done: number, total: number) =>
+          `${done} ${done <= 1 ? "page relue" : "pages relues"} sur ${total}`,
+        reread: (n: number) => (n <= 1 ? `${n} page relue` : `${n} pages relues`),
+        occasions: (n: number) =>
+          n === 0
+            ? "aucun lien cassé ni mention à signaler"
+            : n === 1
+              ? "1 occasion trouvée (lien cassé ou mention)"
+              : `${n} occasions trouvées (liens cassés, mentions)`,
+        pageReread: (d: string) => `Page relue : ${d}`,
+        rereadSkipped: "Écartée : aucune page retenue à relire.",
+        skippedGeneric: "Écartée : rien à faire à cette étape.",
+        ready: (n: number) =>
+          n === 0 ? "Aucune cible prête" : n === 1 ? "1 cible prête" : `${n} cibles prêtes`,
       },
-      funnelTitle: "Où en est le tri",
-      funnelExamined: (n: number) => `${n} sites examinés`,
-      funnelAfterSort: (n: number) => `${n} après tri`,
-      funnelTargets: (n: number) => (n <= 1 ? `${n} cible` : `${n} cibles`),
+      funnelTitle: "Du plus large au plus précis",
+      funnelRows: {
+        found: "Sites trouvés",
+        read: "Pages lues",
+        kept: "Pages retenues",
+        targets: "Cibles avec un contact",
+      },
+      funnelPending: "à venir",
       targetsTitle: "Premières cibles prêtes",
-      targetsEmpty: "Les premières cibles apparaîtront ici dès qu'elles sont prêtes.",
+      targetsTitleEmpty: "Vos premières cibles",
+      targetsEmpty:
+        "Elles apparaîtront ici vers la fin, quand un contact aura été trouvé (étape 6).",
+      targetsNone: "Aucune cible retenue cette fois.",
+      targetsAfterResume: "Elles apparaîtront ici une fois l'analyse reprise.",
       targetsMore: (n: number) => (n <= 1 ? "+ 1 autre cible" : `+ ${n} autres cibles`),
-      doneTitle: "Analyse terminée",
+      /** Fin : « terminée » n'est dit que lorsque la lecture des autres sites trouvés est finie elle aussi. */
+      doneTitle: (n: number) =>
+        n === 0
+          ? "Analyse terminée"
+          : n === 1
+            ? "Analyse terminée : 1 cible est prête"
+            : `Analyse terminée : ${n} cibles sont prêtes`,
       doneBody: (n: number) =>
         n === 0
-          ? "Aucune cible retenue cette fois."
+          ? "Aucune cible retenue cette fois. Rien n'a été envoyé."
+          : "Pour chacune, la demande à faire et pourquoi. Rien n'a été envoyé.",
+      firstReadyTitle: (n: number) =>
+        n === 0
+          ? "La première recherche est finie"
           : n === 1
-            ? "1 cible est prête."
-            : `${n} cibles sont prêtes.`,
+            ? "Votre première cible est prête"
+            : `Vos ${n} premières cibles sont prêtes`,
+      firstReadyBody:
+        "Nous lisons encore les autres sites trouvés. Vous pouvez déjà regarder vos cibles. Rien n'a été envoyé.",
       doneCta: "Voir vos cibles",
       redirecting: "Ouverture de vos cibles…",
       failedTitle: "L'analyse s'est arrêtée",
+      failedTitleAt: (n: number) => `L'analyse s'est arrêtée à l'étape ${n}`,
       failedBody:
         "Ce qui est déjà fait est conservé. Reprendre repart de là où elle s'est arrêtée, sans rien refaire.",
-      failedWorked: "Ce qui a marché",
+      failedWorked: "Déjà fait",
       failedStopped: "Ce qui s'est arrêté",
       failedNothing: "Rien n'était encore terminé.",
       failedGeneric: "L'analyse s'est interrompue avant la fin.",
@@ -3333,7 +3442,7 @@ export const fr = {
     /** Lignes du fil d'événements (`analysis_feed`). */
     feed: {
       stepDone: (step: string) => `Étape terminée : ${step}`,
-      stepSkipped: (step: string) => `Étape sans objet : ${step}`,
+      stepSkipped: (step: string) => `Étape écartée : ${step}`,
       targetReady: (domain: string) => `Cible prête : ${domain}`,
       finding: {
         lien_mort: (domain: string) => `Lien mort repéré sur ${domain}`,
@@ -3346,7 +3455,8 @@ export const fr = {
           : count === 1
             ? "Analyse terminée : 1 cible prête."
             : `Analyse terminée : ${count} cibles prêtes.`,
-      linksStateFailed: "L'état des lieux de vos liens n'a pas pu être établi. Le reste continue.",
+      linksStateFailed:
+        "Vos liens actuels n'ont pas pu être mesurés. L'analyse continue sans cette mesure.",
     },
   },
   watchdog: {

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import type { AnalysisStatus, AnalysisStepKey, StepStatus } from "./steps";
-import type { AnalysisSnapshot, StepRow } from "./view";
+import type { AnalysisSnapshot, BackgroundStatus, SkippedSearches, StepRow } from "./view";
 
 type Client = SupabaseClient<Database>;
 
@@ -17,15 +17,29 @@ const asCounters = (v: unknown): Record<string, number> => {
   return out;
 };
 
+/** Ce que le plan figé n'a pas lancé (absent des plans d'avant le 18/11/2026 : rien d'écarté). */
+export function skippedOf(plan: unknown): SkippedSearches | null {
+  const sk = (plan as { skipped?: { mentions?: unknown; deadPages?: unknown } } | null)?.skipped;
+  if (!sk) return null;
+  return {
+    mentions: typeof sk.mentions === "string" && sk.mentions.trim() ? sk.mentions.trim() : null,
+    deadPages: Array.isArray(sk.deadPages) ? sk.deadPages.length : 0,
+  };
+}
+
+const BACKGROUND: readonly BackgroundStatus[] = ["aucun", "en_cours", "termine", "echoue"];
+
 /**
  * L'état lu par l'écran d'analyse et par sa route légère (MU.3). Lecture seule, avec le client de la
- * personne : la RLS limite aux membres de l'espace. Quatre petites lectures en parallèle.
+ * personne : la RLS limite aux membres de l'espace. Six petites lectures en parallèle (le plan de
+ * recherche et la lecture en arrière-plan ont été ajoutés le 18/11/2026, pour dire ce qui est écarté
+ * et ne dire « terminée » qu'une fois tout fini).
  */
 export async function loadAnalysisSnapshot(
   supabase: Client,
   auditId: string,
 ): Promise<AnalysisSnapshot | null> {
-  const [audit, steps, targets, count] = await Promise.all([
+  const [audit, steps, targets, count, collection, qualification] = await Promise.all([
     supabase
       .from("audits")
       .select(
@@ -49,6 +63,8 @@ export async function loadAnalysisSnapshot(
       .select("id", { count: "exact", head: true })
       .eq("audit_id", auditId)
       .eq("status", "liste_courte"),
+    supabase.from("candidate_collections").select("plan").eq("audit_id", auditId).maybeSingle(),
+    supabase.from("qualification_runs").select("auto_status").eq("audit_id", auditId).maybeSingle(),
   ]);
   const a = audit.data;
   if (!a) return null;
@@ -78,5 +94,9 @@ export async function loadAnalysisSnapshot(
       why: r.why,
     })),
     targetsCount: count.count ?? 0,
+    skipped: skippedOf(collection.data?.plan),
+    background: BACKGROUND.includes(qualification.data?.auto_status as BackgroundStatus)
+      ? (qualification.data!.auto_status as BackgroundStatus)
+      : null,
   };
 }
