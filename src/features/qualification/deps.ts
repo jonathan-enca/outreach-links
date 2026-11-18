@@ -129,11 +129,12 @@ export function productionQualDeps(
       if (!env.ANTHROPIC_API_KEY && !env.OPENAI_API_KEY && !env.LLM_PROXY_AUTH) return null;
       if (remainingUsd <= 0) return null;
       return createLlmClientFromEnv({
+        model: run.model,
         budgetUsd: remainingUsd,
         maxCostPerCallUsd: batchWorstUsd(QUALIFY_LIMITS.batchSize, run.model) * 1.5,
       });
     },
-    batch: createBatchClientFromEnv,
+    batch: () => createBatchClientFromEnv(run.model),
     guard: (estimateUsd) =>
       assertCanSpend(
         createServiceClient(),

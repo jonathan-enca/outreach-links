@@ -24,6 +24,7 @@ export const EXCLUSION_REASONS = [
   // MC.1 : nature de la page reconnue par son adresse (gratuit, avant lecture)
   "page_accueil",
   "page_legale",
+  "page_paginee",
   "fichier",
   // 2. signaux fournisseur
   "spam",

@@ -87,8 +87,13 @@ export const QUALIFY_LIMITS = {
    */
   batchPollMs: 30_000,
   batchMaxWaitMs: 10 * 60_000,
-  /** Extrait de page envoyé au modèle (caractères). */
-  excerptChars: 1_200,
+  /**
+   * Extrait de page envoyé au modèle (caractères). MC.6c : 6 000 au lieu de 1 200. Sur 1 200 caractères le
+   * modèle ne voyait pas qu'un site publie des sujets sans rapport entre eux (fermes à liens) : la liste
+   * courte tombe de 38 à 11 (remove-me.io) et de 31 à 15 (mega-coloring.com) sans perdre une cible
+   * confirmée par le modèle fort. Ce n'est abordable qu'avec le modèle de génération actuelle (`QUALIFY_MODELS`).
+   */
+  excerptChars: 6_000,
   /** MC.6b : liens du contenu montrés au modèle (texte et site), et passage autour de la ressource citée. */
   citedLinks: 14,
   citedContextChars: 320,

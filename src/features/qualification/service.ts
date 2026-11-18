@@ -26,6 +26,28 @@ export function configuredModel(): string {
   return DEFAULT_MODELS[provider];
 }
 
+/**
+ * Modèle de la qualification (MC.6c) : la page est lue sur 6 000 caractères, ce qui coûte trop cher avec
+ * `claude-haiku-4-5` (1 USD par million de jetons d'entrée) mais 10 fois moins avec la génération actuelle.
+ * `LLM_MODEL` reste prioritaire. Sans clé Anthropic (développement avec OpenAI), le modèle par défaut du fournisseur.
+ */
+export const QUALIFY_MODELS: Record<"anthropic" | "openai", string> = {
+  anthropic: "claude-haiku-5-5",
+  openai: DEFAULT_MODELS.openai,
+};
+
+export function qualificationModel(): string {
+  if (env.LLM_MODEL) return env.LLM_MODEL;
+  const provider =
+    env.LLM_PROVIDER ??
+    (env.ANTHROPIC_API_KEY
+      ? "anthropic"
+      : env.OPENAI_API_KEY || env.LLM_PROXY_AUTH
+        ? "openai"
+        : "anthropic");
+  return QUALIFY_MODELS[provider];
+}
+
 export interface QualificationPreview {
   estimate: QualificationEstimate;
   remainingUsd: number;
@@ -66,7 +88,7 @@ export async function previewQualification(
     siteId: loaded.siteId,
     collectionId: loaded.collectionId,
     preview: {
-      estimate: estimateQualification(afterFree, { model: configuredModel() }),
+      estimate: estimateQualification(afterFree, { model: qualificationModel() }),
       remainingUsd: Math.round((Number(audit?.cost_cap_usd ?? 0) - spent) * 1e6) / 1e6,
     },
   };

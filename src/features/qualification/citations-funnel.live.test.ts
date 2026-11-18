@@ -132,13 +132,23 @@ describe.skipIf(!live)(
         content: [],
         serp: plan.serp.slice(0, 14),
       };
+      // MC.6c : ressources imposées (liste séparée par des virgules) pour comparer deux passes à ressources égales.
+      const pinned = process.env.MC6C_RESOURCES?.split(",").filter(Boolean);
+      if (pinned?.length) {
+        reduced.citations = {
+          ...reduced.citations,
+          pool: pinned.map((domain) => ({ domain, referringDomains: null, sampleUrl: null })),
+          resources: pinned,
+          max: pinned.length,
+        };
+      }
       const estimate = estimateCollection(reduced);
-      const smallLlm = (budgetUsd: number) =>
+      const smallLlm = (budgetUsd: number, model?: string) =>
         createLlmClient({
           costClient: ledger.client as never,
           provider: "openai",
           auth: process.env.OPENAI_API_KEY ? { apiKey: process.env.OPENAI_API_KEY } : "proxy",
-          ...(process.env.LLM_MODEL ? { model: process.env.LLM_MODEL } : {}),
+          ...((model ?? process.env.LLM_MODEL) ? { model: model ?? process.env.LLM_MODEL } : {}),
           budgetUsd,
           maxCostPerCallUsd: 0.05,
         });
@@ -172,8 +182,7 @@ describe.skipIf(!live)(
         () => ({
           dfs: dfs as never,
           service: ledger.client,
-          llm: smallLlm(0.1),
-          describe: describeCandidates,
+          ...(pinned?.length ? {} : { llm: smallLlm(0.1), describe: describeCandidates }),
         }),
         run,
         (_id, fn) => fn(),
@@ -205,7 +214,7 @@ describe.skipIf(!live)(
       /** Petit modèle de développement, facturé au prix du modèle de production sur les jetons réels. */
       const priced = (remainingUsd: number): LlmClient | null => {
         if (remainingUsd <= 0) return null;
-        const inner = smallLlm(5);
+        const inner = smallLlm(5, process.env.MC6C_JUDGE_MODEL);
         let spent = 0;
         const client = {
           get spentUsd() {

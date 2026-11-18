@@ -17,6 +17,7 @@ export const MODEL_PRICES: Record<string, ModelPrice> = {
   "claude-opus-5-5": { inputPerMTok: 4, outputPerMTok: 20 },
   "claude-sonnet-4-5": { inputPerMTok: 3, outputPerMTok: 15 },
   "gpt-4o-mini": { inputPerMTok: 0.15, outputPerMTok: 0.6 },
+  "gpt-4.1-mini": { inputPerMTok: 0.4, outputPerMTok: 1.6 },
   "gpt-5-mini": { inputPerMTok: 0.25, outputPerMTok: 2 },
 };
 

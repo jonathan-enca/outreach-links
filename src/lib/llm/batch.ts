@@ -224,13 +224,13 @@ export function createAnthropicBatchClient(options: {
 }
 
 /** Client de lots de l'environnement ; null hors Anthropic, sans clé, ou si l'interrupteur est coupé. */
-export function createBatchClientFromEnv(): LlmBatchClient | null {
+export function createBatchClientFromEnv(model?: string): LlmBatchClient | null {
   if (env.LLM_BATCH_JUDGEMENT === "off") return null;
   const provider = env.LLM_PROVIDER ?? (env.ANTHROPIC_API_KEY ? "anthropic" : null);
   if (provider !== "anthropic" || !env.ANTHROPIC_API_KEY) return null;
   return createAnthropicBatchClient({
     apiKey: () => requireEnv("ANTHROPIC_API_KEY"),
-    model: env.LLM_MODEL,
+    model: model ?? env.LLM_MODEL,
     costClient: createServiceClient(),
   });
 }

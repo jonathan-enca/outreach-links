@@ -1318,6 +1318,7 @@ export const fr = {
       page_accueil: "Page d'accueil : pas une page qu'un éditeur modifie pour une demande de lien.",
       page_legale:
         "Page légale (mentions, conditions, confidentialité) : on ne la fait pas modifier.",
+      page_paginee: "Page de pagination (page 2, 3...) : une liste, pas une page de contenu.",
       fichier: "Fichier ou flux, pas une page de contenu.",
       spam: "Signaux de spam trop élevés.",
       langue: "Pas dans votre langue.",
@@ -1500,6 +1501,7 @@ export const fr = {
         ne_pas_contacter: "votre liste « ne pas contacter »",
         page_accueil: "pages d'accueil",
         page_legale: "pages légales",
+        page_paginee: "pages de pagination",
         fichier: "fichiers, pas des pages",
         autre: "autres motifs",
       } as Record<string, string>,

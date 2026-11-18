@@ -1957,3 +1957,58 @@ Avant le resserrement de la consigne et le recoupement gratuit : 0,67 et 0,56 de
 ### Prochain sous-jalon recommandé : MC.6c, recadré
 
 Des ressources de départ que de vraies personnes citent, pas celles qui achètent leurs liens. Trois pistes à mesurer avant de coder, dans cet ordre : (1) l'ancre du lien, gratuite dans les données reçues : un lien posé sur le nom du site (« Hugo l'escargot ») vient d'une vraie citation, un lien posé sur un mot-clé (« coloriage gratuit ») vient d'un article placé ; (2) la boule de neige à partir des bonnes cibles : les sites qu'elles citent (Hugo l'escargot, Mes Coloriages, Tête à modeler pour mega-coloring.com) deviennent les ressources de départ ; (3) juger sur la page entière avec le petit modèle de génération actuelle, pour que le pilotage voie les fermes à liens. Critère inchangé : part de cibles gardées par le modèle fort, sur les deux sites.
+
+## Session du 18/11 (suite 4) : MC.6c, mesure des trois pistes (faite) ; boule de neige à construire (MC.6d)
+
+Périmètre tenu : mesure sur les deux sites AVANT de coder, avec le critère de MC.6b (cibles gardées par le modèle fort sur la liste courte), puis seulement le code que la mesure justifie. **Pas** fait : boule de neige dans le produit (MC.6d), catalogue du rédacteur par sujet, liens morts.
+
+### En une phrase
+
+**La boule de neige est la seule piste qui change le résultat : mega-coloring.com passe de 3 sur 35 (9 %) à 11 sur 34 (32 %), objectif de 30 % atteint ; remove-me.io (aucune bonne cible pour amorcer) reste à 4 sur 23 (17 %) avec des ressources publiques gratuites choisies à la main, contre 0 sur 33.** Le tri par l'ancre ne sert à rien ; la lecture de la page entière nettoie la liste mais ne crée pas de cibles.
+
+### Mesures (rejugement par des agents `opus` avec `WRITER_SYSTEM`, comme en MC.6b ; DataForSEO réel ; petit modèle `gpt-4.1-mini`, facturé au prix de `claude-haiku-5-5`)
+
+| Passage                                                         | mega-coloring.com      | remove-me.io              |
+| --------------------------------------------------------------- | ---------------------- | ------------------------- |
+| Référence refaite (1 200 caractères, ressources du modèle)      | 2 sur 31 (6 %)         | 0 sur 38                  |
+| MC.6b (rappel)                                                  | 3 sur 35               | 0 sur 33                  |
+| **Piste 1 : ancre du lien**                                     | rien (voir ci-dessous) | rien                      |
+| **Piste 3 : page entière** (6 000 caractères, mêmes ressources) | 2 sur 15 (13 %)        | 0 sur 11                  |
+| **Piste 2 : boule de neige** (ressources de départ imposées)    | **11 sur 34 (32 %)**   | 4 sur 23 (17 %), contrôle |
+| Part des pages lues qui sont des cibles gardées (piste 2)       | 11 sur 200 (5,5 %)     | 4 sur 219 (1,8 %)         |
+| Coût DataForSEO de la passe piste 2 / jugement (prix Haiku 5.5) | 0,174 USD / 0,038 USD  | 0,094 USD / 0,038 USD     |
+
+- **Piste 1, l'ancre ne départage rien.** Parmi la liste courte de référence : lien posé sur le nom du site 1 cible sur 12 (mega-coloring.com) et 0 sur 7 (remove-me.io) ; sur un mot-clé 1 sur 16 et 0 sur 29. Pire : les deux agences de suppression de données de remove-me.io (netclearer.fr, webcleaner.fr) ont 74 % et 59 % de liens posés sur leur NOM et sont des fermes à liens à 100 % (articles écrits pour les placer). Les fermes écrivent le nom du site comme une vraie citation. Piste abandonnée, rien codé.
+- **Piste 3, page entière.** La liste courte tombe de 38 à 11 (remove-me.io) et de 31 à 15 (mega-coloring.com) et le pilotage abandonne enfin des ressources (webcleaner.fr, norton.com). Les 2 cibles confirmées de mega-coloring.com restent. Elle ne crée pas de cibles : elle évite de payer le modèle fort sur 20 à 25 mauvaises pages. Coût : 0,02 à 0,04 USD par site avec `claude-haiku-5-5` ; avec `claude-haiku-4-5` ce serait 10 fois plus et dépasserait le budget de qualification (0,40 USD).
+- **Piste 2, boule de neige.** Les graines de mega-coloring.com sont les sites cités par les deux cibles confirmées (la page de Noël de justgeek.fr cite dessin-kawaii.fun, coloriage.info, colorpdf.com ; la page diocésaine cite reussiralecole.fr) plus Hugo l'escargot et Tête à modeler, cités par les bonnes cibles de MC.6b (noms donnés par Jonathan), plus coloriageenfant.com. Rendement par graine (cibles gardées / liste courte) : hugolescargot.com 5/11, coloriage.info 3/7, teteamodeler.com 2/7, dessin-kawaii.fun 2/7, coloriageenfant.com 1/6, colorpdf.com 1/1. **Pour remove-me.io il n'y a aucune graine** (le modèle fort n'a gardé aucune cible) : le contrôle utilise des ressources publiques gratuites de MC.0b choisies à la main (haveibeenpwned.com 3/13, 33700.fr 1/11, signal-spam.fr abandonnée après 10 pages). Le résultat de 17 % n'est donc PAS une boule de neige, c'est la borne haute de « de bonnes ressources de départ ».
+- **Exemples de cibles gardées (modèle fort).** mega-coloring.com : la page « Liens utiles » d'une association de garde d'enfants (cite Éducatout et Hugo l'escargot), une liste de ressources gratuites d'une médiathèque municipale, la page carnaval CE1 de SitesPE tenue par une enseignante, le blog d'une maman qui fait l'école à la maison en maternelle, le blog de la fermette Z'@nimos, la chronique d'une psychothérapeute. remove-me.io : le billet d'une section syndicale CFTC qui recommande deux services de vérification de fuite, un site indépendant de sécurité informatique, le blog personnel d'un développeur, un petit dépanneur informatique.
+- **Pourquoi remove-me.io reste bas** : les concurrents comparables sont des agences commerciales ; seuls des services publics gratuits (haveibeenpwned, 33700.fr) sont cités par de vraies personnes. Le choix des ressources doit viser « ce que des personnes recommandent gratuitement », pas « ce qui fait la même chose que le site ».
+- **Limites à dire** : 2 sites, de petits effectifs (2 cibles à la référence mega-coloring.com, 4 à remove-me.io) ; le modèle fort est un agent, deux relectures peuvent différer (un agent a lui-même noté qu'un jugement plus souple aurait gardé une page de plus) ; les graines de mega-coloring.com ont été choisies à partir des cibles CONFIRMÉES par le modèle fort, alors que le produit n'aura que le verdict du petit modèle (plus bruité) ; petit modèle = `gpt-4.1-mini`, pas Haiku 5.5 (non joignable depuis la session) ; aucun message envoyé.
+- **Dépense de la session** : ~0,9 USD de DataForSEO (6 collectes), ~0,1 USD de petit modèle, plus les agents de rejugement.
+
+### Ce qui change dans le code
+
+- **Page entière** (`qualification/limits.ts`) : extrait de 1 200 à **6 000 caractères**. **Modèle de qualification** : `qualificationModel()` (`qualification/service.ts`) = `claude-haiku-5-5` avec Anthropic (`LLM_MODEL` reste prioritaire), figé dans le plan de la qualification et réellement utilisé par le client de jugement et le client par lots (`deps.ts`, `createBatchClientFromEnv(model)`). Le prix de `gpt-4.1-mini` est dans la grille (`pricing.ts`). Le reste du produit garde `claude-haiku-4-5`.
+- **Pages paginées** (`qualification/page-nature.ts`) : nouvelle nature `page_paginee` (« /page-33 », « /page/2 », « /p7 », « ?page=3 », « ?paged=2 ») écartée par l'adresse avec motif lisible (`messages/fr.ts`), jamais la page 1, jamais « ?p=123 » ni un titre d'article qui contient « page-2 ».
+- **Outil de mesure** (`citations-funnel.live.test.ts`) : `MC6C_RESOURCES=a.fr,b.fr` impose les ressources (comparaison à ressources égales, sans choix par le modèle), `MC6C_JUDGE_MODEL` choisit le modèle du jugement.
+- Test `well-formed.test.ts` rendu indépendant de la taille de l'extrait.
+
+### Commandes
+
+Mesure d'un site à ressources imposées : `MC6C_RESOURCES=a.fr,b.fr MC6C_JUDGE_MODEL=gpt-4.1-mini MC6B_PRICE_MODEL=claude-haiku-5-5 MC6B_LIVE=1 MC6B_INPUT=entree.json MC6B_OUT=rapport.json MC6B_CACHE=dfs.json MC6B_PAGES=pages.json MC6B_CASES=cas/ NODE_USE_ENV_PROXY=1 DATAFORSEO_PROXY_AUTH=true LLM_PROXY_AUTH=true pnpm vitest run src/features/qualification/citations-funnel.live.test.ts`. Les entrées se refont depuis la base (profil dans `brand_profiles`, 14 premières recherches dans `candidate_collections.plan->serp`, concurrents dans `competitors`) via l'API de gestion Supabase.
+
+### Dettes et pièges
+
+- **Haiku 5.5 non essayé** avec la consigne des trois cas sur 6 000 caractères : à vérifier au premier run réel (budget, qualité). Si la qualité est moindre, rejouer l'essai avec `LLM_MODEL`.
+- Le budget de qualification (0,40 USD) ne couvre une extrait de 6 000 caractères qu'avec un modèle à 0,1 USD le million de jetons : ne pas remettre `claude-haiku-4-5` sans réduire l'extrait.
+- **Catalogue du rédacteur** (80 pages) : encore limité ; des agents ont signalé des refus à cause d'un catalogue trop court (pas de page « avion » sur mega-coloring.com, 1 848 pages en français). Piste : conserver les adresses du sitemap avec leurs mots d'adresse (gratuit) et ne lire que les 5 à 10 pages les plus proches du sujet de la cible.
+- Le jugement des agents est un proxy : seules des réponses réelles diront si une cible « gardée » répond.
+
+### Backlog
+
+- Montrer à l'écran le rendement par ressource (`stats.byResource`).
+- Un choix des ressources de départ orienté « ce que des gens recommandent gratuitement » (remove-me.io).
+
+### Prochain sous-jalon recommandé : MC.6d, la boule de neige dans le produit
+
+Après la qualification (premier passage), prendre les sites cités par les cibles retenues (`page.cites`, déjà relevé gratuitement), les faire juger par le même modèle que `resource-judge` (même offre que le site, pas un site commercial), puis appeler « qui cite cette ressource » pour au plus 6 nouvelles ressources (≈0,03 USD chacune, coût annoncé et plafonné, nouvelle phase `boule_de_neige`), fusionner les pages obtenues et les passer au même entonnoir avec le pilotage par ressource. À mesurer sur les deux sites avec les graines que le produit trouve seul (verdict du petit modèle, pas du modèle fort). Quand aucune cible n'existe (remove-me.io), prévoir le repli : ressources publiques et gratuites.

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { QUALIFY_LIMITS } from "@/features/qualification/limits";
 import { snapshotOf } from "@/features/qualification/page";
 import type { PageRead } from "@/features/triage/page-reader";
 import { deepWellFormed, safeStep, wellFormed } from "./well-formed";
@@ -23,7 +24,8 @@ describe("texte bien formé dans l'état des steps", () => {
   });
 
   it("l'extrait d'une page coupé au milieu d'un émoji reste bien formé (run réel du 17/11)", () => {
-    const text = `${"a".repeat(1199)}${emoji} suite`;
+    const limit = QUALIFY_LIMITS.excerptChars;
+    const text = `${"a".repeat(limit - 1)}${emoji} suite`;
     const read = {
       url: "https://exemple.fr/",
       status: 200,
@@ -38,7 +40,7 @@ describe("texte bien formé dans l'état des steps", () => {
     } as unknown as PageRead;
     const snap = snapshotOf(read);
     expect(ok(JSON.stringify(snap))).toBe(true);
-    expect(snap.excerpt).toHaveLength(1200);
+    expect(snap.excerpt).toHaveLength(limit);
   });
 
   it("le résultat d'un step est rendu bien formé avant d'être mémorisé", async () => {
