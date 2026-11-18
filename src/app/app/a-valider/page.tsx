@@ -3,13 +3,17 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import {
   approveMessagesAction,
+  approveRepliesAction,
   approveReplyAction,
   completeFormAction,
   draftAnywayAction,
   draftMissingAction,
   editMessageAction,
   editReplyAction,
+  refuseItemsAction,
   rejectReplyAction,
+  snoozeAction,
+  wakeSnoozedAction,
 } from "@/features/approvals/actions";
 import { ApprovalQueue } from "@/features/approvals/queue";
 import { loadQueue } from "@/features/approvals/service";
@@ -31,6 +35,10 @@ async function Queue() {
         approveMessages: approveMessagesAction,
         editMessage: editMessageAction,
         approveReply: approveReplyAction,
+        approveReplies: approveRepliesAction,
+        snooze: snoozeAction,
+        wakeSnoozed: wakeSnoozedAction,
+        refuseItems: refuseItemsAction,
         editReply: editReplyAction,
         rejectReply: rejectReplyAction,
         completeForm: completeFormAction,

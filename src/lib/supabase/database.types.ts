@@ -1838,18 +1838,21 @@ export type Database = {
           read_by: string | null;
           sent_message_id: string;
           workspace_id: string;
+          archived_at: string | null;
         };
         Insert: {
           read_at?: string;
           read_by?: string | null;
           sent_message_id: string;
           workspace_id: string;
+          archived_at?: string | null;
         };
         Update: {
           read_at?: string;
           read_by?: string | null;
           sent_message_id?: string;
           workspace_id?: string;
+          archived_at?: string | null;
         };
         Relationships: [];
       };
@@ -2936,6 +2939,7 @@ export type Database = {
           validated_at: string | null;
           validated_by: string | null;
           workspace_id: string;
+          snoozed_until: string | null;
         };
         Insert: {
           body: string;
@@ -2956,6 +2960,7 @@ export type Database = {
           validated_at?: string | null;
           validated_by?: string | null;
           workspace_id: string;
+          snoozed_until?: string | null;
         };
         Update: {
           body?: string;
@@ -2976,6 +2981,7 @@ export type Database = {
           validated_at?: string | null;
           validated_by?: string | null;
           workspace_id?: string;
+          snoozed_until?: string | null;
         };
         Relationships: [
           {
@@ -3693,6 +3699,7 @@ export type Database = {
           url_checked_at: string | null;
           url_status: number | null;
           workspace_id: string;
+          snoozed_until: string | null;
         };
         Insert: {
           body: string;
@@ -3715,6 +3722,7 @@ export type Database = {
           url_checked_at?: string | null;
           url_status?: number | null;
           workspace_id: string;
+          snoozed_until?: string | null;
         };
         Update: {
           body?: string;
@@ -3737,6 +3745,7 @@ export type Database = {
           url_checked_at?: string | null;
           url_status?: number | null;
           workspace_id?: string;
+          snoozed_until?: string | null;
         };
         Relationships: [
           {

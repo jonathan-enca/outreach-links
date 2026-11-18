@@ -2122,6 +2122,17 @@ Cohorte : 25 cibles par site tirées de façon régulière dans la `liste_courte
 
 (1) Faire relire 10 messages « par proximité » rédigés pour de vrai, et caler la consigne ; (2) réduire la première passe de ressources ; (3) graines sans services payants, repli « publiques » alimenté par une recherche ; (4) liens morts.
 
+## Session du 18/11 (suite 7) : retours en vrac sur l'interface (faite)
+
+Hors plan Mx : trois retours de Jonathan sur « À valider » et « Conversations ».
+
+- **« Plus tard » durable** : avant, un état local (`useState`) : le rechargement ramenait tout et le compteur du menu (66) ne bougeait pas. Maintenant `target_drafts.snoozed_until` et `reply_drafts.snoozed_until` (24 h, `SNOOZE_HOURS`). `loadQueue` écarte les éléments remis à plus tard, donc le menu, l'accueil et l'écran baissent ensemble. Bandeau « N éléments remis à plus tard » + « Tout remettre dans la file » (`wakeSnoozed`).
+- **Sélection en lot** : case à cocher sur chaque carte, « Tout sélectionner » (limité au filtre affiché), barre d'actions : **Approuver et envoyer** (emails prêts avec boîte connectée + réponses), **Refuser**, **Plus tard**. Les formulaires ne s'approuvent pas en lot (ils se copient et se marquent « C'est fait ») : la sélection les ignore et le dit. « Refuser » un premier message = `refuseMessages` : cible écartée avec le motif « Refusé par vous » (`draft_declines.declined_by = 'utilisateur'`, bouton « Rédiger quand même » conservé), brouillon supprimé ; une réponse refusée = `rejectReplyDraft`. Confirmation avant refus.
+- **Archiver une conversation** (boîte à zéro) : `thread_reads.archived_at`, action `setArchivedAction`. Bouton « Archiver (traité) » dans le fil, passage automatique au fil suivant, filtre « Boîte de réception (N) / Archivées (N) / Tout ». Un fil archivé **revient** dans la boîte si une réponse arrive après (`isArchived`, pur, testé).
+- **Migration** `2026121400000000_snooze_refuse_archive.sql` (appliquée à la vraie base via l'API de gestion ; `database.types.ts` patché à la main).
+- **Fichiers** : `approvals/service.ts` (`snoozeItems`, `wakeSnoozed`, `refuseMessages`, `isSnoozed`), `approvals/actions.ts`, `approvals/queue.tsx`, `conversations/{service,status,actions,conversations}.ts(x)`, `messages/fr.ts`.
+- **Dettes** : « Plus tard » fixe 24 h (pas de choix de durée) ; archivage en lot dans Conversations non fait (un fil à la fois) ; pas de test d'écran, vérifié par typecheck, lint et tests des dossiers touchés seulement.
+
 ## Session du 18/11 (suite 7) : refonte de l'écran « Analyse en cours » (textes, UX, design ; faite)
 
 Périmètre tenu : textes (`messages/fr.ts`), calcul d'affichage (`analysis/view.ts`), composant (`analysis-progress.tsx`), deux lectures seules ajoutées à l'état de l'écran (`analysis/status.ts`, accord de Jonathan). **Aucune** modification de l'analyse, des recherches, du tri, de la rédaction, des jobs Inngest, des tables ni des appels payants. Aucune analyse lancée, aucune écriture en base réelle. Maquette et proposition validées par Jonathan avant le code.

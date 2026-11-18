@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isApprovable } from "./service";
+import { isApprovable, isSnoozed } from "./service";
 
 describe("file « À valider » : ce qui peut être approuvé", () => {
   const d = { status: "brouillon", ready: true, channel: "email", sendable: true };
@@ -13,5 +13,15 @@ describe("file « À valider » : ce qui peut être approuvé", () => {
   });
   it("un message pour formulaire prêt, même sans email (il devient une tâche, jamais un envoi)", () => {
     expect(isApprovable({ ...d, channel: "formulaire", sendable: false })).toBe(true);
+  });
+});
+
+describe("« Plus tard » durable", () => {
+  const now = new Date("2026-11-18T10:00:00Z");
+  it("remis à plus tard tant que la date n'est pas passée", () => {
+    expect(isSnoozed(null, now)).toBe(false);
+    expect(isSnoozed("2026-11-19T10:00:00Z", now)).toBe(true);
+    expect(isSnoozed("2026-11-18T10:00:00Z", now)).toBe(false);
+    expect(isSnoozed("2026-11-17T10:00:00Z", now)).toBe(false);
   });
 });

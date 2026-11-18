@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanTag, isUnread, threadStatus, type ThreadFacts } from "./status";
+import { cleanTag, isArchived, isUnread, threadStatus, type ThreadFacts } from "./status";
 
 const f = (o: Partial<ThreadFacts> = {}): ThreadFacts => ({
   category: null,
@@ -53,5 +53,16 @@ describe("non lu et étiquettes", () => {
     expect(cleanTag("   ")).toBeNull();
     expect(cleanTag(12)).toBeNull();
     expect(cleanTag("x".repeat(40))!.length).toBe(30);
+  });
+});
+
+describe("archivage d'un fil (« traité »)", () => {
+  it("archivé tant qu'aucune réponse n'arrive après", () => {
+    expect(isArchived(null, null)).toBe(false);
+    expect(isArchived("2026-11-18T10:00:00Z", null)).toBe(true);
+    expect(isArchived("2026-11-18T10:00:00Z", "2026-11-18T09:00:00Z")).toBe(true);
+  });
+  it("une réponse arrivée après l'archivage ramène le fil dans la boîte", () => {
+    expect(isArchived("2026-11-18T10:00:00Z", "2026-11-18T11:00:00Z")).toBe(false);
   });
 });

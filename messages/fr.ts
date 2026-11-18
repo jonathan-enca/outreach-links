@@ -2816,7 +2816,16 @@ export const fr = {
     busy: "En cours…",
     more: "Autres options de réponse",
     reply: "Répondre à ce message",
+    archive: "Archiver (traité)",
+    unarchive: "Remettre dans la boîte de réception",
+    archivedBadge: "Archivé",
+    inboxZero:
+      "Boîte à zéro : plus rien à traiter ici. Les conversations archivées sont dans le filtre « Archivées ».",
     filters: {
+      box: "Boîte",
+      inbox: (n: number) => `Boîte de réception (${n})`,
+      archivedBox: (n: number) => `Archivées (${n})`,
+      allBox: "Tout",
       campaign: "Campagne",
       allCampaigns: "Toutes les campagnes",
       read: "Lecture",
@@ -2841,6 +2850,8 @@ export const fr = {
     messages: {
       notFound: "Conversation introuvable.",
       saveError: "Enregistrement impossible. Réessayez.",
+      archived: "Conversation archivée. Elle revient dans la boîte si le site répond.",
+      unarchived: "Conversation remise dans la boîte de réception.",
       emptyTag: "Écrivez une étiquette.",
       tooManyTags: "Dix étiquettes au plus par conversation.",
       queued: "Message approuvé. Il partira de votre boîte d'envoi au rythme prévu.",
@@ -2864,7 +2875,6 @@ export const fr = {
     title: "À valider",
     description: "Tout ce qui attend votre accord avant de partir. Rien n'est envoyé sans vous.",
     none: "Rien à valider pour l'instant. Les messages apparaissent ici dès que vous validez des cibles.",
-    allLater: "Tout est remis à plus tard pour cette visite. Rechargez la page pour les revoir.",
     noMailbox:
       "Aucune boîte d'envoi n'est connectée : connectez-la pour approuver et envoyer vos emails. Vous pouvez déjà les relire et les modifier.",
     connect: "Connecter une boîte",
@@ -2892,6 +2902,20 @@ export const fr = {
     saving: "Enregistrement…",
     cancel: "Annuler",
     later: "Plus tard",
+    laterHelp: "Remis à demain",
+    snoozedBanner: (n: number) => `${n} ${n > 1 ? "éléments remis" : "élément remis"} à plus tard.`,
+    wake: "Tout remettre dans la file",
+    select: "Sélectionner",
+    selectAll: (n: number) => `Tout sélectionner (${n})`,
+    selectNone: "Tout désélectionner",
+    selected: (n: number) => `${n} ${n > 1 ? "sélectionnés" : "sélectionné"}`,
+    bulkApprove: (n: number) => `Approuver et envoyer (${n})`,
+    bulkRefuse: (n: number) => `Refuser (${n})`,
+    bulkLater: (n: number) => `Plus tard (${n})`,
+    bulkRefuseConfirm: (n: number) =>
+      `Refuser ${n} ${n > 1 ? "éléments" : "élément"} ? Rien ne sera envoyé.`,
+    bulkSkipped: (n: number) =>
+      `${n} ${n > 1 ? "formulaires ne s'approuvent" : "formulaire ne s'approuve"} pas ici : ouvrez-les un par un.`,
     busy: "En cours…",
     noReply: "Ne pas répondre",
     openThread: "Voir la conversation",
@@ -2935,6 +2959,14 @@ export const fr = {
       saveError: "Enregistrement impossible. Réessayez.",
       approved: (n: number) =>
         `${n} ${n > 1 ? "messages approuvés" : "message approuvé"}. Rien d'autre à faire : les emails partent au rythme prévu.`,
+      snoozed: (n: number) =>
+        `${n} ${n > 1 ? "éléments remis" : "élément remis"} à demain : ${n > 1 ? "ils reviennent" : "il revient"} dans la file à ce moment-là.`,
+      woken: "Tout est de retour dans la file.",
+      refusedReason: "Refusé par vous.",
+      refused: (n: number) =>
+        `${n} ${n > 1 ? "messages refusés" : "message refusé"} : rien n'est envoyé. Vous les retrouvez dans les cibles écartées.`,
+      repliesDeclined: (n: number) =>
+        `${n} ${n > 1 ? "réponses écartées" : "réponse écartée"} : rien n'est envoyé.`,
       saved: "Message enregistré.",
       savedNotReady: "Message enregistré, mais des points restent à corriger avant de l'approuver.",
     },
