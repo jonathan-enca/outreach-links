@@ -1314,6 +1314,23 @@ describe("MC.6a : pages qui citent une ressource comparable", () => {
     });
   });
 
+  it("un plan dont le réservoir de ressources est plein (40 candidats) reste lisible (campagne bloquée du 18/11)", () => {
+    const pool = Array.from({ length: COLLECTION_LIMITS.citations.poolSize }, (_, i) => ({
+      domain: `site-${i}.fr`,
+      referringDomains: i,
+      sampleUrl: null,
+    }));
+    const plan = {
+      intersectionTargets: [],
+      serp: [],
+      mentionSerp: [],
+      mentionKeywords: [],
+      content: [],
+      citations: { pool, resources: ["site-0.fr"], max: 6, skipped: [] },
+    };
+    expect(collectionPlanSchema.safeParse(plan).success).toBe(true);
+  });
+
   it("l'appel envoie les réglages de l'essai (langue de la campagne, spam, autorité, une page par domaine)", async () => {
     const { client } = fakeSupabase();
     const { dfs, mocks } = fakeDfs();
