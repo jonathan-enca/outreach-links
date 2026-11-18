@@ -2146,6 +2146,40 @@ Hors plan Mx : trois retours de Jonathan sur « À valider » et « Conversation
 - **Fichiers** : `approvals/service.ts` (`snoozeItems`, `wakeSnoozed`, `refuseMessages`, `isSnoozed`), `approvals/actions.ts`, `approvals/queue.tsx`, `conversations/{service,status,actions,conversations}.ts(x)`, `messages/fr.ts`.
 - **Dettes** : « Plus tard » fixe 24 h (pas de choix de durée) ; archivage en lot dans Conversations non fait (un fil à la fois) ; pas de test d'écran, vérifié par typecheck, lint et tests des dossiers touchés seulement.
 
+## Session du 18/11 (suite 9) : MC.6g, vraie campagne sur un troisième thème (partielle : lecture de fond non mesurée)
+
+Site : **monjardinbio.com** (jardinage bio, boutique + blog + podcast), choisi par Claude sur accord de Jonathan, espace de test `ed39d649…`, site `a568dbd9…`, audit `bce79672-5224-4115-bb18-b01af672886d`. Lancé sur la **production** (Inngest `production-195a09c2`, modèle Anthropic confirmé par `cost_ledger.provider = anthropic`) : depuis la session, ni le web des cibles ni l'API Anthropic ne sont joignables. Arrêtée à la demande de Jonathan après la première analyse ; aucun envoi d'email. **Coût réel 1,52 USD** (DataForSEO ~0,73, qualification 0,35, boule de neige 0,18, reste contacts et constats).
+
+### Chiffres réels (première analyse, 27 min, 17:35 à 18:02 UTC)
+
+Entonnoir : 1 428 candidats → 520 pages lues → 398 vivantes → **160 jugées** → 76 pertinentes → **57 en liste courte avec contact** (75 % des pertinentes). Réserve : **779 jamais lues** (`hors_budget_lecture`) + **238 lues mais jamais jugées** (`non_qualifie`). Exclus : accueil 65, hors sujet 45, injoignable 41, éditeur introuvable 33, robots 25, ressource abandonnée 23, irréaliste 22, langue 22, sans contact 19, concurrent 15, le reste < 12.
+
+Rendement par source (candidats → liste courte) : **lien mort 46 → 13 (28 %)**, citations 344 → 30 (9 %), contenu 176 → 20 (11 %), mentions 27 → 3, **intersection 315 → 6 (2 %)**, **SERP 208 → 5 (2,4 %, 0,21 USD, soit 0,04 USD par cible contre ~0,01 pour les citations)**. Ressources de la boule de neige : 6, dont gerbeaud.com, atoutloisir.com, lamidesjardins… ; 1 abandonnée (kideaz.com, 0 cible sur 9 pages).
+
+### Pourquoi la lecture de fond a planté (cause en cascade, corrigée par la PR #177)
+
+1. `batchSchema` rejetait tout un lot si un motif dépassait 240 caractères (note 160) : le modèle de production écrit plus long que le modèle de dev. **49 appels de jugement sur 83 perdus** (`llmFailures`), soit les 238 pages `non_qualifie`.
+2. Au lot 1 du fond, `judge-collect` voyait toutes les réponses invalides et retombait en appels directs séquentiels (un par groupe de 5 cibles) : plus de 300 s dans UNE requête Vercel (`maxDuration` 300), **504** deux fois de suite (tentatives 0 et 1, 18:04 à 18:14), `auto_stop = erreur`, 0 lot lu. Trace Inngest `01M7QX5SEEFGMF06TSP32WHYES`.
+3. Correctif : longueurs tronquées dans `toJudgement`, repli direct stoppé au bout de 150 s (le reste va en stock). Test `llm-schema.test.ts`.
+
+**Piège non traité** : une étape qui dépasse 300 s arrête toute la chaîne (`erreur`). Une autre cause de 504 la tuerait de la même façon : à surveiller, ou découper `judge-collect` en une étape par groupe.
+
+### Pourquoi pas plus de liens
+
+- **Volume** : 238 + 779 pages jamais exploitées. Projection (à confirmer, jamais mesurée) : mêmes taux que les pages jugées (47 % pertinentes, 75 % avec contact) donnent +80 sur les 238 déjà lues, et de 100 à 200 de plus si les 779 sont lues, avec le tri de fermes ci-dessous en moins.
+- **Qualité de la liste courte (relue à la main, 57 cibles)** : les 15 premières sont de vraies cibles (blogs jardin avec lien mort, associations, petit éditeur qui cite des ressources). Les ~25 du bas sont à fit 0,3 à 0,5, « autre » : couvreurs.net, aeromecanics.fr, alliancetechvapor.fr (un site de vape qui publie un article potager), guidetravauxpro.fr, ami-hebdo.com, hellocarbo.com, annuaires. **Six articles « serre de jardin » quasi identiques** (lesprit-nature.net, cileo-habitat.fr, deco-et-ambiances.fr, culture-durable.fr, jardinews.com, blog-habitat-durable.com) sont un réseau d'articles sponsorisés. **`ferme_a_liens` n'a écarté qu'un site sur 1 428 et `same_offer` aucun parmi les 57**, alors que cmonjardinier.com, revedepan.com, shop.qista.com et charmille-elagage.fr sont des boutiques ou prestataires proches du même public. Cinq pages « lien mort » sont sur des sites sans rapport (couvreurs.net, terrassement-maison.com, guiderenovation.fr…) : le lien mort n'est un angle que si le sujet correspond. Estimation : **environ 20 à 25 cibles réellement envoyables sur 57**, comme sur les deux autres sites (le rédacteur en refuse la moitié).
+- **Détection à resserrer (sans mot propre à un thème)** : (a) site dont le sujet général n'a rien à voir avec l'article (vape, mécanique, rénovation) : la qualification ne voit que la page, pas la page d'accueil ; (b) plusieurs pages de la même campagne sur un même sujet commercial étroit (6 serres) : un regroupement par sujet de la liste courte ; (c) `same_offer` pour les sites de type `ecommerce` : exiger que la page apporte une raison de lien, ne pas garder `autre` avec fit < 0,5 ; (d) lien mort : exiger la correspondance de sujet avec une page du site.
+- **Sources** : SERP et intersection coûtent cher pour 2 % de cibles ; lien mort et citations sont à pousser en premier (budget annoncé).
+- **Durée** : 27 minutes pour la première analyse, contre 11 à 15 minutes sur les campagnes précédentes (36 recherches SERP, 12 minutes de lecture) : le texte « 11 à 15 minutes » de l'écran d'analyse est faux ici.
+
+### Non mesuré (à refaire)
+
+Durée et coût réels de la lecture de toute la réserve, `auto_stop`, réserve restante : le fond n'a pas tourné (plantage puis arrêt demandé). Rejugement par le modèle fort (25 cibles) non fait. Pour relancer sans repayer la première analyse : événement `audit/qualification.more.requested` avec `{ auditId, auto: { lot: 1 } }` après réinitialisation de `auto_status` ; le plus simple est le bouton « Lire le lot suivant » de l'écran Vos cibles. La campagne `bce79672…` est conservée en base (non supprimée).
+
+### Prochain sous-jalon recommandé : MC.6h
+
+Relancer la lecture de fond sur `bce79672…` (corrigée) et mesurer durée, coût, `auto_stop`, réserve ; puis resserrer les fermes à liens et `same_offer` (points a à d) et mesurer sur les trois sites avec le modèle fort ; découper `judge-collect` par groupe.
+
 ## Session du 18/11 (suite 8) : MC.6f, la qualification alignée sur « ne pas s'autocensurer » et lecture de toute la réserve (faite ; mesure sur pages stockées)
 
 Périmètre tenu. **Pas** fait : liens morts, première passe de ressources (laissée telle quelle), refonte de l'écran d'analyse. Aucune lecture web possible depuis la session (le proxy refuse les sites des cibles : 403) : la mesure rejuge les pages DÉJÀ stockées en base, elle ne lit pas la réserve (les 965 sites de mega-coloring.com restent à lire par le produit).
@@ -2216,7 +2250,7 @@ Pages rejugées (celles qui ont atteint le jugement : jugées ou restées sans j
 
 Afficher `ressource_abandonnee` comme « ressource écartée (ferme à liens) », la nouvelle durée annoncée (jusqu'à 45 min), la note « à relire » de la qualification, et un message explicite quand le fond s'arrête sur budget ou durée (`auto_stop`).
 
-### Prochain sous-jalon recommandé : MC.6g
+### Prochain sous-jalon recommandé : MC.6g (fait en partie, voir MC.6h)
 
 Lancer une vraie campagne sur un troisième thème avec les nouveaux plafonds, lire `auto_stop`, la durée et le coût réels ; puis première passe de ressources réduite, graines sans services payants, liens morts.
 
