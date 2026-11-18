@@ -245,6 +245,7 @@ describe("passage de lecture (service)", () => {
               to_email,
               message_id,
               mailbox_id: "mb1",
+              from_email: OWN,
               dry_run: false,
               status: "envoye",
               sent_at: "2026-11-10T10:00:00Z",
@@ -258,6 +259,7 @@ describe("passage de lecture (service)", () => {
           to_email: "sim@z.fr",
           message_id: "<sim@alice-site.fr>",
           mailbox_id: "mb1",
+          from_email: OWN,
           dry_run: true,
           status: "simule",
           sent_at: "2026-11-10T10:00:00Z",
@@ -309,6 +311,20 @@ describe("passage de lecture (service)", () => {
     const again = await runReplyTick(deps(db));
     expect(again[0]).toMatchObject({ result: "lu", examines: 0 });
     expect(db.tables.reply_signals).toHaveLength(2);
+  });
+
+  it("un envoi parti d'une boîte supprimée puis reconnectée (même adresse) reçoit quand même sa réponse", async () => {
+    imap.add(reply());
+    const db = world();
+    // La boîte d'origine a été supprimée : les envois ont perdu leur boîte, pas leur adresse.
+    for (const row of db.tables.sent_messages!) row.mailbox_id = null;
+    const out = await runReplyTick(deps(db));
+    // Le faux serveur IMAP garde les messages des tests précédents : on vérifie le rapprochement, pas le total.
+    expect(out[0]).toMatchObject({ result: "lu" });
+    expect(db.tables.reply_signals?.map((x) => [x.sent_message_id, x.kind])).toContainEqual([
+      "s1",
+      "reponse",
+    ]);
   });
 
   it("identifiants refusés : la boîte passe en erreur", async () => {

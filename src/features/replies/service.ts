@@ -71,11 +71,12 @@ export async function runReplyTick(deps: ReplyDeps): Promise<ReplyOutcome[]> {
   return out;
 }
 
-async function loadRefs(db: Client, mailboxId: string): Promise<SentRef[]> {
+/** Les envois réels d'une adresse d'envoi, y compris ceux d'une boîte supprimée puis reconnectée. */
+async function loadRefs(db: Client, fromEmail: string): Promise<SentRef[]> {
   const { data } = await db
     .from("sent_messages")
     .select("id, draft_id, step, to_email, message_id, sent_at")
-    .eq("mailbox_id", mailboxId)
+    .eq("from_email", fromEmail)
     .eq("dry_run", false)
     .eq("status", "envoye");
   const byDraft = new Map<string, SentRef>();
@@ -100,7 +101,7 @@ async function readMailbox(
   deps: ReplyDeps,
 ): Promise<ReplyOutcome> {
   const base = { mailboxId: box.id };
-  const refs = await loadRefs(db, box.id);
+  const refs = await loadRefs(db, box.email);
   if (refs.length === 0) return { ...base, result: "aucun_envoi_reel" };
 
   let password: string;

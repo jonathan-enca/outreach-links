@@ -384,6 +384,61 @@ describe("moteur d'envoi : dry run", () => {
   });
 });
 
+describe("moteur d'envoi : plafonds et relances par adresse d'envoi", () => {
+  /** Envois d'une boîte supprimée : détachés (mailbox_id vide), mais toujours rangés sous l'adresse. */
+  const detached = (n: number, minutesAgo: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `old${i}`,
+      mailbox_id: null,
+      from_email: "jo@alice-site.fr",
+      dry_run: true,
+      status: "simule",
+      claimed_at: new Date(MONDAY_10H.getTime() - (minutesAgo + i) * 60_000).toISOString(),
+    }));
+
+  it("supprimer puis recréer la boîte ne remet pas le plafond horaire à zéro", async () => {
+    const db = world({ drafts: 3, hourly: 2 });
+    db.tables.sent_messages!.push(...detached(2, 20));
+    expect((await runSendTick(deps(db)))[0]).toMatchObject({ result: "plafond" });
+    expect(db.tables.sent_messages).toHaveLength(2);
+  });
+
+  it("ni l'échauffement : cinq envois déjà comptés pour l'adresse, le sixième attend", async () => {
+    const db = world({ drafts: 3, hourly: 10, daily: 20 });
+    db.tables.sent_messages!.push(...detached(5, 90));
+    expect((await runSendTick(deps(db)))[0]).toMatchObject({ result: "plafond" });
+  });
+
+  it("l'historique d'une autre adresse ne compte pas", async () => {
+    const db = world({ drafts: 3, hourly: 2 });
+    db.tables.sent_messages!.push(
+      ...detached(2, 20).map((r) => ({ ...r, from_email: "autre@autre-site.fr" })),
+    );
+    expect((await runSendTick(deps(db)))[0]).toMatchObject({ result: "simule", draftId: "d1" });
+  });
+
+  it("la relance d'un message parti d'une boîte supprimée part quand même, depuis la nouvelle boîte", async () => {
+    const db = world({ drafts: 1 });
+    const d = deps(db);
+    await runSendTick(d);
+    // La boîte d'origine est supprimée : l'envoi garde son adresse mais perd sa boîte.
+    db.tables.sent_messages![0]!.mailbox_id = null;
+    d.now = () => addDays(MONDAY_10H, 10);
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "simule", draftId: "d1" });
+    expect(db.tables.sent_messages![1]).toMatchObject({
+      step: "relance",
+      mailbox_id: "mb1",
+      from_email: "jo@alice-site.fr",
+    });
+  });
+
+  it("chaque envoi enregistre l'adresse d'envoi", async () => {
+    const db = world({ drafts: 1 });
+    await runSendTick(deps(db));
+    expect(db.tables.sent_messages![0]).toMatchObject({ from_email: "jo@alice-site.fr" });
+  });
+});
+
 describe("moteur d'envoi : mode réel contre un faux serveur SMTP local", () => {
   const received: string[] = [];
   let server: SMTPServer;
