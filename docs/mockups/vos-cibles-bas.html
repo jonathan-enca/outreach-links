@@ -727,7 +727,7 @@
         <h1>« Vos cibles » : le bas de l'écran</h1>
         <p>
           Maquette à valider avant tout codage (18/11/2026). Rien n'est branché : données de
-          démonstration, domaines en « .example ». Les cases, « Tout cocher » et « Tout décocher »
+          démonstration, domaines en « .example ». Les cases, « Tout retenir » et « Tout écarter »
           fonctionnent dans la maquette pour voir la barre réagir ; les cadres « pendant le
           défilement » défilent vraiment.
         </p>
@@ -806,7 +806,7 @@
         <h2>Proposition A (recommandée) : la barre suit la liste</h2>
         <p>
           Choisir et valider sont séparés. Au-dessus de la liste : le compteur et deux vrais boutons
-          « Tout cocher » et « Tout décocher ». En bas de l'écran, tant qu'on parcourt la liste :
+          « Tout retenir » et « Tout écarter ». En bas de l'écran, tant qu'on parcourt la liste :
           une barre avec une seule action verte. Arrivée en fin de liste, la barre se pose sous le
           tableau et ne recouvre plus rien. Viennent ensuite la carte de la lecture des autres sites
           (inchangée), les sites sans contact présentés comme les cibles, et une phrase sur
@@ -837,9 +837,9 @@
       <section class="state" id="signature">
         <h2>« Avant de rédiger vos messages » : une fenêtre, plus une section</h2>
         <p>
-          Cette question n'a pas sa place dans la page. Elle s'ouvre seulement au clic sur « Valider
-          ces demandes », et seulement tant que le prénom ou le rôle manque. Une fois renseignés,
-          une ligne discrète sous la barre les rappelle, avec « Modifier ».
+          Cette question n'a pas sa place dans la page. Elle s'ouvre seulement au clic sur le bouton
+          vert, et seulement tant que le prénom ou le rôle manque. Une fois renseignés, une ligne
+          discrète sous la barre les rappelle, avec « Modifier ».
         </p>
         <div class="frames">
           <div>
@@ -1047,7 +1047,8 @@
         </div></li>`;
       }
 
-      const bar = () => `<div class="bar" role="region" aria-label="Valider les demandes retenues">
+      const bar =
+        () => `<div class="bar" role="region" aria-label="Rédiger les messages des demandes retenues">
           <p class="txt"><strong data-count aria-live="polite"></strong><span data-sub></span></p>
           <a class="btn o seen" href="#">Voir les messages rédigés (12)</a>
           <button type="button" class="btn p w" data-go></button>
@@ -1061,8 +1062,8 @@
           <div class="sec">
             <div class="tools">
               <p class="cnt"><span data-top></span></p>
-              <button type="button" class="btn o sm" data-all>Tout cocher</button>
-              <button type="button" class="btn o sm" data-none>Tout décocher</button>
+              <button type="button" class="btn o sm" data-all>Tout retenir</button>
+              <button type="button" class="btn o sm" data-none>Tout écarter</button>
               <button type="button" class="btn p sm vb" data-go></button>
             </div>
             <div class="card table">
@@ -1117,7 +1118,7 @@
           </fieldset>
           <p class="mut sm-t">Modifiable à tout moment, avec « Modifier » sous la liste.</p>
           <div class="acts">
-            <button type="submit" class="btn p w">Enregistrer et valider (27 demandes)</button>
+            <button type="submit" class="btn p w">Enregistrer et rédiger les 27 messages</button>
             <button type="button" class="btn o w">Annuler</button>
           </div>
         </form>`;
@@ -1142,7 +1143,12 @@
                 ? "Rien n'est envoyé"
                 : "Rien n'est envoyé maintenant : nous rédigeons les messages, vous les relisez avant tout envoi.";
           frame.querySelectorAll("[data-go]").forEach((b) => {
-            b.textContent = `Valider ces demandes (${n})`;
+            b.textContent =
+              n === 0
+                ? "Rédiger les messages"
+                : n === 1
+                  ? "Rédiger le message"
+                  : `Rédiger les ${n} messages`;
             b.disabled = n === 0;
           });
         };

@@ -1,6 +1,6 @@
 # Maquette « Vos cibles », bas de l'écran (18/11/2026)
 
-**À valider par Jonathan avant tout codage.** Fichier : `docs/mockups/vos-cibles-bas.html` (à ouvrir dans un navigateur ; captures ci-dessous). Rien n'est branché, aucun fichier de `src/` n'est modifié. Données de démonstration, domaines en « .example ».
+**Décisions de Jonathan du 18/11/2026 notées en fin de document : variante A retenue, à coder.** Fichier : `docs/mockups/vos-cibles-bas.html` (à ouvrir dans un navigateur ; captures ci-dessous). Rien n'est branché, aucun fichier de `src/` n'est modifié. Données de démonstration, domaines en « .example ».
 
 Point de départ : le bas de `src/features/targets/targets-screen.tsx` tel qu'il est dans `main` après la PR 172.
 
@@ -26,8 +26,8 @@ Le bas de page en entier : [bureau](img/vos-cibles-bas-a-bureau.png), [télépho
 
 | Choix                                                                                                                                                                                                                                               | Répond à |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| **Choisir et valider sont séparés.** Au-dessus de la liste : « 27 sites retenus sur 64 » et deux vrais boutons à contour, « Tout cocher » et « Tout décocher » (côte à côte, pleine largeur sur téléphone).                                         | 3        |
-| **Une barre, une seule action verte** : « Valider ces demandes (27) ». À gauche, le compteur et une phrase : « Rien n'est envoyé maintenant : nous rédigeons les messages, vous les relisez avant tout envoi. »                                     | 3        |
+| **Choisir et valider sont séparés.** Au-dessus de la liste : « 27 sites retenus sur 64 » et deux vrais boutons à contour, « Tout retenir » et « Tout écarter » (côte à côte, pleine largeur sur téléphone).                                         | 3        |
+| **Une barre, une seule action verte** : « Rédiger les 27 messages ». À gauche, le compteur et une phrase : « Rien n'est envoyé maintenant : nous rédigeons les messages, vous les relisez avant tout envoi. »                                       | 3        |
 | **La barre suit la liste, puis se pose.** Elle reste en bas de l'écran tant qu'on parcourt les cibles ; en fin de liste elle se range sous le tableau et ne recouvre plus la suite.                                                                 | 3, 5     |
 | **Sur téléphone**, la barre est collée au bord bas, sur toute la largeur : compteur sur une ligne, bouton vert de 44 px. Le bouton secondaire passe sous la liste.                                                                                  | 3        |
 | **« Voir les messages et le lot » devient « Voir les messages rédigés (12) »**, vrai bouton à contour, affiché seulement s'il existe déjà des messages. Le mot « lot » disparaît des textes.                                                        | 3        |
@@ -35,7 +35,7 @@ Le bas de page en entier : [bureau](img/vos-cibles-bas-a-bureau.png), [télépho
 | **Les sites sans contact deviennent une vraie section**, « 6 sites pertinents, sans contact trouvé », avec les mêmes lignes que la liste (site, type, raison, demande, détail au clic). Pas de case à cocher : ils ne font pas partie des demandes. | 1        |
 | **Un bouton « Ouvrir la page » sur chaque ligne** (nouvel onglet) mène à la page que nous avons lue, pour y chercher soi-même un contact.                                                                                                           | 1        |
 | **« Vos concurrents sur Google » quitte cet écran.** À la place, deux phrases « D'où vient cette liste » et le lien « Voir le détail de l'analyse », où la liste des concurrents a sa place.                                                        | 2        |
-| **« Avant de rédiger vos messages » devient une fenêtre** (« Qui signe vos messages »), ouverte au clic sur « Valider ces demandes » et seulement si le prénom ou le rôle manque. Sur téléphone, un panneau qui monte du bas.                       | 4        |
+| **« Avant de rédiger vos messages » devient une fenêtre** (« Qui signe vos messages »), ouverte au clic sur le bouton vert et seulement si le prénom ou le rôle manque. Sur téléphone, un panneau qui monte du bas.                                 | 4        |
 | **Ordre du bas de page** : liste, barre, rappel de signature, carte de la lecture des autres sites (inchangée), sites sans contact, origine de la liste.                                                                                            | 5        |
 
 Fenêtre de signature : [bureau](img/vos-cibles-bas-signature-bureau.png), [téléphone](img/vos-cibles-bas-signature-mobile.png).
@@ -67,11 +67,16 @@ Le bouton vert est en haut de la liste, à côté du compteur, et répété en f
 
 Vrais boutons et vrais liens, focus visible (2 px, vert), contrastes des jetons du projet, cases de 20 px et cibles de 40 à 44 px sur téléphone, compteur annoncé aux lecteurs d'écran, « Ouvrir la page » précise le site et le nouvel onglet. Téléphone : marges de 16 px, aucun défilement horizontal (vérifié par le script de capture).
 
-## Décisions à prendre par Jonathan
+## Décisions de Jonathan (18/11/2026)
 
-1. **Barre** : A (collante, recommandée) ou B (en haut et en fin de liste).
-2. **Mots des boutons** : « Tout cocher » et « Tout décocher » (maquette) à la place de « Tout retenir » et « Tout écarter ». « Écarter » laissait croire que les sites étaient supprimés.
-3. **Bouton vert** : garder « Valider ces demandes (27) » (maquette), ou dire ce qui se passe, par exemple « Rédiger les 27 messages ».
-4. **Concurrents** : les retirer de cet écran et garder les deux phrases « D'où vient cette liste » (recommandé), ou tout retirer et ne laisser que le lien.
-5. **Sans contact** : une seule section qui réunit aussi les « mentions sans lien, sans contact » (maquette), ou deux sections comme aujourd'hui.
-6. **Signature** : une fenêtre au moment de valider (maquette), ou la demander plus tôt, une fois pour toutes, à l'inscription du site.
+1. **Barre** : variante A, la barre collante qui suit la liste.
+2. **Mots des boutons** : on garde « Tout retenir » et « Tout écarter » (pas « Tout cocher » ni « Tout décocher »), mais en vrais boutons à contour.
+3. **Bouton vert** : « Rédiger les 27 messages » (« Rédiger le message » pour un seul ; grisé, « Rédiger les messages », si rien n'est retenu). La fenêtre de signature suit : « Enregistrer et rédiger les 27 messages ».
+4. **Concurrents** : retirés de cet écran ; restent les deux phrases « D'où vient cette liste » et le lien « Voir le détail de l'analyse ».
+
+Sans réponse, donc codé comme dans la maquette sauf avis contraire :
+
+5. **Sans contact** : une seule section, qui réunit aussi les « mentions sans lien, sans contact ».
+6. **Signature** : une fenêtre au moment de rédiger, seulement si le prénom ou le rôle manque.
+
+La maquette et les captures sont à jour de ces décisions.
