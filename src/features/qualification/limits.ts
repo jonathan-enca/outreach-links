@@ -136,7 +136,7 @@ export function qualificationBudgetUsd(auditTargetUsd: number = AUDIT_BUDGET.tar
 }
 
 /** Prompt système + contexte du site (caractères) : borne vérifiée par un test sur le vrai prompt. */
-export const SYSTEM_CHARS = 6_300;
+export const SYSTEM_CHARS = 7_000;
 /**
  * Caractères par cible au plus (extrait, titre, description, 8 intertitres, liens du contenu, passage
  * autour de la ressource citée, lien mort annoncé, échappement JSON).

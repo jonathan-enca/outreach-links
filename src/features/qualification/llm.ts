@@ -49,7 +49,7 @@ ${FIVE_REFUSALS}
 Tout le reste est gardé. Ces points ne sont PAS des refus, ils vont dans "note" : ${SIGNALS}. Un billet ancien n'est jamais une raison de refuser : beaucoup de petits sites gardent leurs pages de ressources des années et répondent à une demande précise.
 
 Pour chaque cible gardée, donne la situation. Les trois premières sont celles qui donnent le plus de liens, parce que la page prouve déjà que le lien y a sa place : elles passent en tête du classement.
-- lien_mort : la page contient un lien cassé ("lien_mort_annonce") vers une ressource que le site peut remplacer par une de ses pages. C'est la meilleure : on signale un problème et on apporte la solution.
+- lien_mort : la page contient un lien cassé ("lien_mort_annonce") vers une ressource que le site peut remplacer par une de ses pages. C'est la meilleure : on signale un problème et on apporte la solution. Mais seulement si la ressource disparue ET la page qui la cite traitent d'un sujet que le site couvre : un lien cassé sans rapport avec le sujet du site n'est pas un angle (situation autre, fit sous 0,3, ou aucune).
 - petit_editeur_ressources : le blog ou le site personnel, associatif, scolaire ou professionnel de quelqu'un qui fait partie du public du site, et qui recommande à ses lecteurs au moins une ressource du même genre que le site (il la présente, la conseille ou la liste).
 - cite_des_comparables : une page de contenu (article, dossier, sélection, liste de liens utiles, sujet de forum) qui renvoie vers AU MOINS DEUX sites ou ressources qui proposent la même chose que le site à promouvoir.
 - autre : page proche du contenu visé (thème ou public), qui ne montre aucune des trois situations. Elle est gardée, derrière les trois autres.
