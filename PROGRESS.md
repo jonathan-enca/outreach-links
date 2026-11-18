@@ -2225,6 +2225,24 @@ Deux demandes de Jonathan relayées par la session parente (affichage seulement,
 - La carte n'apparaît pas pendant qu'une lecture tourne ni quand il ne reste rien à lire (conditions existantes, non touchées : MC.6f retravaille la lecture de la réserve).
 - Vérifié sur une page de démonstration (`/demo/lot-suivant`, absente en production), pas sur « Vos cibles » avec de vraies données.
 
+### Complément (PR séparée) : refonte de « À valider » (maquette validée par Jonathan, 18/11)
+
+Maquette : `docs/mockups/a-valider.html` (captures et note dans `docs/mockups/a-valider.md`), variante A retenue (« ok go »).
+
+- **Liste rangée par campagne**, une ligne par élément (nature, site, objet, raison ou « À relire » / « À corriger »), huit lignes par campagne puis « Afficher les autres ». Les réponses d'abord.
+- **Panneau de lecture** à droite sur grand écran (message complet, pourquoi ce site, boutons) ; sur téléphone la lecture prend tout l'écran, boutons collés en bas, et le suivant s'affiche après chaque décision.
+- **Filtre de campagne** : pastilles (menu sur téléphone ou au-delà de cinq campagnes), bandeau de rappel tant qu'il est actif.
+- **Lot** : barre collée en bas, chaque bouton porte son nombre ; le panneau de droite dit ce qui part, ce qui reste et pourquoi. Refuser demande une confirmation dans la barre (plus de fenêtre du navigateur). Une sélection sur plusieurs campagnes est permise, avec un avertissement visible (décision par défaut acceptée par Jonathan) ; la fenêtre « Cette sélection mélange N campagnes » est retirée.
+- **Bouton « Approuver et envoyer les N emails prêts » retiré** : on coche, on lit, on approuve.
+- **« Plus tard » est un onglet** : éléments mis de côté, campagne, moment du retour, « Remettre dans la file » un par un (`wakeSnoozed` accepte une liste). Après un « Plus tard », le message de confirmation propose « Annuler ».
+- **Boîte à zéro** : « Tout est traité » seulement si un message a déjà été approuvé (`QueueView.handled`), sinon l'ancien texte d'accueil.
+- Refus d'un seul email possible depuis la lecture (avant : en lot seulement), avec confirmation.
+- Corrigé au passage : modifier l'objet puis le texte d'un message faisait perdre la modification de l'objet.
+
+Fichiers : `src/features/approvals/queue.tsx` (écran), `queue-model.ts` (rangement, résumé de sélection, purs et testés), `service.ts` (`later`, `handled`, réveil ciblé), `messages/fr.ts`. Démonstration sans base : `/demo/a-valider` (`?etat=vide`, `?etat=debut`), absente en production.
+
+Dettes : l'heure de départ estimée AVANT approbation n'est pas affichée (elle l'est après, dans Conversations) ; la boîte à zéro ne compte pas les emails en attente d'envoi ; fuseau des retours de « Plus tard » fixé à Europe/Paris ; vérifié sur la page de démonstration, pas avec de vraies données.
+
 ### Prochain sous-jalon recommandé : MC.6f (inchangé)
 
 (1) Faire relire 10 messages « par proximité » rédigés pour de vrai, et caler la consigne ; (2) réduire la première passe de ressources ; (3) graines sans services payants, repli « publiques » alimenté par une recherche ; (4) liens morts.

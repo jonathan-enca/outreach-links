@@ -2897,21 +2897,25 @@ export const fr = {
     body: "Message",
     approve: "Approuver et envoyer",
     approveForm: "Approuver ce message",
-    /** Le nombre est celui des messages approuvables maintenant, d'où un libellé qui le dit. */
-    approveAll: (n: number) => `Approuver et envoyer les ${n} emails prêts`,
     edit: "Modifier",
     save: "Enregistrer",
     saving: "Enregistrement…",
     cancel: "Annuler",
     later: "Plus tard",
     laterHelp: "Remis à demain",
-    snoozedBanner: (n: number) => `${n} ${n > 1 ? "éléments remis" : "élément remis"} à plus tard.`,
     wake: "Tout remettre dans la file",
     select: "Sélectionner",
     campaign: {
       label: "Campagne",
-      all: "Toutes les campagnes",
-      mixed: (n: number) => `Cette sélection mélange ${n} campagnes. Continuer ?`,
+      all: "Toutes",
+      allLong: "Toutes les campagnes",
+      only: "Ne voir que cette campagne",
+      onlyNotice: "Vous ne voyez que cette campagne : sélection et actions ne touchent qu'elle.",
+      showAll: "Tout voir",
+      count: (n: number) => `${n} à valider`,
+      selectGroup: (name: string) => `Tout sélectionner dans ${name}`,
+      mixed: (n: number) => `Votre sélection touche ${n} campagnes.`,
+      several: (n: number) => `${n} campagnes`,
     },
     selectAll: (n: number) => `Tout sélectionner (${n})`,
     selectNone: "Tout désélectionner",
@@ -2931,12 +2935,87 @@ export const fr = {
     openForm: "Ouvrir le formulaire",
     markDone: "C'est fait",
     formSubject: "Message à coller dans leur formulaire",
+    repliesFirst: "Les réponses d'abord : quelqu'un attend.",
+    showMore: (n: number) => (n > 1 ? `Afficher les ${n} autres` : "Afficher le dernier"),
+    clearSelection: "Annuler",
+    confirmRefuse: "Confirmer le refus",
+    refuse: "Refuser",
+    refuseHelp: "Rien ne sera envoyé. La cible rejoint les cibles écartées.",
+    row: {
+      reply: "Réponse",
+      email: "Email",
+      form: "Formulaire",
+      fix: "À corriger :",
+      formWhy: "Ce site n'a pas d'adresse email : à envoyer vous-même.",
+      open: (name: string) => `Lire : ${name}`,
+    },
+    pane: {
+      label: "Lecture du message",
+      position: (i: number, n: number) => `${i} sur ${n}`,
+      previous: "Précédent",
+      next: "Suivant",
+      back: "Retour",
+      why: "Pourquoi ce site",
+      autoNext: "Après chaque décision, le suivant s'ouvre tout seul.",
+    },
+    recap: {
+      title: (n: number) => `${n} ${n > 1 ? "éléments sélectionnés" : "élément sélectionné"}`,
+      approveTitle: "Si vous approuvez",
+      approve: (n: number) =>
+        `${n} ${n > 1 ? "messages partent" : "message part"} de votre boîte, au rythme prévu.`,
+      approveNone: "Rien ne peut partir dans cette sélection.",
+      stayTitle: "Ce qui ne part pas",
+      notReady: (n: number) =>
+        `${n} ${n > 1 ? "emails à corriger : ils restent" : "email à corriger : il reste"} dans la file.`,
+      noMailbox: (n: number) =>
+        `${n} ${n > 1 ? "emails attendent" : "email attend"} une boîte d'envoi connectée.`,
+      forms: (n: number) =>
+        `${n} ${n > 1 ? "formulaires : à envoyer vous-même, ils restent" : "formulaire : à envoyer vous-même, il reste"} dans la file.`,
+      refuseTitle: "Si vous refusez",
+      refuse: (n: number) =>
+        `${n} ${n > 1 ? "messages sont écartés" : "message est écarté"}, rien n'est envoyé. Les cibles rejoignent les cibles écartées.`,
+      refuseNone: "Un formulaire ne se refuse pas ici : rien ne change.",
+      laterTitle: "Si vous remettez à plus tard",
+      later: (n: number) =>
+        `${n > 1 ? `Les ${n} éléments quittent la file et reviennent` : "L'élément quitte la file et revient"} demain.`,
+    },
+    laterTab: {
+      tab: "Plus tard",
+      title: (n: number) => `${n} ${n > 1 ? "éléments remis" : "élément remis"} à plus tard`,
+      returns: (when: string) => `Revient ${when}`,
+      wakeOne: "Remettre dans la file",
+      undo: "Annuler",
+      none: "Rien n'est remis à plus tard.",
+      foot: "Ils reviennent seuls dans la file, à l'heure indiquée.",
+      helpTitle: "« Plus tard », comment ça marche",
+      help1:
+        "Un élément remis à plus tard quitte la file et le compteur du menu pendant 24 heures, puis il revient tout seul.",
+      help2:
+        "Entre-temps, rien n'est envoyé et rien n'est perdu. Vous pouvez le remettre dans la file à tout moment.",
+      help3:
+        "Pour ne plus voir un élément, utilisez « Refuser » : la cible rejoint les cibles écartées.",
+    },
+    zero: {
+      title: "Tout est traité",
+      lead: "Rien n'attend votre accord. Voici ce qui se passe maintenant, sans vous.",
+      sending:
+        "Les emails approuvés partent de votre boîte, au rythme prévu. Dans Conversations, chacun affiche son heure de départ.",
+      later: (n: number) =>
+        `${n} ${n > 1 ? "éléments remis à plus tard reviennent" : "élément remis à plus tard revient"} ici tout seul.`,
+      laterCta: "Les voir maintenant",
+      replies:
+        "Les réponses arrivent dans Conversations. Celles qui demandent votre accord reviennent ici.",
+      conversations: "Voir les conversations",
+      campaigns: "Voir vos campagnes",
+    },
     filters: {
       label: "Filtrer par nature",
       all: "Tout",
       replies: "Réponses",
       messages: "Emails à envoyer",
       forms: "Formulaires à remplir",
+      messagesShort: "Emails",
+      formsShort: "Formulaires",
     },
     tags: {
       reply: "Réponse à approuver",
@@ -2969,6 +3048,8 @@ export const fr = {
       snoozed: (n: number) =>
         `${n} ${n > 1 ? "éléments remis" : "élément remis"} à demain : ${n > 1 ? "ils reviennent" : "il revient"} dans la file à ce moment-là.`,
       woken: "Tout est de retour dans la file.",
+      wokenSome: (n: number) =>
+        `${n} ${n > 1 ? "éléments sont de retour" : "élément est de retour"} dans la file.`,
       refusedReason: "Refusé par vous.",
       refused: (n: number) =>
         `${n} ${n > 1 ? "messages refusés" : "message refusé"} : rien n'est envoyé. Vous les retrouvez dans les cibles écartées.`,

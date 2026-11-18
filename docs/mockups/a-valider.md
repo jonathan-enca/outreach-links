@@ -1,6 +1,6 @@
 # Maquette « À valider » (18/11/2026)
 
-Maquette à valider par Jonathan **avant tout code**. Fichier : `docs/mockups/a-valider.html` (à ouvrir dans un navigateur ; captures ci-dessous). Rien n'est branché, aucun fichier de `src/` n'est modifié. Données de démonstration : trois campagnes fictives, 66 éléments (4 réponses, 54 emails, 8 formulaires).
+**Variante A validée par Jonathan le 18/11/2026 et codée** (voir `PROGRESS.md`). Maquette d'origine : Fichier : `docs/mockups/a-valider.html` (à ouvrir dans un navigateur ; captures ci-dessous). Rien n'est branché, aucun fichier de `src/` n'est modifié. Données de démonstration : trois campagnes fictives, 66 éléments (4 réponses, 54 emails, 8 formulaires).
 
 Point de départ : la page fusionnée dans `main` (`src/features/approvals/queue.tsx`), qui a déjà les filtres par nature, la sélection en lot (approuver, refuser, plus tard) et « Plus tard » durable sur 24 heures.
 
