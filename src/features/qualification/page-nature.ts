@@ -10,12 +10,30 @@
  * « mentions-legales »), pas au thème.
  */
 
-export const PAGE_NATURES = ["page_accueil", "page_legale", "fichier"] as const;
+export const PAGE_NATURES = ["page_accueil", "page_legale", "page_paginee", "fichier"] as const;
 export type PageNature = (typeof PAGE_NATURES)[number];
 
 /** Fichiers et flux : jamais une page de contenu. */
 const FILE_EXT =
   /\.(jpe?g|png|gif|webp|svg|ico|pdf|zip|rar|docx?|xlsx?|pptx?|csv|css|js|mp4|mp3|xml|json|rss|atom|txt)$/i;
+/**
+ * Page de pagination d'une liste (annuaire, rubrique, archive) : « /page-33 », « /page/2 », « /p2 »,
+ * « ?page=7 », « ?paged=3 ». La page 1 n'en est pas une. Mesuré à MC.6c : des annuaires payants
+ * remontent par leurs pages 7 et 33, jamais par un contenu éditorial.
+ */
+const PAGED_SEGMENT = /^(page|pages|p|pg|pagina)[-_]?(\d+)$/i;
+const PAGED_QUERY = /[?&](page|paged|pagenum|pg|p)=(\d+)(&|$)/i;
+function isPaginated(segments: readonly string[], search: string): boolean {
+  const last = segments[segments.length - 1] ?? "";
+  const m = PAGED_SEGMENT.exec(last.replace(/\.(html?|php|aspx?)$/i, ""));
+  if (m && Number(m[2]) >= 2) return true;
+  const prev = segments[segments.length - 2] ?? "";
+  if (/^(page|pages|pagina)$/i.test(prev) && /^\d+$/.test(last) && Number(last) >= 2) return true;
+  const q = PAGED_QUERY.exec(search);
+  // « ?p=123 » désigne souvent un article : seuls « page », « paged », « pagenum », « pg » comptent.
+  return !!q && !/^p$/i.test(q[1]!) && Number(q[2]) >= 2;
+}
+
 const FEED_SEGMENT = /^(feed|rss|atom|sitemap[\w-]*)$/i;
 
 /**
@@ -132,6 +150,7 @@ export function pageNatureOf(url: string | null | undefined): PageNature | null 
   const last = segments[segments.length - 1] ?? "";
   if (FILE_EXT.test(last) || FEED_SEGMENT.test(last)) return "fichier";
   if (isHome(segments, u.search)) return "page_accueil";
+  if (isPaginated(segments, u.search)) return "page_paginee";
   // Document légal : le DERNIER segment ou l'avant-dernier (« /legal/privacy »), jamais un mot du thème.
   const tail = segments.slice(-2).map((s) => norm(s.replace(/\.(html?|php|aspx?)$/i, "")));
   for (const seg of tail) {
@@ -145,5 +164,6 @@ export function pageNatureOf(url: string | null | undefined): PageNature | null 
 export const PAGE_NATURE_LABELS: Record<PageNature, string> = {
   page_accueil: "page d'accueil",
   page_legale: "page légale (mentions, CGU, confidentialité...)",
+  page_paginee: "page de pagination d'une liste",
   fichier: "fichier ou flux, pas une page",
 };

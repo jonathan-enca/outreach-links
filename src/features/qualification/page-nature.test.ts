@@ -23,6 +23,28 @@ describe("nature d'une page reconnue par son adresse (MC.1 / MC.6a)", () => {
     expect(pageNatureOf("https://exemple.fr/?page_id=4")).toBeNull();
   });
 
+  it("pages paginées d'annuaire écartées (MC.6c), mais jamais un article ni la page 1", () => {
+    for (const u of [
+      "https://annuaire.fr/categorie/achat-en-ligne/page-33",
+      "https://annuaire.fr/liste/page/2",
+      "https://annuaire.fr/sites/p7",
+      "https://annuaire.fr/sites/page-7.html",
+      "https://annuaire.fr/sites?page=3",
+      "https://annuaire.fr/blog?paged=2",
+    ]) {
+      expect(pageNatureOf(u), u).toBe("page_paginee");
+    }
+    for (const u of [
+      "https://exemple.fr/blog/page-1",
+      "https://exemple.fr/blog?page=1",
+      "https://exemple.fr/?p=123",
+      "https://exemple.fr/blog/guide-page-2-du-livre",
+      "https://exemple.fr/page-de-garde-coloriage",
+    ]) {
+      expect(pageNatureOf(u), u).toBeNull();
+    }
+  });
+
   it("pages légales reconnues par la forme du segment, en français et en anglais", () => {
     for (const u of [
       "https://exemple.fr/mentions-legales",
