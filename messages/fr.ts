@@ -2489,7 +2489,9 @@ export const fr = {
       yourMessages: "Vos messages",
       billing: "Abonnement",
       notifications: "Notifications",
-      changeSite: "Voir tous vos sites",
+      changeSite: "Choisir un site",
+      allSites: "Tous les sites",
+      manageSites: "Gérer les sites",
       short: { conversations: "Échanges" },
       groups: {
         prospecting: "Prospection",

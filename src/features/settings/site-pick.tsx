@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { currentSiteChoice } from "@/features/shell/current-site";
 import type { Database } from "@/lib/supabase/database.types";
 
 type Site = Database["public"]["Tables"]["sites"]["Row"];
@@ -14,7 +15,9 @@ export async function pickSite(
     .select("*")
     .order("created_at", { ascending: true });
   const sites = data ?? [];
-  return { site: sites.find((s) => s.id === wanted) ?? sites[0] ?? null, sites };
+  // Sans `?site=`, c'est le site choisi dans le menu qui s'ouvre.
+  const chosen = wanted ?? (await currentSiteChoice(sites.map((s) => s.id)));
+  return { site: sites.find((s) => s.id === chosen) ?? sites[0] ?? null, sites };
 }
 
 /** Choix du site quand la personne en a plusieurs. */

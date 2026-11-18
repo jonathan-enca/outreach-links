@@ -2401,3 +2401,10 @@ Lancer une vraie campagne sur un troisième thème, lire `auto_stop`, la durée 
 - Pas vérifié dans un navigateur avec deux vraies campagnes (typecheck, lint et tests seulement).
 - Le test de la base réelle `supabase/tests/mailboxes.test.ts` n'a pas été étendu à `mailbox_sites` (pas de Postgres local ici).
 - L'écran garde une boîte par site dans l'interface ; le moteur en accepterait plusieurs.
+
+### Même session : vrai sélecteur de site dans le menu, « Tous les sites »
+
+- Le sélecteur en haut du menu est maintenant une liste déroulante : « Tous les sites » + chaque site + « Gérer les sites » (qui mène à `/app/site`). Le choix est gardé dans un cookie `site` (`selectSite` dans `src/app/app/actions.ts`, lecture et validation dans `src/features/shell/current-site.ts` : un site inconnu ou invalide retombe sur « Tous »).
+- **Campagnes** n'affiche que le site choisi (toutes si « Tous les sites »). Les pages de réglages (`pickSite`) ouvrent le site choisi quand l'adresse n'a pas de `?site=`.
+- **Pas filtrés** (hors périmètre, à décider) : « À valider » (a son propre sélecteur de campagne), Conversations, Liens obtenus, Accueil. Le sélecteur du menu n'est pas encore sur téléphone (barre basse).
+- Pas vérifié dans un navigateur.
