@@ -33,14 +33,26 @@ export interface PlannedResources {
 export function planResources(input: {
   competitorDomains: readonly string[];
   competitors?: readonly CompetitorFacts[];
+  /**
+   * Concurrents que l'audit n'a PAS retenus (MC.6b), du plus au moins pertinent. Ils sont proposés au
+   * choix du modèle après les retenus : l'audit retient ceux qui se classent le mieux sur les recherches
+   * du site, pas ceux qui proposent la même chose. Jamais utilisés par le repli sans jugement.
+   */
+  otherCompetitors?: readonly CompetitorFacts[];
   language?: string;
   max?: number;
 }): PlannedResources {
   const max = input.max ?? COLLECTION_LIMITS.citations.maxResources;
-  const facts = new Map((input.competitors ?? []).map((c) => [c.domain, c]));
+  const facts = new Map(
+    [...(input.otherCompetitors ?? []), ...(input.competitors ?? [])].map((c) => [c.domain, c]),
+  );
   const pool: PlannedResources["pool"] = [];
   const skipped: { domain: string; reason: string }[] = [];
-  for (const domain of input.competitorDomains) {
+  const retained = [...input.competitorDomains];
+  const others = (input.otherCompetitors ?? [])
+    .map((c) => c.domain)
+    .filter((d) => !retained.includes(d));
+  for (const domain of [...retained, ...others]) {
     if (pool.length >= COLLECTION_LIMITS.citations.poolSize) break;
     const f = facts.get(domain);
     const reason = f && input.language ? deadPagesSkipReason(f, input.language) : null;
@@ -52,7 +64,9 @@ export function planResources(input: {
         sampleUrl: f?.sampleUrl ?? null,
       });
   }
-  return { pool, resources: pool.slice(0, max).map((p) => p.domain), max, skipped };
+  // Repli sans jugement : seulement des concurrents retenus par l'audit, comme avant.
+  const fallback = pool.filter((p) => retained.includes(p.domain)).slice(0, max);
+  return { pool, resources: fallback.map((p) => p.domain), max, skipped };
 }
 
 const sameSite = (a: string, b: string) => a === b || a.endsWith(`.${b}`) || b.endsWith(`.${a}`);

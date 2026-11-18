@@ -31,6 +31,7 @@ const answer = (prompt: string) => {
     results: data.cibles.map((c) => ({
       id: c.id,
       site_type: "blog",
+      situation: "lien_mort",
       fit: 0.8,
       fit_reason: "Même public.",
       sells_links: false,

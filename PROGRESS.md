@@ -1873,3 +1873,87 @@ Le jugement des trois cas (lien mort remplaçable, petit éditeur du public qui 
 - **Tests** : SQL (supprimer puis recréer la boîte ne remet pas le plafond à zéro), moteur (plafond horaire, échauffement, autre adresse non comptée, relance d'un envoi détaché, adresse enregistrée), lecture des réponses (envoi détaché rapproché). 1 473 tests verts avec Postgres local.
 - **Limite connue** : la lecture IMAP et le curseur (`imap_last_uid`) restent par boîte ; une boîte recréée relit depuis la date du plus ancien envoi de l'adresse. Les réponses déjà lues avant une suppression sont supprimées avec la boîte (`inbound_messages` en `ON DELETE CASCADE`).
 - **Hébergement** : Jonathan passe Vercel en offre Pro (réponse du 18/11) ; le correctif de code sera en ligne dès que le site est rétabli.
+
+## Session du 18/11 (suite 3) : MC.6b, jugement des trois cas et pilotage par ressource (fait ; objectif de 30 % NON atteint)
+
+Périmètre tenu : les trois cas de Jonathan dans la qualification et dans le rédacteur, le pilotage par ressource, deux jeux d'évaluation annotés, la mesure sur les deux sites. **Pas** fait : boule de neige, recherche de liens morts, mesure sur une vraie campagne en production.
+
+### En une phrase
+
+Le code fait ce qui était demandé et ses jeux d'évaluation passent, mais la mesure réelle est mauvaise : rejugées par le modèle fort, **3 cibles sur 35 pour mega-coloring.com et 0 sur 33 pour remove-me.io**. Le défaut n'est plus dans le jugement : il est dans les **ressources de départ**, qui sont des sites qui achètent leurs liens.
+
+### Ce qui change
+
+- **Qualification, étage 4** (`qualification/llm.ts`, `score.ts`, `types.ts`) : le modèle rend une `situation`. Une page n'est une cible que si elle montre un des trois cas (`lien_mort`, `petit_editeur_ressources`, `cite_des_comparables`). Refus avec motif lisible : `pas_de_contenu` (rubrique, liste d'articles), `page_legale`, `page_commerciale`, `ferme_a_liens`, `sans_angle`. Un billet ancien n'est plus un motif de refus. Exception : la page qui cite déjà le site sans lien (`mention`) garde sa propre preuve. Un jugement rendu avant (sans situation) garde l'ancien critère. Classement : lien mort, puis petit éditeur, puis page qui cite des comparables.
+- **Relevé gratuit de ce que la page cite** (`qualification/page.ts`, `pageCites`) : sites extérieurs cités dans le contenu (ni menu, ni pied de page, ni réseaux sociaux), 14 premiers liens, et le passage autour du site qui a fait trouver la page. Envoyé au modèle, et recoupé avec son verdict (`checkSituation`) : une page qui ne cite qu'un site ne peut pas « citer plusieurs ressources comparables ».
+- **Rédacteur** (`drafting/write.ts`) : `TRIAGE_SYSTEM` et `WRITER_SYSTEM` reconnaissent les trois cas (consigne de `docs/mc0b-essai.md`), regardent les refus d'abord, écartent fermes à liens, pages commerciales et concurrents. Champ `situation` dans les deux réponses. La page à proposer n'est plus « presque jamais une page générale » : pour une liste de sites, c'est la page du catalogue qui correspond à la liste.
+- **Pilotage par ressource** (`qualification/funnel.ts`) : une file de lecture par ressource (`citation:<domaine>`), sondage de 8 pages (4 par lot, jamais plus que le sondage), puis abandon si la ressource est citée surtout par des pages légales ou des fermes à liens (dès 6 pages), si elle ne donne aucune cible sur 8 pages, ou si elle rend moins de 5 % après 24 pages. Abandon avant toute lecture si la moitié de ses pages ont une adresse de page légale. Les pages non lues portent le motif `ressource_abandonnee`. Décisions et compteurs dans `stats.byResource`, repris par les lots suivants (`more.ts`).
+- **Choix des ressources** (`collection/resource-judge.ts`, `resources.ts`, `service.ts`) : deux corrections venues de la mesure. (1) Le modèle ne voyait qu'un nom de domaine : il reçoit maintenant le titre et la description de la page d'accueil de chaque candidat (lecture gratuite, `describeCandidates`). (2) Les concurrents **non retenus** par l'audit sont proposés au choix (40 sites au plus, 60 candidats) : pour mega-coloring.com, les vrais sites de coloriages étaient presque tous parmi eux, aucun parmi les 10 retenus. Le repli sans modèle reste sur les seuls retenus.
+- **Jeux d'évaluation annotés** : `qualification/angle-eval-set.ts` (20 pages sur deux thèmes, les trois cas et chaque refus, deux billets anciens à garder) et `collection/resource-eval-set.ts` (23 candidats sur deux thèmes, avec les faux amis du 18/11 : éditeur de livres, vendeur d'étiquettes, antivirus, administration).
+- Aucune migration. Aucun mot ni seuil propre à un thème (contrôlé par test sur les trois consignes).
+
+### Mesures
+
+**Jeux annotés, petit modèle de développement** (`gpt-4o-mini`) :
+
+|                                       | Précision | Rappel |
+| ------------------------------------- | --------- | ------ |
+| Jugement de la qualification (20 cas) | 1,00      | 1,00   |
+| Tri du rédacteur (20 cas)             | 0,83      | 1,00   |
+| Choix des ressources (23 candidats)   | 1,00      | 1,00   |
+
+Avant le resserrement de la consigne et le recoupement gratuit : 0,67 et 0,56 de précision (le modèle disait « cite des comparables » dès qu'un seul lien existait).
+
+**Mesure réelle** (`citations-funnel.live.test.ts` : collecte réduite de MC.6a, puis la vraie qualification sur les pages qui citent ; liste courte rejugée par le modèle fort avec `WRITER_SYSTEM`, par des agents `opus`, comme en MC.0b) :
+
+|                                                    | mega-coloring.com | remove-me.io |
+| -------------------------------------------------- | ----------------- | ------------ |
+| Pages qui citent une ressource                     | 273               | 234          |
+| Pages lues                                         | 200               | 232          |
+| Pages jugées par le petit modèle                   | 156               | 187          |
+| Cibles selon le petit modèle                       | 65 (32 %)         | 52 (22 %)    |
+| dont avec un contact (liste courte)                | 35                | 33           |
+| **Liste courte gardée par le modèle fort**         | **3 sur 35**      | **0 sur 33** |
+| Sans contact, échantillon de 10, modèle fort       | 1 sur 10          | 0 sur 10     |
+| Écartées par le petit modèle, échantillon de 10    | 0 sur 10          | 0 sur 10     |
+| **Part de cibles avec angle parmi les pages lues** | **~3 %**          | **0 %**      |
+| MC.0b (ressources choisies à la main)              | 15 %              | 10 %         |
+| Coût de la collecte (annoncé 0,267 USD)            | 0,244 USD         | 0,240 USD    |
+| Coût du jugement (prix de `claude-haiku-4-5`)      | 0,216 USD         | 0,259 USD    |
+
+- **Ressources choisies** : esle.io, magicoloriage.com, coloriageetdessins.com, fr.hellokids.com, lilocolors.fr, topcoloriages.fr ; et data-knight.io, webcleaner.fr, netclearer.fr, proteger-mes-donnees.fr, blog.whaller.com, toutsurlacyber.fr.
+- **Cibles gardées (mega-coloring.com)** : justgeek.fr (« TOP 6 des sites pour télécharger des coloriages de Noël »), mamande4.fr (blog d'une mère de quatre enfants qui conseille un site de coloriages), soutien-refuges.blog4ever.com (« Sites de coloriages animaux »), drolesdemums.com (liste de sites pour occuper un enfant malade ; pas de contact valable). Les quatre messages écrits sont corrects (adresse de leur page, liste citée nommée, page précise du site).
+- **Pourquoi c'est si bas** : les pages qui citent ces ressources sont en majorité des articles écrits pour placer un lien (fermes à liens, articles sponsorisés, ancres optimisées) et des pages d'annuaires payants. Pour remove-me.io, 2 des ressources sont des agences d'e-réputation qui achètent leur visibilité : sur 53 pages rejugées, une trentaine sont des articles sponsorisés ou des annuaires. Le petit modèle, sur un extrait de 1 200 caractères, ne voit pas que le site publie des sujets sans rapport entre eux ; le modèle fort, qui lit toute la page, le voit.
+- **Conséquence pour le pilotage** : il abandonne bien une ressource quand le verdict est juste (deuxième passage, remove-me.io : une ressource abandonnée après 8 pages, 39 pages non lues), mais il se fie au petit modèle. Sur les passages finaux, aucune ressource n'a été abandonnée alors que plusieurs auraient dû l'être.
+- **Ce que le petit modèle écarte est bien écarté** : 0 cible sur les 20 pages écartées rejugées. Le nouveau critère ne fait donc pas perdre de cible ; il laisse encore passer trop de mauvaises.
+- **Refus à tort trouvés** : le catalogue donné au rédacteur garde 80 pages, mega-coloring.com en a 1 848 en français. Le modèle fort a refusé au moins 3 pages (« le site n'a aucune page de voitures », « de guitare ») alors que ces pages existent.
+- **Limites** : le petit modèle de la mesure est celui du développement, pas `claude-haiku-4-5` ; le coût de l'étape du modèle fort n'est pas mesuré en USD (ordre de grandeur : 0,07 USD par cible passée au rédacteur, soit 2 à 2,5 USD pour une liste courte de 35) ; deux sites seulement ; aucun message envoyé.
+- **Dépense de la session** : 0,86 USD de DataForSEO (5 passages), quelques centimes de petit modèle.
+
+### Fichiers clés
+
+`src/features/qualification/{llm,score,page,funnel,more,limits,types}.ts`, `src/features/drafting/write.ts`, `src/features/collection/{resource-judge,resources,plan,service,run,limits}.ts`, `src/inngest/functions/audit-collect.ts`, `messages/fr.ts`. Tests : `qualification/resources.test.ts`, `qualification/angle-eval.test.ts`, `collection/resource-eval.test.ts`.
+
+### Commandes
+
+- Jeux d'évaluation réels : `NODE_USE_ENV_PROXY=1 LLM_PROXY_AUTH=true pnpm demo:angle-eval` et `pnpm demo:resources-eval` (ajouter `--silent=false` pour voir le détail).
+- Mesure réelle d'un site : `MC6B_LIVE=1 MC6B_INPUT=entree.json MC6B_OUT=rapport.json MC6B_CACHE=dfs.json MC6B_PAGES=pages.json MC6B_CASES=cas/ NODE_USE_ENV_PROXY=1 DATAFORSEO_PROXY_AUTH=true LLM_PROXY_AUTH=true pnpm vitest run src/features/qualification/citations-funnel.live.test.ts` (`MC6B_PILOT=0` : sans pilotage). L'entrée donne le site, son profil, ses concurrents retenus et non retenus (`others`), 14 recherches.
+
+### Dettes et pièges
+
+- Les ressources de départ restent le point faible : un site comparable qui achète ses liens amène des fermes à liens, pas des cibles.
+- La liste courte de la qualification contient encore environ 9 mauvaises cibles sur 10 : le rédacteur les écarte, mais chacune coûte un tri et parfois un appel au modèle fort.
+- Le catalogue du rédacteur (80 pages) ne couvre pas un grand site : refus à tort.
+- Les pages paginées d'annuaires (« page 2 », « page 33 ») ne sont pas écartées par leur adresse.
+- La qualification garde `claude-haiku-4-5` et un extrait de 1 200 caractères ; la consigne nouvelle n'a pas été essayée en production avec ce modèle.
+- Toutes les sources passent par le nouveau critère : une campagne donnera moins de cibles affichées qu'avant (celles qui disparaissent n'auraient pas eu de message).
+
+### Backlog
+
+- Écarter par l'adresse les pages paginées et les fiches d'annuaires.
+- Catalogue du rédacteur pour un grand site : chercher la page du site par le sujet de la page cible, au lieu de 80 pages fixes.
+- Montrer à l'écran le rendement par ressource (`stats.byResource`).
+
+### Prochain sous-jalon recommandé : MC.6c, recadré
+
+Des ressources de départ que de vraies personnes citent, pas celles qui achètent leurs liens. Trois pistes à mesurer avant de coder, dans cet ordre : (1) l'ancre du lien, gratuite dans les données reçues : un lien posé sur le nom du site (« Hugo l'escargot ») vient d'une vraie citation, un lien posé sur un mot-clé (« coloriage gratuit ») vient d'un article placé ; (2) la boule de neige à partir des bonnes cibles : les sites qu'elles citent (Hugo l'escargot, Mes Coloriages, Tête à modeler pour mega-coloring.com) deviennent les ressources de départ ; (3) juger sur la page entière avec le petit modèle de génération actuelle, pour que le pilotage voie les fermes à liens. Critère inchangé : part de cibles gardées par le modèle fort, sur les deux sites.

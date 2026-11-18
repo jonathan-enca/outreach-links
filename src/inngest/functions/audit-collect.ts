@@ -9,7 +9,7 @@ import {
   type StepRunner,
 } from "@/features/collection/run";
 import { env } from "@/env";
-import { RESOURCE_PICK_LIMITS } from "@/features/collection/resource-judge";
+import { describeCandidates, RESOURCE_PICK_LIMITS } from "@/features/collection/resource-judge";
 import { createDataForSeoClientFromEnv } from "@/lib/dataforseo";
 import { createLlmClientFromEnv } from "@/lib/llm/client";
 import { logger } from "@/lib/logger";
@@ -61,6 +61,7 @@ export const auditCollect = inngest.createFunction(
                 maxCostPerCallUsd: RESOURCE_PICK_LIMITS.reservedUsd * 5,
               })
             : null,
+        describe: describeCandidates,
       }),
       run,
       runStep,

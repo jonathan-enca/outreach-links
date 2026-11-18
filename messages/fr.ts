@@ -1331,7 +1331,14 @@ export const fr = {
       mur_connexion: "Il faut un compte pour voir la page.",
       editeur_introuvable: "Aucun éditeur identifiable (ni contact, ni mentions, ni auteur).",
       hors_budget_lecture: "Pas encore lu : gardé en réserve pour une lecture ultérieure.",
+      ressource_abandonnee:
+        "Trouvée par un site comparable dont les pages lues n'ont donné aucune cible : non lue.",
       hors_sujet: "Pas assez proche de votre sujet ou de votre public.",
+      pas_de_contenu: "Rubrique ou liste d'articles : pas une page où ajouter un lien.",
+      page_commerciale: "Page commerciale : on ne la fait pas modifier pour un lien gratuit.",
+      ferme_a_liens: "Site d'articles écrits pour placer des liens, pas pour des lecteurs.",
+      sans_angle:
+        "La page ne cite aucune ressource comme la vôtre : pas de raison honnête de demander un lien.",
       hors_budget_llm: "Pas évalué cette fois : budget de qualification atteint.",
       non_qualifie: "Évaluation impossible cette fois.",
       sans_contact: "Aucun email ni formulaire trouvé.",

@@ -19,6 +19,7 @@ import {
   triageSchema,
   WRITER_SYSTEM,
   writerSchema,
+  type DraftSituation,
 } from "./write";
 
 const CTX: DraftContext = {
@@ -273,12 +274,14 @@ const CATALOGUE: CataloguePage[] = [
 ];
 
 type Triage = {
+  situation: DraftSituation;
   verdict: "angle" | "pas_d_angle";
   motif: string;
   passage: string | null;
   pages: string[];
 };
 type Written = {
+  situation: DraftSituation;
   verdict: "angle" | "pas_d_angle";
   angle: string;
   page_proposee: string | null;
@@ -287,12 +290,14 @@ type Written = {
   message: string | null;
 };
 const ANGLE: Triage = {
+  situation: "petit_editeur_ressources",
   verdict: "angle",
   motif: "La liste d'activités calmes n'a aucun coloriage licorne.",
   passage: "Activités calmes",
   pages: [URL_OK],
 };
 const written = (over: Partial<Written> = {}): Written => ({
+  situation: "petit_editeur_ressources",
   verdict: "angle",
   angle:
     "La liste d'activités calmes n'a aucun coloriage licorne ; notre planche en propose douze.",
@@ -362,6 +367,7 @@ describe("rédaction d'un message", () => {
   it("le tri écarte une cible sans angle : aucun message, le modèle fort n'est pas appelé", async () => {
     const tr = llm<Triage>([
       {
+        situation: "aucune",
         verdict: "pas_d_angle",
         motif: "Page d'accueil sans contenu éditorial.",
         passage: null,
@@ -380,6 +386,7 @@ describe("rédaction d'un message", () => {
     const tr = llm<Triage>([ANGLE]);
     const wr = llm<Written>([
       written({
+        situation: "aucune",
         verdict: "pas_d_angle",
         angle: "Politique de confidentialité : on ne fait pas modifier un document juridique.",
         page_proposee: null,
@@ -511,6 +518,26 @@ describe("consignes et schémas", () => {
     expect(WRITER_SYSTEM).toContain("rejuge par toi-même");
   });
 
+  it("MC.6b : les trois cas sont reconnus, un billet ancien n'est plus un refus, fermes à liens et pages commerciales écartées", () => {
+    for (const sys of [TRIAGE_SYSTEM, WRITER_SYSTEM]) {
+      for (const cas of ["lien_mort", "petit_editeur_ressources", "cite_des_comparables"]) {
+        expect(sys).toContain(`"${cas}"`);
+      }
+      expect(sys).toContain("Un billet ancien n'est PAS une raison de refuser");
+      expect(sys).not.toMatch(/billet ancien que personne ne met plus à jour/);
+      expect(sys).toContain("ferme à liens");
+      expect(sys).toContain("page commerciale");
+      // La page à proposer n'est plus forcément un article (un site de thèmes n'a pas d'articles).
+      expect(sys).not.toContain("n'est presque jamais la bonne réponse");
+    }
+  });
+
+  it("MC.6b : aucun mot propre à un thème dans les consignes (règle de généralité)", () => {
+    for (const sys of [TRIAGE_SYSTEM, WRITER_SYSTEM]) {
+      expect(sys).not.toMatch(/coloriage|rgpd|données personnelles|enseignant|bloctel/i);
+    }
+  });
+
   it("le prompt porte la page, le constat automatique, la présentation choisie et la page déplacée", () => {
     const withBrief = item({
       type: "lien_mort",
@@ -551,7 +578,17 @@ describe("consignes et schémas", () => {
 
   it("les schémas refusent une sortie incomplète", () => {
     expect(
-      triageSchema.safeParse({ verdict: "angle", motif: "", passage: null, pages: [] }).success,
+      triageSchema.safeParse({
+        situation: "autre",
+        verdict: "angle",
+        motif: "",
+        passage: null,
+        pages: [],
+      }).success,
+    ).toBe(false);
+    // La situation est obligatoire : c'est elle qui dit lequel des trois cas la page montre.
+    expect(
+      triageSchema.safeParse({ verdict: "angle", motif: "ok", passage: null, pages: [] }).success,
     ).toBe(false);
     expect(writerSchema.safeParse({ verdict: "peut-être" }).success).toBe(false);
     expect(writerSchema.safeParse(written()).success).toBe(true);

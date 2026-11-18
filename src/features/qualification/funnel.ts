@@ -65,6 +65,65 @@ export interface YieldRow {
   shortlist: number;
 }
 
+/** Ce qu'une ressource comparable a donné (MC.6b) : du candidat à la cible, et la décision prise. */
+export interface ResourceYield {
+  /** Pages qui citent la ressource, trouvées par la collecte. */
+  candidates: number;
+  /** Écartées avant lecture parce que leur adresse est celle d'une page légale. */
+  legalByUrl: number;
+  /** Pages réellement lues (la page a répondu). */
+  read: number;
+  /** Pages lues qui ont reçu un verdict (écartées à la lecture ou jugées). */
+  verdicts: number;
+  /** Cibles : pages qui montrent une des trois situations. */
+  relevant: number;
+  /** Pages juridiques, fermes à liens et vendeurs de liens parmi les pages lues. */
+  bad: number;
+  shortlist: number;
+  status: "poursuivie" | "abandonnee";
+  /** Pourquoi la ressource est abandonnée, en clair. */
+  reason?: string;
+  /** Pages non lues parce que la ressource est abandonnée. */
+  skipped: number;
+}
+
+/** Préfixe de la file de lecture d'une ressource comparable : « citation:<domaine> ». */
+export const RESOURCE_LANE = "citation:";
+
+/**
+ * Faut-il abandonner une ressource comparable ? (pur, MC.6b). Trois cas, dans l'ordre :
+ * - citée surtout dans des pages légales ou des fermes à liens, et aucune cible dès 6 pages lues ;
+ * - aucune cible après les 8 pages du sondage ;
+ * - rendement sous 5 % après 24 pages lues.
+ * Tant que le sondage n'est pas fini, on ne décide rien. Les seuils sont les mêmes pour tous les sites.
+ */
+export function resourceVerdict(
+  y: Pick<ResourceYield, "verdicts" | "relevant" | "bad">,
+  R: typeof QUALIFY_LIMITS.resource = QUALIFY_LIMITS.resource,
+): string | null {
+  if (y.relevant === 0 && y.verdicts >= R.earlyPages && y.bad >= y.verdicts * R.badShare) {
+    return `citée surtout dans des pages légales ou des fermes à liens (${y.bad} sur ${y.verdicts} pages lues)`;
+  }
+  if (y.relevant === 0 && y.verdicts >= R.probePages) {
+    return `aucune cible sur ${y.verdicts} pages lues`;
+  }
+  if (y.verdicts >= R.reviewPages && y.relevant < y.verdicts * R.minYield) {
+    return `${y.relevant} cible${y.relevant > 1 ? "s" : ""} seulement sur ${y.verdicts} pages lues`;
+  }
+  return null;
+}
+
+/** Abandon AVANT toute lecture : la ressource est citée en majorité par des pages légales (vu à l'adresse). */
+export function resourceLegalByUrl(
+  y: Pick<ResourceYield, "candidates" | "legalByUrl">,
+  R: typeof QUALIFY_LIMITS.resource = QUALIFY_LIMITS.resource,
+): string | null {
+  if (y.candidates >= R.probePages && y.legalByUrl >= y.candidates * R.badShare) {
+    return `citée surtout dans des pages légales (${y.legalByUrl} sur ${y.candidates} pages trouvées)`;
+  }
+  return null;
+}
+
 export interface QualInput {
   workspaceId: string | null;
   auditId: string | null;
@@ -88,6 +147,10 @@ export interface QualInput {
   };
   /** Rendement déjà mesuré par source (lecture d'un lot supplémentaire du stock). */
   priorYield?: Record<string, { read: number; relevant: number }>;
+  /** Rendement et décisions déjà pris par ressource comparable (lot supplémentaire du stock). */
+  priorResources?: Record<string, ResourceYield>;
+  /** Mesure seulement : `false` lit toutes les ressources sans jamais en abandonner (défaut : piloté). */
+  pilotResources?: boolean;
 }
 
 export type QualStop = "termine" | "budget" | "plafond";
@@ -146,6 +209,8 @@ export interface FunnelStats {
   /** Rendement par source de la recherche et par type d'éditeur cherché (candidats → cibles). */
   bySource?: Record<string, YieldRow>;
   byPersona?: Record<string, YieldRow>;
+  /** MC.6b : rendement et décision par ressource comparable (pages qui la citent). */
+  byResource?: Record<string, ResourceYield>;
   /** Jugement direct ou par l'API par lots, et ce que le lot a mesuré (délai réel, repli en appels directs). */
   judgeMode?: "direct" | "lots";
   batch?: { requests: number; waitMs: number; fallbacks: number; canceled: boolean };
@@ -205,7 +270,19 @@ const toContact = (r: ContactResult): ContactOutcome => ({
 export function laneOf(c: Pick<QualCandidate, "sources">): string {
   const distinct = [...new Set(c.sources.map((s) => s.source))];
   if (distinct.length >= 2) return "plusieurs";
+  // MC.6b : une file par ressource comparable, pour mesurer et piloter chacune.
+  if (distinct[0] === "citation") {
+    const resource = c.sources.find((s) => s.persona)?.persona;
+    return resource ? `${RESOURCE_LANE}${resource}` : "citation";
+  }
   return distinct[0] ?? "inconnue";
+}
+
+/** Ressources comparables citées par la page d'un candidat (source « citation »). */
+export function resourcesOf(c: Pick<QualCandidate, "sources">): string[] {
+  return [
+    ...new Set(c.sources.flatMap((s) => (s.source === "citation" && s.persona ? [s.persona] : []))),
+  ];
 }
 
 /**
@@ -213,20 +290,23 @@ export function laneOf(c: Pick<QualCandidate, "sources">): string {
  * candidats reçoit un minimum (exploration) ; le reste va aux files dans la proportion de leur
  * rendement MESURÉ (pages pertinentes par page lue, lissé pour ne pas condamner une file sur un
  * mauvais départ). C'est ce qui déplace la lecture vers ce qui rapporte, quel que soit le site.
+ * `floor` peut dépendre de la file (MC.6b : une ressource en cours de sondage reçoit davantage).
  */
 export function allocateLot(
   size: number,
   remaining: ReadonlyMap<string, number>,
   yields: ReadonlyMap<string, { read: number; relevant: number }>,
-  floor: number = QUALIFY_LIMITS.sourceFloor,
+  floor: number | ((lane: string) => number) = QUALIFY_LIMITS.sourceFloor,
 ): Map<string, number> {
+  const floorOf = typeof floor === "function" ? floor : () => floor;
+  // Les files au plus grand minimum d'abord : un sondage en cours n'est jamais privé de sa part.
   const lanes = [...remaining.entries()]
     .filter(([, n]) => n > 0)
-    .sort(([a], [b]) => a.localeCompare(b));
+    .sort(([a], [b]) => floorOf(b) - floorOf(a) || a.localeCompare(b));
   const out = new Map<string, number>(lanes.map(([k]) => [k, 0]));
   let left = size;
   for (const [k, n] of lanes) {
-    const take = Math.min(n, floor, left);
+    const take = Math.min(n, floorOf(k), left);
     out.set(k, take);
     left -= take;
   }
@@ -363,6 +443,98 @@ export async function executeQualification(
     return y;
   };
 
+  // MC.6b. Pilotage par ressource comparable : ce que chaque ressource a donné, et la décision prise.
+  const R = L.resource;
+  const pilot = input.pilotResources !== false;
+  const resources = new Map<string, ResourceYield>();
+  for (const [k, v] of Object.entries(input.priorResources ?? {})) {
+    resources.set(k, { ...v, shortlist: 0 });
+    // Le rendement déjà mesuré de la ressource vaut aussi pour sa file de lecture.
+    yields.set(`${RESOURCE_LANE}${k}`, { read: v.read, relevant: v.relevant });
+  }
+  const known = new Set(resources.keys());
+  for (const t of tracks) {
+    for (const r of resourcesOf(t.free.candidate)) {
+      let y = resources.get(r);
+      if (!y) {
+        y = {
+          candidates: 0,
+          legalByUrl: 0,
+          read: 0,
+          verdicts: 0,
+          relevant: 0,
+          bad: 0,
+          shortlist: 0,
+          status: "poursuivie",
+          skipped: 0,
+        };
+        resources.set(r, y);
+      }
+      // Un lot supplémentaire ne relit que le stock : les compteurs de la collecte sont déjà faits.
+      if (known.has(r)) continue;
+      y.candidates++;
+      if (t.reason === "page_legale") y.legalByUrl++;
+    }
+  }
+  const BAD_PAGES: ReadonlySet<ExclusionReason> = new Set([
+    "page_legale",
+    "ferme_a_liens",
+    "vend_des_liens",
+  ]);
+  /** Une page de la ressource a un verdict : lue et écartée, ou jugée. */
+  const noteVerdict = (t: Track, kept: boolean) => {
+    for (const r of resourcesOf(t.free.candidate)) {
+      const y = resources.get(r)!;
+      y.verdicts++;
+      if (kept) y.relevant++;
+      else if (t.reason && BAD_PAGES.has(t.reason)) y.bad++;
+    }
+  };
+  /** Abandonne une ressource : ses pages pas encore lues ne le seront pas (motif lisible sur chacune). */
+  const abandon = (resource: string, why: string) => {
+    const y = resources.get(resource)!;
+    y.status = "abandonnee";
+    y.reason = why;
+    const lane = `${RESOURCE_LANE}${resource}`;
+    for (const t of tracks) {
+      if (t.lane !== lane || t.reason !== null || t.read) continue;
+      Object.assign(t, {
+        stage: 3,
+        reason: "ressource_abandonnee",
+        detail: `pages qui citent ${resource} : ${why}`.slice(0, 280),
+      });
+      y.skipped++;
+    }
+  };
+  /** Décision par ressource, sur ce qui est mesuré à cet instant (jamais avant la fin du sondage). */
+  const reviewResources = (): boolean => {
+    if (!pilot) return false;
+    let changed = false;
+    for (const [resource, y] of resources) {
+      if (y.status === "abandonnee") continue;
+      const why = resourceVerdict(y, R);
+      if (!why) continue;
+      abandon(resource, why);
+      changed = true;
+    }
+    return changed;
+  };
+  if (pilot) {
+    for (const [resource, y] of resources) {
+      // Décision déjà prise lors d'une lecture précédente, ou ressource citée surtout par des pages légales.
+      const why = y.status === "abandonnee" ? (y.reason ?? "abandonnée") : resourceLegalByUrl(y, R);
+      if (why) abandon(resource, why);
+    }
+    reviewResources();
+  }
+  /** Part minimale d'une file dans un lot : une ressource en cours de sondage est lue plus vite. */
+  const floorOf = (lane: string): number => {
+    if (!lane.startsWith(RESOURCE_LANE)) return L.sourceFloor;
+    const y = resources.get(lane.slice(RESOURCE_LANE.length));
+    if (!y || y.read >= R.probePages) return L.sourceFloor;
+    return Math.max(L.sourceFloor, Math.min(R.probeFloor, R.probePages - y.read));
+  };
+
   // 2 bis. Robots.txt AVANT lecture (gratuit, léger, en parallèle) sur la tête de chaque file.
   let queues = buildQueues();
   const startedAt = (await runStep("start", async () => ({ at: clock(deps()) }))).at;
@@ -455,13 +627,14 @@ export async function executeQualification(
         return;
       }
       judgedCount++;
-      const ex = judgementExclusion(j, L.minFit);
+      const ex = judgementExclusion(j, L.minFit, t.free.candidate);
       if (ex) Object.assign(t, { reason: ex.reason, detail: ex.detail });
       else {
         judgeKept++;
         relevantHere++;
         yieldOf(t.lane).relevant++;
       }
+      noteVerdict(t, !ex);
     });
     return relevantHere;
   };
@@ -472,8 +645,17 @@ export async function executeQualification(
   const plannedTotal = () =>
     Math.min(L.maxPagesRead, pagesRead + [...queues.values()].reduce((n, q) => n + q.length, 0));
 
+  /** Pendant son sondage, une ressource ne reçoit pas plus de pages qu'il n'en faut pour décider. */
+  const probeLeft = (lane: string): number => {
+    if (!pilot || !lane.startsWith(RESOURCE_LANE)) return Infinity;
+    const y = resources.get(lane.slice(RESOURCE_LANE.length));
+    return y && y.read < R.probePages ? R.probePages - y.read : Infinity;
+  };
+
   for (;;) {
-    const remaining = new Map([...queues.entries()].map(([k, q]) => [k, q.length]));
+    const remaining = new Map(
+      [...queues.entries()].map(([k, q]) => [k, Math.min(q.length, probeLeft(k))]),
+    );
     const left = [...remaining.values()].reduce((a, b) => a + b, 0);
     if (left === 0) {
       readStop = "epuise";
@@ -501,7 +683,7 @@ export async function executeQualification(
     }
     lots++;
     const size = Math.min(L.pagesPerStep, L.maxPagesRead - pagesRead);
-    const plan = allocateLot(size, remaining, yields, L.sourceFloor);
+    const plan = allocateLot(size, remaining, yields, floorOf);
     const lot: Track[] = [];
     for (const [lane, n] of plan) lot.push(...queues.get(lane)!.splice(0, n));
 
@@ -550,6 +732,9 @@ export async function executeQualification(
       const v = read.out[i]!;
       Object.assign(t, { stage: 3, page: v.page, reason: v.reason, detail: v.detail, read: true });
       yieldOf(t.lane).read++;
+      for (const r of resourcesOf(t.free.candidate)) resources.get(r)!.read++;
+      // Écartée à la lecture (morte, parquée, vend des liens...) : c'est déjà un verdict pour sa ressource.
+      if (v.reason !== null) noteVerdict(t, false);
     });
     homeTried += read.out.filter((v) => v.homeTried).length;
     homeRescued += read.out.filter((v) => v.homeRescued).length;
@@ -642,7 +827,9 @@ export async function executeQualification(
         const keptFlags = doing.flatMap((batch, b) =>
           batch.map((_, i) => {
             const j = new Map(out[b]!.judgements).get(`c${i + 1}`);
-            return Boolean(j) && judgementExclusion(j!, L.minFit) === null;
+            return (
+              Boolean(j) && judgementExclusion(j!, L.minFit, batch[i]!.free.candidate) === null
+            );
           }),
         );
         await emit({
@@ -675,6 +862,8 @@ export async function executeQualification(
       }
     }
     dry = lotRelevant <= L.dryLotMaxRelevant ? dry + 1 : 0;
+    // MC.6b : après le jugement du lot, les ressources qui ne donnent rien sont abandonnées.
+    if (reviewResources()) queues = buildQueues();
   }
   // 4 bis. Jugement par l'API par lots (arrière-plan seulement) : un seul envoi pour toutes les pages
   // lues, attente SANS requête bloquante (`hooks.wait`), même prompt, mêmes règles de tri.
@@ -841,6 +1030,8 @@ export async function executeQualification(
       doing.forEach((g, k) => {
         applyOutcome(g, groupOutcomes![k]!);
       });
+      // Jugement en différé : la décision par ressource se prend une fois les verdicts connus.
+      if (reviewResources()) queues = buildQueues();
       await emit({
         phase: "jugement",
         done: judgedCount,
@@ -997,7 +1188,8 @@ export async function executeQualification(
     if (t.read) row.read++;
     if (t.page && t.stage >= 4) row.alive++;
     if (t.judgement) row.judged++;
-    if (t.judgement && judgementExclusion(t.judgement, L.minFit) === null) row.relevant++;
+    if (t.judgement && judgementExclusion(t.judgement, L.minFit, t.free.candidate) === null)
+      row.relevant++;
     if (listed.has(t.free.candidate.domain)) row.shortlist++;
   };
   for (const t of tracks) {
@@ -1010,6 +1202,9 @@ export async function executeQualification(
       ),
     );
     for (const p of personas) count((byPersona[p] ??= emptyYield()), t);
+    if (listed.has(t.free.candidate.domain)) {
+      for (const r of resourcesOf(t.free.candidate)) resources.get(r)!.shortlist++;
+    }
   }
   return {
     results: results.sort(
@@ -1047,6 +1242,7 @@ export async function executeQualification(
       stock,
       bySource,
       byPersona,
+      ...(resources.size > 0 ? { byResource: Object.fromEntries(resources) } : {}),
       lostFree: {
         homeTried,
         homeRescued,
