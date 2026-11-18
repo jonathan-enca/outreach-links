@@ -5,6 +5,7 @@ import { collectionTargetUsd } from "@/features/collection/limits";
 import { findingsBudgetUsd } from "@/features/findings/limits";
 import { AUTO_EXPECTED_SHARE, AUTO_LIMITS } from "@/features/qualification/background";
 import { qualificationBudgetUsd } from "@/features/qualification/limits";
+import { snowballCostUsd } from "@/features/snowball/limits";
 import { PRICING } from "@/lib/dataforseo/endpoints";
 
 const r6 = (n: number) => Math.round(n * 1e6) / 1e6;
@@ -70,13 +71,16 @@ export function estimateAnalysis(discoveryUsd: number): AnalysisEstimate {
     qualificationBudgetUsd() * EXPECTED_SHARE.qualification +
     findingsBudgetUsd() * EXPECTED_SHARE.findings +
     // Lecture de la réserve en arrière-plan : budget de jugement propre, ajouté aux plafonds durs.
-    AUTO_LIMITS.budgetUsd * AUTO_EXPECTED_SHARE;
+    AUTO_LIMITS.budgetUsd * AUTO_EXPECTED_SHARE +
+    // Boule de neige (MC.6d) : jusqu'à 6 appels « qui cite cette ressource » après la première liste.
+    snowballCostUsd().expectedUsd;
   const worstRest =
     fixed +
     collectionTargetUsd() +
     qualificationBudgetUsd() +
     findingsBudgetUsd() +
-    AUTO_LIMITS.budgetUsd;
+    AUTO_LIMITS.budgetUsd +
+    snowballCostUsd().worstUsd;
   return {
     discoveryUsd: r6(discoveryUsd),
     analysisUsd: r6(expectedRest),

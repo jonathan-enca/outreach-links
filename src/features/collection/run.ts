@@ -108,6 +108,59 @@ export interface CollectionRun {
 }
 
 /**
+ * Contexte d'une collecte lu en base : site, concurrents, profil de marque (qui sert à choisir les ressources
+ * comparables) et plafond d'audit. Partagé par la collecte et par la boule de neige (MC.6d).
+ */
+export async function loadCollectionContext(
+  service: Client,
+  auditId: string,
+): Promise<{ siteId: string; ctx: CollectionContext; capUsd: number } | null> {
+  const { data: audit, error: aErr } = await service
+    .from("audits")
+    .select("id, cost_cap_usd, sites(id, domain, language, country, niche, target_keywords)")
+    .eq("id", auditId)
+    .maybeSingle();
+  if (aErr) throw new Error(`loadCollectionContext : ${aErr.message}`);
+  const site = audit?.sites as unknown as {
+    id: string;
+    domain: string;
+    language: string;
+    country: string;
+    niche: string | null;
+    target_keywords: string[];
+  } | null;
+  if (!audit || !site) return null;
+
+  const [comp, profile] = await Promise.all([
+    service.from("competitors").select("domain").eq("audit_id", auditId),
+    getLatestBrandProfile(service, site.id),
+  ]);
+  if (comp.error) throw new Error(`loadCollectionContext : ${comp.error.message}`);
+  const ctx: CollectionContext = {
+    ownDomain: site.domain,
+    competitorDomains: (comp.data ?? []).map((c) => c.domain),
+    language: site.language,
+    country: site.country,
+    theme: site.niche ?? "",
+    nameVariants: profile?.profile.name_variants ?? [],
+    targetKeywords: site.target_keywords,
+    ...(profile
+      ? {
+          site: {
+            domain: site.domain,
+            theme: site.niche ?? "",
+            activity: profile.profile.activity,
+            offer: profile.profile.offer,
+            audience: profile.profile.audience,
+            pages: profile.profile.linkable_resources.map((r) => r.title).slice(0, 8),
+          },
+        }
+      : {}),
+  };
+  return { siteId: site.id, ctx, capUsd: Number(audit.cost_cap_usd) };
+}
+
+/**
  * confirme -> en_cours (idempotent, reprise d'un job interrompu : en_cours reste en_cours). Null si la
  * collecte ne doit pas être exécutée. Le plan lu est celui FIGÉ à la confirmation.
  */
@@ -137,55 +190,16 @@ export async function beginCollection(
   const plan = collectionPlanSchema.safeParse(row.plan);
   if (!plan.success) throw new Error("beginCollection : plan de collecte illisible");
 
-  const { data: audit, error: aErr } = await service
-    .from("audits")
-    .select("id, cost_cap_usd, sites(id, domain, language, country, niche, target_keywords)")
-    .eq("id", auditId)
-    .maybeSingle();
-  if (aErr) throw new Error(`beginCollection : ${aErr.message}`);
-  const site = audit?.sites as unknown as {
-    id: string;
-    domain: string;
-    language: string;
-    country: string;
-    niche: string | null;
-    target_keywords: string[];
-  } | null;
-  if (!audit || !site) return null;
-
-  const [comp, profile] = await Promise.all([
-    service.from("competitors").select("domain").eq("audit_id", auditId),
-    getLatestBrandProfile(service, site.id),
-  ]);
-  if (comp.error) throw new Error(`beginCollection : ${comp.error.message}`);
+  const loaded = await loadCollectionContext(service, auditId);
+  if (!loaded) return null;
   return {
     id: row.id,
     auditId,
     workspaceId: row.workspace_id,
-    siteId: site.id,
-    ctx: {
-      ownDomain: site.domain,
-      competitorDomains: (comp.data ?? []).map((c) => c.domain),
-      language: site.language,
-      country: site.country,
-      theme: site.niche ?? "",
-      nameVariants: profile?.profile.name_variants ?? [],
-      targetKeywords: site.target_keywords,
-      ...(profile
-        ? {
-            site: {
-              domain: site.domain,
-              theme: site.niche ?? "",
-              activity: profile.profile.activity,
-              offer: profile.profile.offer,
-              audience: profile.profile.audience,
-              pages: profile.profile.linkable_resources.map((r) => r.title).slice(0, 8),
-            },
-          }
-        : {}),
-    },
+    siteId: loaded.siteId,
+    ctx: loaded.ctx,
     plan: plan.data as CollectionPlan,
-    limits: spendLimitsFor(auditId, Number(audit.cost_cap_usd)),
+    limits: spendLimitsFor(auditId, loaded.capUsd),
     targetUsd: Number(row.target_usd),
   };
 }
@@ -272,7 +286,14 @@ const blockedOutcome = (phase: CollectionPhase, label: string): StepOutcome => (
   blocked: true,
 });
 
-async function guarded(service: Client, run: CollectionRun, estimateUsd: number): Promise<boolean> {
+/** Ce que les appels « qui cite cette ressource » lisent d'une collecte (aussi utilisé par la boule de neige, MC.6d). */
+export type CitationsRun = Pick<CollectionRun, "auditId" | "workspaceId" | "ctx" | "limits">;
+
+async function guarded(
+  service: Client,
+  run: Pick<CollectionRun, "auditId" | "limits">,
+  estimateUsd: number,
+): Promise<boolean> {
   try {
     await assertCanSpend(service, run.limits, estimateUsd);
     return true;
@@ -288,7 +309,10 @@ async function guarded(service: Client, run: CollectionRun, estimateUsd: number)
   }
 }
 
-const callOpts = (run: CollectionRun) => ({ workspaceId: run.workspaceId, auditId: run.auditId });
+const callOpts = (run: Pick<CollectionRun, "workspaceId" | "auditId">) => ({
+  workspaceId: run.workspaceId,
+  auditId: run.auditId,
+});
 
 /** Une page du recoupement des concurrents (mode partiel : domaines qui lient au moins un concurrent). */
 export async function runIntersectionPage(
@@ -434,7 +458,7 @@ export async function runSerpQuery(
  */
 export async function runCitationsCall(
   deps: { dfs: Pick<Dfs, "backlinksBacklinks">; service: Client },
-  run: CollectionRun,
+  run: CitationsRun,
   resource: string,
   index: number,
   resources: readonly string[],
@@ -1040,7 +1064,10 @@ export async function finalizeCollection(
   return { candidates: merged.length, costUsd: progress.costUsd, stopReason };
 }
 
-function toRow(run: CollectionRun, c: MergedCandidate) {
+export function toRow(
+  run: Pick<CollectionRun, "id" | "auditId" | "workspaceId">,
+  c: MergedCandidate,
+) {
   return {
     collection_id: run.id,
     audit_id: run.auditId,

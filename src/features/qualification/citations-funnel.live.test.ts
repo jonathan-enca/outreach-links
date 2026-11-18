@@ -25,6 +25,8 @@ import { createDataForSeoClient } from "@/lib/dataforseo";
 import { createLlmClient, DEFAULT_MODELS, type LlmClient } from "@/lib/llm/client";
 import { costUsd } from "@/lib/llm/pricing";
 import { realQualDeps } from "./deps";
+import { executeSnowball, type SnowballOutcome } from "@/features/snowball/run";
+import type { SeedSource } from "@/features/snowball/seeds";
 import { executeQualification, resourcesOf } from "./funnel";
 import { qualificationBudgetUsd } from "./limits";
 import type { QualCandidate, QualContext } from "./types";
@@ -270,6 +272,58 @@ describe.skipIf(!live)(
       pages.flush();
       answers.flush();
 
+      // MC.6d : boule de neige avec le code du produit (graines jugées par le petit modèle), puis même entonnoir.
+      let snow: SnowballOutcome | null = null;
+      let results2: typeof results = [];
+      let stats2: typeof stats | null = null;
+      if (process.env.MC6D === "1") {
+        const seedPages: SeedSource[] = results
+          .filter((r) => r.page)
+          .map((r) => ({
+            domain: r.domain,
+            situation: r.judgement?.situation ?? null,
+            reason: r.exclusionReason,
+            cites: r.page?.cites ?? null,
+          }));
+        const known = new Set([
+          ...candidates.map((c) => c.domain),
+          ...results.map((r) => r.domain),
+        ]);
+        snow = await executeSnowball(
+          {
+            dfs: dfs as never,
+            service: ledger.client,
+            llm: smallLlm(0.5, process.env.MC6C_JUDGE_MODEL),
+            describe: describeCandidates,
+          },
+          {
+            run,
+            pages: seedPages,
+            used: progress.stats.citations.resources ?? [],
+            known,
+            skipSeeds: process.env.MC6D_PUBLIC === "1",
+          },
+        );
+        const second = await executeQualification(
+          deps,
+          {
+            workspaceId: null,
+            auditId: AUDIT,
+            ctx,
+            candidates: snow.candidates,
+            budgetUsd: Number(process.env.MC6D_BUDGET ?? 0.08),
+            model: priceModel,
+            pilotResources: pilot,
+            priorResources: stats.byResource,
+          },
+          (_id, fn) => fn(),
+        );
+        results2 = second.results;
+        stats2 = second.stats;
+        pages.flush();
+        answers.flush();
+      }
+
       const view = (r: (typeof results)[number]) => ({
         domain: r.domain,
         url: r.url,
@@ -285,11 +339,17 @@ describe.skipIf(!live)(
           : null,
         contact: r.contact?.status,
         score: r.score,
-        resources: resourcesOf(candidates.find((c) => c.domain === r.domain) ?? { sources: [] }),
+        resources: resourcesOf(
+          [...candidates, ...(snow?.candidates ?? [])].find((c) => c.domain === r.domain) ?? {
+            sources: [],
+          },
+        ),
       });
       const shortlist = results.filter((r) => r.status === "liste_courte");
+      const shortlist2 = results2.filter((r) => r.status === "liste_courte");
+      const relevant2 = results2.filter((r) => r.judgement && r.stageReached >= 5);
       const relevant = results.filter((r) => r.judgement && r.stageReached >= 5);
-      const judgedOut = results.filter(
+      const judgedOut = [...results, ...results2].filter(
         (r) => r.judgement && r.stageReached === 4 && r.status === "exclu",
       );
       const report = {
@@ -310,6 +370,15 @@ describe.skipIf(!live)(
           // Part de cibles (petit modèle) parmi les pages lues, la référence de MC.0b.
           targetsPerRead: stats.pagesRead ? relevant.length / stats.pagesRead : 0,
         },
+        snowball: snow
+          ? {
+              ...snow.stats,
+              qualification: stats2,
+              pagesPerTarget: stats2?.pagesRead ? relevant2.length / stats2.pagesRead : 0,
+              shortlist: shortlist2.map(view),
+              noContact: relevant2.filter((r) => r.exclusionReason === "sans_contact").map(view),
+            }
+          : null,
         shortlist: shortlist.map(view),
         // Cibles retenues par le jugement mais sans contact trouvé.
         noContact: relevant.filter((r) => r.exclusionReason === "sans_contact").map(view),
@@ -329,6 +398,22 @@ describe.skipIf(!live)(
             arret: stats.readStop,
             parRessource: stats.byResource,
             motifs: stats.byReason,
+            bouleDeNeige: snow
+              ? {
+                  par: snow.stats.by,
+                  graines: snow.stats.seedCandidates,
+                  publiques: snow.stats.publicCandidates,
+                  ressources: snow.stats.resources,
+                  raisons: snow.stats.reasons,
+                  nouveauxCandidats: snow.stats.newCandidates,
+                  coutPhaseUsd: snow.stats.costUsd,
+                  pagesLues: stats2?.pagesRead,
+                  cibles: relevant2.length,
+                  listeCourte: shortlist2.length,
+                  coutJugementUsd: stats2?.costUsd,
+                  parRessource: stats2?.byResource,
+                }
+              : null,
           },
           null,
           2,
@@ -380,6 +465,10 @@ describe.skipIf(!live)(
         const sampleOut = Number(process.env.MC6B_SAMPLE_OUT ?? 12);
         const picked = [
           ...shortlist.map((r) => ({ r, group: "liste_courte" })),
+          ...shortlist2.map((r) => ({ r, group: "boule_de_neige" })),
+          ...relevant2
+            .filter((r) => r.exclusionReason === "sans_contact")
+            .map((r) => ({ r, group: "sans_contact_bn" })),
           ...report.noContact
             .map((v) => results.find((r) => r.domain === v.domain)!)
             .map((r) => ({ r, group: "sans_contact" })),
