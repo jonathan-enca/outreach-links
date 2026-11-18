@@ -338,8 +338,11 @@ Un sous-jalon = une session. Chaque sous-jalon se termine par une mesure compar�
 - Critère : au moins 30 % de pages avec angle après le filtre gratuit, sur chacun des deux sites (référence : 10 %). En dessous, revoir le principe avant de coder la suite.
 - Sortie : tableau par site et par famille de recherche (résultats, pages lues, angles, liens morts utiles, coût), noté dans `PROGRESS.md`.
 
+**Résultat de MC.0 (18/11/2026) : critère non atteint** (4 % et 3 % de pages avec angle, détail dans `PROGRESS.md`). Les 10 premiers résultats d'une recherche par sujet ou par public sont de gros médias, des sites officiels et des concurrents. Conséquences : MC.2 n'est pas à coder tel quel ; MC.1 commence par rétablir les vraies adresses des résultats (`resolve_goto_urls`), défaut réel du produit ; un essai MC.0b doit mesurer les familles non testées (pages de liens de petits sites, résultats au-delà du rang 10, qui cite déjà une page comparable, pages disparues encore citées) avant tout développement.
+
 ### MC.1 Filtre gratuit par nature de page
 
+- **D'abord les vraies adresses** : demander `resolve_goto_urls` à la recherche DataForSEO, pour ne plus lire une page d'accueil ou une page approximative à la place de l'article trouvé (`resolveRedirect`, `exact: false`). Mesurer le coût et le délai réels.
 - Écarter avant toute lecture payante : page d'accueil, page légale (politique de confidentialité, mentions, CGU, cookies), page commerciale (tarifs, fiche de formation ou de produit, panier), rubrique, étiquette, pagination, recherche interne. Par l'adresse d'abord, puis par la page lue (peu de texte éditorial, formulaire d'achat, date de publication).
 - Exception : une page d'accueil reste candidate pour une mention sans lien ou un lien mort constaté.
 - Motif d'exclusion lisible, compté dans l'entonnoir. Jeu d'essai annoté (les 80 cibles du 17/11 : 60 doivent tomber, les 2 bonnes doivent rester).
