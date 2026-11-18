@@ -8,12 +8,12 @@ export const fr = {
     // Nom de travail provisoire : SEUL endroit où il est écrit (docs/naming.md). Le changer ici suffit.
     name: "Autolink.ai",
     description:
-      "Un audit SEO d'abord, puis une prospection par email pour obtenir des backlinks éditoriaux gratuits.",
+      "L'outil trouve les pages qui ont une vraie raison de citer votre site, rédige chaque demande de lien et l'envoie depuis votre propre boîte mail, avec votre accord. Aucun lien acheté.",
   },
   home: {
-    title: "Des backlinks éditoriaux, à partir d'un vrai audit",
+    title: "Des backlinks éditoriaux, à partir d'une vraie analyse",
     subtitle:
-      "Entrez votre site : on regarde qui se classe devant vous, d'où viennent leurs liens et quelles pages méritent d'être poussées. 7 jours d'essai offerts.",
+      "Entrez votre site : on regarde qui se classe devant vous, d'où viennent leurs liens et quelles pages ont une raison de vous citer. 7 jours d'essai offerts.",
     signIn: "Se connecter",
     nav: {
       label: "Navigation principale",
@@ -34,7 +34,7 @@ export const fr = {
       title: "Des backlinks gratuits, demandés aux bons sites",
       titleAccent: "Des backlinks gratuits,",
       titleRest: "demandés aux bons sites",
-      lead: "Nous trouvons les sites qui méritent de vous citer, rédigeons pour chacun une demande personnalisée et l'envoyons depuis votre propre boîte mail. Puis nous relançons, classons les réponses et vérifions que le lien est bien en ligne. Vous fixez les règles et validez chaque lot : le reste tourne tout seul.",
+      lead: "Nous trouvons les sites qui méritent de vous citer, rédigeons pour chacun une demande personnalisée et l'envoyons depuis votre propre boîte mail. Puis nous relançons, classons les réponses et vérifions que le lien est bien en ligne. Vous choisissez les sites et approuvez chaque message : le reste tourne tout seul.",
       cta: { primary: "Essai gratuit", secondary: "Fonctionnement" },
       hints: [
         "7 jours d'essai offerts",
@@ -51,20 +51,20 @@ export const fr = {
           checks: "Vendeur de liens : non · Concurrent : non",
         },
         pitch: {
-          tag: "Brouillon",
-          hookLabel: "Accroche tirée de leur page :",
+          tag: "Message à relire",
+          hookLabel: "Passage cité dans leur page :",
           hook: "« guide complet des randonnées en Bretagne »",
-          detail: "Adresse vérifiée · signé de votre prénom",
+          detail: "Votre page testée · votre signature",
         },
         guardrails: {
-          tag: "Garde-fous",
-          perHour: "10 envois / heure",
-          hours: "Heures ouvrées",
-          review: "Lot à valider",
+          tag: "Vos règles d'envoi",
+          perHour: "Rythme progressif",
+          hours: "Vos horaires",
+          review: "Votre accord",
           ok: "Dans les limites",
         },
         sent: {
-          tag: "Lot envoyé",
+          tag: "Emails envoyés",
           from: "depuis vous@votresite.fr",
           today: "Aujourd'hui",
         },
@@ -91,11 +91,11 @@ export const fr = {
       label: "En clair",
       title: "C'est quoi ?",
       intro:
-        "Un outil de netlinking pour les sites, blogs, SaaS et e-commerces. Il trouve les sites qui ont une vraie raison de vous citer, leur écrit depuis votre boîte mail avec votre accord, et suit chaque demande jusqu'au lien en ligne.",
+        "Un outil de netlinking pour les sites, blogs, SaaS et e-commerces. Il trouve les pages qui ont une vraie raison de vous citer, écrit à leur éditeur depuis votre boîte mail avec votre accord, et suit chaque demande jusqu'au lien en ligne.",
       items: [
         {
           q: "Ce que c'est",
-          a: "Un audit de votre site et de vos concurrents, puis des demandes de liens envoyées par email à des sites qui ne vendent pas les leurs.",
+          a: "Une analyse de votre site et de vos concurrents, puis des demandes de liens envoyées par email à des sites qui ne vendent pas les leurs.",
         },
         {
           q: "Pour qui",
@@ -103,15 +103,15 @@ export const fr = {
         },
         {
           q: "Ce que l'outil fait seul",
-          a: "Il analyse vos concurrents, lit chaque site avant de le retenir, cherche le bon contact, rédige la demande, relance une fois, classe les réponses et contrôle le lien posé.",
+          a: "Il repère vos concurrents sur Google, lit chaque page avant de la retenir, cherche le bon contact, choisit la page de votre site à proposer, rédige la demande, relance une fois et contrôle le lien posé.",
         },
         {
           q: "Ce que vous décidez",
-          a: "Les sites à contacter, le texte de chaque message, le rythme d'envoi. Et la réponse à donner quand un site demande de l'argent.",
+          a: "Les sites à contacter, le texte de chaque message, vos jours et heures d'envoi. Et la réponse à donner quand un site demande de l'argent.",
         },
         {
           q: "D'où partent les messages",
-          a: "De votre boîte mail, signés de votre prénom. Jamais d'un serveur d'envoi partagé avec d'autres clients.",
+          a: "De votre propre boîte mail, avec votre signature. Jamais d'une adresse à notre nom ni d'un serveur d'envoi partagé avec d'autres clients.",
         },
         {
           q: "Ce que nous ne faisons pas",
@@ -123,11 +123,11 @@ export const fr = {
       label: "Tactiques",
       title: "Trois façons d'obtenir un lien sans l'acheter",
       intro:
-        "Les meilleurs liens ne sont pas en vente. Ils sont sur des sites que personne ne pense à contacter, sur des pages dont un lien ne mène plus nulle part, ou chez des gens qui parlent déjà de vous.",
+        "Les meilleurs liens ne sont pas en vente. Ils sont sur des pages qui recommandent déjà des ressources comme les vôtres, sur des pages dont un lien ne mène plus nulle part, ou chez des gens qui parlent déjà de vous.",
       kicker: "Tactique",
       exampleLabel: "Exemple de demande",
       frame:
-        "Le cadre est le même pour les trois : vous validez chaque lot avant l'envoi, dix emails par heure au plus, une seule relance.",
+        "Le cadre est le même pour les trois : rien ne part sans votre accord, les envois s'étalent sur la journée, et il n'y a qu'une seule relance.",
       primary: "Essai gratuit",
       secondary: "Fonctionnement",
       hint: "7 jours d'essai offerts, sans carte bancaire : le temps de voir vos premières cibles.",
@@ -135,15 +135,15 @@ export const fr = {
         "Ce que nous ne faisons pas : acheter des liens, publier des articles sponsorisés déguisés, monter des réseaux de sites.",
       items: [
         {
-          title: "Les sites que personne ne sollicite",
-          text: "Mairies, associations, photographes, boutiques, forums modérés. Ils ne vendent pas de liens, mais ils en donnent quand la demande leur est utile.",
+          title: "Les pages qui citent déjà des sites comme le vôtre",
+          text: "Une enseignante qui tient un blog, une médiathèque, une association. Personne ne pense à leur écrire, et elles ajoutent volontiers une ressource utile.",
           steps: [
             {
               title: "Vos recherches comme point de départ",
-              text: "Les 30 premiers résultats de Google, et les sites qui citent vos concurrents.",
+              text: "Les résultats de Google sur vos sujets, et les sites qui citent déjà vos concurrents.",
             },
             {
-              title: "Chaque site est lu",
+              title: "Chaque page est lue",
               text: "Vendeurs de liens, concurrents, sites piratés : écartés, motif à l'appui.",
             },
             {
@@ -151,13 +151,13 @@ export const fr = {
               text: "Cherché jusque dans les mentions légales.",
             },
             {
-              title: "Trois lignes, validées par vous",
-              text: "Le message cite leur page. Rien ne part sans votre accord.",
+              title: "Un message court, relu par vous",
+              text: "Il cite leur page et propose la vôtre. Rien ne part sans votre accord.",
             },
           ],
           example: {
             to: "À une médiathèque qui recommande des sites pour enfants",
-            body: "Bonjour, j'ai vu votre sélection de sites pour occuper les enfants le mercredi. Nous publions des coloriages gratuits à imprimer : monsite.example/coloriages. S'ils y ont leur place, je serais ravie de les voir dans la liste.",
+            body: "Bonjour, j'ai lu votre sélection de sites pour occuper les enfants le mercredi (mediatheque.example/enfants). Nous publions des coloriages gratuits à imprimer : monsite.example/coloriages. S'ils y ont leur place, je serais ravie de les voir dans la liste.",
             signature: "Camille",
           },
         },
@@ -167,7 +167,7 @@ export const fr = {
           steps: [
             {
               title: "Les pages de ressources de votre thème",
-              text: "Et celles qui renvoient déjà vers vos concurrents.",
+              text: "Et les pages disparues de vos concurrents, que d'autres sites citent encore.",
             },
             {
               title: "Leurs liens, testés un par un",
@@ -184,7 +184,7 @@ export const fr = {
           ],
           example: {
             to: "À un blog de randonnée dont un lien ne répond plus",
-            body: "Bonjour, dans votre guide du sentier des douaniers, le lien « préparer son sac » mène à une page qui n'existe plus. Nous avons une liste de matériel à jour : monsite.example/sac-rando. Elle peut le remplacer si elle vous convient.",
+            body: "Bonjour, dans votre guide du sentier des douaniers (blog-rando.example/sentier), le lien « préparer son sac » mène à une page qui n'existe plus. Nous avons une liste de matériel à jour : monsite.example/sac-rando. Elle peut le remplacer si elle vous convient.",
             signature: "Camille",
           },
         },
@@ -206,12 +206,12 @@ export const fr = {
             },
             {
               title: "Le contrôle",
-              text: "Nous vérifions sur la page que le lien est en ligne.",
+              text: "Une fois le lien posé, nous vérifions sur la page qu'il est bien en ligne.",
             },
           ],
           example: {
             to: "À l'auteur d'un comparatif qui cite votre outil",
-            body: "Bonjour, merci d'avoir cité Monsite dans votre comparatif des outils de planning. Le nom n'est pas cliquable : pourriez-vous le lier vers monsite.example ? Vos lecteurs y arriveront directement.",
+            body: "Bonjour, merci d'avoir cité Monsite dans votre comparatif des outils de planning (blog-orga.example/planning). Le nom n'est pas cliquable : pourriez-vous le lier vers monsite.example ? Vos lecteurs y arriveront directement.",
             signature: "Camille",
           },
         },
@@ -256,36 +256,36 @@ export const fr = {
         {
           role: "you",
           title: "Vous donnez l'adresse de votre site",
-          text: "Un seul champ à remplir. L'outil lit votre site, en déduit votre thème et les recherches à viser. Vous corrigez si besoin.",
+          text: "Un seul champ à remplir. L'outil lit votre site, en déduit votre activité et les recherches à viser. Vous choisissez le pays et corrigez si besoin.",
         },
         {
           role: "tool",
-          title: "L'audit part chercher",
-          text: "Qui se classe devant vous, quels sites leur font des liens, quelles pages parlent déjà de vous. Chaque site trouvé est lu avant d'être retenu.",
+          title: "L'analyse part chercher",
+          text: "Qui se classe devant vous, quels sites leur font des liens, quelles pages citent déjà des ressources comme les vôtres. Chaque page est lue avant d'être retenue. Comptez un quart d'heure : un email vous prévient quand c'est prêt.",
         },
         {
           role: "you",
           title: "Vous recevez une liste courte",
-          text: "Pas deux mille domaines à trier : quelques dizaines de sites classés, avec pour chacun la demande à faire et la raison. Vous cochez ceux que vous voulez contacter.",
+          text: "Pas deux mille domaines à trier : quelques dizaines de sites classés, avec pour chacun la demande à faire et la raison. Vous gardez ceux que vous voulez contacter.",
         },
         {
           role: "you",
           title: "Vous relisez les messages",
-          text: "Chaque brouillon cite le passage de leur page qui justifie la demande. Vous corrigez ce que vous voulez, puis vous validez le lot d'un bloc.",
+          text: "Chaque message cite le passage de leur page qui justifie la demande, et propose une page précise de votre site. Vous corrigez ce que vous voulez, puis vous approuvez : un par un, ou tous d'un coup.",
         },
         {
           role: "tool",
           title: "Les emails partent de votre boîte",
-          text: "Dix par heure au plus, aux heures de bureau. Une seule relance, dix jours plus tard, annulée si on vous a répondu.",
+          text: "Un par un, aux jours et heures que vous choisissez : quelques-uns par jour au début, davantage ensuite. Une seule relance, dix jours plus tard, annulée si on vous a répondu.",
         },
         {
           role: "tool",
-          title: "Les réponses arrivent triées",
-          text: "Oui, peut-être, non, « c'est payant » : chaque réponse est classée. Quand un site dit oui, le lien est contrôlé sur sa page, puis recontrôlé.",
+          title: "Les réponses sont suivies",
+          text: "Chaque réponse arrive dans vos conversations, avec une réponse proposée que vous pouvez modifier. Si un site demande de l'argent, c'est vous qui tranchez. Quand un site dit oui, le lien est contrôlé sur sa page, puis recontrôlé.",
         },
       ],
       mockup: {
-        bars: ["Démarrer", "Audit", "Vos cibles", "Lot n°1", "Envois", "Inbox"],
+        bars: ["Démarrer", "Analyse", "Vos cibles", "À valider", "Envois", "Conversations"],
         start: {
           fieldLabel: "Adresse de votre site",
           fieldValue: "monsite.example",
@@ -298,15 +298,15 @@ export const fr = {
             "coloriage enfant gratuit",
             "activités manuelles maternelle",
           ],
-          button: "Lancer l'audit",
+          button: "Analyser mon site",
         },
         audit: {
-          title: "Audit de monsite.example",
+          title: "Analyse de monsite.example",
           stats: [
-            { label: "Concurrents dans Google", value: "12" },
-            { label: "Sites candidats", value: "552" },
+            { label: "Concurrents sur Google", value: "12" },
+            { label: "Sites trouvés", value: "552" },
             { label: "Pages lues", value: "300" },
-            { label: "Retenus", value: "30" },
+            { label: "Sites retenus", value: "30" },
           ],
           competitorsLabel: "Devant vous sur vos recherches",
           competitors: [
@@ -318,13 +318,13 @@ export const fr = {
         },
         targets: {
           title: "Vos cibles",
-          count: "30 sites retenus",
+          count: "30 sites à contacter",
           cards: [
             {
               rank: "1",
               domain: "mediatheque-exemple.example",
               kind: "Médiathèque",
-              tactic: "Jamais sollicité",
+              tactic: "Page ressources",
               tone: "accent",
               why: "Sa page « sites pour les enfants » liste des ressources gratuites.",
               contact: "Email vérifié",
@@ -349,7 +349,7 @@ export const fr = {
             },
           ],
           discarded: { domain: "top-liens.example", reason: "Écarté : vend des liens" },
-          button: "Valider ces demandes",
+          button: "Rédiger les 30 messages",
         },
         draft: {
           from: "De",
@@ -358,20 +358,20 @@ export const fr = {
           fromValue: "Camille, depuis votre boîte mail",
           toValue: "contact@mediatheque-exemple.example",
           subjectValue: "Des coloriages pour votre sélection",
-          before: "Bonjour, j'ai vu votre ",
+          before: "Bonjour, j'ai lu votre ",
           hook: "sélection de sites pour occuper les enfants le mercredi",
           after:
-            ". Nous publions des coloriages gratuits à imprimer : monsite.example/coloriages. S'ils y ont leur place, je serais ravie de les voir dans la liste.",
+            " (mediatheque-exemple.example/enfants). Nous publions des coloriages gratuits à imprimer : monsite.example/coloriages. S'ils y ont leur place, je serais ravie de les voir dans la liste.",
           hookLabel: "Passage cité dans leur page",
-          urlLabel: "Adresse testée avant l'envoi",
+          urlLabel: "Votre page testée avant l'envoi",
           edit: "Modifier",
-          button: "Valider le lot",
+          button: "Approuver et envoyer",
         },
         sending: {
           title: "Envois du jour",
           stats: [
-            { label: "Cette heure", value: "2 sur 10" },
-            { label: "Fenêtre d'envoi", value: "9 h à 18 h" },
+            { label: "Aujourd'hui", value: "4 sur 10" },
+            { label: "Vos horaires", value: "9 h à 18 h" },
             { label: "Relance", value: "Une seule" },
           ],
           rows: [
@@ -383,49 +383,49 @@ export const fr = {
             },
             {
               who: "classe-de-lea.example",
-              what: "Départ prévu à 10 h 24",
-              status: "Programmé",
+              what: "Départ prévu vers 10 h 24",
+              status: "Approuvé",
               tone: "info",
             },
             {
               who: "asso-parents.example",
               what: "Sans réponse depuis dix jours",
-              status: "Relance",
+              status: "Relancé",
               tone: "warning",
             },
             {
               who: "club-lecture.example",
-              what: "A répondu : relance annulée",
-              status: "Répondu",
+              what: "Relance annulée : on vous a répondu",
+              status: "A répondu",
               tone: "accent",
             },
           ],
         },
         inbox: {
-          title: "Inbox",
+          title: "Conversations",
           rows: [
             {
               who: "mediatheque-exemple.example",
               what: "« Avec plaisir, je l'ajoute à la liste. »",
-              status: "Chaud",
+              status: "À traiter",
               tone: "success",
             },
             {
               who: "asso-parents.example",
               what: "Propose un échange de liens",
-              status: "En négociation",
+              status: "A répondu",
               tone: "info",
             },
             {
               who: "annuaire-pro.example",
               what: "Demande un paiement : à vous de décider",
-              status: "Offre payante",
+              status: "À traiter",
               tone: "warning",
             },
             {
               who: "classe-de-lea.example",
               what: "Lien en ligne, dofollow",
-              status: "Lien vérifié",
+              status: "Lien obtenu",
               tone: "accent",
             },
           ],
@@ -466,9 +466,9 @@ export const fr = {
       usValues: [
         "Un abonnement fixe, peu importe le nombre de liens",
         "Éditoriaux, quand on vous répond",
-        "L'audit propose, vous cochez",
+        "L'analyse propose, vous choisissez",
         "L'outil rédige, vous relisez, la relance part seule",
-        "Vous recevez une alerte",
+        "Il est recontrôlé, et signalé dans votre espace",
       ],
       note: "Hors achat, personne ne peut promettre un lien. Un site reste libre de dire non.",
     },
@@ -476,7 +476,7 @@ export const fr = {
       label: "Tarifs",
       title: "Essayez 7 jours. Payez seulement si vous continuez.",
       intro:
-        "Sept jours pour voir vos cibles et lire les messages préparés pour vous. Ensuite, un abonnement fixe : le prix ne bouge pas, que vous obteniez deux liens ou vingt.",
+        "Sept jours pour voir les sites à contacter et lire les messages préparés pour vous. Ensuite, un abonnement fixe : le prix ne bouge pas, que vous obteniez deux liens ou vingt.",
       free: {
         title: "7 jours d'essai offerts",
         text: "Sans carte bancaire. Vous voyez ce que l'outil trouve pour votre site avant de payer quoi que ce soit.",
@@ -493,18 +493,18 @@ export const fr = {
         sitesPlural: "sites",
         mailboxes: "boîte mail connectée",
         mailboxesPlural: "boîtes mail connectées",
-        audits: "audit complet par mois",
-        auditsPlural: "audits complets par mois",
+        audits: "analyse complète par mois",
+        auditsPlural: "analyses complètes par mois",
       },
       plans: {
         starter: {
           tagline: "Un site, un blog ou une boutique à faire monter.",
           cta: "Essai gratuit",
           features: [
-            "Audit complet et liste de cibles classée",
-            "Messages rédigés, à valider par lot",
-            "Relance unique et inbox classé",
-            "Liens vérifiés, alerte s'ils disparaissent",
+            "Analyse complète et liste de sites classée",
+            "Messages rédigés, à relire et approuver",
+            "Relance unique, réponses suivies au même endroit",
+            "Liens vérifiés, signalés s'ils disparaissent",
           ],
         },
         pro: {
@@ -533,15 +533,29 @@ export const fr = {
       items: [
         {
           q: "C'est quoi, exactement ?",
-          a: "Un outil de netlinking par email. Il trouve les sites qui ont une raison de vous citer, rédige une demande pour chacun, l'envoie depuis votre boîte mail, relance une fois, classe les réponses et vérifie que le lien est en ligne. Vous validez chaque lot avant l'envoi.",
+          a: "Un outil de netlinking par email. Il trouve les pages qui ont une raison de vous citer, rédige une demande pour chacune, l'envoie depuis votre boîte mail, relance une fois, suit les réponses et vérifie que le lien est en ligne. Rien ne part sans votre accord.",
         },
         {
           q: "C'est fait pour qui ?",
           a: "Pour ceux qui ont un site à faire monter et pas le temps de faire du netlinking : éditeurs de sites, blogueurs, fondateurs de SaaS, e-commerçants. Si vous gérez plusieurs sites, ou ceux de vos clients, l'offre Business est prévue pour ça.",
         },
         {
+          q: "Qui envoie les emails ?",
+          a: "Vous. Chaque message part de votre propre adresse, avec votre nom et votre signature, et les réponses arrivent dans votre boîte habituelle. L'outil prépare le message, puis l'envoie par votre messagerie une fois que vous l'avez approuvé : rien ne passe par une adresse à notre nom ni par un serveur d'envoi partagé avec d'autres clients. Les emails partent un par un, aux jours et heures que vous choisissez : cinq par jour la première semaine, puis un peu plus chaque semaine, pour ménager votre adresse.",
+        },
+        {
+          q: "Comment relier ma boîte mail ?",
+          a: "En quelques minutes, depuis les réglages. Vous choisissez votre messagerie, vous collez un mot de passe d'application (un mot de passe réservé à cette connexion, créé chez votre messagerie ; chez certains fournisseurs, c'est celui de la boîte), puis un test vérifie l'envoi et la lecture des réponses. Ce mot de passe est chiffré, ne sert qu'à envoyer les messages que vous avez approuvés et à lire leurs réponses, et vous pouvez le révoquer à tout moment.",
+          link: { href: "/aide/boite-envoi", label: "Voir le guide de votre messagerie" },
+        },
+        {
+          q: "Quelles messageries sont compatibles ?",
+          a: "Gmail et Google Workspace, Yahoo, iCloud, GMX, AOL, Mailo et Zoho ; les adresses Orange, Free, SFR, La Poste et Bouygues ; les adresses à votre nom de domaine chez OVHcloud, IONOS, Gandi, o2switch, Infomaniak, Hostinger ou LWS ; et plus largement toute boîte qui accepte une connexion IMAP et SMTP par mot de passe. Pas encore compatibles : Outlook et Hotmail, Microsoft 365, Proton Mail et Tuta, qui ne permettent pas ce type de connexion. Si vous avez le choix, prenez une adresse au nom de votre site : c'est elle qui inspire le plus confiance à l'éditeur qui vous lit.",
+          link: { href: "/aide/boite-envoi", label: "Voir la liste complète et les guides" },
+        },
+        {
           q: "Est-ce que c'est du spam ?",
-          a: "Non. Dix emails par heure au plus, depuis votre propre boîte, à des sites dont la page a été lue et qui ont une raison précise de vous citer. Chaque message cite cette raison. Une seule relance, un lien de désinscription, et quelqu'un qui refuse n'est plus recontacté.",
+          a: "Non. Chaque message est écrit pour une page précise, lue en entier, et dit pourquoi il s'adresse à elle. Les envois partent de votre propre boîte, quelques-uns par jour, jamais en masse. Une seule relance, un moyen simple de ne plus rien recevoir dans chaque message, et quelqu'un qui refuse n'est plus recontacté.",
         },
         {
           q: "Google peut-il me pénaliser ?",
@@ -549,23 +563,19 @@ export const fr = {
         },
         {
           q: "Combien de liens vais-je obtenir ?",
-          a: "On ne peut pas le savoir à l'avance, et nous ne promettons aucun nombre de liens. En face, quelqu'un décide de vous citer ou non. Ce qui dépend de nous : écrire au bon site, pour une bonne raison, et ne laisser aucune réponse sans suite.",
-        },
-        {
-          q: "Les messages partent de ma propre boîte ?",
-          a: "Oui. Vous reliez votre boîte mail et tout part de votre adresse, signé de votre prénom. Rien ne passe par un serveur d'envoi partagé avec d'autres clients, et vos identifiants sont chiffrés.",
+          a: "On ne peut pas le savoir à l'avance, et nous ne promettons aucun nombre de liens. En face, quelqu'un décide de vous citer ou non. Ce qui dépend de nous : écrire à la bonne page, pour une bonne raison, et ne laisser aucune réponse sans suite.",
         },
         {
           q: "Que fait l'IA, et qu'est-ce que je garde en main ?",
-          a: "L'IA cherche, lit les sites, rédige, relance et classe les réponses. Vous choisissez les cibles, relisez les messages et validez chaque lot : rien ne part sans vous. Les emails ne précisent pas qu'une IA a aidé à les écrire, puisque vous les relisez et les signez. Si on vous pose la question, la réponse doit rester honnête.",
+          a: "L'IA cherche, lit les pages, rédige, relance et prépare les réponses. Vous choisissez les sites, relisez les messages et approuvez chaque envoi : rien ne part sans vous. Les emails ne précisent pas qu'une IA a aidé à les écrire, puisque vous les relisez et les signez. Si on vous pose la question, la réponse doit rester honnête.",
         },
         {
           q: "Et si un site me demande de payer ?",
-          a: "Ça arrive souvent. La réponse est classée à part et vous avez trois options : décliner, proposer un échange, ou accepter si vous avez fixé un budget, le lien étant alors présenté comme sponsorisé. L'option proposée par défaut est de décliner poliment.",
+          a: "Ça arrive souvent, et rien n'est décidé à votre place. Vous avez trois options : décliner, proposer un échange, ou accepter si vous avez fixé un budget, le lien étant alors présenté comme sponsorisé. L'option proposée par défaut est de décliner poliment.",
         },
         {
           q: "Et les sites qui n'ont qu'un formulaire de contact ?",
-          a: "Le message est prêt, vous le collez vous-même dans leur formulaire : c'est une tâche dans votre liste. Nous ne remplissons aucun formulaire et ne créons aucun compte à votre place.",
+          a: "Le message est prêt, vous le collez vous-même dans leur formulaire : il vous attend avec un bouton pour le copier et un lien vers la page. Nous ne remplissons aucun formulaire et ne créons aucun compte à votre place.",
         },
         {
           q: "Combien ça coûte ? Puis-je essayer sans carte ?",
@@ -573,14 +583,14 @@ export const fr = {
         },
         {
           q: "Est-ce légal ? Et mes données ?",
-          a: "Écrire à un professionnel au sujet de son activité est permis, à condition qu'il puisse refuser : chaque message le lui permet, et un refus est définitif. Côté données, la lecture de votre boîte se limite aux fils de campagne et rien n'est revendu. Nos textes juridiques sont en cours de relecture par un juriste.",
+          a: "Écrire à un professionnel au sujet de son activité est permis, à condition qu'il puisse refuser : chaque message le lui permet, et un refus est définitif. Côté données, la lecture de votre boîte se limite aux réponses à vos demandes et rien n'est revendu. Nos textes juridiques sont en cours de relecture par un juriste.",
         },
       ],
     },
     finalCta: {
       label: "Pour commencer",
       title: "Regardez d'abord ce que l'outil trouve pour votre site",
-      text: "En quelques minutes : vos concurrents, vos pages à pousser, les sites à contacter. Sept jours d'essai offerts, et aucun email ne part sans votre accord.",
+      text: "En un quart d'heure environ : les sites à contacter, la demande à faire à chacun, et pourquoi. Sept jours d'essai offerts, et aucun email ne part sans votre accord.",
       primary: "Essai gratuit",
       secondary: "Voir les tarifs",
       hints: [
