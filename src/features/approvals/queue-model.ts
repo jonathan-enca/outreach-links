@@ -19,33 +19,27 @@ type Lists = Pick<QueueView, "messages" | "replies" | "forms">;
 /** La file à plat : réponses, puis emails, puis formulaires (pur, testé). */
 export function queueRows(view: Lists): QueueRow[] {
   return [
-    ...view.replies.map(
-      (item): QueueRow => ({
-        nature: "reponses",
-        id: item.id,
-        planId: item.planId,
-        campaign: item.campaign,
-        item,
-      }),
-    ),
-    ...view.messages.map(
-      (item): QueueRow => ({
-        nature: "messages",
-        id: item.id,
-        planId: item.planId,
-        campaign: item.campaign,
-        item,
-      }),
-    ),
-    ...view.forms.map(
-      (item): QueueRow => ({
-        nature: "formulaires",
-        id: item.id,
-        planId: item.planId,
-        campaign: item.campaign,
-        item,
-      }),
-    ),
+    ...view.replies.map((item): QueueRow => ({
+      nature: "reponses",
+      id: item.id,
+      planId: item.planId,
+      campaign: item.campaign,
+      item,
+    })),
+    ...view.messages.map((item): QueueRow => ({
+      nature: "messages",
+      id: item.id,
+      planId: item.planId,
+      campaign: item.campaign,
+      item,
+    })),
+    ...view.forms.map((item): QueueRow => ({
+      nature: "formulaires",
+      id: item.id,
+      planId: item.planId,
+      campaign: item.campaign,
+      item,
+    })),
   ];
 }
 
