@@ -58,7 +58,14 @@ export async function AuditContent({
     if (!snapshot) notFound();
     return (
       <>
-        <JourneySteps current="analyse" />
+        <JourneySteps
+          current="analyse"
+          links={
+            audit.analysis_status === "termine"
+              ? { cibles: siteHref.cibles(audit.site_id) }
+              : undefined
+          }
+        />
         <PageHeader
           title={`${t.audits.analysisTitle} ${snapshot.domain}`}
           description={t.analysis.screen.intro}

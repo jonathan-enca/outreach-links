@@ -1539,10 +1539,11 @@ export const fr = {
         stop: {
           reserve_epuisee: "Lecture terminée : tous les sites trouvés ont été lus.",
           budget:
-            "Lecture arrêtée : le budget prévu pour la lecture automatique est atteint. Vous pouvez lire d'autres sites à la main.",
+            "Lecture arrêtée : le budget prévu pour la lecture automatique est atteint. Vous pouvez la reprendre à la main.",
           rendement_faible:
             "Lecture arrêtée : les deux dernières lectures n'ont presque rien apporté, nous n'ajoutons rien pour faire du volume.",
-          duree: "Lecture arrêtée : la durée maximale de 25 minutes est atteinte.",
+          duree:
+            "Lecture arrêtée : la durée maximale de 25 minutes est atteinte. Vous pouvez la reprendre à la main.",
           erreur: "La lecture automatique s'est arrêtée sur une erreur. Vous pouvez la relancer.",
         } as Record<string, string>,
       },
@@ -2437,6 +2438,7 @@ export const fr = {
     stepOf: (i: number, n: number) => `Étape ${i} sur ${n}`,
     done: "terminée",
     current: "en cours",
+    open: (name: string) => `Ouvrir l'étape ${name}`,
   },
   shell: {
     nav: {
