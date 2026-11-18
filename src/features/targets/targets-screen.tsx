@@ -9,7 +9,6 @@ import { Card } from "@/components/ui/card";
 import { formatUsd } from "@/features/audits/format";
 import type { AuditActionState } from "@/features/audits/service";
 import { t } from "@/lib/messages";
-import { cn } from "@/lib/utils";
 import {
   cardTactics,
   countByTactic,
@@ -605,20 +604,19 @@ export function MoreSites({
   if (running) return null;
   if (funnel.stock === 0 && more.status === "aucun" && auto.status === "aucun") return null;
   return (
-    <Card
-      className={cn(
-        "flex flex-col gap-2 p-5",
-        // Des sites restent à lire : la carte se détache de la liste (retour de Jonathan, 18/11 : bouton introuvable).
-        funnel.stock > 0 && "border-primary/40 bg-primary/5",
-      )}
-      data-testid="more-sites"
-    >
+    <Card className="flex flex-col gap-2 p-5" data-testid="more-sites">
       {auto.status === "aucun" && more.status === "termine" && more.added !== null ? (
         <p className="font-medium">{R.done(more.added)}</p>
       ) : null}
+      {/* Lire les sites restants est le travail du produit, pas une étape attendue de la personne : la
+          carte dit d'abord POURQUOI la lecture automatique s'est arrêtée (précision de Jonathan, 18/11). */}
       {auto.status === "echoue" || (auto.status === "termine" && auto.stop === "erreur") ? (
         <p className="font-medium" data-testid="auto-done">
           {R.auto.stop.erreur}
+        </p>
+      ) : auto.status === "termine" && auto.stop && R.auto.stop[auto.stop] ? (
+        <p className="font-medium" data-testid="auto-stop">
+          {R.auto.stop[auto.stop]}
         </p>
       ) : null}
       {more.status === "echoue" && auto.status === "aucun" ? (
@@ -626,14 +624,13 @@ export function MoreSites({
       ) : null}
       {funnel.stock > 0 ? (
         <>
-          <h3 className="font-display text-lg font-semibold text-balance">
-            {R.title(funnel.stock)}
-          </h3>
+          <p>{R.stock(funnel.stock)}</p>
           <p className="text-sm text-muted-foreground">{R.hint}</p>
           <div className="pt-1">
+            {/* Secondaire : une reprise à la main après un arrêt, jamais l'action principale de l'écran. */}
             <Button
               type="button"
-              className="h-11 px-5"
+              variant="outline"
               disabled={pending}
               onClick={() =>
                 begin(async () => {

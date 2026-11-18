@@ -1520,8 +1520,6 @@ export const fr = {
       newFilter: "Nouveaux",
     },
     more: {
-      title: (n: number) =>
-        n > 1 ? `Il reste ${n} sites trouvés à lire` : "Il reste 1 site trouvé à lire",
       stock: (n: number) =>
         `${n} ${n > 1 ? "autres sites trouvés par la recherche n'ont pas encore été lus" : "autre site trouvé par la recherche n'a pas encore été lu"}.`,
       hint: "Un clic lit le lot suivant (jusqu'à 150 sites, environ 5 minutes), avec les mêmes exigences. Les bonnes cibles trouvées s'ajoutent à votre liste. Vous pouvez recommencer tant qu'il reste des sites.",
@@ -1541,10 +1539,11 @@ export const fr = {
         stop: {
           reserve_epuisee: "Lecture terminée : tous les sites trouvés ont été lus.",
           budget:
-            "Lecture arrêtée : le budget prévu pour la lecture automatique est atteint. Vous pouvez lire d'autres sites à la main.",
+            "Lecture arrêtée : le budget prévu pour la lecture automatique est atteint. Vous pouvez la reprendre à la main.",
           rendement_faible:
             "Lecture arrêtée : les deux dernières lectures n'ont presque rien apporté, nous n'ajoutons rien pour faire du volume.",
-          duree: "Lecture arrêtée : la durée maximale de 25 minutes est atteinte.",
+          duree:
+            "Lecture arrêtée : la durée maximale de 25 minutes est atteinte. Vous pouvez la reprendre à la main.",
           erreur: "La lecture automatique s'est arrêtée sur une erreur. Vous pouvez la relancer.",
         } as Record<string, string>,
       },
