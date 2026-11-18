@@ -64,7 +64,11 @@ export async function loadAnalysisSnapshot(
       .eq("audit_id", auditId)
       .eq("status", "liste_courte"),
     supabase.from("candidate_collections").select("plan").eq("audit_id", auditId).maybeSingle(),
-    supabase.from("qualification_runs").select("auto_status").eq("audit_id", auditId).maybeSingle(),
+    supabase
+      .from("qualification_runs")
+      .select("auto_status, more_status")
+      .eq("audit_id", auditId)
+      .maybeSingle(),
   ]);
   const a = audit.data;
   if (!a) return null;
@@ -98,5 +102,6 @@ export async function loadAnalysisSnapshot(
     background: BACKGROUND.includes(qualification.data?.auto_status as BackgroundStatus)
       ? (qualification.data!.auto_status as BackgroundStatus)
       : null,
+    moreRunning: ["demande", "en_cours"].includes(qualification.data?.more_status ?? ""),
   };
 }

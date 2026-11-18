@@ -212,12 +212,12 @@ function StepRowView({
 }
 
 /** Du plus large au plus précis : quatre lignes toujours présentes (« à venir »), donc aucun saut quand elles se remplissent. */
-function FunnelCard({ funnel }: { funnel: FunnelView }) {
+function FunnelCard({ funnel, provisional }: { funnel: FunnelView; provisional: boolean }) {
   const rows: [string, number | null][] = [
     [S.funnelRows.found, funnel.found],
     [S.funnelRows.read, funnel.read],
     [S.funnelRows.kept, funnel.kept],
-    [S.funnelRows.targets, funnel.targets],
+    [provisional ? S.funnelRows.targetsSoFar : S.funnelRows.targets, funnel.targets],
   ];
   const max = Math.max(1, funnel.found);
   return (
@@ -314,10 +314,10 @@ export function AnalysisProgress({
 
   // Fin : on laisse voir « terminée », puis « Vos cibles » s'ouvre seul.
   useEffect(() => {
-    if (snap.status !== "termine" || !autoOpen) return;
+    if (snap.status !== "termine" || !autoOpen || view.backgroundPending) return;
     const timer = setTimeout(() => router.push(siteHref.cibles(snap.siteId)), REDIRECT_MS);
     return () => clearTimeout(timer);
-  }, [snap.status, snap.siteId, router, autoOpen]);
+  }, [snap.status, snap.siteId, router, autoOpen, view.backgroundPending]);
 
   // Après « Reprendre », on relit l'état tout de suite : l'interrogation repart d'elle-même.
   const resume = async (prev: AuditActionState) => {
@@ -349,9 +349,10 @@ export function AnalysisProgress({
   };
 
   const failed = snap.status === "echoue";
-  const finished = snap.status === "termine";
+  // « Fini » pour l'écran : la première liste ET la lecture des autres sites trouvés.
+  const finished = snap.status === "termine" && !view.backgroundPending;
   const hidden = Math.max(0, view.targetsCount - view.targets.length);
-  const noTargets = finished && !view.backgroundPending && view.targetsCount === 0;
+  const noTargets = finished && view.targetsCount === 0;
 
   return (
     <div className="flex flex-col gap-6" data-analysis-status={snap.status}>
@@ -359,16 +360,11 @@ export function AnalysisProgress({
         <Card
           className="flex flex-col items-start gap-3 border-success/40 bg-success/5 p-5 sm:p-6"
           data-block="done"
-          data-background={view.backgroundPending ? "en_cours" : "fini"}
         >
           <h2 role="status" className="font-display text-xl font-semibold text-balance">
-            {view.backgroundPending
-              ? S.firstReadyTitle(view.targetsCount)
-              : S.doneTitle(view.targetsCount)}
+            {S.doneTitle(view.targetsCount)}
           </h2>
-          <p className="text-muted-foreground">
-            {view.backgroundPending ? S.firstReadyBody : S.doneBody(view.targetsCount)}
-          </p>
+          <p className="text-muted-foreground">{S.doneBody(view.targetsCount)}</p>
           <div className="flex flex-wrap items-center gap-3">
             <Button asChild className="h-12 px-6 text-base">
               <Link href={siteHref.cibles(snap.siteId)}>
@@ -452,9 +448,23 @@ export function AnalysisProgress({
               style={{ width: `${Math.max(view.percent, 2)}%` }}
             />
           </div>
-          <p className="text-sm text-muted-foreground">
-            {emailEnabled ? S.closeWithEmail : S.closeNoEmail}
-          </p>
+          {view.backgroundPending ? (
+            <>
+              <p className="text-sm text-muted-foreground" data-continuing>
+                {S.continuingBody(view.targetsCount)}
+              </p>
+              <Button asChild variant="outline" className="self-start">
+                <Link href={siteHref.cibles(snap.siteId)}>
+                  {S.continuingCta}
+                  <ArrowRight aria-hidden className="size-4" />
+                </Link>
+              </Button>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {emailEnabled ? S.closeWithEmail : S.closeNoEmail}
+            </p>
+          )}
         </Card>
       )}
 
@@ -499,7 +509,9 @@ export function AnalysisProgress({
         </ol>
 
         <div className="flex min-w-0 flex-col gap-6">
-          {view.funnel ? <FunnelCard funnel={view.funnel} /> : null}
+          {view.funnel ? (
+            <FunnelCard funnel={view.funnel} provisional={view.backgroundPending} />
+          ) : null}
 
           <Card className="flex flex-col gap-3 p-5" data-block="targets">
             <h3 className="font-medium">

@@ -193,8 +193,8 @@ describe("buildAnalysisView", () => {
       ]),
       new Date("2026-11-16T10:03:00Z"),
     );
-    // (10 + 40 + 280 × 23/35) / 762 ≈ 0,31
-    expect(v.percent).toBe(31);
+    // 90 × (10 + 40 + 280 × 23/35) / 762 ≈ 28 : la première liste occupe 90 % de la barre.
+    expect(v.percent).toBe(28);
     expect(v.headline).toBe("Nous cherchons les sites qui peuvent vous citer");
     expect(v.steps.find((s) => s.key === "recherche")).toMatchObject({
       counter: "23 recherches faites sur 35 environ · 412 sites trouvés",
@@ -280,6 +280,37 @@ describe("buildAnalysisView", () => {
       done({ background: "aucun", finishedAt: "2026-11-16T09:00:00Z" }).backgroundPending,
     ).toBe(false);
     expect(done({}).backgroundPending).toBe(false);
+    // Un lot « Lire d'autres sites » demandé à la main compte aussi.
+    expect(done({ background: "termine", moreRunning: true }).backgroundPending).toBe(true);
+  });
+
+  it("état intermédiaire puis final : la barre avance encore, le nombre de cibles n'est jamais dit final avant", () => {
+    const at = (over: Partial<AnalysisSnapshot>, now: string) =>
+      buildAnalysisView(
+        withSteps(
+          ANALYSIS_STEP_KEYS.map((k) =>
+            row(k, "termine", k === "demandes" ? { done: 15, total: 15, found: 15 } : {}),
+          ),
+          { status: "termine", finishedAt: "2026-11-16T10:12:00Z", ...over },
+        ),
+        new Date(now),
+      );
+    const early = at({ background: "en_cours", targetsCount: 15 }, "2026-11-16T10:13:00Z");
+    const later = at({ background: "en_cours", targetsCount: 19 }, "2026-11-16T10:27:00Z");
+    const final = at({ background: "termine", targetsCount: 19 }, "2026-11-16T10:30:00Z");
+    expect(early).toMatchObject({ percent: 90, headline: "Nous continuons à lire d'autres sites" });
+    expect(later.percent).toBeGreaterThan(early.percent);
+    expect(later.percent).toBeLessThan(100);
+    expect(early.steps.at(-1)!.counter).toBe("15 cibles prêtes pour l'instant");
+    expect(later.steps.at(-1)!.counter).toBe("19 cibles prêtes pour l'instant");
+    // Final : 100 %, et la dernière étape dit le nombre réel (19), pas celui de la première liste (15).
+    expect(final).toMatchObject({ percent: 100, backgroundPending: false });
+    expect(final.steps.at(-1)!.counter).toBe("19 cibles prêtes");
+    // Avant la fin de la première liste, la barre ne dépasse jamais 90 %.
+    const almost = buildAnalysisView(
+      withSteps(ANALYSIS_STEP_KEYS.map((k) => row(k, k === "demandes" ? "en_cours" : "termine"))),
+    );
+    expect(almost.percent).toBeLessThanOrEqual(90);
   });
 
   it("l'échec de la mesure des liens (en parallèle) n'est pas « l'étape qui s'est arrêtée »", () => {

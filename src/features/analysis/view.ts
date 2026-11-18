@@ -59,6 +59,8 @@ export interface AnalysisSnapshot {
   targetsCount: number;
   skipped?: SkippedSearches | null;
   background?: BackgroundStatus | null;
+  /** Un lot « Lire d'autres sites » est demandé ou en cours (`qualification_runs.more_status`). */
+  moreRunning?: boolean;
 }
 
 /**
@@ -118,6 +120,10 @@ export interface StepView {
 
 /** Délai au-delà duquel une analyse confirmée sans aucune étape est dite « lente à démarrer ». */
 export const SLOW_START_MS = 2 * 60_000;
+/** Part de la barre réservée à la première liste ; le reste avance pendant la lecture des autres sites. */
+export const FIRST_PASS_PERCENT = 90;
+/** Durée maximale de la lecture des autres sites (`AUTO_LIMITS.maxMs`), pour faire avancer la barre. */
+const BACKGROUND_MAX_MS = 25 * 60_000;
 /** Après la fin, délai pendant lequel la lecture des autres sites peut encore ne pas avoir démarré. */
 export const BACKGROUND_GRACE_MS = 5 * 60_000;
 
@@ -325,20 +331,39 @@ export function buildAnalysisView(s: AnalysisSnapshot, now: Date = new Date()): 
     const r = byKey.get(k);
     doneWeight += STEP_WEIGHTS[k] * (r ? stepFraction(r) : 0);
   }
+  // « Terminée » n'est dit que lorsque la lecture des autres sites est finie (décision de Jonathan, 18/11) :
+  // d'ici là l'écran reste « en cours », la barre avance encore et le nombre de cibles n'est pas dit final.
+  // Entre la fin de l'analyse et le démarrage de cette lecture, son état est encore « aucun » : on attend
+  // quelques minutes avant de conclure qu'elle n'aura pas lieu.
+  const finishedMs = s.finishedAt ? Date.parse(s.finishedAt) : NaN;
+  const sinceFinish = Number.isFinite(finishedMs) ? Math.max(0, now.getTime() - finishedMs) : 0;
+  const backgroundPending =
+    finished &&
+    (s.background === "en_cours" ||
+      s.moreRunning === true ||
+      (s.background === "aucun" &&
+        Number.isFinite(finishedMs) &&
+        sinceFinish < BACKGROUND_GRACE_MS));
+
+  const fraction = doneWeight / TOTAL_WEIGHT;
+  const rest = 100 - FIRST_PASS_PERCENT;
   const percent = finished
-    ? 100
+    ? backgroundPending
+      ? FIRST_PASS_PERCENT +
+        Math.min(rest - 1, Math.floor((rest * sinceFinish) / BACKGROUND_MAX_MS))
+      : 100
     : s.status === "aucun"
       ? 0
-      : Math.round((100 * doneWeight) / TOTAL_WEIGHT);
+      : Math.round(FIRST_PASS_PERCENT * fraction);
 
   let remainingMinutes: number | null = null;
   if (s.status === "confirme" || s.status === "en_cours") {
     let seconds = TOTAL_WEIGHT - doneWeight;
     const startedMs = s.startedAt ? Date.parse(s.startedAt) : NaN;
     // Assez avancée : la vitesse réelle de CETTE analyse vaut mieux que les durées mesurées avant.
-    if (percent >= 15 && Number.isFinite(startedMs)) {
+    if (fraction >= 0.15 && Number.isFinite(startedMs)) {
       const elapsed = Math.max(0, (now.getTime() - startedMs) / 1000);
-      seconds = (elapsed * (100 - percent)) / percent;
+      seconds = (elapsed * (1 - fraction)) / fraction;
     }
     remainingMinutes = Math.max(1, Math.ceil(seconds / 60));
   }
@@ -372,20 +397,21 @@ export function buildAnalysisView(s: AnalysisSnapshot, now: Date = new Date()): 
     Number.isFinite(confirmedMs) &&
     now.getTime() - confirmedMs > SLOW_START_MS;
 
-  // « Terminée » n'est dit que lorsque la lecture des autres sites est finie (décision de Jonathan, 18/11).
-  // Entre la fin de l'analyse et le démarrage de cette lecture, son état est encore « aucun » : on attend
-  // quelques minutes avant de conclure qu'elle n'aura pas lieu.
-  const finishedMs = s.finishedAt ? Date.parse(s.finishedAt) : NaN;
-  const backgroundPending =
-    finished &&
-    (s.background === "en_cours" ||
-      (s.background === "aucun" &&
-        Number.isFinite(finishedMs) &&
-        now.getTime() - finishedMs < BACKGROUND_GRACE_MS));
+  // Le nombre de cibles grossit pendant la lecture des autres sites : la dernière étape suit le compte réel.
+  const last = steps.find((x) => x.key === "demandes");
+  if (finished && last && last.status === "termine") {
+    last.counter = backgroundPending ? R.readySoFar(s.targetsCount) : R.ready(s.targetsCount);
+  }
 
   const current = steps.find((x) => x.status === "en_cours" && !x.parallel);
   const anyStarted = steps.some((x) => x.status !== "attente");
-  const headline = current ? S.now[current.key] : anyStarted ? S.now.between : S.starting;
+  const headline = backgroundPending
+    ? S.continuingTitle
+    : current
+      ? S.now[current.key]
+      : anyStarted
+        ? S.now.between
+        : S.starting;
 
   const failedStep = steps.find((x) => x.status === "echoue" && !x.parallel) ?? null;
   return {

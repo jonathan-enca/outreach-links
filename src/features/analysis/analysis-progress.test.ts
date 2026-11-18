@@ -68,11 +68,22 @@ describe("AnalysisProgress (rendu serveur)", () => {
     expect(out).toContain("Analyse terminée : 22 cibles sont prêtes");
     expect(out).toContain("Rien n&#x27;a été envoyé");
   });
-  it("fin, lecture des autres sites encore en cours : « terminée » n'est pas encore dit", () => {
-    const out = html({ ...base, status: "termine", targetsCount: 22, background: "en_cours" });
-    expect(out).toContain("Vos 22 premières cibles sont prêtes");
-    expect(out).toContain("Nous lisons encore les autres sites trouvés");
+  it("état intermédiaire : lecture des autres sites en cours, l'écran reste « en cours »", () => {
+    const out = html({ ...base, status: "termine", targetsCount: 15, background: "en_cours" });
+    expect(out).toMatch(/aria-live="polite"[^>]*>Nous continuons à lire d&#x27;autres sites/);
+    expect(out).toContain(
+      "Vos 15 premières cibles sont déjà prêtes, d&#x27;autres peuvent s&#x27;ajouter",
+    );
+    expect(out).toContain("Voir vos premières cibles");
+    expect(out).toContain('role="progressbar"');
     expect(out).not.toContain("Analyse terminée");
+    expect(out).not.toContain("Ouverture de vos cibles");
+  });
+  it("état final : lecture finie, « Analyse terminée » avec le nombre réel", () => {
+    const out = html({ ...base, status: "termine", targetsCount: 19, background: "termine" });
+    expect(out).toContain("Analyse terminée : 19 cibles sont prêtes");
+    expect(out).not.toContain('role="progressbar"');
+    expect(out).not.toContain("premières cibles sont déjà prêtes");
   });
   it("en cours : la phrase d'état est annoncée, l'étape écartée est dite écartée", () => {
     const steps = base.steps.map((s) =>

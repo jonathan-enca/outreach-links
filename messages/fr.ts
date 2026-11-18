@@ -3324,6 +3324,12 @@ export const fr = {
         pageReread: (d: string) => `Page relue : ${d}`,
         rereadSkipped: "Écartée : aucune page retenue à relire.",
         skippedGeneric: "Écartée : rien à faire à cette étape.",
+        readySoFar: (n: number) =>
+          n === 0
+            ? "Aucune cible prête pour l'instant"
+            : n === 1
+              ? "1 cible prête pour l'instant"
+              : `${n} cibles prêtes pour l'instant`,
         ready: (n: number) =>
           n === 0 ? "Aucune cible prête" : n === 1 ? "1 cible prête" : `${n} cibles prêtes`,
       },
@@ -3333,6 +3339,7 @@ export const fr = {
         read: "Pages lues",
         kept: "Pages retenues",
         targets: "Cibles avec un contact",
+        targetsSoFar: "Cibles avec un contact, pour l'instant",
       },
       funnelPending: "à venir",
       targetsTitle: "Premières cibles prêtes",
@@ -3353,14 +3360,15 @@ export const fr = {
         n === 0
           ? "Aucune cible retenue cette fois. Rien n'a été envoyé."
           : "Pour chacune, la demande à faire et pourquoi. Rien n'a été envoyé.",
-      firstReadyTitle: (n: number) =>
+      /** Première liste prête, mais la lecture des autres sites trouvés tourne encore : l'écran reste « en cours ». */
+      continuingTitle: "Nous continuons à lire d'autres sites",
+      continuingBody: (n: number) =>
         n === 0
-          ? "La première recherche est finie"
+          ? "Aucune cible pour l'instant : la lecture des autres sites trouvés continue. Rien n'a été envoyé."
           : n === 1
-            ? "Votre première cible est prête"
-            : `Vos ${n} premières cibles sont prêtes`,
-      firstReadyBody:
-        "Nous lisons encore les autres sites trouvés. Vous pouvez déjà regarder vos cibles. Rien n'a été envoyé.",
+            ? "Votre première cible est déjà prête, d'autres peuvent s'ajouter. Rien n'a été envoyé."
+            : `Vos ${n} premières cibles sont déjà prêtes, d'autres peuvent s'ajouter. Rien n'a été envoyé.`,
+      continuingCta: "Voir vos premières cibles",
       doneCta: "Voir vos cibles",
       redirecting: "Ouverture de vos cibles…",
       failedTitle: "L'analyse s'est arrêtée",
