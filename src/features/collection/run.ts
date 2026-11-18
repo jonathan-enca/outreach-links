@@ -79,7 +79,8 @@ export const collectionPlanSchema = z.object({
             sampleUrl: z.string().nullable().default(null),
           }),
         )
-        .max(12)
+        // Le réservoir de candidats va jusqu'à `poolSize` (40) : un plafond plus bas rendait tout plan « illisible ».
+        .max(COLLECTION_LIMITS.citations.poolSize)
         .default([]),
       resources: z.array(z.string()).max(12).default([]),
       max: z.number().int().min(0).max(12).default(0),
