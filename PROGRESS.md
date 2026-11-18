@@ -2408,3 +2408,39 @@ Lancer une vraie campagne sur un troisième thème, lire `auto_stop`, la durée 
 - **Campagnes** n'affiche que le site choisi (toutes si « Tous les sites »). Les pages de réglages (`pickSite`) ouvrent le site choisi quand l'adresse n'a pas de `?site=`.
 - **Pas filtrés** (hors périmètre, à décider) : « À valider » (a son propre sélecteur de campagne), Conversations, Liens obtenus, Accueil. Le sélecteur du menu n'est pas encore sur téléphone (barre basse).
 - Pas vérifié dans un navigateur.
+
+## Session du 18/11 (suite 10) : bas de l'écran « Vos cibles » (maquette puis code ; faite)
+
+Maquette validée par Jonathan le 18/11 (`docs/mockups/vos-cibles-bas.md`, décisions en fin de note : variante A, « Tout retenir » et « Tout écarter » conservés, bouton « Rédiger les N messages », concurrents retirés), puis codée. **Aucune logique touchée** : ni action serveur, ni service, ni recherche, ni envoi ; seuls l'affichage et les textes changent. Aucune donnée réelle, aucun appel payant.
+
+### Ce qui change pour la personne
+
+- **Choisir et rédiger sont séparés.** Au-dessus de la liste : « N sites retenus sur M » et deux vrais boutons à contour, « Tout retenir » et « Tout écarter ». La barre collante ne porte plus qu'une action verte, « Rédiger les N messages » (« Rédiger le message » pour un seul ; grisée avec « Cochez au moins un site. » si rien n'est retenu), et la phrase « Rien n'est envoyé maintenant : nous rédigeons les messages, vous les relisez avant tout envoi. »
+- **« Voir les messages et le lot » devient « Voir les messages rédigés (N) »**, bouton à contour affiché seulement si des demandes sont déjà validées (N = cibles « Déjà validée »). Même lien qu'avant (`/app/audit/{id}/plan`). Le mot « lot » sort des textes de cet écran (description de la page et message de confirmation compris).
+- **Sites sans contact** : une vraie section « N sites pertinents, sans contact trouvé », avec les mêmes lignes que la liste (`TargetsTable` avec `pageAction`), sans case à cocher, et un bouton « Ouvrir la page » (nouvel onglet, vers la page lue ; à défaut la racine du site). Les « mentions sans lien, sans contact » y sont réunies, en tête. Dix lignes d'emblée, le reste derrière « Afficher les N autres ».
+- **« Vos concurrents sur Google » est retiré de cet écran**, remplacé par deux phrases « D'où vient cette liste » (le nombre vient de `view.competitors.length`, 30 au plus) au-dessus du lien « Voir le détail de l'analyse ».
+- **« Avant de rédiger vos messages » devient une fenêtre** « Qui signe vos messages » (`<dialog>` natif : focus retenu, Échap pour fermer ; panneau collé en bas sur téléphone). Elle s'ouvre au clic sur le bouton vert si le prénom ou le rôle manque, ou par « Modifier » sous la barre.
+- **Ordre du bas de page** : liste, barre, rappel de signature, carte de la lecture des autres sites (inchangée), sites sans contact, origine de la liste.
+
+### Fichiers clés
+
+`src/features/targets/targets-screen.tsx` (`TargetsScreen`, `TargetRow` et `TargetsTable` avec `pageAction`, `MessageSettingsForm` en fenêtre), `messages/fr.ts` (`targets.validate`, `targets.noContact`, `targets.origin`, `targets.founder`, `targets.list`, `targets.toPlan` ; `targets.serp` et `targets.contactless` supprimés), `src/features/targets/bottom.test.ts` (nouveau : accords, pas de « lot », pas d'argent), `src/app/demo/cibles/page.tsx` (nouveau, absent en production). Captures : `docs/img/vos-cibles-bas/`.
+
+### Commandes
+
+`NEXT_PUBLIC_APP_URL=http://localhost:3111 NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=fictive pnpm dev -p 3111` puis `/demo/cibles` (`?signature=non` pour la fenêtre). Tests : `pnpm vitest run src/features/targets`.
+
+### Dettes et pièges
+
+- Vérifié sur la page de démonstration (bureau 1440 px, téléphone 375 px, aucun défilement horizontal), **pas** sur une vraie campagne.
+- Écart avec la maquette : sur téléphone la barre reste une carte flottante (comme avant), pas une bande collée au bord sur toute la largeur.
+- « sur M » compte les sites qu'on peut encore retenir (les « Déjà validée » n'y sont pas), donc M peut être inférieur au titre « N sites à contacter ».
+- `view.competitors` n'est plus affiché ici mais reste chargé (il sert au compte de « D'où vient cette liste »).
+
+### Backlog
+
+- Le détail de l'analyse n'affiche le tableau des concurrents que pour les anciennes analyses (`analysis === "aucun"` dans `audit-detail.tsx`) : l'y montrer aussi pour les nouvelles, puisque « Vos cibles » y renvoie.
+- Sites sans contact : saisir soi-même un email trouvé, ou marquer « contacté par moi ».
+- Le mot « lot » reste dans d'autres écrans (plan, lots) : à revoir écran par écran.
+
+### Prochain sous-jalon recommandé : MC.6g (inchangé)

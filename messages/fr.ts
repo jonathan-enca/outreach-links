@@ -1383,7 +1383,7 @@ export const fr = {
     title: "Vos cibles",
     reviewSteps: "Voir le détail de l'analyse",
     description:
-      "La liste courte, classée : pour chaque site, la demande à faire et pourquoi. Rien n'est envoyé avant que vous ayez validé un lot de messages.",
+      "La liste courte, classée : pour chaque site, la demande à faire et pourquoi. Rien n'est envoyé avant que vous ayez relu et approuvé les messages.",
     back: "Retour à l'analyse",
     notReady: {
       title: "Vos cibles arrivent",
@@ -1391,7 +1391,7 @@ export const fr = {
       failed: "L'analyse s'est arrêtée avant la fin. Reprenez-la pour obtenir vos cibles.",
       cta: "Voir l'analyse",
     },
-    toPlan: "Voir les messages et le lot",
+    toPlan: (n: number) => `Voir les messages rédigés (${n})`,
     messages: {
       unauthenticated: "Connectez-vous pour continuer.",
       notFound: "Audit introuvable.",
@@ -1405,15 +1405,18 @@ export const fr = {
         "Aucune des cibles cochées ne peut être validée (contact manquant ou déjà validée).",
       planError: "Impossible de créer les demandes. Réessayez.",
       validated:
-        "{n} demandes validées. La rédaction des messages est lancée : vous les relirez dans le lot, rien n'est envoyé.",
+        "{n} demandes validées. La rédaction des messages est lancée : vous les relirez dans « À valider », rien n'est envoyé.",
       validatedNoDrafts: "{n} demandes validées, mais la rédaction n'a pas pu démarrer : {reason}",
       skipped: "{n} ignorées (déjà validées ou sans contact utilisable).",
     },
     founder: {
-      title: "Avant de rédiger vos messages",
-      body: "Vos messages sont signés de votre prénom. Pour rester honnête avec ceux qui les lisent, choisissez ce qui est vrai : on n'écrit jamais « fondateur » sans votre accord. Ces réglages se changent à tout moment.",
+      title: "Qui signe vos messages",
+      body: "Vos messages partent sous votre prénom. Dites-nous votre lien réel avec le site : nous n'écrivons jamais « fondateur » sans votre accord.",
       firstName: "Votre prénom de signature",
-      saveAndValidate: "Enregistrer et valider ({n} demandes)",
+      roleLegend: "Votre rôle",
+      hint: "Modifiable à tout moment, avec « Modifier » sous la liste.",
+      saveAndValidate: (n: number) =>
+        `Enregistrer et rédiger ${n > 1 ? `les ${n} messages` : "le message"}`,
       recap: "Messages signés {name}, présentés comme {role}.",
       cancel: "Annuler",
       roles: {
@@ -1683,28 +1686,38 @@ export const fr = {
         "Les pages disparues de {n} concurrent(s) n'ont pas été cherchées (site trop gros ou d'une autre langue) : {names}.",
       selectAll: "Tout retenir",
       selectNone: "Tout écarter",
-      selected: "{n} demandes retenues",
+      selected: (n: number) => `${n} ${n > 1 ? "sites retenus" : "site retenu"}`,
+      selectedOf: (total: number) => `sur ${total}`,
     },
-    contactless: {
-      title: "Mentions sans lien, sans contact trouvé",
-      body: "Ces pages nomment déjà votre site sans le lier (vérifié). Aucun email ni formulaire n'a été trouvé : cherchez l'éditeur dans les mentions légales, ou laissez-les de côté. Elles ne sont pas incluses dans la validation.",
-    },
+    /** Sites pertinents sans email ni formulaire (mentions sans lien comprises) : listés, jamais validés. */
     noContact: {
-      title: "Sites pertinents sans contact trouvé ({n})",
-      body: "Ces sites ont été jugés pertinents, mais aucun email ni formulaire n'a pu être trouvé. Ils ne sont pas perdus : ouvrez la page, cherchez l'éditeur dans les mentions légales ou les réseaux du site. Ils ne sont pas inclus dans la validation.",
+      title: (n: number) =>
+        `${n} ${n > 1 ? "sites pertinents" : "site pertinent"}, sans contact trouvé`,
+      body: "Ces sites méritent une demande, mais nous n'avons trouvé ni email ni formulaire. Ouvrez la page pour chercher vous-même comment joindre l'éditeur. Ils ne font pas partie des demandes à valider.",
+      column: "Sa page",
       open: "Ouvrir la page",
+      openLabel: "Ouvrir la page de {domain} (nouvel onglet)",
+      more: (n: number) => `Afficher ${n > 1 ? `les ${n} autres` : "le dernier"}`,
     },
-    serp: {
-      title: "Vos concurrents sur Google",
-      body: "Ces sites apparaissent avant vous sur Google pour vos recherches. Nous ne les contactons pas : nous regardons qui fait des liens vers eux, pour trouver des sites qui pourraient aussi en faire un vers vous.",
-      empty: "Aucun concurrent trouvé pour ce site.",
-      row: "présent sur {queries} de vos recherches · meilleure place : {rank}",
+    /** Remplace la liste des concurrents (retirée de cet écran, 18/11) : d'où viennent les cibles. */
+    origin: {
+      title: "D'où vient cette liste",
+      body: (n: number) =>
+        `Nous sommes partis ${n > 1 ? `des ${n} sites qui apparaissent` : "des sites qui apparaissent"} avant vous sur Google pour vos recherches. Nous ne les contactons pas : nous avons regardé qui fait des liens vers eux, puis lu ces sites un par un.`,
     },
     validate: {
-      button: "Valider ces demandes ({n})",
-      busy: "Validation…",
-      note: "Les messages seront rédigés avec le point précis cité sur chaque page, puis réunis dans un lot que vous relisez et validez avant tout envoi. Rien n'est envoyé maintenant.",
-      empty: "Cochez au moins une demande.",
+      region: "Rédiger les messages des demandes retenues",
+      button: (n: number) =>
+        n === 0
+          ? "Rédiger les messages"
+          : n === 1
+            ? "Rédiger le message"
+            : `Rédiger les ${n} messages`,
+      busy: "Un instant…",
+      count: (n: number) => `${n} ${n > 1 ? "demandes retenues" : "demande retenue"}`,
+      note: "Rien n'est envoyé maintenant : nous rédigeons les messages, vous les relisez avant tout envoi.",
+      noteShort: "Rien n'est envoyé",
+      empty: "Cochez au moins un site.",
     },
   },
   opportunities: {
