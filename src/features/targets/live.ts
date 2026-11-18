@@ -7,6 +7,9 @@ const SITES_PER_LOT = 250;
 /** Coût minimal d'un lot : sous ce reste de budget, plus de lot (`AUTO_LIMITS.minLotBudgetUsd`). */
 const LOT_COST_USD = AUTO_LIMITS.minLotBudgetUsd;
 
+/** Durée maximale de la lecture automatique, en minutes, telle qu'on la dit à l'écran. */
+export const AUTO_MAX_MINUTES = Math.round(AUTO_LIMITS.maxMs / 60_000);
+
 /**
  * Minutes restantes avant la fin DÉFINITIVE de la recherche (pur). Trois bornes, la plus courte gagne :
  * les sites encore à lire (un lot = environ 80 sites), le budget de lecture restant, et la durée

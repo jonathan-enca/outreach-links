@@ -18,7 +18,7 @@ import {
   primaryRequest,
   primaryTactic,
 } from "./cards";
-import { newIds, remainingMinutes, roundedMinutes } from "./live";
+import { AUTO_MAX_MINUTES, newIds, remainingMinutes, roundedMinutes } from "./live";
 import { publisherTabs } from "./publishers";
 import {
   FOUNDER_ROLES,
@@ -583,7 +583,26 @@ export function TargetsTable({
   );
 }
 
-/** Chantier G : le stock de sites pas encore lus, et le bouton qui en lit un lot de plus. */
+/**
+ * Pourquoi la lecture automatique s'est arrêtée et combien de sites ne sont pas lus, en une phrase
+ * (pur ; `stop` = `qualification_runs.auto_stop`). Null : rien à dire.
+ */
+export function autoStopLine(auto: TargetsView["more"]["auto"], stock: number): string | null {
+  const S = M.more.auto.stop;
+  const failed = auto.status === "echoue" || (auto.status === "termine" && auto.stop === "erreur");
+  if (!failed && !(auto.status === "termine" && auto.stop)) return null;
+  if (stock === 0) return failed ? M.more.failedLine : S.allRead;
+  if (failed) return S.erreur(stock);
+  if (auto.stop === "duree") return S.duree(stock, AUTO_MAX_MINUTES);
+  if (auto.stop === "budget") return S.budget(stock);
+  if (auto.stop === "reserve_epuisee") return S.reserve_epuisee(stock);
+  return S.autre(stock);
+}
+
+/**
+ * Après la lecture des autres sites (automatique, sans bouton tant qu'elle tourne : voir `LiveBanner`) :
+ * ce qui s'est passé, combien de sites ne sont pas lus, et un seul bouton secondaire pour continuer.
+ */
 export function MoreSites({
   funnel,
   more,
@@ -603,46 +622,52 @@ export function MoreSites({
   // Le suivi de la recherche en cours est dans `LiveBanner` (bandeau du haut), qui rafraîchit l'écran.
   if (running) return null;
   if (funnel.stock === 0 && more.status === "aucun" && auto.status === "aucun") return null;
+  const stopLine = autoStopLine(auto, funnel.stock);
   return (
-    <Card className="flex flex-col gap-2 p-5" data-testid="more-sites">
-      {auto.status === "aucun" && more.status === "termine" && more.added !== null ? (
-        <p className="font-medium">{R.done(more.added)}</p>
-      ) : null}
-      {/* Lire les sites restants est le travail du produit, pas une étape attendue de la personne : la
-          carte dit d'abord POURQUOI la lecture automatique s'est arrêtée (précision de Jonathan, 18/11). */}
-      {auto.status === "echoue" || (auto.status === "termine" && auto.stop === "erreur") ? (
-        <p className="font-medium" data-testid="auto-done">
-          {R.auto.stop.erreur}
-        </p>
-      ) : auto.status === "termine" && auto.stop && R.auto.stop[auto.stop] ? (
-        <p className="font-medium" data-testid="auto-stop">
-          {R.auto.stop[auto.stop]}
-        </p>
-      ) : null}
-      {more.status === "echoue" && auto.status === "aucun" ? (
-        <p className="text-destructive">{R.failedLine}</p>
-      ) : null}
+    <Card className="flex flex-col gap-3 p-4 sm:p-5" data-testid="more-sites">
+      <div role="status" className="flex flex-col gap-1.5">
+        {auto.status === "aucun" && more.status === "termine" && more.added !== null ? (
+          <p className="font-medium">{R.done(more.added)}</p>
+        ) : null}
+        {stopLine ? (
+          <p className="font-medium text-pretty" data-testid="auto-stop">
+            {stopLine}
+          </p>
+        ) : null}
+        {more.status === "echoue" && auto.status === "aucun" ? (
+          <p className="font-medium text-pretty">{R.failedLine}</p>
+        ) : null}
+        {!stopLine && funnel.stock > 0 ? (
+          <p className="font-medium" data-testid="more-remaining">
+            {R.remaining(funnel.stock)}
+          </p>
+        ) : null}
+        {stopLine && auto.added > 0 ? (
+          <p className="text-sm text-muted-foreground">{R.auto.doneLine(auto.added)}</p>
+        ) : null}
+      </div>
       {funnel.stock > 0 ? (
-        <>
-          <p>{R.stock(funnel.stock)}</p>
-          <p className="text-sm text-muted-foreground">{R.hint}</p>
-          <div className="pt-1">
-            {/* Secondaire : une reprise à la main après un arrêt, jamais l'action principale de l'écran. */}
-            <Button
-              type="button"
-              variant="outline"
-              disabled={pending}
-              onClick={() =>
-                begin(async () => {
-                  setState(await start());
-                  router.refresh();
-                })
-              }
-            >
-              {pending ? R.busy : R.button}
-            </Button>
-          </div>
-        </>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+          {/* Secondaire : une reprise à la main après un arrêt, jamais l'action principale de l'écran. */}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            aria-describedby="more-sites-hint"
+            className="w-full shrink-0 sm:w-auto"
+            onClick={() =>
+              begin(async () => {
+                setState(await start());
+                router.refresh();
+              })
+            }
+          >
+            {pending ? R.busy : R.button}
+          </Button>
+          <p id="more-sites-hint" className="text-sm text-muted-foreground text-pretty">
+            {R.hint}
+          </p>
+        </div>
       ) : null}
       <Message state={state} />
     </Card>
@@ -689,7 +714,7 @@ export function LiveBanner({
   if (!running && hidden === 0) {
     return auto.status === "termine" && auto.added > 0 ? (
       <p className="text-sm text-muted-foreground" data-testid="live-done">
-        {L.done(view.cards.length)}
+        {(view.funnel?.stock ?? 0) > 0 ? L.stopped(view.cards.length) : L.done(view.cards.length)}
       </p>
     ) : null;
   }
@@ -704,27 +729,71 @@ export function LiveBanner({
           }),
         )
       : null;
+  const stock = view.funnel?.stock ?? 0;
+  // Avancement : les sites trouvés qui ne sont plus à lire. Affiché seulement quand le compte a un sens.
+  const total = view.funnel?.candidates ?? 0;
+  const examined = total - stock;
+  const percent =
+    running && stock > 0 && examined > 0 ? Math.floor((100 * examined) / total) : null;
   return (
     <Card
-      className="flex flex-col gap-2 p-3 md:flex-row md:flex-wrap md:items-center md:gap-x-4 md:p-4"
+      className="flex flex-col gap-3 p-4 md:flex-row md:flex-wrap md:items-center md:gap-x-4"
       data-testid="live-banner"
     >
       {running ? (
-        <div role="status" className="flex min-w-0 flex-1 items-start gap-3 md:min-w-[18rem]">
-          <span
-            aria-hidden="true"
-            className="mt-1.5 size-2.5 shrink-0 animate-pulse rounded-full bg-primary motion-reduce:animate-none"
-          />
-          <p className="text-sm">
-            <strong>{L.running}</strong> {minutes !== null ? L.runningBody(minutes) : null}
-            {auto.added > 0 ? ` ${L.added(auto.added)}` : ""}
-          </p>
+        <div className="flex min-w-0 flex-1 flex-col gap-2 md:min-w-[18rem]">
+          <div className="flex items-start gap-3">
+            <span
+              aria-hidden="true"
+              className="mt-1.5 size-2.5 shrink-0 animate-pulse rounded-full bg-primary motion-reduce:animate-none"
+            />
+            <div className="flex min-w-0 flex-col gap-1">
+              {/* Seul le changement d'état est annoncé : les compteurs bougent toutes les 8 secondes. */}
+              <p className="text-sm text-pretty">
+                <strong role="status">{L.running}</strong> {L.runningBody(stock)}
+                {auto.added > 0 ? ` ${L.added(auto.added)}` : ""}
+              </p>
+              <p className="text-sm text-muted-foreground text-pretty">
+                {minutes !== null ? `${L.eta(minutes)} ` : ""}
+                {L.runningHint}
+              </p>
+            </div>
+          </div>
+          {percent !== null ? (
+            <div className="flex flex-col gap-1 pl-[1.375rem]">
+              <div
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={percent}
+                aria-valuetext={L.progress(examined, total)}
+                aria-label={L.progressLabel}
+                className="h-2 overflow-hidden rounded-full bg-muted"
+              >
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] duration-700 motion-reduce:transition-none"
+                  style={{ width: `${Math.max(percent, 2)}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground tabular-nums" aria-hidden="true">
+                {L.progress(examined, total)}
+              </p>
+            </div>
+          ) : null}
         </div>
       ) : (
-        <p className="flex-1 text-sm">{L.done(view.cards.length + hidden)}</p>
+        <p role="status" className="flex-1 text-sm">
+          {stock > 0 ? L.stopped(view.cards.length + hidden) : L.done(view.cards.length + hidden)}
+        </p>
       )}
       {hidden > 0 ? (
-        <Button type="button" variant="outline" size="sm" onClick={onReveal}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="self-start md:self-center"
+          onClick={onReveal}
+        >
           {L.reveal(hidden)}
         </Button>
       ) : null}
