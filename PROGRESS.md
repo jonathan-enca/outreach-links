@@ -1766,3 +1766,28 @@ Retour de Jonathan : les mails « pourraient être améliorés » (ton, pertinen
 - **Backlog** : recherche de cibles qui vise des pages avec un angle (articles éditoriaux vivants, listes de ressources tenues, pas d'accueil ni de page légale ou commerciale) ; passer les autres tâches de `claude-haiku-4-5` à `claude-haiku-5-5` (dix fois moins cher : la qualification coûtait 0,47 USD sur 1,43 USD par campagne) ; bouton « Réécrire ce message » ; exemples de messages qui ont marché sur les sites de Jonathan (question ouverte n° 3) ; montrer les cibles écartées sur l'écran de la campagne.
 - **Diagnostic de l'amont (demande de Jonathan, même session)** : sur les 80 cibles retenues le 17/11, 32 pages légales, 27 accueils, 1 rubrique, 20 pages intérieures ; toutes les recherches partent du thème, aucune des pages précises du site ; la qualification note le sujet sur 1 200 caractères, jamais la place d'un lien ; 498 candidats jamais lus. Plan écrit : `PLAN.md`, jalon **MC** (MC.0 à MC.5). Corrigé à la demande de Jonathan : trois familles de recherche (par sujet, par public à partir des publics du profil, par lien mort), et règle de généralité (aucune règle propre à un thème, mesure sur deux sites).
 - **Prochaine session recommandée** : **MC.0** (mesurer le principe « partir des pages du site » sur 6 pages, sans code produit), puis MC.1.
+
+## Session du 18/11 : MC.0, essai « partir des pages du site » : critère NON atteint
+
+Essai sans code produit, sur remove-me.io et mega-coloring.com (règle de généralité). Pour chaque site : 6 pages choisies et 24 recherches écrites par le petit modèle (2 par sujet, 2 par public pour chaque page), 10 premiers résultats Google (DataForSEO, 0,04 USD par site), filtre gratuit par nature d'adresse, lecture de 60 pages au plus (2 par domaine), contrôle des liens sortants, tri d'angle par le petit modèle puis rejugement par le modèle fort.
+
+|                                                         | remove-me.io | mega-coloring.com |
+| ------------------------------------------------------- | ------------ | ----------------- |
+| Résultats                                               | 162          | 150               |
+| Plateformes (Facebook, Pinterest, Instagram, Amazon...) | 34           | 85                |
+| Pages intérieures distinctes                            | 117          | 53                |
+| Pages lues et triées                                    | 47           | 33                |
+| Angles, petit modèle                                    | 7 (15 %)     | 1 (3 %)           |
+| Angles, modèle fort                                     | **2 (4 %)**  | **1 (3 %)**       |
+| Liens sortants cassés                                   | 2 sur 465    | 1 sur 168         |
+
+- **Critère (30 % sur chaque site) : raté.** Le principe « chercher par sujet ou par public dans les 10 premiers résultats » ne tient pas : la première page de Google est faite de gros médias, de sites officiels et de concurrents (remove-me.io : 15 concurrents ou pages commerciales, 15 médias ou articles figés, 9 pages officielles sur 47 ; mega-coloring.com : 20 concurrents sur 33). Les petits sites que personne ne sollicite n'y sont pas.
+- **Par famille (petit modèle, remove-me.io)** : sujet 6 sur 19, public 1 sur 27. Les recherches par public n'ont rien donné ici.
+- **Seul motif qui marche** : l'information périmée (un article qui recommande encore Bloctel après le 11 août 2026) : 2 des 3 angles finaux. Il dépend d'un « fait nouveau » que le site connaît : pas généralisable à tous les sites.
+- **Liens morts dans les pages trouvées par recherche** : presque aucun (3 sur 633). Cette source gratuite ne suffit pas.
+- **Défaut réel trouvé dans le produit** : la recherche DataForSEO renvoie des adresses de redirection Google (`google.com/goto?url=`) ; le produit n'en reconstruit qu'une adresse approximative à partir du fil d'Ariane (`resolveRedirect`, `exact: false`), d'où des pages d'accueil ou de mauvaises pages lues à la place de l'article. Le paramètre `resolve_goto_urls: true` rend la vraie adresse au même prix (mesuré : 0,002 USD par recherche de 10 résultats, jusqu'à 40 s de plus). **À corriger dans tous les cas.**
+- **Pièges de généralité vus** : (1) un filtre « page légale » par mots de l'adresse écarte les articles d'un site dont le sujet est le RGPD ; (2) pour un site de coloriages, les pages à proposer sont les pages de thème, pas des articles : la consigne « jamais une page générale » est propre à un site de guides ; (3) la pagination s'écrit `page-2` (corrigé, PR #153) ; (4) sur mega-coloring.com, 57 % des résultats sont des plateformes.
+- **Limite de l'essai, à dire** : le juge est un modèle, pas la réalité. Le modèle fort écarte les blogs d'enseignants anciens et les pages internes d'université ; rien ne prouve que ces éditeurs ne répondraient pas. Sans réponses réelles, on ne sait pas si la barre « angle » est trop haute. Les 7 messages envoyés le 17/11 et l'expérience passée de Jonathan (questions ouvertes 1 et 3) sont les seules vérités terrain.
+- **Non testé** : les résultats au-delà du rang 10, les recherches de pages de liens (« liens utiles », « sites à découvrir ») tenues par de petits sites, « qui cite déjà une page comme la nôtre » (backlinks de page), les pages disparues de sites comparables.
+- **Coût** : 0,12 USD de DataForSEO (dont deux passes inutilisables à cause des adresses masquées). Fichiers de l'essai hors dépôt (session).
+- **Suite proposée** : corriger les adresses (MC.1, sûr) ; avant de coder MC.2, refaire un essai MC.0b sur les familles non testées ; demander à Jonathan quels types de pages lui ont réellement donné des liens.
