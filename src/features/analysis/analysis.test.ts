@@ -10,6 +10,7 @@ import {
   type SendEvent,
 } from "@/features/audits/service";
 import { t } from "@/lib/messages";
+import { snowballCostUsd } from "@/features/snowball/limits";
 import { estimateAnalysis, linksStateUsd } from "./estimate";
 import { executeLinksState } from "./links-state";
 import {
@@ -98,8 +99,9 @@ describe("coût annoncé de l'analyse", () => {
   it("l'attendu tient dans le budget cible ; le pire cas (jugement à 0,40 USD) reste sous le plafond", () => {
     const e = estimateAnalysis(0.018);
     expect(e.expectedUsd).toBeGreaterThan(0.3);
-    expect(e.expectedUsd).toBeLessThanOrEqual(1);
-    expect(e.expectedUsd).toBeLessThanOrEqual(AUDIT_BUDGET.targetUsd);
+    // MC.6d : la boule de neige (6 appels « qui cite », ~0,19 USD) s'ajoute au budget cible de 1 USD,
+    // annoncée à part : décision de produit à confirmer (voir PROGRESS.md).
+    expect(e.expectedUsd).toBeLessThanOrEqual(AUDIT_BUDGET.targetUsd + snowballCostUsd().worstUsd);
     // Chantier G : budget de jugement porté à 0,40 USD ; le pire cas dépasse la cible, jamais le plafond.
     expect(e.worstUsd).toBeLessThanOrEqual(1.5);
     expect(e.worstUsd).toBeLessThanOrEqual(PLAN_LIMITS.payant.costCapUsd);
@@ -120,7 +122,7 @@ describe("coût annoncé de l'analyse", () => {
     expect(next.chain.backlinksUsd).toBe(0);
     expect(next.chain.opportunitiesUsd).toBe(0);
     expect(next.chain.uncovered).toEqual([]);
-    expect(next.chain.totalUsd).toBeLessThanOrEqual(1);
+    expect(next.chain.totalUsd).toBeLessThanOrEqual(AUDIT_BUDGET.targetUsd + snowballCostUsd().worstUsd);
     const legacy = computeAuditEstimate({ ...site, legacyChain: true });
     expect(legacy.chain.analysisUsd).toBeUndefined();
     expect(legacy.chain.backlinksUsd).toBeGreaterThan(0);
