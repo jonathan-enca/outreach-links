@@ -94,7 +94,7 @@ async function seed(stock: number, delivered = 3) {
   await db.query(
     `update public.qualification_runs set status = 'termine', more_status = 'aucun', auto_status = 'aucun',
        auto_started_at = null, auto_lots = 0, auto_low_streak = 0, auto_added = 0, auto_cost_usd = 0,
-       auto_stop = null, stats = '{}'::jsonb, actual_cost_usd = 0.9 where id = $1`,
+       auto_stop = null, stats = '{}'::jsonb, actual_cost_usd = 0.3 where id = $1`,
     [runId],
   );
   for (let i = 1; i <= delivered; i++) {
@@ -242,9 +242,11 @@ describe.skipIf(!adminUrl)("lecture automatique de la réserve sur une vraie bas
       runId,
     ]);
     const r = await beginMore(service, auditId, { lot: started!.lot });
-    expect(r!.budgetUsd).toBeCloseTo(AUTO_LIMITS.budgetUsd - 0.04, 6);
-    expect(r!.maxReadMs).toBeLessThanOrEqual(3 * 60_000 + 2_000);
-    expect(r!.maxReadMs).toBeGreaterThan(2 * 60_000);
+    // MC.6f : budget de la campagne (0,50 USD) moins les 0,30 USD de la première liste = 0,20 ; lot de 0,15 au plus.
+    expect(r!.budgetUsd).toBeCloseTo(0.15, 6);
+    // Durée : 45 minutes au total, 22 écoulées : un lot de 9 minutes au plus.
+    expect(r!.maxReadMs).toBeLessThanOrEqual(9 * 60_000);
+    expect(r!.maxReadMs).toBeGreaterThan(8 * 60_000);
   });
 
   it("finalizeMore remplace les lignes de réserve sans rien perdre, avec des rangs contigus, et se rejoue sans doublon", async () => {
@@ -469,7 +471,7 @@ describe.skipIf(!adminUrl)("lecture automatique de la réserve sur une vraie bas
     expect(row.auto_added).toBe(10);
   });
 
-  it("arrêt : deux lots de suite sous 5 cibles ajoutées (un bon lot remet le compteur à zéro)", async () => {
+  it("MC.6f : un rendement faible n'arrête plus la chaîne (le compteur reste mesuré)", async () => {
     await startBackground(service, auditId);
     expect(await advanceBackground(service, run(), 1, lotStats(0.005), 4)).toMatchObject({
       continue: true,
@@ -481,26 +483,38 @@ describe.skipIf(!adminUrl)("lecture automatique de la réserve sur une vraie bas
     expect(await advanceBackground(service, run(), 3, lotStats(0.005), 1)).toMatchObject({
       continue: true,
     });
-    const last = await advanceBackground(service, run(), 4, lotStats(0.005), 2);
-    expect(last).toEqual({ continue: false, stop: "rendement_faible" });
-    const row = await auto();
-    expect(row.auto_status).toBe("termine");
-    expect(row.auto_stop).toBe("rendement_faible");
-    // Un lot en retard après l'arrêt ne relance rien.
-    expect(await advanceBackground(service, run(), 5, lotStats(0.005), 20)).toEqual({
-      continue: false,
-      stop: "rendement_faible",
+    expect(await advanceBackground(service, run(), 4, lotStats(0.005), 2)).toMatchObject({
+      continue: true,
     });
+    const row = await auto();
+    expect(row.auto_status).toBe("en_cours");
+    expect(row.auto_low_streak).toBe(2);
   });
 
-  it("arrêt : budget total de jugement de l'arrière-plan atteint", async () => {
+  it("arrêt : un lot qui ne lit aucune page arrête la chaîne", async () => {
+    await startBackground(service, auditId);
+    const out = await advanceBackground(
+      service,
+      run(),
+      1,
+      { costUsd: 0, stock: 0, lots: 1, pagesRead: 0 } as unknown as FunnelStats,
+      0,
+    );
+    expect(out).toEqual({ continue: false, stop: "reserve_epuisee" });
+  });
+
+  it("arrêt : budget de la campagne (0,50 USD, première liste comprise) atteint", async () => {
     await startBackground(service, auditId);
     expect(await advanceBackground(service, run(), 1, lotStats(0.04), 15)).toMatchObject({
       continue: true,
     });
+    // `finalizeMore` additionne le coût du lot à `actual_cost_usd` : 0,48 USD dépensés, 0,02 restant < 0,03.
+    await db.query("update public.qualification_runs set actual_cost_usd = 0.48 where id = $1", [
+      runId,
+    ]);
     const out = await advanceBackground(service, run(), 2, lotStats(0.03), 15);
     expect(out).toEqual({ continue: false, stop: "budget" });
-    expect(Number((await auto()).auto_cost_usd)).toBeLessThanOrEqual(AUTO_LIMITS.budgetUsd + 0.2);
+    expect(Number((await auto()).auto_cost_usd)).toBeLessThanOrEqual(AUTO_LIMITS.budgetUsd);
   });
 
   it("arrêt : réserve épuisée", async () => {
@@ -521,15 +535,15 @@ describe.skipIf(!adminUrl)("lecture automatique de la réserve sur une vraie bas
     });
   });
 
-  it("arrêt : durée maximale de 25 minutes", async () => {
-    await startBackground(service, auditId, new Date(Date.now() - 24.5 * 60_000));
+  it("arrêt : durée maximale de 45 minutes", async () => {
+    await startBackground(service, auditId, new Date(Date.now() - 44.5 * 60_000));
     const out = await advanceBackground(service, run(), 1, lotStats(0.02), 20);
     expect(out).toEqual({ continue: false, stop: "duree" });
     expect((await auto()).auto_stop).toBe("duree");
   });
 
   it("redémarrage d'une chaîne terminée : compteurs remis à zéro", async () => {
-    await startBackground(service, auditId, new Date(Date.now() - 26 * 60_000));
+    await startBackground(service, auditId, new Date(Date.now() - 46 * 60_000));
     await advanceBackground(service, run(), 1, lotStats(0.02), 20);
     expect((await auto()).auto_status).toBe("termine");
     await db.query("update public.qualification_runs set more_status = 'termine' where id = $1", [
