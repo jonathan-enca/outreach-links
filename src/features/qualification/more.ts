@@ -5,7 +5,7 @@ import { t } from "@/lib/messages";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import type { FunnelStats, QualInput, ResourceYield } from "./funnel";
 import { loadQualificationInput, toRow, type QualRunRow } from "./run";
-import { AUTO_LIMITS, failBackground } from "./background";
+import { AUTO_LIMITS, CAMPAIGN_JUDGE_USD, failBackground } from "./background";
 import { countStock, MORE_LIMITS, STOCK_REASONS } from "./reserve";
 import type { QualCandidate, QualContext, QualResult } from "./types";
 
@@ -118,6 +118,8 @@ export async function beginMore(
     ? Math.min(
         MORE_LIMITS.budgetUsd,
         Math.max(0, AUTO_LIMITS.budgetUsd - Number(row.auto_cost_usd)),
+        // MC.6f : budget de la campagne entière (0,50 USD) moins tout ce qui est déjà dépensé.
+        Math.max(0, CAMPAIGN_JUDGE_USD - Number(row.actual_cost_usd)),
       )
     : MORE_LIMITS.budgetUsd;
   const maxReadMs =

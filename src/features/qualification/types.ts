@@ -87,7 +87,12 @@ export const SITUATIONS = [
   "juridique",
   "commercial",
   "ferme_a_liens",
-  /** Page de contenu sur le sujet, mais qui ne montre aucune des trois situations. */
+  /**
+   * MC.6f (décision du 18/11) : page proche du contenu visé (thème ou public) qui ne montre aucune des trois
+   * situations. Elle est GARDÉE (passage derrière les trois cas dans le classement), avec une note.
+   */
+  "autre",
+  /** Aucun rapport avec le sujet (un des cinq refus), ou jugement ancien sans situation précise. */
   "aucune",
 ] as const;
 export type Situation = (typeof SITUATIONS)[number];
@@ -177,6 +182,8 @@ export interface LlmJudgement {
   resource: number;
   /** MC.6b : situation de la page (absente des jugements rendus avant : l'ancien critère s'applique). */
   situation?: Situation;
+  /** MC.6f : réserve à relire (lien unique, ancre optimisée, sponsorisé, billet ancien...) : un signal, jamais un refus. */
+  note?: string | null;
 }
 
 export interface ContactOutcome {

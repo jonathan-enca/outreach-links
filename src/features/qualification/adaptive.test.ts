@@ -284,7 +284,7 @@ describe("lecture adaptative par lots", () => {
     expect(results.some((r) => r.exclusionReason === "hors_budget_llm")).toBe(true);
   });
 
-  it("rendement décroissant : 3 lots de suite presque sans page pertinente arrêtent la lecture", async () => {
+  it("MC.6f : plus d'arrêt au rendement, toute la file est lue tant que les plafonds ne sont pas atteints", async () => {
     const { deps } = fakeDeps({ fit: (d) => (d.startsWith("bon-") ? 0.9 : 0.1) });
     const cands = [...many(20, "content", "bon"), ...many(500, "content", "vide")];
     const { stats } = await executeQualification(
@@ -292,9 +292,9 @@ describe("lecture adaptative par lots", () => {
       input(cands, { tuning: { targetJudged: 1000, maxLlmTargets: 1000 } }),
       step,
     );
-    expect(stats.readStop).toBe("rendement");
-    expect(stats.lots).toBeGreaterThanOrEqual(QUALIFY_LIMITS.minLots);
-    expect(stats.pagesRead).toBeLessThan(520);
+    expect(stats.readStop).toBe("epuise");
+    expect(stats.pagesRead).toBe(520);
+    expect(stats.stock).toBe(0);
     expect(stats.relevant).toBe(20);
   });
 

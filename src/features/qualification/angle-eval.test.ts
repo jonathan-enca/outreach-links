@@ -13,7 +13,7 @@ import { TARGET_SITUATIONS } from "./types";
 
 /** Cohérence du jeu annoté des trois cas (MC.6b) : sans réseau ni modèle. */
 describe("jeu d'évaluation des trois cas", () => {
-  it("couvre deux thèmes, les trois situations et chaque motif de refus", () => {
+  it("couvre deux thèmes, les trois situations, les cibles gardées par proximité et chaque motif de refus", () => {
     expect(new Set(ANGLE_EVAL_CASES.map((c) => c.id)).size).toBe(ANGLE_EVAL_CASES.length);
     for (const site of ["coloriages", "donnees"] as const) {
       const cases = ANGLE_EVAL_CASES.filter((c) => c.site === site);
@@ -26,25 +26,39 @@ describe("jeu d'évaluation des trois cas", () => {
       "petit_editeur_ressources",
       "cite_des_comparables",
       "juridique",
-      "commercial",
       "ferme_a_liens",
-      "pas_une_page_de_contenu",
+      "autre",
       "aucune",
     ]) {
       expect(first.has(s as never), s).toBe(true);
     }
   });
 
-  it("une cible porte une des trois situations ; un refus porte ses motifs acceptés", () => {
+  it("une cible gardée porte une des trois situations (priorité) ou « autre » (proximité) ; un refus porte ses motifs acceptés", () => {
     for (const c of ANGLE_EVAL_CASES) {
       if (c.keep) {
         expect(
-          c.situations.every((s) => TARGET_SITUATIONS.has(s)),
+          c.situations.every((s) => TARGET_SITUATIONS.has(s) || s === "autre"),
           c.id,
         ).toBe(true);
       } else {
         expect(TARGET_SITUATIONS.has(c.situations[0]!), c.id).toBe(false);
+        expect(c.situations[0], c.id).not.toBe("autre");
         expect(c.reasons?.length ?? 0, c.id).toBeGreaterThan(0);
+        // Un refus est un des cinq refus (MC.6f), jamais un motif devenu signal.
+        for (const r of c.reasons!) {
+          expect(
+            [
+              "concurrent",
+              "page_legale",
+              "ferme_a_liens",
+              "vend_des_liens",
+              "irrealiste",
+              "hors_sujet",
+            ],
+            c.id,
+          ).toContain(r);
+        }
       }
       expect(c.note.length, c.id).toBeGreaterThan(10);
     }

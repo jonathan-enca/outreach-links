@@ -69,6 +69,11 @@ export function unsolicitedFactor(
 const ANGLE_BOOST: Partial<Record<Situation, number>> = {
   lien_mort: 1.15,
   petit_editeur_ressources: 1.08,
+  // MC.6f : les trois cas passent en tête du classement ; une cible gardée par proximité vient après.
+  autre: 0.75,
+  aucune: 0.75,
+  pas_une_page_de_contenu: 0.6,
+  commercial: 0.6,
 };
 
 /** Pertinence : adéquation du LLM, renforcée par le recoupement des concurrents et par la force de l'angle. */
@@ -96,36 +101,34 @@ export function finalScore(
   return { score: Math.round(score * 10) / 10, parts };
 }
 
-/** Motif d'exclusion d'une situation de refus (MC.6b). */
+/** Motif d'exclusion d'une situation de refus. MC.6f : seuls l'écrit juridique et la ferme à liens (deux des cinq refus) restent. */
 const SITUATION_REASON: Partial<Record<Situation, ExclusionReason>> = {
-  pas_une_page_de_contenu: "pas_de_contenu",
   juridique: "page_legale",
-  commercial: "page_commerciale",
   ferme_a_liens: "ferme_a_liens",
 };
 
 /**
- * Exclusion après le LLM (étage 4), dans l'ordre de gravité. Depuis MC.6b, une page n'est une cible que
- * si elle montre une des trois situations (lien mort remplaçable, petit éditeur qui cite des ressources,
- * page qui cite plusieurs ressources comparables). Exception : la page qui cite déjà le site sans faire
- * de lien (`mention`) porte une autre preuve, jugée par le rédacteur. Un jugement rendu avant MC.6b
- * (sans situation) garde l'ancien critère.
+ * Exclusion après le LLM (étage 4). MC.6f, décision de Jonathan du 18/11/2026 (« ne pas s'autocensurer ») :
+ * une page proche du contenu visé est GARDÉE ; les cinq refus sont les mêmes que ceux du rédacteur
+ * (`refusals.ts`) : concurrent direct, page légale, ferme à liens manifeste, grand site inatteignable,
+ * aucun rapport avec le sujet. Les trois cas qui ont rapporté des liens à Jonathan ne servent plus à
+ * exclure mais à CLASSER (`ANGLE_BOOST`) ; lien unique, ancre optimisée, sponsorisé, billet ancien,
+ * rubrique ou page commerciale sont une note (`LlmJudgement.note`), jamais un motif. Le motif `sans_angle`
+ * n'est plus rendu (il reste lisible sur les anciennes lignes).
  */
 export function judgementExclusion(
   j: LlmJudgement,
   minFit: number = QUALIFY_LIMITS.minFit,
-  c?: Pick<QualCandidate, "sources">,
+  _c?: Pick<QualCandidate, "sources">,
 ): { reason: ExclusionReason; detail: string } | null {
   if (j.sellsLinks) return { reason: "vend_des_liens", detail: j.fitReason };
   if (j.sameOffer) return { reason: "concurrent", detail: j.fitReason };
   if (j.unrealistic) return { reason: "irrealiste", detail: j.fitReason };
   const refusal = j.situation ? SITUATION_REASON[j.situation] : undefined;
   if (refusal) return { reason: refusal, detail: j.fitReason };
-  if (j.fit < minFit) return { reason: "hors_sujet", detail: j.fitReason };
-  if (j.situation && !TARGET_SITUATIONS.has(j.situation)) {
-    const mentioned = c?.sources.some((x) => x.source === "mention") ?? false;
-    if (!mentioned) return { reason: "sans_angle", detail: j.fitReason };
-  }
+  // « aucune » = aucun rapport avec le sujet (cinquième refus), quelle que soit la note de proximité.
+  if (j.situation === "aucune" || j.fit < minFit)
+    return { reason: "hors_sujet", detail: j.fitReason };
   return null;
 }
 

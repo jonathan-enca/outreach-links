@@ -1,9 +1,9 @@
 import { AUTO_LIMITS } from "@/features/qualification/background";
 
-/** Minutes que prend un lot de lecture d'arrière-plan (mesure du 18/11 : environ 5 minutes par lot). */
-export const MINUTES_PER_LOT = 5;
-/** Sites lus par lot (`MORE_LIMITS`, environ 80 pages). */
-const SITES_PER_LOT = 80;
+/** Minutes que prend un lot de lecture d'arrière-plan (mesure du 18/11 : 3 minutes d'attente du jugement ; MC.6f : lot de ~300 pages lues, environ 9 minutes). */
+export const MINUTES_PER_LOT = 9;
+/** Sites lus par lot (`MORE_LIMITS`, MC.6f : jusqu'à 120 pages utilisables, environ 300 pages lues). */
+const SITES_PER_LOT = 250;
 /** Coût minimal d'un lot : sous ce reste de budget, plus de lot (`AUTO_LIMITS.minLotBudgetUsd`). */
 const LOT_COST_USD = AUTO_LIMITS.minLotBudgetUsd;
 

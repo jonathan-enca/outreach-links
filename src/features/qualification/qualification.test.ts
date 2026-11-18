@@ -271,7 +271,8 @@ describe("étage 4 : LLM (contenu non fiable, citation réelle)", () => {
     expect(j.resource).toBe(0);
     expect(judgementExclusion(J({ sellsLinks: true, fit: 0.2 }))?.reason).toBe("vend_des_liens");
     expect(judgementExclusion(J({ sameOffer: true }))?.reason).toBe("concurrent");
-    expect(judgementExclusion(J({ fit: 0.3 }))?.reason).toBe("hors_sujet");
+    expect(judgementExclusion(J({ fit: 0.2 }))?.reason).toBe("hors_sujet");
+    expect(judgementExclusion(J({ fit: 0.3 }))).toBeNull();
     expect(judgementExclusion(J())).toBeNull();
   });
 });
