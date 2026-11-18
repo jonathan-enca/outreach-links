@@ -321,9 +321,11 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
   const [picked, setPicked] = useState<Set<string>>(() => new Set());
   const [bulk, setBulk] = useState<AuditActionState>({ status: "idle" });
   const [pending, start] = useTransition();
-  const msgs = view.messages;
-  const replies = view.replies;
-  const forms = view.forms;
+  const [campaign, setCampaign] = useState("all");
+  const inCampaign = (x: { planId: string }) => campaign === "all" || x.planId === campaign;
+  const msgs = view.messages.filter(inCampaign);
+  const replies = view.replies.filter(inCampaign);
+  const forms = view.forms.filter(inCampaign);
   const pick = (id: string, on: boolean) =>
     setPicked((prev) => {
       const next = new Set(prev);
@@ -352,7 +354,10 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
   const chosenMsgs = msgs.filter((m) => picked.has(m.id) && show("messages"));
   const chosenForms = forms.filter((f) => picked.has(f.id) && show("formulaires"));
   const approvableMsgs = view.hasMailbox ? chosenMsgs.filter((m) => m.ready) : [];
-  const bulk_ = (fn: () => Result, confirm?: string) => {
+  const spread = new Set([...chosenMsgs, ...chosenReplies, ...chosenForms].map((x) => x.planId))
+    .size;
+  const bulk_ = (fn: () => Result, confirm?: string, selection = false) => {
+    if (selection && spread > 1 && !window.confirm(V.campaign.mixed(spread))) return;
     if (confirm && !window.confirm(confirm)) return;
     start(async () => {
       const r = await fn();
@@ -478,6 +483,21 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
         </Card>
       ) : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
+        {view.campaigns.length > 1 ? (
+          <select
+            aria-label={V.campaign.label}
+            value={campaign}
+            onChange={(e) => setCampaign(e.target.value)}
+            className="h-9 rounded-control border border-border bg-card px-2 text-sm font-medium"
+          >
+            <option value="all">{V.campaign.all}</option>
+            {view.campaigns.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        ) : null}
         <div role="group" aria-label={V.filters.label} className="flex gap-2 overflow-x-auto pb-1">
           {chips
             .filter(([k, , n]) => k === "tout" || n > 0)
@@ -539,25 +559,29 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
                 size="sm"
                 disabled={pending || approvableMsgs.length + chosenReplies.length === 0}
                 onClick={() =>
-                  bulk_(async () => {
-                    const parts: AuditActionState[] = [];
-                    if (approvableMsgs.length > 0)
-                      parts.push(await actions.approveMessages(approvableMsgs.map((m) => m.id)));
-                    if (chosenReplies.length > 0)
-                      parts.push(await actions.approveReplies(chosenReplies.map((r) => r.id)));
-                    const ok = parts.filter((p) => p.status !== "error");
-                    const skipped = chosenForms.length;
-                    if (ok.length === 0) return parts[0] ?? { status: "error" };
-                    return {
-                      status: "ok",
-                      message: [
-                        ...ok.map((p) => p.message),
-                        skipped > 0 ? V.bulkSkipped(skipped) : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" "),
-                    };
-                  })
+                  bulk_(
+                    async () => {
+                      const parts: AuditActionState[] = [];
+                      if (approvableMsgs.length > 0)
+                        parts.push(await actions.approveMessages(approvableMsgs.map((m) => m.id)));
+                      if (chosenReplies.length > 0)
+                        parts.push(await actions.approveReplies(chosenReplies.map((r) => r.id)));
+                      const ok = parts.filter((p) => p.status !== "error");
+                      const skipped = chosenForms.length;
+                      if (ok.length === 0) return parts[0] ?? { status: "error" };
+                      return {
+                        status: "ok",
+                        message: [
+                          ...ok.map((p) => p.message),
+                          skipped > 0 ? V.bulkSkipped(skipped) : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" "),
+                      };
+                    },
+                    undefined,
+                    true,
+                  )
                 }
               >
                 {pending ? V.busy : V.bulkApprove(approvableMsgs.length + chosenReplies.length)}
@@ -575,6 +599,7 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
                         chosenReplies.map((r) => r.id),
                       ),
                     V.bulkRefuseConfirm(chosenMsgs.length + chosenReplies.length),
+                    true,
                   )
                 }
               >
@@ -585,7 +610,7 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
                 size="sm"
                 variant="ghost"
                 disabled={pending}
-                onClick={() => bulk_(() => actions.snooze(chosen))}
+                onClick={() => bulk_(() => actions.snooze(chosen), undefined, true)}
               >
                 {V.bulkLater(chosen.length)}
               </Button>
@@ -602,6 +627,7 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
                   tone="warning"
                   tag={V.tags.reply}
                   to={r.to}
+                  campaign={r.campaign}
                   subject={r.subject}
                   body={r.body}
                   signed={r.signed}

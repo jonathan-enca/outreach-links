@@ -65,6 +65,46 @@ describe("AnalysisProgress (rendu serveur)", () => {
   it("fin : lien vers les cibles du site", () => {
     const out = html({ ...base, status: "termine", targetsCount: 22 });
     expect(out).toContain('href="/app/site/s1/cibles"');
-    expect(out).toContain("22 cibles sont prêtes");
+    expect(out).toContain("Analyse terminée : 22 cibles sont prêtes");
+    expect(out).toContain("Rien n&#x27;a été envoyé");
+  });
+  it("état intermédiaire : lecture des autres sites en cours, l'écran reste « en cours »", () => {
+    const out = html({ ...base, status: "termine", targetsCount: 15, background: "en_cours" });
+    expect(out).toMatch(/aria-live="polite"[^>]*>Nous continuons à lire d&#x27;autres sites/);
+    expect(out).toContain(
+      "Vos 15 premières cibles sont déjà prêtes, d&#x27;autres peuvent s&#x27;ajouter",
+    );
+    expect(out).toContain("Voir vos premières cibles");
+    expect(out).toContain('role="progressbar"');
+    expect(out).not.toContain("Analyse terminée");
+    expect(out).not.toContain("Ouverture de vos cibles");
+  });
+  it("état final : lecture finie, « Analyse terminée » avec le nombre réel", () => {
+    const out = html({ ...base, status: "termine", targetsCount: 19, background: "termine" });
+    expect(out).toContain("Analyse terminée : 19 cibles sont prêtes");
+    expect(out).not.toContain('role="progressbar"');
+    expect(out).not.toContain("premières cibles sont déjà prêtes");
+  });
+  it("en cours : la phrase d'état est annoncée, l'étape écartée est dite écartée", () => {
+    const steps = base.steps.map((s) =>
+      s.key === "recherche"
+        ? { ...s, status: "en_cours" as const, counters: { done: 3, total: 45, found: 80 } }
+        : s.key === "constats"
+          ? { ...s, status: "saute" as const }
+          : s,
+    );
+    const out = html({
+      ...base,
+      steps,
+      skipped: { mentions: "nom de marque trop descriptif", deadPages: 0 },
+    });
+    expect(out).toMatch(/aria-live="polite"[^>]*>Nous cherchons les sites qui peuvent vous citer/);
+    expect(out).toContain("3 recherches faites sur 45 environ · 80 sites trouvés");
+    expect(out).toContain(
+      "Recherche de mentions de votre marque écartée : nom de marque trop descriptif.",
+    );
+    expect(out).toContain("Écartée : aucune page retenue à relire.");
+    expect(out).toContain("Du plus large au plus précis");
+    expect(out).toContain("à venir");
   });
 });

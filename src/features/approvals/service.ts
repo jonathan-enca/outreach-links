@@ -73,6 +73,8 @@ export interface PendingReply {
   /** Ce que le prospect a écrit (extrait). */
   theirs: string;
   snoozedUntil: string | null;
+  planId: string;
+  campaign: string;
 }
 
 /**
@@ -91,9 +93,12 @@ export interface PendingForm {
   ready: boolean;
   issues: LintIssue[];
   snoozedUntil: string | null;
+  planId: string;
 }
 
 export interface QueueView {
+  /** Campagnes présentes dans la file (une par plan), pour filtrer et ne rien mélanger. */
+  campaigns: { id: string; label: string }[];
   messages: PendingMessage[];
   replies: PendingReply[];
   forms: PendingForm[];
@@ -303,6 +308,8 @@ export async function loadQueue(supabase: Client, now: Date = new Date()): Promi
     ),
     theirs: inMap.get(x.inbound_message_id) ?? "",
     snoozedUntil: x.snoozed_until,
+    planId: sentPlan.get(x.sent_message_id) ?? "",
+    campaign: campaignMap.get(sentPlan.get(x.sent_message_id) ?? "") ?? "",
   }));
   const allForms = formDrafts
     .map((f): PendingForm | null => {
@@ -320,11 +327,18 @@ export async function loadQueue(supabase: Client, now: Date = new Date()): Promi
         ready: f.ready,
         issues: (Array.isArray(f.lint_issues) ? f.lint_issues : []) as unknown as LintIssue[],
         snoozedUntil: f.snoozed_until,
+        planId: task.plan_id,
       };
     })
     .filter((x): x is PendingForm => x !== null);
   const due = (x: { snoozedUntil: string | null }) => !isSnoozed(x.snoozedUntil, now);
+  const seen = new Map<string, string>();
+  for (const x of [...messages, ...allReplies, ...allForms])
+    if (x.planId && !seen.has(x.planId)) seen.set(x.planId, campaignMap.get(x.planId) ?? "");
   return {
+    campaigns: [...seen]
+      .map(([id, label]) => ({ id, label }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
     messages: messages.filter(due),
     replies: allReplies.filter(due),
     forms: allForms.filter(due),

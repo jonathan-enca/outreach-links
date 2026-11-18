@@ -3,6 +3,7 @@ import { ANALYSIS_STEP_KEYS, type AnalysisStepKey, type StepStatus } from "./ste
 import {
   buildAnalysisView,
   counterText,
+  exampleText,
   stepFraction,
   type AnalysisSnapshot,
   type StepRow,
@@ -60,24 +61,106 @@ describe("stepFraction", () => {
   });
 });
 
-describe("counterText", () => {
-  it("dit « 23 recherches sur 35 · 412 sites trouvés »", () => {
+describe("counterText : chaque chiffre porte le nom de ce que le moteur mesure", () => {
+  // Compteurs réels des campagnes mega-coloring.com du 16/11 et du 18/11/2026.
+  it("comprendre : `found` compte les contenus à proposer, pas les pages lues", () => {
+    const c = { done: 9, total: 9, found: 7, redo: 0 };
+    expect(counterText("comprendre", c, "termine")).toBe(
+      "Votre activité est cernée · 7 pages fortes repérées",
+    );
+    expect(counterText("comprendre", c, "termine")).not.toMatch(/pages lues/);
+    expect(counterText("comprendre", {}, "en_cours")).toBeNull();
+  });
+  it("concurrents : le total compte les recherches PLUS la mesure de taille", () => {
+    expect(counterText("concurrents", { done: 0, total: 4 })).toBe("Recherche Google 1 sur 3");
+    expect(counterText("concurrents", { done: 2, total: 4 })).toBe("Recherche Google 3 sur 3");
+    expect(counterText("concurrents", { done: 3, total: 4 })).toBe(
+      "Mesure de la taille de chaque concurrent",
+    );
+    // Recherches déjà faites avant le lancement : il ne reste que la mesure, jamais « 1 sur 1 recherches ».
+    expect(counterText("concurrents", { done: 0, total: 1 })).toBe(
+      "Mesure de la taille de chaque concurrent",
+    );
+    expect(counterText("concurrents", { done: 1, total: 1, found: 10, missed: 0 }, "termine")).toBe(
+      "10 vrais concurrents repérés sur Google",
+    );
+  });
+  it("mesure des liens : les sites qui citent et les recherches, pas « 3 sur 3 relevés »", () => {
+    expect(
+      counterText("etat_des_lieux", { done: 3, total: 3, found: 2, keywords: 1 }, "termine"),
+    ).toBe("2 sites font déjà un lien vers vous · visible sur 1 recherche Google");
+    expect(
+      counterText("etat_des_lieux", { done: 3, total: 3, found: 1, keywords: 0 }, "termine"),
+    ).toBe("1 site fait déjà un lien vers vous");
+    expect(counterText("etat_des_lieux", { done: 1, total: 3 })).toBe("Mesure 1 sur 3");
+  });
+  it("recherche : le total n'est qu'une prévision (« environ »), absent une fois fini", () => {
     expect(counterText("recherche", { done: 23, total: 35, found: 412 })).toBe(
-      "23 sur 35 recherches · 412 sites trouvés",
+      "23 recherches faites sur 35 environ · 412 sites trouvés",
     );
+    // 18/11 : 45 prévues, 54 faites ; 16/11 : 35 prévues, 27 faites.
+    expect(
+      counterText("recherche", { done: 54, total: 54, found: 976, missed: 1 }, "termine"),
+    ).toBe("54 recherches · 976 sites trouvés");
+    expect(counterText("recherche", { done: 27, total: 35, found: 677 }, "termine")).toBe(
+      "27 recherches · 677 sites trouvés",
+    );
+    expect(counterText("recherche", { found: 544 }, "termine")).toBe("544 sites trouvés");
   });
-  it("tri : pages lues, puis pages jugées", () => {
-    expect(counterText("tri", { done: 96, total: 150 })).toBe("96 sur 150 pages lues");
+  it("tri : pages lues, puis pages évaluées, puis le bilan", () => {
+    expect(counterText("tri", { done: 96, total: 150, kept: 31 })).toBe(
+      "96 pages lues sur 150 · 31 lisibles",
+    );
     expect(counterText("tri", { done: 150, total: 150, judged: 4, to_judge: 10, found: 3 })).toBe(
-      "4 sur 10 pages jugées · 3 pages pertinentes",
+      "4 pages évaluées sur 10 · 3 retenues",
+    );
+    expect(
+      counterText(
+        "tri",
+        { done: 150, total: 150, kept: 47, judged: 47, to_judge: 47, found: 18 },
+        "termine",
+      ),
+    ).toBe("150 pages lues · 18 retenues");
+  });
+  it("contacts, relecture, demandes", () => {
+    expect(counterText("contacts", { done: 12, total: 18, found: 10 })).toBe(
+      "12 sites vérifiés sur 18 · 10 contacts trouvés",
+    );
+    expect(counterText("contacts", { done: 0, total: 0, found: 0 }, "termine")).toBe(
+      "Aucun site à vérifier",
+    );
+    expect(counterText("constats", { done: 3, total: 6, dead: 2 })).toBe("3 pages relues sur 6");
+    expect(counterText("constats", { done: 15, total: 15, found: 3 }, "termine")).toBe(
+      "15 pages relues · 3 occasions trouvées (liens cassés, mentions)",
+    );
+    expect(counterText("demandes", { done: 15, total: 15, found: 15 }, "termine")).toBe(
+      "15 cibles prêtes",
     );
   });
-  it("rien à montrer : null, jamais « 0 » ni NaN", () => {
+  it("rien à montrer : null, jamais « 0 » inventé ni NaN", () => {
     expect(counterText("recherche", {})).toBeNull();
-    expect(counterText("constats", { found: 0 })).toBeNull();
-    expect(counterText("constats", { done: 3, total: 6, found: 0 })).toBe(
-      "3 sur 6 pages vérifiées · 0 liens morts ou mentions",
+    expect(counterText("tri", {})).toBeNull();
+    expect(counterText("constats", {})).toBeNull();
+    expect(counterText("demandes", {})).toBeNull();
+  });
+});
+
+describe("exampleText : un exemple est toujours étiqueté", () => {
+  it("dit ce qu'est l'exemple, ou ne montre rien", () => {
+    expect(exampleText("recherche", "coloriages gratuits à imprimer")).toBe(
+      "Dernière recherche : « coloriages gratuits à imprimer »",
     );
+    expect(exampleText("recherche", "exemple.test")).toBe("Dernier site trouvé : exemple.test");
+    expect(exampleText("tri", "exemple.test")).toBe("Page lue : exemple.test");
+    // Mesure des liens : une recherche est étiquetée ; un site qui cite (souvent sans intérêt) n'est pas montré.
+    expect(exampleText("etat_des_lieux", "sapin de noel a colorier et imprimer")).toBe(
+      "Votre recherche la plus populaire : « sapin de noel a colorier et imprimer »",
+    );
+    expect(exampleText("etat_des_lieux", "exemple-douteux.xyz")).toBeNull();
+    // Un nom isolé n'aide pas (retour de Jonathan, 18/11).
+    expect(exampleText("comprendre", "Exemple")).toBeNull();
+    expect(exampleText("concurrents", "exemple.test")).toBeNull();
+    expect(exampleText("tri", null)).toBeNull();
   });
 });
 
@@ -88,7 +171,9 @@ describe("buildAnalysisView", () => {
     expect(v.steps).toHaveLength(8);
     expect(v.steps.every((s) => s.status === "attente" && s.counter === null)).toBe(true);
     expect(v.active).toBe(true);
-    expect(v.remainingMinutes).toBe(19);
+    expect(v.remainingMinutes).toBe(13);
+    expect(v.remainingRange).toEqual([10, 17]);
+    expect(v.headline).toBe("L'analyse démarre…");
     expect(v.funnel).toBeNull();
     expect(v.targets).toEqual([]);
   });
@@ -108,13 +193,15 @@ describe("buildAnalysisView", () => {
       ]),
       new Date("2026-11-16T10:03:00Z"),
     );
-    // (20 + 68 + 457 × 23/35) / 1140 ≈ 0,34
-    expect(v.percent).toBe(34);
+    // 90 × (10 + 40 + 280 × 23/35) / 762 ≈ 28 : la première liste occupe 90 % de la barre.
+    expect(v.percent).toBe(28);
+    expect(v.headline).toBe("Nous cherchons les sites qui peuvent vous citer");
     expect(v.steps.find((s) => s.key === "recherche")).toMatchObject({
-      counter: "23 sur 35 recherches · 412 sites trouvés",
-      example: "coloriage enfant",
+      counter: "23 recherches faites sur 35 environ · 412 sites trouvés",
+      example: "Dernière recherche : « coloriage enfant »",
+      progress: 66,
     });
-    expect(v.funnel).toEqual({ examined: 412, afterSort: null, targets: null });
+    expect(v.funnel).toEqual({ found: 412, read: null, kept: null, targets: null });
   });
 
   it("temps restant : la vitesse réelle prend le relais dès 15 %", () => {
@@ -129,18 +216,115 @@ describe("buildAnalysisView", () => {
     expect(fast.remainingMinutes!).toBeGreaterThanOrEqual(1);
   });
 
-  it("l'entonnoir en chiffres : examinés → après tri → cibles", () => {
+  it("du plus large au plus précis : trouvés, lus, retenus, cibles ; « à venir » tant que non mesuré", () => {
     const v = buildAnalysisView(
       withSteps(
         [
-          row("recherche", "termine", { found: 544 }),
-          row("tri", "termine", { found: 96 }),
+          row("recherche", "termine", { found: 677 }),
+          row("tri", "termine", { done: 150, total: 150, found: 18 }),
           row("contacts", "termine"),
         ],
-        { targetsCount: 27 },
+        { targetsCount: 15 },
       ),
     );
-    expect(v.funnel).toEqual({ examined: 544, afterSort: 96, targets: 27 });
+    expect(v.funnel).toEqual({ found: 677, read: 150, kept: 18, targets: 15 });
+    // Pendant la lecture : les pages retenues ne sont pas encore connues.
+    const reading = buildAnalysisView(
+      withSteps([
+        row("recherche", "termine", { found: 976 }),
+        row("tri", "en_cours", { done: 80, total: 150, kept: 31 }),
+      ]),
+    );
+    expect(reading.funnel).toEqual({ found: 976, read: 80, kept: null, targets: null });
+  });
+
+  it("une étape écartée s'affiche comme telle, avec sa raison, jamais comme faite", () => {
+    const v = buildAnalysisView(withSteps([row("constats", "saute", { found: 0 })]));
+    const step = v.steps.find((s) => s.key === "constats")!;
+    expect(step).toMatchObject({ status: "saute", counter: null, example: null });
+    expect(step.notes).toEqual(["Écartée : aucune page retenue à relire."]);
+    expect(v.doneLabels).not.toContain(step.label);
+  });
+
+  it("recherches écartées par le plan : dites sous l'étape de recherche, avec la raison", () => {
+    const skipped = { mentions: "nom de marque trop descriptif ou trop court.", deadPages: 1 };
+    const v = buildAnalysisView(
+      withSteps([row("recherche", "en_cours", { done: 3, total: 45, found: 80 })], { skipped }),
+    );
+    expect(v.steps.find((s) => s.key === "recherche")!.notes).toEqual([
+      "Recherche de mentions de votre marque écartée : nom de marque trop descriptif ou trop court.",
+      "Liens morts non cherchés chez 1 concurrent : trop peu de chances d'y trouver quelque chose d'utile.",
+    ]);
+    // Rien d'écarté, ou étape pas commencée : aucune phrase.
+    const none = buildAnalysisView(withSteps([row("recherche", "en_cours")], { skipped: null }));
+    expect(none.steps.find((s) => s.key === "recherche")!.notes).toEqual([]);
+    const waiting = buildAnalysisView(snap({ skipped }));
+    expect(waiting.steps.find((s) => s.key === "recherche")!.notes).toEqual([]);
+  });
+
+  it("« terminée » attend la fin de la lecture des autres sites trouvés", () => {
+    const done = (over: Partial<AnalysisSnapshot>) =>
+      buildAnalysisView(
+        withSteps(
+          ANALYSIS_STEP_KEYS.map((k) => row(k, "termine")),
+          { status: "termine", finishedAt: "2026-11-16T10:12:00Z", targetsCount: 15, ...over },
+        ),
+        new Date("2026-11-16T10:13:00Z"),
+      );
+    expect(done({ background: "en_cours" }).backgroundPending).toBe(true);
+    // Pas encore démarrée, juste après la fin : on attend avant de conclure.
+    expect(done({ background: "aucun" }).backgroundPending).toBe(true);
+    expect(done({ background: "termine" }).backgroundPending).toBe(false);
+    expect(done({ background: "echoue" }).backgroundPending).toBe(false);
+    expect(
+      done({ background: "aucun", finishedAt: "2026-11-16T09:00:00Z" }).backgroundPending,
+    ).toBe(false);
+    expect(done({}).backgroundPending).toBe(false);
+    // Un lot « Lire d'autres sites » demandé à la main compte aussi.
+    expect(done({ background: "termine", moreRunning: true }).backgroundPending).toBe(true);
+  });
+
+  it("état intermédiaire puis final : la barre avance encore, le nombre de cibles n'est jamais dit final avant", () => {
+    const at = (over: Partial<AnalysisSnapshot>, now: string) =>
+      buildAnalysisView(
+        withSteps(
+          ANALYSIS_STEP_KEYS.map((k) =>
+            row(k, "termine", k === "demandes" ? { done: 15, total: 15, found: 15 } : {}),
+          ),
+          { status: "termine", finishedAt: "2026-11-16T10:12:00Z", ...over },
+        ),
+        new Date(now),
+      );
+    const early = at({ background: "en_cours", targetsCount: 15 }, "2026-11-16T10:13:00Z");
+    const later = at({ background: "en_cours", targetsCount: 19 }, "2026-11-16T10:27:00Z");
+    const final = at({ background: "termine", targetsCount: 19 }, "2026-11-16T10:30:00Z");
+    expect(early).toMatchObject({ percent: 90, headline: "Nous continuons à lire d'autres sites" });
+    expect(later.percent).toBeGreaterThan(early.percent);
+    expect(later.percent).toBeLessThan(100);
+    expect(early.steps.at(-1)!.counter).toBe("15 cibles prêtes pour l'instant");
+    expect(later.steps.at(-1)!.counter).toBe("19 cibles prêtes pour l'instant");
+    // Final : 100 %, et la dernière étape dit le nombre réel (19), pas celui de la première liste (15).
+    expect(final).toMatchObject({ percent: 100, backgroundPending: false });
+    expect(final.steps.at(-1)!.counter).toBe("19 cibles prêtes");
+    // Avant la fin de la première liste, la barre ne dépasse jamais 90 %.
+    const almost = buildAnalysisView(
+      withSteps(ANALYSIS_STEP_KEYS.map((k) => row(k, k === "demandes" ? "en_cours" : "termine"))),
+    );
+    expect(almost.percent).toBeLessThanOrEqual(90);
+  });
+
+  it("l'échec de la mesure des liens (en parallèle) n'est pas « l'étape qui s'est arrêtée »", () => {
+    const v = buildAnalysisView(
+      withSteps(
+        [
+          row("comprendre", "termine"),
+          row("etat_des_lieux", "echoue", {}, { error: "Mesure impossible." }),
+          row("recherche", "echoue", {}, { error: "Le service est indisponible." }),
+        ],
+        { status: "echoue" },
+      ),
+    );
+    expect(v.failedStep).toMatchObject({ key: "recherche", position: 4 });
   });
 
   it("fin : 100 %, plus de temps restant, plus d'interrogation", () => {
@@ -173,7 +357,7 @@ describe("buildAnalysisView", () => {
     expect(v.active).toBe(false);
     expect(v.remainingMinutes).toBeNull();
     expect(v.failedStep).toMatchObject({ key: "recherche", error: "Le service est indisponible." });
-    expect(v.doneLabels).toEqual(["Comprendre votre site", "Repérer vos concurrents"]);
+    expect(v.doneLabels).toEqual(["Comprendre votre site", "Repérer vos concurrents sur Google"]);
   });
 
   it("des lignes d'étape manquantes ne cassent rien (analyse tout juste confirmée)", () => {
