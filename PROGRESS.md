@@ -2228,3 +2228,9 @@ Deux demandes de Jonathan relayées par la session parente (affichage seulement,
 ### Prochain sous-jalon recommandé : MC.6f (inchangé)
 
 (1) Faire relire 10 messages « par proximité » rédigés pour de vrai, et caler la consigne ; (2) réduire la première passe de ressources ; (3) graines sans services payants, repli « publiques » alimenté par une recherche ; (4) liens morts.
+
+## Session du 18/11 (suite 8) : « À valider », sélecteur de campagne (faite)
+
+- Liste déroulante « Toutes les campagnes / <site · pays> » (visible dès 2 campagnes) : filtre emails, réponses et formulaires, et donc compteurs, « tout sélectionner » et actions en lot. Les réponses affichent maintenant leur campagne. Une sélection en lot qui mélange plusieurs campagnes demande une confirmation. Le compteur du menu reste global.
+- `QueueView.campaigns` (par plan), `planId` sur réponses et formulaires. Pas de migration.
+- **Maquette de la page** demandée à une session parallèle (Fable 5.2) : `docs/mockups/a-valider.html` sur la branche `mockup-a-valider`, à valider par Jonathan avant tout codage.

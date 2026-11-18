@@ -2908,6 +2908,11 @@ export const fr = {
     snoozedBanner: (n: number) => `${n} ${n > 1 ? "éléments remis" : "élément remis"} à plus tard.`,
     wake: "Tout remettre dans la file",
     select: "Sélectionner",
+    campaign: {
+      label: "Campagne",
+      all: "Toutes les campagnes",
+      mixed: (n: number) => `Cette sélection mélange ${n} campagnes. Continuer ?`,
+    },
     selectAll: (n: number) => `Tout sélectionner (${n})`,
     selectNone: "Tout désélectionner",
     selected: (n: number) => `${n} ${n > 1 ? "sélectionnés" : "sélectionné"}`,
