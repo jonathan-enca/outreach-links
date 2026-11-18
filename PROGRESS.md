@@ -2176,7 +2176,29 @@ Rendement par source (candidats → liste courte) : **lien mort 46 → 13 (28 %)
 
 Durée et coût réels de la lecture de toute la réserve, `auto_stop`, réserve restante : le fond n'a pas tourné (plantage puis arrêt demandé). Rejugement par le modèle fort (25 cibles) non fait. Pour relancer sans repayer la première analyse : événement `audit/qualification.more.requested` avec `{ auditId, auto: { lot: 1 } }` après réinitialisation de `auto_status` ; le plus simple est le bouton « Lire le lot suivant » de l'écran Vos cibles. La campagne `bce79672…` est conservée en base (non supprimée).
 
-### Prochain sous-jalon recommandé : MC.6h
+### Suite de MC.6g (même jour, 18:45 à 19:01 UTC) : lecture de fond relancée sur la version corrigée
+
+PR #177 (schéma tolérant, repli 150 s), #178 (cette fiche), #180 (refus resserrés : boutique du même secteur = `same_offer`, site d'un autre secteur = ferme à liens, lien mort sans rapport = pas d'angle ; `SYSTEM_CHARS` 7 000) fusionnées et déployées, puis événement `audit/qualification.auto.requested` (la boule de neige n'est pas repayée : `deja`).
+
+**Mesure réelle de la lecture de fond (modèle de production, `auto_stop`, `cost_ledger`)** :
+
+| | Valeur |
+| --- | --- |
+| Durée | **16 minutes** (18:45:51 à 19:01:07), 3 lots (le 4e compté dans `more_stats` est le dernier lot) |
+| `auto_stop` | **`budget`** : la campagne a atteint 0,47 USD sur 0,50 (qualification 0,346 + fond 0,128) |
+| Pages ajoutées | +20 cibles (liste courte 57 → 77) |
+| Coût de la campagne entière | 1,645 USD (qualification 0,47, DataForSEO ~0,73, boule de neige 0,18, reste) |
+| Réserve **non lue** après le fond | **646 sites** (`hors_budget_lecture`) ; **279 pages lues mais jamais jugées** (`non_qualifie`) |
+
+**Réponse à « une réserve reste-t-elle non lue ? » : oui, 646 sites, pour une raison de qualité et non de temps** : le fond n'a utilisé que 16 minutes sur 45. Cause : le modèle de production dépasse la limite de sortie (360 jetons par cible) : **134 appels de jugement tronqués sur 175 au total** (lot 4 : 30 sur 32 avec « sortie tronquée »). Un appel tronqué est payé et ne donne rien, puis le lot est rejugé en deux (nouveau coût) ; le budget de la campagne (0,50 USD) s'épuise avant d'avoir jugé les pages lues (`non_qualifie` passe de 238 à 279). 157 pages vivantes lues au dernier lot, 10 jugées. Correctif : 520 jetons par cible et consigne « sois bref » (20, 12, 15 mots), `SYSTEM_CHARS` 7 200 (PR de cette session).
+
+**Les nouveaux refus ne sont donc pas mesurés** : presque rien n'a été jugé sous la nouvelle consigne (concurrents 15 → 16, fermes à liens 1 → 1). Relecture manuelle (non indépendante) des 57 premières cibles avec les nouveaux critères : une trentaine seraient refusées (sites d'un autre secteur qui publient un article sur le thème, boutiques et prestataires, grands médias, annuaires, pages sans rapport).
+
+**Défaut trouvé** : plumeti.fr est en liste courte alors que la page lue est une image JPEG (octets lus comme du texte). À écarter par type de contenu (hors périmètre, dans le backlog).
+
+**Reste à faire (MC.6i)** : relancer le fond avec les 520 jetons (hors budget de 0,50 USD : décision de Jonathan nécessaire pour dépasser le plafond de campagne, ou vérifier d'abord sur un lot) et mesurer sur trois sites avec le modèle fort la part de refus (`same_offer`, fermes à liens).
+
+### Prochain sous-jalon recommandé : MC.6i (voir ci-dessus ; remplace MC.6h)
 
 Relancer la lecture de fond sur `bce79672…` (corrigée) et mesurer durée, coût, `auto_stop`, réserve ; puis resserrer les fermes à liens et `same_offer` (points a à d) et mesurer sur les trois sites avec le modèle fort ; découper `judge-collect` par groupe.
 

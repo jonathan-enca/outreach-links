@@ -67,6 +67,7 @@ Pour CHAQUE cible, renvoie un objet avec son "id" :
 - hook : une citation EXACTE et courte copiée de l'extrait (titre, intertitre ou phrase) qui montre pourquoi écrire à ce site ; null si rien ne convient. N'invente jamais de citation.
 - resource : l'index (0, 1, 2...) de la page du site à promouvoir la plus utile pour ces lecteurs (toujours un nombre, même pour un refus).
 - note : la réserve à relire (une courte phrase), ou null.
+Sois BREF : fit_reason 20 mots au plus, note 12 mots au plus, hook 15 mots au plus, aucune explication hors du JSON. Une réponse trop longue est coupée et la cible est perdue.
 Ne déduis rien qui ne soit pas dans ce que tu reçois.`;
 
 export interface BatchItem {

@@ -99,8 +99,11 @@ export const QUALIFY_LIMITS = {
    * s'ajoute à une phrase de motif en français et à la citation) : sur la campagne mega-coloring.com du
    * 18/11, 64 appels de jugement sur 81 ont échoué (« sortie tronquée ») et 256 pages lues sont restées
    * « non_qualifie » sans aucun jugement. 360 laisse de la marge pour la note ajoutée ; ne coûte que ce qui est écrit.
+   * MC.6g : 360 ne suffit pas au modèle de production (plus bavard que le modèle de dev) : sur la campagne
+   * monjardinbio.com, 30 appels sur 32 d'un lot de fond ont été tronqués, payés pour rien, et le budget de la
+   * campagne s'est épuisé. 520 jetons, et la consigne demande des phrases brèves (20 / 12 / 15 mots).
    */
-  outputTokensPerTarget: 360,
+  outputTokensPerTarget: 520,
   /** Adéquation minimale pour rester candidat (MC.6f : 0,3 au lieu de 0,5, « thème ou public voisin » reste gardé ; en dessous, aucun rapport). */
   minFit: 0.3,
   // --- Étage 5 : contact ---
@@ -136,7 +139,7 @@ export function qualificationBudgetUsd(auditTargetUsd: number = AUDIT_BUDGET.tar
 }
 
 /** Prompt système + contexte du site (caractères) : borne vérifiée par un test sur le vrai prompt. */
-export const SYSTEM_CHARS = 7_000;
+export const SYSTEM_CHARS = 7_200;
 /**
  * Caractères par cible au plus (extrait, titre, description, 8 intertitres, liens du contenu, passage
  * autour de la ressource citée, lien mort annoncé, échappement JSON).
