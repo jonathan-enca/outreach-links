@@ -344,6 +344,8 @@ Un sous-jalon = une session. Chaque sous-jalon se termine par une mesure compar�
 
 ### MC.6 Qui cite déjà des ressources comparables (nouvelle source principale)
 
+À lire avant de commencer : `docs/mc0b-essai.md` (réglages des appels, filtre, consigne de jugement des trois cas, rendement par ressource). Découpage en sessions : **MC.6a** la source dans la collecte (ressources comparables, liens entrants, filtre gratuit, coût annoncé et plafonné) ; **MC.6b** le jugement des trois cas dans la qualification et le tri du rédacteur, et le pilotage par ressource ; **MC.6c** la boule de neige et la mesure sur une vraie campagne des deux sites.
+
 - **Ressources comparables** : pour chaque site, les sites et pages que les autres citent pour le même besoin. Deux origines, sans règle propre à un thème : les concurrents qui sortent sur les recherches par sujet (les « concurrents » écartés jusqu'ici sont la liste de départ), et les ressources que citent les pages déjà retenues.
 - **Liens entrants** de chaque ressource (DataForSEO, une page par domaine, langue de la campagne, spam plafonné) : chaque page qui la cite est candidate. Coût mesuré : 0,024 à 0,03 USD par ressource pour 150 pages.
 - **Pilotage par ressource** : lire 6 à 8 pages par ressource, puis ne poursuivre que celles qui donnent des cibles ; une ressource citée surtout dans des pages légales ou des fermes à liens est abandonnée.
