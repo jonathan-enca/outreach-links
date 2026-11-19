@@ -2879,3 +2879,40 @@ Sous-jalon `PLAN.md > MQ.4`. Branche `mq.4-requetes-contenu` (depuis `main` à j
 - Mesurer le rendement de chaque piste sur des envois réels (MQ.7).
 
 ### Prochain sous-jalon recommandé : MQ.3 (premier passage, lire avant de trier) après un premier lot de réponses ; MQ.6 après MQ.1.
+
+## Session du 19/11 (suite 5) : MQ.3, lecture gratuite avant le tri (faite, poids non recalés)
+
+Sous-jalon `PLAN.md > MQ.3`. Branche `mq.3-lire-avant-trier` (depuis `main` à jour, MQ.1 / MQ.4 / MQ.5 fusionnées). **0 USD d'API** : la lecture est HTTP seul, sans LLM. Aucun envoi.
+
+### Ce qui change dans le code
+
+- **Avant le tri** (`src/features/qualification/funnel.ts`, étape `preread`) : les 150 meilleurs candidats (score provisoire, `QUALIFY_LIMITS.preread.maxCandidates`) sont lus une fois avec le lecteur sûr (robots.txt, délai par hôte, même file que la lecture). Le score provisoire est ensuite recalé, puis les files de lecture sont construites.
+- **Signaux** (`src/features/qualification/prescore.ts`, `prereadBoost`) : page morte / injoignable / robots : × 0,5 ; page vivante écartée par la lecture : × 0,6 ; au moins deux sites cités sur la page : × 1,2 ; ressource comparable citée sur la page : × 1,25. **Aucun candidat n'est écarté** à cette étape ; l'étage 3 et le LLM décident comme avant.
+- **Coupure** : `QUALIFY_LIMITS.preread.enabled` (true par défaut) ou `tuning.prereadEnabled: false`.
+- Tests : `prescore.test.ts` (6 tests). Les tests existants de la lecture adaptative, des ressources et de l'entonnoir (`adaptive`, `resources`, `qualification`) fixent le nombre de pages lues du tri d'origine : ils tournent avec `prereadEnabled: false`, pour que leurs compteurs gardent leur sens. Un test dédié à la lecture avant tri reste à écrire.
+
+### Pas fait : le recalage
+
+- **Les coefficients ne sont pas recalés.** Il n'y a encore ni envoi ni réponse en base (0 envoi, 0 réponse, 0 lien, vérifié le 19/11). Ils sont des hypothèses, à recaler sur les premières réponses réelles de MQ.1.
+- **Critère « deux sites de thèmes différents »** : non mesuré. Il demande des essais en direct, à lancer par Jonathan.
+
+### Migrations (vérifiées et appliquées le 19/11)
+
+- Le projet `outreach-links` (`ivjkwhhgtibewqzccvrj`) n'avait pas les migrations `2026121900000000_target_piste`, `2026121900000100_search_console` ni `2026121900000200_piste_requete_contenu`. Elles ont été appliquées dans cet ordre (succès). Vérifié : `qualified_targets` a `piste` et `niveau`, 759 cibles, aucune sans piste.
+
+### Commandes
+
+```bash
+pnpm vitest run src/features/qualification
+pnpm typecheck && pnpm lint
+```
+
+### Dettes et pièges
+
+- **Lecture en double** : chaque candidat lu avant le tri est relu par la lecture normale (même page, deux requêtes HTTP). Coût : gratuit, mais le temps de lecture augmente d'environ 150 pages. À supprimer en réutilisant le résultat de lecture.
+- Le signal est calculé sur la page d'origine du candidat, pas sur l'accueil du site (pas de secours d'accueil dans l'étape préalable).
+- Les poids sont visibles dans `QUALIFY_LIMITS.preread.weights` : à recaler, pas à modifier à la main sans mesure.
+
+### Prochain
+
+Essais en direct sur deux sites de thèmes différents (Jonathan lance), puis recalage des coefficients sur les premières réponses réelles (MQ.1).

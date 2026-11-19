@@ -444,8 +444,15 @@ const input = (candidates: QualCandidate[], extra: object = {}) => ({
   candidates,
   budgetUsd: 5,
   model: "gpt-4o-mini",
-  tuning: { targetJudged: 1000, maxLlmTargets: 1000, maxPagesRead: 2000 },
   ...extra,
+  // MQ.3 coupée : ces tests fixent le nombre de pages lues par le tri d'origine.
+  tuning: {
+    prereadEnabled: false,
+    targetJudged: 1000,
+    maxLlmTargets: 1000,
+    maxPagesRead: 2000,
+    ...(extra as { tuning?: object }).tuning,
+  },
 });
 const citing = (n: number, prefix: string, resource: string, path = "/blog/article") =>
   Array.from({ length: n }, (_, i) =>

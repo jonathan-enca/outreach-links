@@ -93,6 +93,25 @@ export const QUALIFY_LIMITS = {
   excerptChars: 6_000,
   /** MC.6b : liens du contenu montrés au modèle (texte et site), et passage autour de la ressource citée. */
   citedLinks: 14,
+  /**
+   * MQ.3 : lecture gratuite (HTTP, sans LLM) des premiers candidats AVANT le tri par score provisoire.
+   * `enabled: false` remet le tri d'avant MQ.3. Coefficients non recalés (aucune réponse réelle encore).
+   */
+  preread: {
+    enabled: true,
+    /** Candidats lus avant le tri, au plus (les mieux classés par le score provisoire). */
+    maxCandidates: 150,
+    weights: {
+      /** Page morte, injoignable ou interdite par robots.txt. */
+      dead: 0.5,
+      /** Page vivante mais écartée par la lecture (parquée, piratée, vente de liens, etc.). */
+      excluded: 0.6,
+      /** Au moins deux sites extérieurs cités sur la page. */
+      cites: 1.2,
+      /** La ressource comparable qui a fait trouver la page est citée dessus. */
+      resourceFound: 1.25,
+    },
+  },
   citedContextChars: 320,
   /**
    * Jetons de sortie par cible (plafond de l'appel). MC.6f : 230 était trop juste (la situation de MC.6b
