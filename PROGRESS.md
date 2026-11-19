@@ -2916,3 +2916,45 @@ pnpm typecheck && pnpm lint
 ### Prochain
 
 Essais en direct sur deux sites de thèmes différents (Jonathan lance), puis recalage des coefficients sur les premières réponses réelles (MQ.1).
+
+## Session du 19/11 (suite 6) : MQ.6, boule de neige en profondeur (faite, derrière un interrupteur coupé)
+
+Sous-jalon `PLAN.md > MQ.6`. Branche `mq.6-boule-de-neige` (depuis `main`, MQ.3 fusionnée en #212). **0 USD d'API** : rien n'est appelé. Aucun envoi.
+
+### Prérequis vérifiés (19/11, sur la vraie base `ivjkwhhgtibewqzccvrj`)
+
+- MQ.1 fusionnée dans `main` (98bc296) ; migrations `target_piste`, `search_console` et `piste_requete_contenu` appliquées (liste des migrations lue).
+- **Aucune réponse réelle** : `inbound_messages` = 0, `sent_messages` = 0, `reply_classifications` = 0, `links` = 0. Donc rien n'est amplifié.
+
+### Ce qui change dans le code
+
+- `src/features/snowball/deep.ts` (pur) : interrupteur `SNOWBALL_DEEP_ENABLED` (faux par défaut, seul `"true"` l'allume), `DEEP_LIMITS` (niveau max 3, relecture de 20 cibles, rendement minimum 0,25 [HYPOTHÈSE], plafond d'un niveau 0,25 USD), `deepGate` (ordre : interrupteur, réponses réelles, niveau précédent lancé, rendement relu, coût), `reviewSample` (échantillon réparti et déterministe), `yieldOf` (part des cibles jugées bonnes).
+- `src/features/snowball/service.ts` : `loadSeedSources` filtre par niveau (optionnel) ; `persistSnowball` écrit le niveau voulu et range les stats profondes dans `qualification_runs.stats.snowball_levels` ; `runDeepSnowballForAudit` s'arrête **avant toute requête** si l'interrupteur est coupé ; `recordLevelReview` enregistre la relecture dans `stats.snowball_reviews`, qui autorise le niveau suivant.
+- Le niveau 1 (MC.6d) ne change pas : même chemin, même clé `snowball`.
+- Tests : `src/features/snowball/deep.test.ts` (interrupteur, chaque blocage du garde, plage de niveaux, échantillon, rendement, et l'appel désactivé qui échoue si la base ou DataForSEO est touché). `pnpm vitest run src/features/snowball` : 24 tests verts.
+
+### Ce qui n'est pas fait (volontairement)
+
+- **Pas branché à un job Inngest.** `audit-qualify-auto-start` n'appelle toujours que le niveau 1. Le niveau 2 suppose que les pages du niveau 1 soient lues, ce qui arrive dans les lots suivants ; le branchement viendra avec MQ.7.
+- **Pas de mesure réelle** : le rendement par niveau demande une relecture à la main de 20 cibles, et il n'y a aucune réponse à mesurer. Le critère « deux sites de thèmes différents » reste à faire par Jonathan.
+- Pas d'écran ni de commande pour saisir la relecture : `recordLevelReview` existe, son appelant (commande ou écran) n'est pas écrit.
+
+### Décisions [auto]
+
+- Le seuil de rendement (0,25) et le plafond par niveau (0,25 USD, soit le coût pire cas d'un niveau à 6 ressources) sont des hypothèses, à recaler sur MQ.7.
+- Un niveau profond ne réutilise pas `snowball` : `snowball_levels[niveau]` évite d'écraser le niveau 1.
+
+### Vérifications
+
+- `pnpm vitest run src/features/snowball` : 24 tests verts.
+- `pnpm typecheck` : vert. `pnpm lint` : 0 erreur, aucun avertissement dans les fichiers de la boule de neige.
+- `prettier --check` : vert sur les fichiers touchés.
+
+### Commandes
+
+```bash
+pnpm vitest run src/features/snowball
+pnpm typecheck && pnpm lint
+```
+
+### Prochain sous-jalon recommandé : MQ.7 (pilote mesuré) après les premières réponses réelles ; avant, les essais en direct de MQ.3 sur deux sites de thèmes différents (Jonathan lance).
