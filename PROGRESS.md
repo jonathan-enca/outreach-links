@@ -553,6 +553,8 @@ Demande : « design ok », reprendre le wording pour qu'il soit meilleur et plus
 
 ## Backlog (idées hors périmètre)
 
+- Chantier envoi des mails (19/11/2026) : décisions et pistes dans `PLAN.md > ME` (Resend = transactionnel seulement, prestataire dédié pour l'outreach, connexion Google en option).
+
 - **Arrière-plan (17/11, étape 1)** : pas d'étape « liens morts » pour les cibles ajoutées par la lecture de la réserve (manuel ou automatique) ; jugement des lots d'arrière-plan à tarif réduit (étape 2) ; barre fixe « Valider ces demandes » qui recouvre le message de fin sur mobile (MU.10).
 - Essai de 7 jours (16/11) : le coder dans la facturation (début, fin, blocage ou passage à l'offre), avec ou sans carte ; aligner la page d'inscription, les conditions et le sort de l'audit gratuit public (`/audit-gratuit`).
 - Tarifs (16/11) : imposer par offre le nombre de sites, de boîtes, d'audits par mois et les réponses prêtes à insérer (aujourd'hui seul le plafond d'envois l'est) ; TVA incluse côté Stripe (prix TTC) ; facturation annuelle ; faire correspondre `workspaces.plan` (gratuit/payant) aux trois offres.
