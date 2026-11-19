@@ -5,6 +5,7 @@ import { runAnalysis, type StepRunner } from "@/features/analysis/orchestrate";
 import { failAnalysis, realOrchestration } from "@/features/analysis/run";
 import { AUTO_EVENT } from "@/features/qualification/background";
 import { ANALYSIS_EVENT, LINKS_STATE_EVENT } from "@/features/analysis/service";
+import { LINKS_STATE_WAIT, linksStateSettled } from "@/features/analysis/links-state-wait";
 import { logger } from "@/lib/logger";
 import { t } from "@/lib/messages";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -39,13 +40,27 @@ export const analysisRun = inngest.createFunction(
     // Tout résultat de step est rendu bien formé avant d'être mémorisé (voir `well-formed.ts`).
     const runStep: StepRunner = safeStep((id, fn) => step.run(id, fn) as Promise<unknown>);
     const orchestration = realOrchestration(
-      productionAnalysisDeps(async (run) => {
-        await inngest.send({
-          id: `analysis-links-${run.auditId}-${run.nonce}`,
-          name: LINKS_STATE_EVENT,
-          data: { auditId: run.auditId },
-        });
-      }),
+      productionAnalysisDeps(
+        async (run) => {
+          await inngest.send({
+            id: `analysis-links-${run.auditId}-${run.nonce}`,
+            name: LINKS_STATE_EVENT,
+            data: { auditId: run.auditId },
+          });
+        },
+        // MQ.4 : la recherche attend l'état des lieux (Search Console). Lecture en base, espacée,
+        // bornée : au pire l'analyse continue sans. Les tours sont des steps (mémorisés au rejeu).
+        async (run) => {
+          for (let i = 0; i < LINKS_STATE_WAIT.maxChecks; i++) {
+            const settled = await step.run(`etat-des-lieux:attente-${i}`, () =>
+              linksStateSettled(createServiceClient(), run.auditId),
+            );
+            if (settled) return;
+            await step.sleep(`etat-des-lieux:pause-${i}`, LINKS_STATE_WAIT.interval);
+          }
+          log.warn("état des lieux non fini à temps, recherche sans lui", { auditId: run.auditId });
+        },
+      ),
     );
     const outcome = await runAnalysis(orchestration, auditId, runStep);
     if (outcome.status === "termine") {

@@ -170,6 +170,42 @@ describe("orchestrateur", () => {
     expect(calls).toContain("constats");
   });
 
+  it("la recherche attend l'état des lieux (MQ.4) : attente après les concurrents, avant la recherche", async () => {
+    const { o, calls } = fakeOrchestration(
+      {},
+      {
+        awaitParallel: async () => {
+          calls.push("attente");
+        },
+      },
+    );
+    await runAnalysis(o, "audit-1", direct);
+    expect(calls).toEqual([
+      "parallele",
+      "comprendre",
+      "concurrents",
+      "attente",
+      "recherche",
+      "tri",
+      "constats",
+      "fin",
+    ]);
+  });
+
+  it("une attente de l'état des lieux qui échoue ne bloque jamais la recherche", async () => {
+    const { o, calls } = fakeOrchestration(
+      {},
+      {
+        awaitParallel: async () => {
+          throw new Error("délai dépassé");
+        },
+      },
+    );
+    const out = await runAnalysis(o, "audit-1", direct);
+    expect(out.status).toBe("termine");
+    expect(calls).toContain("recherche");
+  });
+
   it("un arrêt propre met l'analyse en échec avec le message, et n'exécute pas la suite", async () => {
     const { o, calls } = fakeOrchestration({
       concurrents: { status: "arret", message: t.analysis.errors.noCompetitors },

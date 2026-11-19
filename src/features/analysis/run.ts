@@ -83,6 +83,8 @@ export interface AnalysisDeps {
   findDeps: (run: FindingsRunRow) => FindDeps;
   /** Envoi de l'événement de l'état des lieux (étape parallèle). */
   launchLinksState: (run: AnalysisRun) => Promise<void>;
+  /** MQ.4 : attend la fin de l'état des lieux avant la recherche (absente = on n'attend pas). */
+  awaitLinksState?: (run: AnalysisRun) => Promise<void>;
   now?: () => Date;
 }
 
@@ -727,6 +729,7 @@ export function realOrchestration(deps: AnalysisDeps): Orchestration {
   return {
     begin: (auditId) => beginAnalysis(deps.service(), auditId),
     launchParallel: (run) => deps.launchLinksState(run),
+    awaitParallel: (run) => deps.awaitLinksState?.(run) ?? Promise.resolve(),
     stages: [
       understandStage(deps),
       competitorsStage(deps),

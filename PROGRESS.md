@@ -2704,10 +2704,14 @@ Sous-jalon `PLAN.md > MQ.4`. Branche `mq.4-requetes-serp` (depuis `main`, après
 - **Coût dans `cost_ledger`** : ces requêtes passent par le même chemin de collecte SERP que les autres (client DataForSEO déjà enregistré), donc rien de nouveau à câbler.
 - **Par public (persona)** : le gabarit « sites de référence {public} » n'est PAS encore fait. Seules les requêtes par thème le sont. À ajouter si le rendement du thème ne suffit pas.
 
-### Limite connue (à décider)
+### Ordre des étapes : la recherche attend l'état des lieux (décision de Jonathan, 19/11)
 
-- **Ordre des étapes** : `etat_des_lieux` (qui écrit `links_state`) tourne en parallèle et n'est pas attendu avant la recherche. Les requêtes Search Console ne sont donc prises en compte **que si l'état des lieux est déjà écrit au moment de la prévisualisation**. Sinon, le plan est identique à avant : aucune erreur, mais la source ne sert pas toujours. Pour la rendre fiable, il faudrait attendre `etat_des_lieux` avant `recherche` (changement de flux, hors de ce sous-jalon). **Décision de Jonathan demandée.**
-- De plus, le drapeau `SEARCH_CONSOLE_ENABLED` reste faux en production : tant qu'il l'est, cette source est vide.
+- **Décidé** : l'étape « recherche » attend la fin de `etat_des_lieux` (réussie ou échouée) avant de préparer la collecte, pour que les requêtes Search Console de `links_state` soient toujours prises en compte quand elles existent.
+- **Comment** : `runAnalysis` (`src/features/analysis/orchestrate.ts`) appelle `awaitParallel` juste avant l'étape `recherche`. Dans `src/inngest/functions/analysis-run.ts`, l'attente est une boucle **bornée** : lecture en base de l'état (`linksStateSettled`, `src/features/analysis/links-state-wait.ts`), puis `step.sleep` de 15 s, au plus 24 tours (6 minutes). Chaque tour est un step, donc rejouable. Pas de `waitForEvent` : il aurait pu manquer un événement déjà arrivé.
+- **Au pire** : si l'état des lieux ne finit pas (lancement raté, panne), la recherche part quand même, sans Search Console. Aucune erreur pour la personne. Une ligne d'avertissement est journalisée.
+- **Coût** : aucun appel payant ajouté ; l'attente dure en général le temps de trois appels DataForSEO (moins d'une minute).
+- Le drapeau `SEARCH_CONSOLE_ENABLED` reste faux en production : tant qu'il l'est, la source Search Console est vide.
+- Tests : `analysis.test.ts` (ordre concurrents → attente → recherche ; une attente en échec ne bloque pas), `links-state-wait.test.ts` (fini / en cours / absent).
 
 ### Commandes
 
@@ -2723,4 +2727,4 @@ pnpm typecheck && pnpm lint
 
 ### Prochain sous-jalon recommandé
 
-MQ.1 (PR #206) en premier, puis MQ.5 (thèmes et sites proposés par Claude, avec vérification). Si Jonathan tranche pour l'attente de `etat_des_lieux`, la petite modification de flux peut se faire juste avant MQ.5.
+MQ.1 (PR #206) en premier, puis MQ.5 (thèmes et sites proposés par Claude, avec vérification). L'attente de `etat_des_lieux` avant la recherche est faite dans cette PR (voir ci-dessus).
