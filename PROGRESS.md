@@ -2834,3 +2834,48 @@ Sous-jalon `PLAN.md > MQ.5`. Branche `mq.5-sites-proposes`. Aucun envoi d'email.
 - **Écart à traiter (non fait ici)** : les requêtes de contenu gardent leur tactique `ressources`, donc `pisteFromTactics` les range dans la piste « citation » et non dans une piste propre « requête de contenu ». Pour un rendement séparé, il faut une piste dédiée : ajouter la valeur à `PISTES` et au `check` SQL de `qualified_targets.piste` (migration additive), puis propager l'origine (`regle` / `search_console`).
 - **Écart à traiter** : le gabarit par public (« sites de référence {public} ») n'est pas fait.
 - **Non vérifiable ici** : le rendement réel par piste dépend d'envois réels (aucun envoi en développement).
+
+## Session du 19/11 (suite 4) : MQ.4, piste propre et public (faite, sans envoi)
+
+Sous-jalon `PLAN.md > MQ.4`. Branche `mq.4-requetes-contenu` (depuis `main` à jour : MQ.1, MQ.5 et MQ.4 fusionnées). **0 USD d'API** dans cette session : rien n'est appelé, tout est testé en pur. Aucun envoi.
+
+### Ce qui change dans le code
+
+- **Piste propre** : nouvelle source de candidat `requete_contenu` (`src/features/collection/types.ts`), placée dans `PISTES` juste après `content`, avant `serp` (`src/features/targets/tracking.ts`, libellé « Requête de contenu sans lien »). `fromSerp` (`normalize.ts`) la donne à tout résultat d'une requête dont l'origine commence par `contenu_`. Avant, ces résultats tombaient dans `serp` : le rendement de la piste ne se mesurait pas à part.
+- **Origines des requêtes** (`src/features/queries/schema.ts`, ajout seul) : `contenu_theme`, `contenu_public`, `contenu_search_console`. Remplacent `regle` / `search_console` pour les requêtes de contenu.
+- **Gabarit par public** (`content-queries.ts`) : « sites de référence {public} {thème} » (fr) / « reference sites {public} {thème} » (en), une requête par public de l'audience du profil (`profile.audience`), au plus `CONTENT_QUERY_LIMITS.maxPublics` = 3, dédoublonnés, sans public vide. Aucune requête sans thème.
+- `src/features/collection/service.ts` passe `profile.audience` à `contentQueries`.
+- **Migration** `supabase/migrations/2026121900000200_piste_requete_contenu.sql` (additive) : la contrainte `qualified_targets_piste_check` accepte `requete_contenu`. Aucune ligne modifiée.
+- Tests : `content-queries.test.ts` (origines renommées ; 4 tests de public ; 3 tests de piste : la source, la priorité dans `pisteOf`, le cas ordinaire inchangé).
+
+### Coût et plafond
+
+- **Par requête, dans `cost_ledger`** : chaque requête SERP passe par le client DataForSEO, qui journalise chaque appel payant (`src/lib/dataforseo/client.ts`, « tout appel payant est journalisé »). Rien de nouveau à câbler.
+- **Plafond** : au plus 2 requêtes de thème + 3 de public + 4 de Search Console = **9 requêtes de contenu**, puis le plafond SERP de la collecte (`COLLECTION_LIMITS.serp.maxQueries`) et le budget de phase. Le coût annoncé suit (même `estimateCost("serpOrganicLive")`).
+
+### Rendement par piste
+
+- Le tableau interne (MQ.1, `src/features/targets/tracking.ts`) groupe déjà par piste : la piste `requete_contenu` y apparaît sans code en plus. Le **rendement réel** (réponses, liens) ne se mesure qu'après des envois réels ; il n'y en a pas en développement.
+
+### Vérifications
+
+- `pnpm vitest run src/features/collection src/features/targets src/features/queries src/features/qualification src/features/snowball src/features/analysis` : 402 verts.
+- `pnpm typecheck` vert ; `pnpm lint` : 0 erreur (9 avertissements déjà présents) ; `pnpm format:check` vert.
+
+### Décisions [auto]
+
+- Les requêtes de contenu ont leur propre file de lecture (`laneOf` renvoie `requete_contenu`, car la source est distincte) : elles ne passent plus par le tour de rôle des publics de la file `serp`. Leur rendement est donc lu à part.
+- `resources.ts` (domaines comparables du thème) ne compte plus les résultats de requêtes de contenu, qui filtrent sur `source === "serp"`. C'est voulu : ces résultats ne décrivent pas les ressources du thème.
+
+### Dettes et pièges
+
+- La migration doit être appliquée à la base avant la fusion du code qui écrit `requete_contenu`, sinon l'insertion échoue sur la contrainte. Ordre : migration, puis code (ou les deux en même temps dans le déploiement).
+- `database.types.ts` n'a pas changé (la colonne est `text`).
+- Coût réel par requête de contenu non mesuré (pas d'appel réel dans cette session).
+
+### Backlog (hors périmètre)
+
+- Plafonner les requêtes de public par audience (aujourd'hui 3, sans rapport au rendement).
+- Mesurer le rendement de chaque piste sur des envois réels (MQ.7).
+
+### Prochain sous-jalon recommandé : MQ.3 (premier passage, lire avant de trier) après un premier lot de réponses ; MQ.6 après MQ.1.

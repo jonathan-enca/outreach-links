@@ -15,11 +15,19 @@ export const CONTENT_QUERY_LIMITS = {
   maxSearchConsoleQueries: 4,
   /** Impressions minimales pour qu'une requête Search Console serve de base à une recherche. */
   minImpressions: 10,
+  /** Publics (audience du profil) retenus au plus : une requête par public, pas plus (coût plafonné). */
+  maxPublics: 3,
 } as const;
 
 const THEME_TEMPLATES: Record<string, ((t: string) => string)[]> = {
   fr: [(t) => `liste de ressources ${t}`, (t) => `sites de référence ${t}`],
   en: [(t) => `${t} resource list`, (t) => `reference sites ${t}`],
+};
+
+/** « sites de référence {public} {thème} » : une requête par public du profil. */
+const PUBLIC_TEMPLATES: Record<string, (p: string, t: string) => string> = {
+  fr: (p, t) => `sites de référence ${p} ${t}`,
+  en: (p, t) => `reference sites ${p} ${t}`,
 };
 
 const SEARCH_CONSOLE_TEMPLATE: Record<string, (q: string) => string> = {
@@ -32,6 +40,8 @@ export interface ContentQueryInput {
   language: string;
   domain: string;
   nameVariants: readonly string[];
+  /** Publics du profil (audience) : une requête de contenu par public, dans la limite de `maxPublics`. */
+  publics?: readonly string[];
   /** Requêtes Search Console du site (lignes brutes de la lecture), vide si non connectée. */
   searchConsoleQueries?: readonly SearchRow[];
   /** Requêtes déjà présentes dans l'univers : jamais dupliquées. */
@@ -93,10 +103,24 @@ export function searchConsoleSeeds(
   return out;
 }
 
+/** Publics non vides et dédoublonnés, dans l'ordre du profil. */
+function uniquePublics(publics: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of publics) {
+    const p = raw.trim();
+    const k = normalizeKey(p);
+    if (!p || !k || seen.has(k)) continue;
+    seen.add(k);
+    out.push(p);
+  }
+  return out;
+}
+
 /**
  * Requêtes de contenu sans lien à ajouter à la collecte SERP (MQ.4). Chaque requête garde son
- * origine (`regle` pour le thème, `search_console` pour les requêtes réelles) : c'est la piste
- * propre que MQ.1 mesurera. Rangs provisoires : `buildCollectionPlan` les place après l'univers.
+ * origine (`contenu_theme`, `contenu_public`, `contenu_search_console`) ; le candidat trouvé garde la
+ * source `requete_contenu`, donc la piste propre que MQ.1 mesure. Rangs provisoires : `buildCollectionPlan` les place après l'univers.
  */
 export function contentQueries(input: ContentQueryInput): PlannedQuery[] {
   const lang = input.language === "en" ? "en" : "fr";
@@ -104,7 +128,8 @@ export function contentQueries(input: ContentQueryInput): PlannedQuery[] {
   const taken = new Set((input.existing ?? []).map((q) => normalizeKey(q)));
   const out: PlannedQuery[] = [];
 
-  const add = (raw: string, origin: "regle" | "search_console", index: number) => {
+  type Origin = "contenu_theme" | "contenu_public" | "contenu_search_console";
+  const add = (raw: string, origin: Origin, index: number) => {
     const q = cleanQuery(raw, brands);
     if (!q) return;
     const k = normalizeKey(q);
@@ -117,7 +142,7 @@ export function contentQueries(input: ContentQueryInput): PlannedQuery[] {
       persona: null,
       target: "home",
       keyword: null,
-      score: origin === "search_console" ? 0.75 - 0.05 * index : 0.5,
+      score: origin === "contenu_search_console" ? 0.75 - 0.05 * index : 0.5,
       rank: 1,
       estUsd: input.perQueryUsd,
       origin,
@@ -126,7 +151,12 @@ export function contentQueries(input: ContentQueryInput): PlannedQuery[] {
 
   const theme = input.theme.trim();
   if (theme) {
-    (THEME_TEMPLATES[lang] ?? THEME_TEMPLATES.fr!).forEach((make) => add(make(theme), "regle", 0));
+    (THEME_TEMPLATES[lang] ?? THEME_TEMPLATES.fr!).forEach((make) =>
+      add(make(theme), "contenu_theme", 0),
+    );
+    const publicMake = PUBLIC_TEMPLATES[lang] ?? PUBLIC_TEMPLATES.fr!;
+    const publics = uniquePublics(input.publics ?? []).slice(0, CONTENT_QUERY_LIMITS.maxPublics);
+    publics.forEach((p, i) => add(publicMake(p, theme), "contenu_public", i));
   }
 
   const seeds = searchConsoleSeeds(
@@ -135,7 +165,7 @@ export function contentQueries(input: ContentQueryInput): PlannedQuery[] {
     input.nameVariants,
   );
   const make = SEARCH_CONSOLE_TEMPLATE[lang] ?? SEARCH_CONSOLE_TEMPLATE.fr!;
-  seeds.forEach((q, i) => add(make(q), "search_console", i));
+  seeds.forEach((q, i) => add(make(q), "contenu_search_console", i));
 
   return out;
 }

@@ -14,6 +14,7 @@ export const PISTES = [
   "mention",
   "intersection",
   "content",
+  "requete_contenu",
   "serp",
 ] as const satisfies readonly CollectionSource[];
 export type Piste = (typeof PISTES)[number];
@@ -24,6 +25,7 @@ export const PISTE_LABELS: Record<Piste, string> = {
   mention: "Mention de la marque sans lien",
   intersection: "Recoupe plusieurs concurrents",
   content: "Recherche de contenu",
+  requete_contenu: "Requête de contenu sans lien",
   serp: "Résultats de recherche Google",
 };
 
