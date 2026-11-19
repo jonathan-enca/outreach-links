@@ -6,6 +6,7 @@ import { estimateCost } from "@/lib/dataforseo/endpoints";
 import { logger } from "@/lib/logger";
 import { t } from "@/lib/messages";
 import type { Database, Json } from "@/lib/supabase/database.types";
+import type { SearchConsoleSnapshot } from "@/features/search-console/load";
 import { LINKS_STATE_LIMITS } from "./estimate";
 import type { StepRunner } from "./orchestrate";
 import { createProgress } from "./progress";
@@ -37,11 +38,15 @@ export interface LinksState {
     total: number | null;
     top: { keyword: string; position: number; volume: number; url: string }[];
   } | null;
+  /** MQ.2 : requêtes et pages réelles de la Search Console, si le site l'a connectée (sinon null). */
+  searchConsole?: SearchConsoleSnapshot | null;
 }
 
 export interface LinksStateRun {
   /** Marché de la campagne : lieu et langue des mots-clés classés. */
   market?: { country: string; language: string };
+  /** Site de l'audit : sert à lire sa Search Console (MQ.2). */
+  siteId?: string;
   auditId: string;
   workspaceId: string;
   domain: string;
@@ -56,7 +61,7 @@ export async function beginLinksState(
   const [{ data: audit }, { data: step }] = await Promise.all([
     service
       .from("audits")
-      .select("id, workspace_id, cost_cap_usd, sites(domain, country, language)")
+      .select("id, workspace_id, cost_cap_usd, site_id, sites(domain, country, language)")
       .eq("id", auditId)
       .maybeSingle(),
     service
@@ -74,6 +79,7 @@ export async function beginLinksState(
   if (!audit || !site || !step || step.status === "termine") return null;
   return {
     auditId,
+    siteId: audit.site_id,
     workspaceId: audit.workspace_id,
     domain: site.domain,
     costCapUsd: Number(audit.cost_cap_usd),
@@ -106,7 +112,12 @@ async function part<T>(
  * est notée manquante ; l'étape n'échoue que si rien n'a pu être mesuré. N'arrête JAMAIS l'analyse.
  */
 export async function executeLinksState(
-  deps: { service: () => Client; dfs: () => Dfs },
+  deps: {
+    service: () => Client;
+    dfs: () => Dfs;
+    /** MQ.2 : lecture de la Search Console (aucun coût DataForSEO). Absente = pas de Search Console. */
+    searchConsole?: (siteId: string) => Promise<SearchConsoleSnapshot | null>;
+  },
   run: LinksStateRun,
   runStep: StepRunner,
   progress: ProgressSink = createProgress(deps.service(), run),
@@ -181,6 +192,12 @@ export async function executeLinksState(
     return out;
   });
 
+  // Hors plafonds DataForSEO : la Search Console est gratuite. Une panne donne simplement null.
+  const searchConsole = await runStep("search-console", async () => {
+    if (!deps.searchConsole || !run.siteId) return null;
+    return (await deps.searchConsole(run.siteId)) ?? null;
+  });
+
   return runStep("fin", async () => {
     const missing: LinksState["missing"] = [];
     if (!summary.ok) missing.push("resume");
@@ -192,6 +209,7 @@ export async function executeLinksState(
       totals: summary.ok ? summary.value : null,
       referringDomains: domains.ok ? domains.value : null,
       keywords: keywords.ok ? keywords.value : null,
+      searchConsole,
     };
     const { error } = await deps
       .service()

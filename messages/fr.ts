@@ -1965,6 +1965,32 @@ export const fr = {
         `Rédaction lancée pour ${n} ${n > 1 ? "cibles" : "cible"}. Les messages arrivent ici dans quelques minutes.`,
     },
   },
+  searchConsole: {
+    title: "Connectez la Search Console (facultatif, fortement conseillé)",
+    hint: "Nous lisons les requêtes et les pages qui vous amènent déjà du trafic : l'audit part de vos vrais mots-clés, pas de suppositions. Lecture seule : nous n'écrivons rien dans votre compte.",
+    button: "Connecter la Search Console",
+    safe: "Autorisation en lecture seule. Nous ne stockons pas votre mot de passe et vous pouvez retirer l'accès à tout moment depuis votre compte Google.",
+    connected: "Connectée en lecture seule. L'audit utilise vos requêtes et pages réelles.",
+    connectedBy: (property: string, email: string) =>
+      `Propriété ${property}, compte ${email}. Lecture seule.`,
+    ok: "Search Console connectée. Les prochains audits utiliseront vos requêtes réelles.",
+    notConnected:
+      "Sans connexion, l'audit fonctionne comme avant, à partir du site et des concurrents.",
+    errors: {
+      refuse: "Google n'a pas donné l'accès : rien n'a été enregistré.",
+      property:
+        "Ce compte Google n'a pas de propriété Search Console pour ce site. Vérifiez le site dans la Search Console, puis recommencez.",
+      scopes:
+        "L'autorisation de lecture n'a pas été accordée entièrement. Recommencez en cochant la case.",
+      no_refresh: "Google n'a pas renvoyé d'accès durable. Recommencez.",
+      profile: "Le compte Google n'a pas pu être lu. Recommencez.",
+      save: "La connexion n'a pas pu être enregistrée. Recommencez.",
+      user: "La connexion a expiré. Reconnectez-vous puis recommencez.",
+      site: "Ce site est introuvable. Rechargez la page.",
+      token: "La connexion a expiré ou n'est pas valide. Recommencez.",
+      invalide: "La connexion a expiré ou n'est pas valide. Recommencez.",
+    },
+  },
   mailboxes: {
     title: "Boîte d'envoi",
     body: "Les messages partent de votre propre boîte, uniquement ceux que vous avez approuvés. Le mot de passe est chiffré avant d'être enregistré et n'est jamais affiché ni relu. Ici, rien n'est envoyé à un tiers : le test vérifie seulement la connexion et, si l'envoi réel est activé, vous adresse un message de test à vous-même.",

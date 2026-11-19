@@ -109,6 +109,14 @@ const schema = z.object({
   GOOGLE_OAUTH_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_OAUTH_CLIENT_SECRET: z.string().min(1).optional(),
   /**
+   * MQ.2 : connexion de la Search Console (lecture seule). Faux par défaut tant que la vérification
+   * Google (G4) n'est pas faite : le bouton n'apparaît que si c'est "true" ET que Google OAuth est actif.
+   */
+  SEARCH_CONSOLE_ENABLED: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
+  /**
    * Envoi ponctuel : id d'UN brouillon validé qui part en premier et peut dépasser le quota
    * d'échauffement (jamais le plafond horaire ni le plafond journalier de la boîte). Absent par
    * défaut ; à retirer une fois le message parti.

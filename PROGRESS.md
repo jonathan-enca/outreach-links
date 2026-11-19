@@ -2650,16 +2650,87 @@ Périmètre tenu : chaque cible retenue garde sa **piste de découverte** (la so
 - « Envoi » = premier message `envoye` (les relances et les simulations `simule` ne comptent pas) ; « lien » = statut `live` au dernier contrôle.
 
 ### Commandes
-
 ```bash
 pnpm vitest run src/features/targets src/features/qualification src/features/snowball
 TRACKING_REPORT=1 TRACKING_REPORT_OUT=/tmp/suivi.md pnpm demo:tracking
 ```
 
 ### Dettes et pièges
-
 - Le fallback « serp » sans source est un choix : une cible sans source connue (données anciennes) tombe dans « Résultats Google ». À surveiller après la reprise.
 - La reprise SQL déduit la piste d'une cible par sa première source dans la collecte ; une cible trouvée par plusieurs sources garde la plus forte.
 - Le niveau 1 suppose que la boule de neige ne trouve que des sites cités par des cibles retenues (vrai aujourd'hui).
 
 ### Prochain sous-jalon recommandé : MQ.2 ou MQ.4 (peuvent se faire en parallèle), puis MQ.3 après un premier lot de réponses.
+
+## Session du 19/11 : MQ.2, Search Console connectée en lecture seule (partielle, derrière un drapeau)
+
+Sous-jalon `PLAN.md > MQ.2`. Branche `mq.2-search-console`. **0 USD d'API** : aucun appel réel à Google ni à DataForSEO, tout est testé avec des réponses simulées. Aucun envoi d'email. Le parcours réel dans un navigateur n'est pas fait (drapeau coupé, vérification Google G4 absente).
+
+### Ce qui change pour la personne
+
+- Sur la page du site, juste **avant la boîte d'envoi** : une carte « Connecter la Search Console (facultatif, fortement conseillé) », même formulation que la boîte. Une fois connectée : « Propriété …, compte …. Lecture seule. ».
+- Une fois connectée, l'état des lieux de l'audit garde les **90 derniers jours** de requêtes et de pages réelles (100 de chaque, les plus vues d'abord) dans `audits.links_state.searchConsole`.
+- Sans connexion : `searchConsole` vaut `null`, aucune erreur, l'audit fonctionne comme avant.
+
+### Ce qui change dans le code
+
+- `src/features/search-console/` (nouveau) :
+  - `api.ts` : propriétés du compte, `pickProperty` (domaine `sc-domain:` d'abord, puis https / http, avec ou sans www ; une propriété « non vérifiée » ne compte pas), `queryRows` (dimension `query` ou `page`, lecture seule), `analyticsWindow` (90 jours, 3 jours de retard).
+  - `service.ts` : `completeSearchConsoleConnect` (échange du code, vérification du scope lecture seule, propriété du site, jeton de renouvellement chiffré, upsert dans `search_console_connections`).
+  - `load.ts` : `readSearchConsoleStatus` (sans jeton, pour l'affichage), `loadSearchConsoleSnapshot` (ne lève jamais : `null` si pas connecté, jeton refusé, panne ou drapeau coupé), `searchConsoleEnabled`.
+  - `search-console-connect.tsx` : la carte. Résultat lu dans le paramètre `sc` (le paramètre `google` reste celui de la boîte).
+  - `search-console.test.ts` : 14 tests (API simulée, autorisation, lecture, connexion).
+- `src/features/google/oauth.ts` : `SEARCH_CONSOLE_SCOPE` (`webmasters.readonly`, demandé à part de Gmail), `purpose` dans le `state` (absent = `gmail`, les états existants restent valides), `buildAuthUrl` accepte la liste de scopes, `refreshAccess` (jeton d'accès).
+- `src/app/api/google/start/route.ts` : `?purpose=search_console` (404 si le drapeau est coupé). `callback/route.ts` : branche Search Console ; Gmail inchangé.
+- `src/features/analysis/links-state.ts` : étape « search-console » (hors plafonds DataForSEO, puisque gratuite) et champ `searchConsole` ; `links-state.test.ts` (nouveau, 2 tests). `src/inngest/functions/analysis-links-state.ts` branche la lecture réelle.
+- `src/app/app/site/[id]/page.tsx` : carte affichée seulement si le drapeau est ouvert.
+- `src/env.ts` : `SEARCH_CONSOLE_ENABLED` (faux par défaut).
+- `messages/fr.ts` : bloc `searchConsole`.
+- **Migration** `supabase/migrations/2026121900000100_search_console.sql` (additive) : table `search_console_connections` (une ligne par site, jeton chiffré, aucun droit pour `anon` / `authenticated`, lecture et écriture par le serveur seulement). Postérieure à `2026121900000000` (PR #206), pas de conflit de nom.
+- `src/lib/supabase/database.types.ts` : **seul ajout** ; un bloc `search_console_connections` inséré après `mailbox_google_tokens`, rien d'autre. Les fichiers de la PR #206 (`qualification`, `snowball`, `targets/tracking*`) ne sont pas touchés.
+
+### Drapeau et vérification Google
+
+- `SEARCH_CONSOLE_ENABLED` reste **faux** en production. Pour l'ouvrir : poser `SEARCH_CONSOLE_ENABLED=true` sur Vercel (le client OAuth Google est déjà renseigné, `GOOGLE_OAUTH_ENABLED=true` requis).
+- Le scope `webmasters.readonly` est **sensible** : sans vérification (G4), l'écran Google affiche « application non vérifiée » et l'application est limitée à 100 utilisateurs, comme pour Gmail. Ne pas ouvrir le drapeau en public avant G4.
+- L'écran de consentement Google doit déclarer le scope `webmasters.readonly` (à ajouter dans Google Cloud, pas fait ici : action de Jonathan dans le navigateur).
+
+### Commandes
+```bash
+pnpm vitest run src/features/search-console src/features/google src/features/analysis src/inngest
+pnpm typecheck && pnpm lint
+```
+
+### Dettes et pièges
+- **Pas affiché dans l'écran d'audit** : les requêtes sont stockées dans `links_state.searchConsole` mais aucun écran ne les montre encore.
+- **Pas utilisé par le premier passage ni par l'onboarding** : les pages classées de MC.7 viennent toujours de DataForSEO. Les pages Search Console (MQ.2) ne sont pas encore proposées à l'onboarding ; à brancher avec MQ.3 / MQ.4.
+- **Le volume n'est pas comparable** : Search Console donne clics et impressions sur 90 jours, pas le volume mensuel de DataForSEO. Ne pas mélanger les deux dans `RankedKeyword`.
+- **Propriété absente** : si le compte Google n'a pas de propriété pour le domaine, la connexion est refusée avec le message « pas de propriété » (rien n'est enregistré).
+- **Parcours réel non vérifié** : aucun consentement Google réel ni appel à l'API Search Console dans cette session.
+- Le paramètre de retour est `sc` (pas `google`) pour ne pas mélanger les messages des deux cartes.
+
+### Backlog (hors périmètre, à ne pas coder ici)
+
+- Afficher les requêtes et pages Search Console dans l'écran d'audit.
+- Proposer les pages Search Console à l'onboarding et au premier passage (avec MQ.3).
+- Utiliser les requêtes Search Console comme source de MQ.4 (requêtes de contenu sans lien).
+- Bouton « Déconnecter la Search Console » (aujourd'hui : reconnecter remplace l'ancienne connexion).
+- Plafond de lectures par site et cache des requêtes (aujourd'hui : un appel de deux requêtes par audit, sans cache).
+- Ajouter le scope `webmasters.readonly` à l'écran de consentement Google Cloud, puis G4.
+### Prochain sous-jalon recommandé : MQ.4 (requêtes de contenu sans lien, SERP)
+
+Peut se faire en parallèle de MQ.1 (déjà en PR) : les requêtes Search Console (`links_state.searchConsole.queries`) en sont une source de plus, à côté des requêtes prioritaires de la SERP.
+
+## Session du 19/11 (suite 2) : gabarits d'email Supabase remis à la marque backleenks (faite)
+
+- **Constat** : les gabarits du dépôt (`supabase/email-templates/`) étaient déjà à la marque backleenks, mais les modèles **en ligne** dans Supabase (Authentication > Emails) étaient restés sur « Autolink.ai » (vu sur le mail d'inscription reçu). Cause : le dépôt n'est pas relié au projet ; la mise en ligne est manuelle ou se fait par l'API de gestion.
+- **Fait** : les six gabarits (inscription, mot de passe oublié, lien de connexion, invitation, changement d'adresse, ré-authentification) recollés dans le tableau de bord du projet `outreach-links` (réf. `ivjkwhhgtibewqzccvrj`) via le navigateur intégré, connecté par Jonathan. Vérifiés après rechargement : plus aucune trace d'« Autolink », trois mentions de backleenks par gabarit, jeton `{{ .TokenHash }}` (ou `{{ .Token }}` pour la ré-authentification) présent.
+- **Objets et expéditeur** : déjà corrects (`backleenks <noreply@backleenks.com>`, SMTP Resend). Rien à changer.
+- **Test** : demande de réinitialisation envoyée à `jonathan.encaoua@gmail.com` depuis le site (`/mot-de-passe-oublie`) ; Jonathan a validé le rendu (« all good »).
+- **Non testé** : invitation, changement d'adresse, ré-authentification (pas de déclencheur simple) et l'inscription d'une adresse neuve.
+- **Dette** : l'API de gestion Supabase répondait 401 dans cette session (aucun jeton injecté). Le dépôt et le tableau de bord peuvent donc diverger sans qu'on le voie. À chaque changement de gabarit : mettre le fichier à jour **et** le recoller dans Supabase, ou le repousser par l'API.
+- **Note** : `supabase/email-templates/README.md` corrigé (il parlait encore d'« Autolink.ai » en dur).
+
+### Prochain
+
+Vérifier l'inscription sur une adresse neuve quand Jonathan le souhaite (rendu du mail de confirmation dans Gmail), et brancher le nom de marque dans les gabarits à partir de `messages/fr.ts` si la marque change encore.

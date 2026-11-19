@@ -5,6 +5,9 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { googleConfig } from "@/features/google/config";
+import { readSearchConsoleStatus, searchConsoleEnabled } from "@/features/search-console/load";
+import { SearchConsoleConnect } from "@/features/search-console/search-console-connect";
+import { createServiceClient } from "@/lib/supabase/service";
 import { loadMailboxes } from "@/features/mailboxes/load";
 import { MailboxSection } from "@/features/mailboxes/mailbox-section";
 import { updateSiteAction } from "@/features/sites/actions";
@@ -25,6 +28,10 @@ async function Site({ params }: { params: Promise<{ id: string }> }) {
   const { data: site } = await supabase.from("sites").select("*").eq("id", id).maybeSingle();
   if (!site) notFound();
   const { boxes, available } = await loadMailboxes(supabase, site.id);
+  // Le statut ne contient aucun jeton ; la lecture passe par le serveur (table sans droit client).
+  const scStatus = searchConsoleEnabled()
+    ? await readSearchConsoleStatus(createServiceClient(), site.id)
+    : null;
   return (
     <div className="flex flex-col gap-6">
       <Card className="p-6">
@@ -43,6 +50,7 @@ async function Site({ params }: { params: Promise<{ id: string }> }) {
           }}
         />
       </Card>
+      {searchConsoleEnabled() ? <SearchConsoleConnect siteId={site.id} status={scStatus} /> : null}
       <MailboxSection
         siteId={site.id}
         boxes={boxes}

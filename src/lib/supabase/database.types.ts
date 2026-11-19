@@ -2539,6 +2539,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      search_console_connections: {
+        Row: {
+          connected_at: string;
+          google_email: string;
+          key_version: string;
+          property: string;
+          refresh_token_enc: string;
+          scopes: string;
+          site_id: string;
+          updated_at: string;
+          workspace_id: string;
+        };
+        Insert: {
+          connected_at?: string;
+          google_email: string;
+          key_version: string;
+          property: string;
+          refresh_token_enc: string;
+          scopes: string;
+          site_id: string;
+          updated_at?: string;
+          workspace_id: string;
+        };
+        Update: {
+          connected_at?: string;
+          google_email?: string;
+          key_version?: string;
+          property?: string;
+          refresh_token_enc?: string;
+          scopes?: string;
+          site_id?: string;
+          updated_at?: string;
+          workspace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "search_console_connections_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: true;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "search_console_connections_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       mailboxes: {
         Row: {
           created_at: string;

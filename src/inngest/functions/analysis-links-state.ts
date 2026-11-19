@@ -1,4 +1,8 @@
 import { z } from "zod";
+import { env } from "@/env";
+import { googleConfig } from "@/features/google/config";
+import { parseKeyRing } from "@/features/mailboxes/crypto";
+import { loadSearchConsoleSnapshot, searchConsoleEnabled } from "@/features/search-console/load";
 import { inngest } from "@/inngest/client";
 import {
   beginLinksState,
@@ -50,7 +54,16 @@ export const analysisLinksState = inngest.createFunction(
     if (!run) return { skipped: true };
     const runStep: StepRunner = (id, fn) => step.run(id, fn) as never;
     const out = await executeLinksState(
-      { service: createServiceClient, dfs: () => createDataForSeoClientFromEnv() },
+      {
+        service: createServiceClient,
+        dfs: () => createDataForSeoClientFromEnv(),
+        searchConsole: (siteId) =>
+          loadSearchConsoleSnapshot(siteId, {
+            db: createServiceClient(),
+            config: searchConsoleEnabled() ? googleConfig() : null,
+            keyRing: () => parseKeyRing(env.MAILBOX_ENCRYPTION_KEYS),
+          }),
+      },
       run,
       runStep,
     );
