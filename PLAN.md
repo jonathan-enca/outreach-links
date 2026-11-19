@@ -412,6 +412,31 @@ Trois sources, de la moins chère à la plus chère. Aujourd'hui : 11 candidats 
 
 **Hors périmètre.** Recherche du bon destinataire (auteur de l'article plutôt que l'adresse générale), exemples de messages de Jonathan, presse et journalistes : à traiter après.
 
+## ME. Chantier envoi des mails (décisions de Jonathan, 19/11/2026)
+
+**Objectif v1.** Atteindre les 100 premiers utilisateurs avec un envoi **intégré au site, sans aucune friction** (rien à connecter), simple, très peu cher et activable vite. Les vraies complexités (domaines et serveurs de messagerie par utilisateur) viennent au passage à l'échelle.
+
+**Décisions retenues**
+
+1. **Resend reste réservé aux emails transactionnels** (inscription, connexion, réinitialisation, digest). Jamais d'outreach : sa politique d'usage exige que tous les destinataires aient explicitement accepté de recevoir les messages, et prévoit la suspension du compte si les plaintes ou rebonds restent élevés. Une suspension couperait aussi les connexions des utilisateurs.
+2. **Une autre solution, dédiée et séparée, pour l'envoi d'outreach** : service d'envoi par API ou SMTP, compte distinct de Resend, sous-domaine dédié (séparé de celui des emails transactionnels). Le prestataire reste à choisir après lecture écrite de sa politique d'usage sur la prospection B2B ciblée (pistes : Amazon SES, Postmark ; non vérifiées).
+3. **La connexion de sa propre boîte reste disponible en option** (aujourd'hui SMTP + IMAP avec mot de passe d'application). **Ajout prévu : connexion par compte Google** (OAuth Gmail), en plus, pas à la place. Outlook ensuite.
+
+**Pistes d'architecture (non engagées)**
+
+- Envoi : type de boîte « gérée » (adresse générée sur le sous-domaine d'outreach, identifiants globaux, pas d'IMAP). Le moteur actuel est déjà générique en SMTP ; une migration est nécessaire car une boîte « vérifiée » exige aujourd'hui SMTP et IMAP.
+- Réponses : adresse « Répondre à » à nous (`reponse+jeton@…`), réception par webhook, rattachement à l'envoi, classification existante, copie par email à l'utilisateur. Plus gros morceau (environ un sous-jalon).
+- Garde-fous renforcés : réputation du domaine partagée entre utilisateurs en v1, donc suspension automatique d'un utilisateur dès les premiers rebonds ou plaintes, et suivi du taux de plaintes du domaine.
+- À l'échelle : boîte par utilisateur pour les offres élevées, boîte mutualisée (une pour environ 10 comptes, alias) pour Starter, création et suppression automatiques liées à l'abonnement Stripe, contrôle quotidien des boîtes orphelines. Critères du prestataire : API qui supprime aussi, facturation qui suit la suppression (Google Workspace : formule flexible, pas annuelle ; une boîte suspendue reste facturée), politique d'usage compatible.
+
+**À décider avant de coder**
+
+- Nom du domaine d'envoi (dépense nouvelle : accord de Jonathan avant tout achat). Un domaine neuf demande environ deux à trois semaines d'échauffement : acheter tôt.
+- Prestataire d'envoi d'outreach.
+- Réponses : d'abord dans l'app avec copie par email, ou directement chez l'utilisateur.
+
+**Hors périmètre pour l'instant.** Boîtes hébergées par utilisateur, serveur de messagerie propre, marque blanche.
+
 ## Plus tard (hors plan v1)
 
 OAuth Gmail/Outlook, extension navigateur pour formulaires et badges SERP, module annuaires, serveur MCP, marque blanche, autres langues.
