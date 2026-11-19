@@ -17,6 +17,7 @@ import {
   type SnowballStats,
 } from "./run";
 import type { SeedSource } from "./seeds";
+import { deepEnabled, deepGate, yieldOf, type DeepBlock, type YieldMeasure } from "./deep";
 
 type Client = SupabaseClient<Database>;
 
@@ -32,15 +33,20 @@ const citesSchema = z.object({
 });
 
 /** Pages du premier passage, en compact : verdict et ce que la page cite (sans son texte). */
-export async function loadSeedSources(service: Client, runId: string): Promise<SeedSource[]> {
+export async function loadSeedSources(
+  service: Client,
+  runId: string,
+  niveau?: number,
+): Promise<SeedSource[]> {
   const out: SeedSource[] = [];
   for (let from = 0; ; from += PAGE) {
-    const { data, error } = await service
+    let query = service
       .from("qualified_targets")
       .select("domain, exclusion_reason, judgement, page")
       .eq("run_id", runId)
-      .not("page", "is", null)
-      .range(from, from + PAGE - 1);
+      .not("page", "is", null);
+    if (niveau !== undefined) query = query.eq("niveau", niveau);
+    const { data, error } = await query.range(from, from + PAGE - 1);
     if (error) throw new Error(`boule de neige : ${error.message}`);
     for (const r of data ?? []) {
       const j = (r.judgement ?? null) as { situation?: string } | null;
@@ -90,7 +96,9 @@ export async function persistSnowball(
   ids: { runId: string; collectionId: string; auditId: string; workspaceId: string },
   outcome: SnowballOutcome,
   prior: Record<string, unknown>,
+  opts: { niveau?: number } = {},
 ): Promise<MergedCandidate[]> {
+  const niveau = opts.niveau ?? SNOWBALL_NIVEAU;
   const run = { id: ids.runId, auditId: ids.auditId, workspaceId: ids.workspaceId };
   const cRun = { id: ids.collectionId, auditId: ids.auditId, workspaceId: ids.workspaceId };
   const fresh = outcome.candidates;
@@ -98,7 +106,7 @@ export async function persistSnowball(
     const chunk = fresh.slice(i, i + INSERT_CHUNK);
     const ins = await service
       .from("collection_candidates")
-      .insert(chunk.map((c) => ({ ...candidateRow(cRun, c), niveau: SNOWBALL_NIVEAU })));
+      .insert(chunk.map((c) => ({ ...candidateRow(cRun, c), niveau })));
     if (ins.error) throw new Error(`boule de neige : ${ins.error.message}`);
     const stock = await service.from("qualified_targets").upsert(
       chunk.map((c) =>
@@ -107,7 +115,7 @@ export async function persistSnowball(
           url: c.url,
           tactics: c.tactics,
           piste: pisteOf(c.sources, c.tactics),
-          niveau: SNOWBALL_NIVEAU,
+          niveau,
           status: "reserve",
           stageReached: 3,
           exclusionReason: "hors_budget_lecture",
@@ -130,11 +138,19 @@ export async function persistSnowball(
     );
     if (stock.error) throw new Error(`boule de neige : ${stock.error.message}`);
   }
-  const merged = {
-    ...prior,
-    snowball: outcome.stats,
-    stock: (typeof prior.stock === "number" ? prior.stock : 0) + fresh.length,
-  };
+  const stockAfter = (typeof prior.stock === "number" ? prior.stock : 0) + fresh.length;
+  // Premier niveau : `snowball` (comme avant). Niveaux profonds : `snowball_levels[niveau]`.
+  const merged =
+    niveau === SNOWBALL_NIVEAU
+      ? { ...prior, snowball: outcome.stats, stock: stockAfter }
+      : {
+          ...prior,
+          snowball_levels: {
+            ...((prior.snowball_levels as Record<string, unknown> | undefined) ?? {}),
+            [String(niveau)]: outcome.stats,
+          },
+          stock: stockAfter,
+        };
   const up = await service
     .from("qualification_runs")
     .update({ stats: merged as unknown as Json })
@@ -224,4 +240,150 @@ export async function runSnowballForAudit(
     costUsd: outcome.stats.costUsd,
   });
   return { status: "fait", stats: outcome.stats };
+}
+
+export type DeepResult =
+  | { status: "fait"; level: number; stats: SnowballStats }
+  | { status: "bloque"; reason: DeepBlock }
+  | { status: "deja" | "pas_prete" };
+
+/**
+ * Niveau profond de la boule de neige (MQ.6), niveau 2 ou 3. Sans interrupteur, rien n'est lu ni payé : la fonction
+ * s'arrête avant toute requête. Avec l'interrupteur, le niveau ne se lance que si `deepGate` l'accepte (réponses
+ * réelles en base, niveau précédent lancé et relu, rendement suffisant, coût pire cas plafonné).
+ * Pas branché à un job : l'appel viendra avec MQ.7, une fois des réponses réelles reçues.
+ */
+export async function runDeepSnowballForAudit(
+  service: Client,
+  auditId: string,
+  deps: Omit<SnowballDeps, "service">,
+  level: number,
+  opts: { enabled?: boolean } = {},
+): Promise<DeepResult> {
+  const enabled = opts.enabled ?? deepEnabled();
+  if (!enabled) return { status: "bloque", reason: "desactive" };
+
+  const { data: qrun, error } = await service
+    .from("qualification_runs")
+    .select("id, status, stats, collection_id, workspace_id")
+    .eq("audit_id", auditId)
+    .maybeSingle();
+  if (error) throw new Error(`boule de neige profonde : ${error.message}`);
+  if (!qrun || qrun.status !== "termine") return { status: "pas_prete" };
+  const prior = (qrun.stats ?? {}) as Partial<FunnelStats> & {
+    snowball?: SnowballStats;
+    snowball_levels?: Record<string, SnowballStats>;
+    snowball_reviews?: Record<string, { rate: number | null }>;
+  };
+  const levels = prior.snowball_levels ?? {};
+  if (levels[String(level)]) return { status: "deja" };
+
+  const previous = level - 1;
+  const previousLevelDone =
+    previous === SNOWBALL_NIVEAU ? Boolean(prior.snowball) : Boolean(levels[String(previous)]);
+  const previousYield = prior.snowball_reviews?.[String(previous)]?.rate ?? null;
+  const replies = await service
+    .from("inbound_messages")
+    .select("id", { count: "exact", head: true });
+  if (replies.error) throw new Error(`boule de neige profonde : ${replies.error.message}`);
+
+  const gate = deepGate({
+    level,
+    enabled,
+    realReplies: replies.count ?? 0,
+    previousLevelDone,
+    previousYield,
+  });
+  if (!gate.ok) return { status: "bloque", reason: gate.reason };
+
+  const [loaded, col] = await Promise.all([
+    loadCollectionContext(service, auditId),
+    service
+      .from("candidate_collections")
+      .select("id, stats, workspace_id")
+      .eq("id", qrun.collection_id)
+      .maybeSingle(),
+  ]);
+  if (!loaded || !col.data) return { status: "pas_prete" };
+  const used = z
+    .array(z.string())
+    .catch([])
+    .parse(
+      (col.data.stats as { citations?: { resources?: unknown } } | null)?.citations?.resources,
+    );
+
+  const [pages, known1, known2] = await Promise.all([
+    loadSeedSources(service, qrun.id, previous),
+    domainsOf(service, "collection_candidates", "collection_id", qrun.collection_id),
+    domainsOf(service, "qualified_targets", "run_id", qrun.id),
+  ]);
+  const known = new Set([...known1, ...known2]);
+
+  const outcome = await executeSnowball(
+    { ...deps, service },
+    {
+      run: {
+        auditId,
+        workspaceId: qrun.workspace_id,
+        ctx: loaded.ctx,
+        limits: spendLimitsFor(auditId, loaded.capUsd),
+      },
+      pages,
+      used,
+      known,
+    },
+  );
+  await persistSnowball(
+    service,
+    {
+      runId: qrun.id,
+      collectionId: qrun.collection_id,
+      auditId,
+      workspaceId: qrun.workspace_id,
+    },
+    outcome,
+    prior,
+    { niveau: level },
+  );
+  logger.info("boule de neige profonde terminée", {
+    auditId,
+    level,
+    resources: outcome.stats.resources,
+    newCandidates: outcome.stats.newCandidates,
+    costUsd: outcome.stats.costUsd,
+  });
+  return { status: "fait", level, stats: outcome.stats };
+}
+
+/**
+ * Enregistre la relecture à la main d'un niveau (MQ.6) : `reviews` = une valeur par cible relue (true = bonne cible).
+ * C'est elle qui autorise le niveau suivant (rendement ≥ `DEEP_LIMITS.minYield`).
+ */
+export async function recordLevelReview(
+  service: Client,
+  auditId: string,
+  level: number,
+  reviews: boolean[],
+): Promise<YieldMeasure> {
+  const { data: qrun, error } = await service
+    .from("qualification_runs")
+    .select("id, stats")
+    .eq("audit_id", auditId)
+    .maybeSingle();
+  if (error) throw new Error(`relecture boule de neige : ${error.message}`);
+  if (!qrun) throw new Error("relecture boule de neige : analyse introuvable");
+  const prior = (qrun.stats ?? {}) as Record<string, unknown>;
+  const measure = yieldOf(reviews);
+  const reviewsByLevel = (prior.snowball_reviews as Record<string, unknown> | undefined) ?? {};
+  const up = await service
+    .from("qualification_runs")
+    .update({
+      stats: {
+        ...prior,
+        snowball_reviews: { ...reviewsByLevel, [String(level)]: measure },
+      } as unknown as Json,
+    })
+    .eq("id", qrun.id);
+  if (up.error) throw new Error(`relecture boule de neige : ${up.error.message}`);
+  return measure;
 }
