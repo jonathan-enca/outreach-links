@@ -2739,3 +2739,44 @@ Peut se faire en parallèle de MQ.1 (déjà en PR) : les requêtes Search Consol
 ### Prochain
 
 Vérifier l'inscription sur une adresse neuve quand Jonathan le souhaite (rendu du mail de confirmation dans Gmail), et brancher le nom de marque dans les gabarits à partir de `messages/fr.ts` si la marque change encore.
+
+## Session du 19/11 (suite 3) : MQ.5, thèmes et sites proposés par Claude, avec vérification (faite, pas encore branchée)
+
+Sous-jalon `PLAN.md > MQ.5`. Branche `mq.5-sites-proposes`. Aucun envoi d'email. **Un appel LLM par audit**, plafonné (`PROPOSAL_LIMITS`, sortie 2 000 jetons, coût réservé 0,05 USD à valider sur un vrai appel) ; les lectures de pages sont gratuites. Tout est testé avec un faux client LLM et un faux lecteur de pages : aucun appel réel.
+
+### Ce qui change pour la personne
+
+- Rien à l'écran : le module n'est pas encore branché dans la collecte ni dans l'écran d'audit.
+
+### Ce qui change dans le code
+
+- `src/features/proposals/` (nouveau) :
+  - `schema.ts` : `PROPOSAL_LIMITS` (15 sites, 8 thèmes, 30 requêtes Search Console au plus) et `proposalsSchema` (thèmes ; sites avec domaine, page exacte, ressource citée, raison).
+  - `verify.ts` : `checkProposal` enchaîne les contrôles : adresse valide, pas le site lui-même, appartient au domaine proposé, robots.txt, joignable, HTTP 200, texte réel (300 caractères au moins), nom de la ressource présent sur la page (sans accents ni casse). Un motif de rejet par proposition. `verifyProposals` : lectures par lots de 4, doublons d'adresse écartés, `gapRate` = écartées / proposées. `gapLabel` : la ligne « N sur M propositions écartées (P %) ».
+  - `service.ts` : `proposeVerifiedSites` : un appel `llm.generate` (tâche `site_proposals`, enregistrée dans `cost_ledger` par le client), sortie revalidée par zod, puis vérification. Renvoie `null` sans client, en cas de panne, de plafond dépassé ou de sortie non conforme (rien n'est inventé).
+  - `proposals.test.ts` : 18 tests (contrôles un par un, taux d'écart, coût, échecs).
+
+### Vérifications
+
+- `pnpm vitest run src/features/proposals` : 18 verts.
+- `pnpm typecheck` : vert. `pnpm lint` et `prettier` sur les fichiers touchés : verts.
+
+### Décisions [auto]
+
+- Le module renvoie une liste vérifiée (`kept`) et le taux d'écart ; il n'alimente pas encore la liste courte. Brancher `kept` dans la collecte (origine « proposition ») est la suite, pour ne pas toucher `collection/` dans ce sous-jalon.
+- Les thèmes ne sont pas vérifiés (ce ne sont pas des adresses) ; seules les adresses comptent.
+- Le nom de la ressource doit apparaître sur la page : c'est la preuve minimale qu'une page cite bien quelque chose de comparable, sans règle propre à un thème.
+
+### Dettes et pièges
+
+- **Non branché** : aucun écran, aucune collecte n'appelle encore `proposeVerifiedSites`. Le taux d'écart n'est donc affiché que par la fonction `gapLabel`.
+- **Coût non mesuré** : 0,05 USD est une estimation ; à mesurer sur un vrai appel (site de test) avant de fixer le plafond.
+- **Page citée réelle mais hors sujet** : la vérification prouve que la page existe et cite la ressource, pas que le message sera accepté. Le tri (MQ.3) reste nécessaire.
+- Search Console : les requêtes (`links_state.searchConsole.queries`) doivent être passées par l'appelant ; le module ne les lit pas lui-même.
+
+### Backlog (hors périmètre)
+
+- Brancher `kept` dans la collecte (origine « proposition ») et dans l'écran d'audit, avec le taux d'écart affiché.
+- Mesurer le coût réel d'un appel et recaler `reservedUsd`.
+
+### Prochain sous-jalon recommandé : MQ.4 (requêtes de contenu sans lien, SERP), puis MQ.3 après un premier lot de réponses.
