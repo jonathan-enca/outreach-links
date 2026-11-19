@@ -22,6 +22,8 @@ export interface CampaignView {
 }
 
 export interface OverviewView {
+  /** Tous les sites de la personne (le menu), filtrés ou non. */
+  sites: { id: string; domain: string }[];
   campaigns: CampaignView[];
   totals: { targets: number; validated: number; contacted: number; replies: number; links: number };
   /** Ce qui attend l'utilisateur. */
@@ -53,7 +55,7 @@ export interface OverviewRows {
 }
 
 /** Assemble les compteurs par campagne et les totaux (pur, testé). */
-export function buildOverview(r: OverviewRows): OverviewView {
+export function buildOverview(r: OverviewRows): Omit<OverviewView, "sites"> {
   const latest = new Map<string, OverviewRows["audits"][number]>();
   for (const a of [...r.audits].sort((x, y) => y.created_at.localeCompare(x.created_at))) {
     if (!latest.has(a.site_id)) latest.set(a.site_id, a);
@@ -169,7 +171,7 @@ export async function loadOverview(
       targetsByAudit[auditId] = count ?? 0;
     }),
   );
-  return buildOverview({
+  const view = buildOverview({
     sites: siteSites,
     audits: siteAudits,
     targetsByAudit,
@@ -182,4 +184,6 @@ export async function loadOverview(
     pendingForms: queue.forms.length,
     mailboxes: queue.hasMailbox ? 1 : 0,
   });
+  // Le menu liste toujours tous les sites, même quand un seul est choisi.
+  return { ...view, sites: (sites.data ?? []).map((s) => ({ id: s.id, domain: s.domain })) };
 }

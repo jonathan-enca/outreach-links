@@ -190,7 +190,7 @@ export async function loadQueue(
     missingDrafts(supabase),
     supabase
       .from("draft_declines")
-      .select("plan_item_id, reason, page_url, created_at, link_plan_items(source_domain)")
+      .select("plan_id, plan_item_id, reason, page_url, created_at, link_plan_items(source_domain)")
       .order("created_at", { ascending: false })
       .limit(200),
     supabase
@@ -198,6 +198,10 @@ export async function loadQueue(
       .select("id", { count: "exact", head: true })
       .neq("status", "brouillon"),
   ]);
+  // Cibles sans message et cibles écartées : comptées pour le site choisi seulement.
+  const missingPlans = missing.plans.filter((p) => !inSite || inSite.has(p.planId));
+  const missingTotal = missingPlans.reduce((s, p) => s + p.missing, 0);
+  const missingRunning = missingPlans.some((p) => p.status === "en_cours");
   // Les formulaires ne passent pas par l'approbation : ils vont directement dans « Formulaires à remplir ».
   const d = (drafts.data ?? []).filter((x) => x.channel === "email");
   const taskRows = tasks.data ?? [];
@@ -409,15 +413,17 @@ export async function loadQueue(
     later,
     handled: (handled.count ?? 0) > 0,
     hasMailbox: (boxes.count ?? 0) > 0,
-    missing: missing.total,
-    drafting: missing.running,
-    declined: (declines.data ?? []).map((r) => ({
-      itemId: r.plan_item_id,
-      domain:
-        (r.link_plan_items as unknown as { source_domain: string } | null)?.source_domain ?? "",
-      pageUrl: r.page_url,
-      reason: r.reason,
-    })),
+    missing: missingTotal,
+    drafting: missingRunning,
+    declined: (declines.data ?? [])
+      .filter((r) => !inSite || inSite.has(r.plan_id))
+      .map((r) => ({
+        itemId: r.plan_item_id,
+        domain:
+          (r.link_plan_items as unknown as { source_domain: string } | null)?.source_domain ?? "",
+        pageUrl: r.page_url,
+        reason: r.reason,
+      })),
   };
 }
 

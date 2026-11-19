@@ -29,9 +29,10 @@ async function Queue() {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/connexion");
+  const siteId = await selectedSiteId(supabase);
   return (
     <ApprovalQueue
-      view={await loadQueue(supabase, new Date(), await selectedSiteId(supabase))}
+      view={await loadQueue(supabase, new Date(), siteId)}
       actions={{
         approveMessages: approveMessagesAction,
         editMessage: editMessageAction,
@@ -43,7 +44,8 @@ async function Queue() {
         editReply: editReplyAction,
         rejectReply: rejectReplyAction,
         completeForm: completeFormAction,
-        draftMissing: draftMissingAction,
+        // Le bouton ne rédige que les messages manquants du site affiché.
+        draftMissing: draftMissingAction.bind(null, siteId),
         draftAnyway: draftAnywayAction,
       }}
     />
