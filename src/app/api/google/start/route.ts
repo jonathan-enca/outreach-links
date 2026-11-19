@@ -1,7 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/env";
 import { googleConfig } from "@/features/google/config";
-import { buildAuthUrl, newNonce, signState } from "@/features/google/oauth";
+import {
+  buildAuthUrl,
+  GOOGLE_SCOPES,
+  newNonce,
+  SEARCH_CONSOLE_SCOPES,
+  signState,
+} from "@/features/google/oauth";
+import { searchConsoleEnabled } from "@/features/search-console/load";
 import { parseKeyRing } from "@/features/mailboxes/crypto";
 import { createClient } from "@/lib/supabase/server";
 
@@ -20,12 +27,24 @@ export async function GET(req: NextRequest) {
     : { data: null };
   if (!site) return new NextResponse("Not found", { status: 404 });
 
+  // MQ.2 : la Search Console demande sa propre autorisation (lecture seule), à part de Gmail.
+  const searchConsole = req.nextUrl.searchParams.get("purpose") === "search_console";
+  if (searchConsole && !searchConsoleEnabled())
+    return new NextResponse("Not found", { status: 404 });
+
   const nonce = newNonce();
   const state = signState(
-    { siteId: site.id, userId: auth.user.id, nonce },
+    {
+      siteId: site.id,
+      userId: auth.user.id,
+      nonce,
+      purpose: searchConsole ? "search_console" : "gmail",
+    },
     parseKeyRing(env.MAILBOX_ENCRYPTION_KEYS),
   );
-  const res = NextResponse.redirect(buildAuthUrl(cfg, state));
+  const res = NextResponse.redirect(
+    buildAuthUrl(cfg, state, undefined, searchConsole ? SEARCH_CONSOLE_SCOPES : GOOGLE_SCOPES),
+  );
   res.cookies.set(NONCE_COOKIE, nonce, {
     httpOnly: true,
     secure: env.NODE_ENV === "production",
