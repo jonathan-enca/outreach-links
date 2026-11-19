@@ -1985,12 +1985,12 @@ export const fr = {
     imapHost: "Serveur IMAP",
     imapPort: "Port IMAP",
     google: {
-      title: "Connecter avec Google",
-      hint: "Un clic, sans mot de passe à copier : Google vous demande l'autorisation d'envoyer les messages que vous aurez approuvés et de lire les réponses à ces messages. Vous pouvez retirer l'accès à tout moment depuis votre compte Google.",
-      button: "Connecter avec Google",
-      connected:
-        "Connexion Google enregistrée. L'envoi par Gmail n'est pas encore activé : cette boîte ne sert pas encore à envoyer.",
-      ok: "Connexion Google enregistrée. L'envoi par Gmail n'est pas encore activé : cette boîte ne sert pas encore à envoyer.",
+      title: "Connectez la boîte depuis laquelle vous enverrez",
+      hint: "Gmail : vos messages partent de votre propre adresse, à un rythme régulier, et ceux que vous avez approuvés sont les seuls à partir. Nous lisons les réponses à ces messages, rien d'autre.",
+      button: "Connecter Gmail",
+      safe: "Connexion par Google : nous ne voyons ni ne stockons votre mot de passe, et vous pouvez retirer l'accès à tout moment depuis votre compte Google.",
+      connected: "Connectée par Google : envoi et lecture des réponses par Gmail.",
+      ok: "Boîte Gmail connectée. Elle est prête : les messages que vous approuvez partiront depuis cette adresse.",
       errors: {
         invalide: "La connexion a expiré ou n'est pas valide. Recommencez.",
         refuse: "Google n'a pas donné l'accès : rien n'a été enregistré.",

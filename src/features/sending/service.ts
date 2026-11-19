@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { betaEnabled } from "@/features/audits/beta";
 import { env as appEnv } from "@/env";
 import { decryptSecret, parseKeyRing, type KeyRing } from "@/features/mailboxes/crypto";
+import { sendViaGoogle } from "@/features/google/gmail";
 import { sendOutreachMail, type TransportOptions } from "@/features/mailboxes/transport";
 import { logger } from "@/lib/logger";
 import type { Database } from "@/lib/supabase/database.types";
@@ -30,6 +31,8 @@ export interface SendDeps {
   realSendingAllowed: () => boolean;
   keyRing: () => KeyRing;
   send: typeof sendOutreachMail;
+  /** Boîtes connectées par Google : envoi par l'API Gmail (par défaut le vrai). */
+  sendGoogle?: typeof sendViaGoogle;
   appUrl: string;
   /** Brouillon validé à envoyer en priorité, en dépassant le quota d'échauffement (une fois). */
   priorityDraftId?: string;
@@ -444,7 +447,7 @@ async function finish(
   let password: string;
   try {
     const ring = deps.keyRing();
-    password = decryptSecret(box.password_enc, ring);
+    password = box.provider === "google" ? "" : decryptSecret(box.password_enc, ring);
     secret = unsubscribeSecrets(ring)[0]!;
   } catch {
     await db
@@ -468,12 +471,15 @@ async function finish(
     inReplyTo: opts.inReplyTo ?? null,
     unsubscribeUrl: `${deps.appUrl}/api/unsubscribe?t=${makeUnsubscribeToken(rowId, secret)}`,
   });
-  const res = await deps.send(
-    { host: box.smtp_host, port: box.smtp_port },
-    { username: box.username, password },
-    mail,
-    deps.transportOptions,
-  );
+  const res =
+    box.provider === "google"
+      ? await (deps.sendGoogle ?? sendViaGoogle)(db, box, mail, deps.keyRing())
+      : await deps.send(
+          { host: box.smtp_host, port: box.smtp_port },
+          { username: box.username, password },
+          mail,
+          deps.transportOptions,
+        );
   if (res.ok) {
     await db
       .from("sent_messages")

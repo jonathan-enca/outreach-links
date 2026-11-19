@@ -862,3 +862,44 @@ describe("moteur d'envoi : plan d'abonnement (M6.1)", () => {
     expect(deps.send).not.toHaveBeenCalled();
   });
 });
+
+describe("moteur d'envoi : boîte connectée par Google", () => {
+  it("envoie par l'API Gmail (jamais par SMTP), sans mot de passe, puis marque « envoye »", async () => {
+    const db = world({ drafts: 1 });
+    db.tables.mailboxes![0]!.provider = "google";
+    db.tables.mailboxes![0]!.password_enc = "-";
+    const sendGoogle = vi.fn(async () => ({ ok: true as const }));
+    const send = vi.fn();
+    const d = deps(db, {
+      realSendingAllowed: () => true,
+      send: send as unknown as SendDeps["send"],
+      sendGoogle: sendGoogle as unknown as SendDeps["sendGoogle"],
+    });
+    const r = await runSendTick(d);
+    expect(r[0]).toMatchObject({ result: "envoye" });
+    expect(sendGoogle).toHaveBeenCalledTimes(1);
+    expect(send).not.toHaveBeenCalled();
+    const mail = (sendGoogle.mock.calls[0] as unknown as [unknown, unknown, { to: string }])[2];
+    expect(mail.to).toBe("c1@cible1.fr");
+    expect(db.tables.sent_messages![0]).toMatchObject({ status: "envoye", dry_run: false });
+  });
+
+  it("accès Google retiré : la boîte passe en erreur", async () => {
+    const db = world({ drafts: 1 });
+    db.tables.mailboxes![0]!.provider = "google";
+    db.tables.mailboxes![0]!.password_enc = "-";
+    const sendGoogle = vi.fn(async () => ({
+      ok: false as const,
+      error: "accès Google refusé",
+      kind: "auth" as const,
+    }));
+    const r = await runSendTick(
+      deps(db, {
+        realSendingAllowed: () => true,
+        sendGoogle: sendGoogle as unknown as SendDeps["sendGoogle"],
+      }),
+    );
+    expect(r[0]).toMatchObject({ result: "echec" });
+    expect(db.tables.mailboxes![0]).toMatchObject({ status: "erreur" });
+  });
+});

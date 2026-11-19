@@ -2583,3 +2583,22 @@ pnpm typecheck && pnpm lint
 ### Prochain sous-jalon recommandé : MC.2
 
 Écrire les recherches par sujet et par public à partir des mots-clés des pages cochées (`profile.ranked_pages[].keywords`, croisés avec `linkable_resources` cochées). Mesurer sur deux sites de thèmes différents.
+
+## Session du 19/11 (suite) : G2 + G3, envoi et lecture par Gmail ; Gmail seul proposé (faite)
+
+- **Décision de Jonathan (19/11)** : une seule connexion proposée, **Gmail (OAuth Google)**. Le formulaire SMTP/IMAP (v1) est archivé : le code reste, il n'est affiché que si `GOOGLE_OAUTH_ENABLED` est faux. Les boîtes déjà connectées en SMTP continuent de fonctionner.
+- **G2** : `src/features/google/gmail.ts` : `getAccessToken` (jeton de renouvellement chiffré vers jeton d'accès), `sendViaGoogle` (message MIME complet par `users.messages.send`, mêmes en-têtes et fil que SMTP ; échecs classés auth / temporaire / permanent). Branché dans `sending/service.ts` et `inbox/send.ts` via `deps.sendGoogle` (facultatif, le vrai par défaut). Un accès Google retiré met la boîte en « erreur ».
+- **G3** : `fetchViaGoogle` (`messages.list` + `messages.get` en lecture seule), même forme de résultat qu'IMAP ; curseur = heure de réception en secondes (colonne `imap_last_uid`). Branché dans `replies/service.ts` via `deps.fetchGoogle`.
+- **Connexion** : une boîte Google est créée « vérifiée » (jeton obtenu, adresse lue) ; reconnecter la même adresse met à jour le jeton. Écran : bouton « Connecter Gmail » avec la mention « nous ne stockons pas votre mot de passe ».
+- Tests : `pnpm vitest run src/features/google src/features/sending src/features/inbox src/features/replies src/features/mailboxes` (verts), typecheck et lint sans erreur.
+- **Pas vérifié** : aucun envoi ni lecture réels avec un vrai compte Gmail ; le parcours dans un navigateur non plus.
+
+### Dettes
+
+- La lecture télécharge tous les messages reçus depuis le premier envoi puis ne garde que les fils de campagne (comme IMAP) ; à restreindre par requête Gmail si le volume le demande.
+- Curseur en secondes : deux messages dans la même seconde sont relus (sans effet, l'insertion est idempotente).
+- Le nom affiché d'une boîte Google est la partie avant le @.
+- Outlook : pas encore (OAuth Microsoft, jalon 7).
+
+### Prochain : essai réel de bout en bout avec une boîte Gmail de test, puis G4 (vérification Google).
+
