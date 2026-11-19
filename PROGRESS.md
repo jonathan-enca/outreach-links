@@ -3018,3 +3018,10 @@ Décision de Jonathan sur les pistes et le coût des contacts et des brouillons,
 - **Pas touché** : la liste principale de requêtes (DataForSEO, `universe.queries`), les concurrents (SERP) et les backlinks. La Search Console n'influence donc qu'une partie des requêtes de contenu, pas l'univers principal.
 
 Conséquence pour un lancement live : une campagne avec Search Console connectée ne se distingue d'une campagne sans elle que par ces 4 requêtes de contenu, et seulement si l'état des lieux est fini avant la recherche.
+
+### Question ouverte : plafond de 4 requêtes Search Console (19/11)
+
+- `CONTENT_QUERY_LIMITS.maxSearchConsoleQueries = 4` (`src/features/collection/content-queries.ts`). Ce plafond a été posé en MQ.4 comme garde-fou de coût, **sans justification écrite** : chaque requête coûte une recherche SERP (environ 0,006 USD, `serpOrganicLive` mesuré).
+- Le filtre « hors marque » et le seuil de 10 impressions sont déjà en place. Le plafond de MQ.5 est de 30 requêtes (`PROPOSAL_LIMITS`), ce qui montre qu'il n'y a pas de principe général derrière le 4.
+- **À décider** : relever le plafond (par exemple 10 requêtes, soit environ 0,06 USD de plus par analyse) ou le garder. Le plafond de 60 recherches SERP de la collecte reste à surveiller.
+- « État des lieux » = la première étape de l'analyse (`etat_des_lieux`, `src/features/analysis/`) : positions, pages, profil de liens du site, contrôle technique, Search Console. Elle tourne en parallèle des concurrents.
