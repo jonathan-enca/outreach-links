@@ -2998,9 +2998,10 @@ Options proposées, en attente de réponse écrite :
 
 Décision de Jonathan sur les pistes et le coût des contacts et des brouillons, puis : recherche d'emails sur les cibles `serp` et `content` sans contact (annoncer le coût), brouillons de 5 cibles pour mesurer le coût réel, lot de 20 relu à la main. Ensuite la fenêtre de 30 jours dans `tracking.ts`.
 
-### Coûts mesurés pour la suite (lecture de `cost_ledger`, 19/11, aucun appel lancé)
+### Coûts pour la suite (`cost_ledger`, 19/11, aucun appel lancé)
 
-- Brouillon LLM (`llm.outreach_draft`) : **0,061 USD en moyenne** (27 appels). 5 brouillons ≈ 0,30 USD ; 100 ≈ 6,10 USD.
-- Qualification LLM : 0,005 USD par cible (547 appels).
-- Recherche d'emails : **aucune ligne dans `cost_ledger`** ; coût à établir avant tout lancement (finder externe ou HTTP seul).
-- Rien n'est lancé. Les 5 brouillons de test attendent un feu vert écrit de Jonathan (coût annoncé ci-dessus).
+- Brouillons : les 27 brouillons mesurés (17-18/11) ont été écrits avec **Opus 5.5 : 0,062 USD en moyenne**. Depuis #201, le rédacteur est **Haiku 5.5** (`DRAFT_MODELS.writer`, `src/features/drafting/limits.ts`), environ 40 fois moins cher selon le code. Estimation : **≈ 0,0015 USD par brouillon** (5 ≈ 0,01 USD ; 100 ≈ 0,15 USD). **Non mesuré encore sur Haiku** : à confirmer sur les 5 premiers brouillons.
+- Angle (`llm.outreach_angle`, Haiku) : 0,0014 USD en moyenne (41 appels).
+- Qualification LLM : 0,005 USD par cible.
+- Recherche d'emails : **aucune ligne dans `cost_ledger`** ; coût à établir avant tout lancement.
+- Rien n'est lancé. Les 5 brouillons de test attendent un feu vert écrit de Jonathan.
