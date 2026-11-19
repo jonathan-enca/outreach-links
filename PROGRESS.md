@@ -2506,6 +2506,26 @@ Maquette validée par Jonathan le 18/11 (`docs/mockups/vos-cibles-bas.md`, déci
 - Fichiers : `src/env.ts`, `src/features/sending/service.ts` (`sendPriorityDraft`), 2 tests dans `sending.test.ts`.
 - Usage : test des boîtes mail (message vers info@oma-and-me.com, brouillon `0857c99b-d72d-4d5a-95fb-0ce9dbac30b1`).
 
+## Session du 19/11 : G1, connexion Google (OAuth) derrière un drapeau (faite)
+
+- **Google Cloud (fait dans le navigateur de Jonathan, compte jonathan.encaoua@gmail.com)** : projet `outreach-links-oauth`, écran de consentement « Outreach Links » (externe), **publié en production le 19/11 sans vérification Google** (décision de Jonathan : tout compte Google peut autoriser, avec l'écran « application non vérifiée » et un plafond de 100 utilisateurs à vie ; liens accueil, confidentialité et conditions renseignés), API Gmail activée, autorisations `gmail.send` (sensible) et `gmail.readonly` (restreint), client OAuth « Application Web » avec les retours `https://outreach-links.vercel.app/api/google/callback` et `http://localhost:3000/api/google/callback`. Les conditions Google Cloud et la politique des données utilisateur ont été acceptées avec l'accord explicite de Jonathan. L'identifiant et le secret du client sont dans `.env.local` (ignoré par Git) ; le secret n'est plus affichable chez Google (à régénérer si perdu).
+- **Code** : `src/features/google/{oauth,config,service,google-connect}`, routes `src/app/api/google/{start,callback}/route.ts`, bouton dans `mailbox-section.tsx` (seulement si `GOOGLE_OAUTH_ENABLED=true` et client renseigné). Variables : `GOOGLE_OAUTH_ENABLED` (faux par défaut), `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`.
+- **Migration `2026121600000000_mailbox_google_oauth.sql`** (additive) : `mailboxes.provider` ('smtp' par défaut, 'google'), table `mailbox_google_tokens` (jeton chiffré, aucun droit pour `authenticated`). Une boîte Google porte des valeurs fictives dans les colonnes SMTP/IMAP (`password_enc = '-'`) et reste « en attente » : G2 les remplacera.
+- Tests : `pnpm vitest run src/features/google src/features/mailboxes` (8 + existants verts), typecheck et lint sans erreur.
+- **Pas vérifié** : le parcours réel dans un navigateur (consentement Google puis retour), car le drapeau est coupé en production.
+
+### Pour essayer (quand Jonathan le décide)
+
+Poser `GOOGLE_OAUTH_ENABLED=true` sur Vercel (le client est déjà renseigné), ouvrir la page d'un site, « Connecter avec Google » avec jonathan.encaoua@gmail.com (ou tout autre compte Google). Attendu : « Connexion Google enregistrée », boîte « en attente ». Google affichera « application non vérifiée » : Paramètres avancés, puis « Accéder à Outreach Links (non sécurisé) ». Tout compte Google peut le faire (plafond de 100 utilisateurs).
+
+### Prochain sous-jalon recommandé : G2 (envoi par l'API Gmail)
+
+### Dettes
+
+- Le jeton d'accès n'est pas encore renouvelé ni utilisé (G2). L'écran « Tester la connexion » est masqué pour les boîtes Google.
+- Le nom affiché d'une boîte Google est la partie avant le @ ; pas encore modifiable.
+- Application publiée non vérifiée : plafond de 100 utilisateurs à vie, bloquée par certains Google Workspace ; la vérification (G4) lève ces limites.
+
 ## Session du 19/11 : MC.7, pages à pousser choisies par volume et par position dès l'onboarding (faite)
 
 Sous-jalon `PLAN.md > MC.7`. Branche `mc7-pages-par-volume`. **0 USD d'API** : aucun appel réel à DataForSEO ni au modèle, vérification sur données figées tirées de la base. Aucune migration (le classement vit dans le JSON du profil).
@@ -2563,3 +2583,22 @@ pnpm typecheck && pnpm lint
 ### Prochain sous-jalon recommandé : MC.2
 
 Écrire les recherches par sujet et par public à partir des mots-clés des pages cochées (`profile.ranked_pages[].keywords`, croisés avec `linkable_resources` cochées). Mesurer sur deux sites de thèmes différents.
+
+## Session du 19/11 (suite) : G2 + G3, envoi et lecture par Gmail ; Gmail seul proposé (faite)
+
+- **Décision de Jonathan (19/11)** : une seule connexion proposée, **Gmail (OAuth Google)**. Le formulaire SMTP/IMAP (v1) est archivé : le code reste, il n'est affiché que si `GOOGLE_OAUTH_ENABLED` est faux. Les boîtes déjà connectées en SMTP continuent de fonctionner.
+- **G2** : `src/features/google/gmail.ts` : `getAccessToken` (jeton de renouvellement chiffré vers jeton d'accès), `sendViaGoogle` (message MIME complet par `users.messages.send`, mêmes en-têtes et fil que SMTP ; échecs classés auth / temporaire / permanent). Branché dans `sending/service.ts` et `inbox/send.ts` via `deps.sendGoogle` (facultatif, le vrai par défaut). Un accès Google retiré met la boîte en « erreur ».
+- **G3** : `fetchViaGoogle` (`messages.list` + `messages.get` en lecture seule), même forme de résultat qu'IMAP ; curseur = heure de réception en secondes (colonne `imap_last_uid`). Branché dans `replies/service.ts` via `deps.fetchGoogle`.
+- **Connexion** : une boîte Google est créée « vérifiée » (jeton obtenu, adresse lue) ; reconnecter la même adresse met à jour le jeton. Écran : bouton « Connecter Gmail » avec la mention « nous ne stockons pas votre mot de passe ».
+- Tests : `pnpm vitest run src/features/google src/features/sending src/features/inbox src/features/replies src/features/mailboxes` (verts), typecheck et lint sans erreur.
+- **Pas vérifié** : aucun envoi ni lecture réels avec un vrai compte Gmail ; le parcours dans un navigateur non plus.
+
+### Dettes
+
+- La lecture télécharge tous les messages reçus depuis le premier envoi puis ne garde que les fils de campagne (comme IMAP) ; à restreindre par requête Gmail si le volume le demande.
+- Curseur en secondes : deux messages dans la même seconde sont relus (sans effet, l'insertion est idempotente).
+- Le nom affiché d'une boîte Google est la partie avant le @.
+- Outlook : pas encore (OAuth Microsoft, jalon 7).
+
+### Prochain : essai réel de bout en bout avec une boîte Gmail de test, puis G4 (vérification Google).
+

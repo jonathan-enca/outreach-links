@@ -99,6 +99,16 @@ const schema = z.object({
     .default("false")
     .transform((v) => v === "true"),
   /**
+   * G1 : connexion d'une boîte par compte Google (OAuth). Faux par défaut ; le bouton n'apparaît et
+   * les routes /api/google/* ne répondent que si c'est "true" ET que le client OAuth est renseigné.
+   */
+  GOOGLE_OAUTH_ENABLED: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
+  GOOGLE_OAUTH_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_OAUTH_CLIENT_SECRET: z.string().min(1).optional(),
+  /**
    * Envoi ponctuel : id d'UN brouillon validé qui part en premier et peut dépasser le quota
    * d'échauffement (jamais le plafond horaire ni le plafond journalier de la boîte). Absent par
    * défaut ; à retirer une fois le message parti.
