@@ -3,7 +3,7 @@ import { fakeSupabase } from "@/features/audits/fake-supabase";
 import { parseKeyRing, decryptSecret } from "@/features/mailboxes/crypto";
 import { googleConfig } from "./config";
 import {
-  GOOGLE_READ_SCOPE,
+  GOOGLE_SCOPES,
   GOOGLE_SEND_SCOPE,
   buildAuthUrl,
   hasRequiredScopes,
@@ -48,13 +48,13 @@ describe("state", () => {
 describe("adresse d'autorisation", () => {
   it("demande envoi + lecture, accès durable, consentement", () => {
     const u = new URL(buildAuthUrl(cfg, "st"));
-    expect(u.searchParams.get("scope")).toBe(`${GOOGLE_SEND_SCOPE} ${GOOGLE_READ_SCOPE}`);
+    expect(u.searchParams.get("scope")).toBe(GOOGLE_SCOPES.join(" "));
     expect(u.searchParams.get("access_type")).toBe("offline");
     expect(u.searchParams.get("prompt")).toBe("consent");
     expect(u.searchParams.get("state")).toBe("st");
   });
   it("exige les deux autorisations", () => {
-    expect(hasRequiredScopes(`${GOOGLE_SEND_SCOPE} ${GOOGLE_READ_SCOPE}`)).toBe(true);
+    expect(hasRequiredScopes(GOOGLE_SCOPES.join(" "))).toBe(true);
     expect(hasRequiredScopes(GOOGLE_SEND_SCOPE)).toBe(false);
     expect(hasRequiredScopes(undefined)).toBe(false);
   });
@@ -62,7 +62,7 @@ describe("adresse d'autorisation", () => {
 
 function setup(
   tokenBody: object | null,
-  profile: object | null = { emailAddress: "Jo@Gmail.com" },
+  profile: object | null = { email: "Jo@Gmail.com" },
 ) {
   const f = fakeSupabase({ sites: [{ id: "s1", workspace_id: "w1" }] }, { userId: "u1" });
   const fetchFn = vi.fn(async (url: string | URL | Request) => {
@@ -82,7 +82,7 @@ const state = { siteId: "s1", userId: "u1", nonce: "n", exp: Date.now() + 1000 }
 const good = {
   access_token: "at",
   refresh_token: "rt-secret",
-  scope: `${GOOGLE_SEND_SCOPE} ${GOOGLE_READ_SCOPE}`,
+  scope: GOOGLE_SCOPES.join(" "),
 };
 
 describe("completeGoogleConnect", () => {

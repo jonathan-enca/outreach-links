@@ -1,14 +1,15 @@
 import { randomBytes } from "node:crypto";
 import { decryptSecret, encryptSecret, type KeyRing } from "@/features/mailboxes/crypto";
 
-/** Envoi (sensible) et lecture des réponses (restreint) : les deux autorisations demandées en G1. */
+/** Envoi seul (sensible, pas d'audit CASA). Les réponses arrivent dans la boîte perso de l'utilisateur. */
 export const GOOGLE_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
-export const GOOGLE_READ_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
-export const GOOGLE_SCOPES = [GOOGLE_SEND_SCOPE, GOOGLE_READ_SCOPE] as const;
+/** Identité du compte connecté (non sensibles) : pour récupérer l'adresse Gmail. */
+export const GOOGLE_EMAIL_SCOPES = ["openid", "https://www.googleapis.com/auth/userinfo.email"] as const;
+export const GOOGLE_SCOPES = [GOOGLE_SEND_SCOPE, ...GOOGLE_EMAIL_SCOPES] as const;
 
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
-const PROFILE_URL = "https://gmail.googleapis.com/gmail/v1/users/me/profile";
+const USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
 const STATE_TTL_MS = 10 * 60 * 1000;
 
 export interface OAuthConfig {
@@ -120,16 +121,16 @@ export async function exchangeCode(
   };
 }
 
-/** Adresse du compte qui vient d'autoriser (Gmail `users.me.profile`, couvert par gmail.readonly). */
+/** Adresse du compte qui vient d'autoriser (OpenID userinfo, couvert par le scope userinfo.email). */
 export async function fetchGmailAddress(
   accessToken: string,
   fetchFn: Fetch = fetch,
 ): Promise<string | null> {
-  const res = await fetchFn(PROFILE_URL, {
+  const res = await fetchFn(USERINFO_URL, {
     headers: { authorization: `Bearer ${accessToken}` },
     signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) return null;
-  const j = (await res.json()) as { emailAddress?: string };
-  return j.emailAddress ? j.emailAddress.trim().toLowerCase() : null;
+  const j = (await res.json()) as { email?: string };
+  return j.email ? j.email.trim().toLowerCase() : null;
 }
