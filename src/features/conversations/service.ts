@@ -4,6 +4,7 @@ import { CATEGORY_LABELS, type Category } from "@/features/classification/types"
 import { t } from "@/lib/messages";
 import type { Database } from "@/lib/supabase/database.types";
 import { loadSendQueue, queuedMessageText, type QueueNote } from "@/features/sending/queue-note";
+import { planIdsOfSite } from "@/features/shell/site-scope";
 import { cleanTag, isArchived, isUnread, threadStatus, type ThreadStatus } from "./status";
 
 type Client = SupabaseClient<Database>;
@@ -52,6 +53,8 @@ export interface ConversationsOptions {
   now: Date;
   /** L'envoi réel est-il activé sur ce serveur (sinon : simulation). */
   realSending: boolean;
+  /** Site choisi dans le menu : seuls ses fils sont montrés. Absent ou null : tous les sites. */
+  siteId?: string | null;
 }
 
 const ids = <T extends { id: string }>(rows: readonly T[]) => rows.map((r) => r.id);
@@ -68,7 +71,9 @@ export async function loadConversations(
     .not("sent_at", "is", null)
     .order("sent_at", { ascending: false })
     .limit(1000);
-  const all = sentRows ?? [];
+  // Filtre « un seul site » : seuls les envois des plans de ce site entrent dans les fils.
+  const sitePlans = opts.siteId ? await planIdsOfSite(supabase, opts.siteId) : null;
+  const all = (sentRows ?? []).filter((s) => !sitePlans || sitePlans.has(s.plan_id));
   const initial = all.filter((s) => s.step === "initial");
   const { threads: queued, note } = await loadQueued(
     supabase,

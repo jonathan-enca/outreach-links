@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { siteHref, START_HREF } from "@/features/shell/next-step";
 import { loadOverview } from "@/features/shell/overview";
+import { selectedSiteId } from "@/features/shell/current-site";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 
@@ -41,7 +42,8 @@ async function Home() {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/connexion");
-  const o = await loadOverview(supabase);
+  // Le site choisi dans le menu filtre l'accueil : compteurs, étapes et « À faire maintenant ».
+  const o = await loadOverview(supabase, await selectedSiteId(supabase));
   if (o.campaigns.length === 0) redirect(START_HREF);
   const first = o.campaigns[0]!;
   const withTargets = o.campaigns.find((c) => c.step.kind === "cibles") ?? null;

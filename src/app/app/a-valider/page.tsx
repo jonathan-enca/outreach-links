@@ -17,6 +17,7 @@ import {
 } from "@/features/approvals/actions";
 import { ApprovalQueue } from "@/features/approvals/queue";
 import { loadQueue } from "@/features/approvals/service";
+import { selectedSiteId } from "@/features/shell/current-site";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 
@@ -30,7 +31,7 @@ async function Queue() {
   if (!auth.user) redirect("/connexion");
   return (
     <ApprovalQueue
-      view={await loadQueue(supabase)}
+      view={await loadQueue(supabase, new Date(), await selectedSiteId(supabase))}
       actions={{
         approveMessages: approveMessagesAction,
         editMessage: editMessageAction,
