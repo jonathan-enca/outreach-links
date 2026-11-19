@@ -17,6 +17,7 @@ import {
 } from "@/features/approvals/actions";
 import { ApprovalQueue } from "@/features/approvals/queue";
 import { loadQueue } from "@/features/approvals/service";
+import { selectedSiteId } from "@/features/shell/current-site";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,9 +29,10 @@ async function Queue() {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/connexion");
+  const siteId = await selectedSiteId(supabase);
   return (
     <ApprovalQueue
-      view={await loadQueue(supabase)}
+      view={await loadQueue(supabase, new Date(), siteId)}
       actions={{
         approveMessages: approveMessagesAction,
         editMessage: editMessageAction,
@@ -42,7 +44,8 @@ async function Queue() {
         editReply: editReplyAction,
         rejectReply: rejectReplyAction,
         completeForm: completeFormAction,
-        draftMissing: draftMissingAction,
+        // Le bouton ne rédige que les messages manquants du site affiché.
+        draftMissing: draftMissingAction.bind(null, siteId),
         draftAnyway: draftAnywayAction,
       }}
     />

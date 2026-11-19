@@ -1,0 +1,20 @@
+calcul nombre de jours ouvrés entre deux dates|88|390|https://www.squadraplanning.com/fr/calculators/jours-ouvres
+calcul des congés|89|260|https://www.squadraplanning.com/fr/calculators/conges-payes
+calcul jour de congé|91|260|https://www.squadraplanning.com/fr/calculators/conges-payes
+code du travail pause obligatoire|21|260|https://www.squadraplanning.com/fr/blog/temps-pause-legal-travail
+nombre de jours ouvrables|91|260|https://www.squadraplanning.com/fr/calculators/jours-ouvres
+nombre jour ouvré entre deux dates|88|260|https://www.squadraplanning.com/fr/calculators/jours-ouvres
+nombre jours ouvrés entre deux dates|85|260|https://www.squadraplanning.com/fr/calculators/jours-ouvres
+calcul des jours de congés|96|210|https://www.squadraplanning.com/fr/calculators/conges-payes
+calcul jour de congés|87|210|https://www.squadraplanning.com/fr/calculators/conges-payes
+calculateur jour de congé|77|210|https://www.squadraplanning.com/fr/calculators/conges-payes
+calculer jour de congé|90|210|https://www.squadraplanning.com/fr/calculators/conges-payes
+temps de pause pour 7h de travail|31|210|https://www.squadraplanning.com/fr/blog/temps-pause-legal-travail
+calcul coût salaire|84|140|https://www.squadraplanning.com/fr/calculators/cout-salarie
+cout salarié entreprise|82|140|https://www.squadraplanning.com/fr/calculators/cout-salarie
+calcul salaire chargé employeur|82|110|https://www.squadraplanning.com/fr/calculators/cout-salarie
+combien coûte un salarié à 2500 euros net|88|110|https://www.squadraplanning.com/fr/calculators/cout-salarie
+coût global salaire|88|110|https://www.squadraplanning.com/fr/calculators/cout-salarie
+combien je coute à mon employeur|84|90|https://www.squadraplanning.com/fr/calculators/cout-salarie
+coût salaire chargé|94|90|https://www.squadraplanning.com/fr/calculators/cout-salarie
+salaire chargé employeur|90|90|https://www.squadraplanning.com/fr/calculators/cout-salarie

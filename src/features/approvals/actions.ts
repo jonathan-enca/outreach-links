@@ -62,8 +62,13 @@ export async function completeFormAction(id: string, taskId: string): Promise<Au
 }
 
 /** Relance la rédaction pour les cibles validées qui n'ont pas encore de message. */
-export async function draftMissingAction(): Promise<AuditActionState> {
-  const r = await draftMissing(await createClient(), createServiceClient, (e) => inngest.send(e));
+export async function draftMissingAction(siteId: string | null = null): Promise<AuditActionState> {
+  const r = await draftMissing(
+    await createClient(),
+    createServiceClient,
+    (e) => inngest.send(e),
+    siteId,
+  );
   refresh();
   return r;
 }

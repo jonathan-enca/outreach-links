@@ -901,6 +901,10 @@ export const fr = {
         "Nous n'avons pas trouvé d'autre page à proposer : seule l'accueil sera citée. Vous pourrez affiner après l'audit.",
       homePage: "Page d'accueil",
       homeAlways: "Proposée par défaut : décochez-la si vous préférez faire citer d'autres pages.",
+      pageSearches: (volume: number, position: number) =>
+        `${volume.toLocaleString("fr-FR")} recherche${volume > 1 ? "s" : ""} par mois, position ${position}`,
+      rankedHint:
+        "Les pages déjà recherchées dans Google sont proposées en premier : ce sont celles qu'un lien aide le plus.",
       addPage: "Ajouter une page de votre site",
       addPageHint: "Collez l'adresse complète : nous vérifions qu'elle répond avant de l'ajouter.",
       edit: "Modifier",

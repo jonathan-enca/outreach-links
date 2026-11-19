@@ -11,6 +11,7 @@ import { addDays } from "@/features/sending/schedule";
 import { t } from "@/lib/messages";
 import type { Database } from "@/lib/supabase/database.types";
 import { buildFollowUpMessage } from "./followup-message";
+import { planIdsOfSite } from "@/features/shell/site-scope";
 import { taskState, type TaskView } from "./view";
 
 type Client = SupabaseClient<Database>;
@@ -22,7 +23,10 @@ type TaskRow = Database["public"]["Tables"]["manual_tasks"]["Row"];
  * Tâches manuelles de l'utilisateur (la RLS limite à ses espaces). Seules les tâches dont le
  * message figure dans un lot VALIDÉ sont visibles : avant, rien n'est à faire.
  */
-export async function listTasks(supabase: Client): Promise<TaskView[]> {
+export async function listTasks(
+  supabase: Client,
+  siteId: string | null = null,
+): Promise<TaskView[]> {
   const { data: tasks } = await supabase
     .from("manual_tasks")
     .select("*")
@@ -79,7 +83,10 @@ export async function listTasks(supabase: Client): Promise<TaskView[]> {
   );
   const itemById = new Map((items ?? []).map((i) => [i.id, i]));
   const out: TaskView[] = [];
+  // Filtre « un seul site » : une tâche se rattache au plan de son message.
+  const sitePlans = siteId ? await planIdsOfSite(supabase, siteId) : null;
   for (const x of tasks) {
+    if (sitePlans && !sitePlans.has(x.plan_id)) continue;
     const d = draftByItem.get(x.plan_item_id);
     const it = itemById.get(x.plan_item_id);
     if (!d || !it) continue;

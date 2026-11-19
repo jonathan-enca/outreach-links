@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AuditActionState, SendEvent } from "@/features/audits/service";
 import { t } from "@/lib/messages";
+import { planIdsOfSite } from "@/features/shell/site-scope";
 import type { Database } from "@/lib/supabase/database.types";
 import { DRAFTS_EVENT } from "./run";
 import type { LintIssue } from "./types";
@@ -374,12 +375,17 @@ export async function draftMissing(
   supabase: Client,
   getServiceClient: () => Client,
   sendEvent: SendEvent,
+  siteId: string | null = null,
 ): Promise<AuditActionState> {
   const { data: auth } = await supabase.auth.getUser();
   const userId = auth.user?.id ?? null;
   if (!userId) return { status: "error", message: M.unauthenticated };
   const m = await missingDrafts(supabase);
-  const todo = m.plans.filter((p) => p.status !== "en_cours");
+  // Le site choisi limite la rédaction à ses plans : on ne lance pas les autres sites à son insu.
+  const sitePlans = siteId ? await planIdsOfSite(supabase, siteId) : null;
+  const todo = m.plans.filter(
+    (p) => p.status !== "en_cours" && (!sitePlans || sitePlans.has(p.planId)),
+  );
   if (todo.length === 0)
     return { status: "ok", message: m.running ? M.alreadyStarted : M.nothingMissing };
   let service: Client;

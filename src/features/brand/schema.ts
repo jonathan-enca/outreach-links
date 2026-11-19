@@ -27,6 +27,26 @@ export const resourceSchema = z.object({
 export type LinkableResource = z.infer<typeof resourceSchema>;
 
 /**
+ * MC.7 : une page du site et les recherches Google sur lesquelles elle est déjà positionnée
+ * (`ranked_keywords`), dans l'ordre du classement volume × position. Le score n'est pas stocké : il se
+ * recalcule (`pageScore`), pour que les constantes de la formule puissent changer sans migration.
+ */
+export const rankedPageSchema = z.object({
+  url: z.string().trim().max(300),
+  /** Recherches par mois, tous mots-clés de la page confondus. */
+  volume: z.number().int().nonnegative(),
+  /** Meilleure position de la page dans Google. */
+  position: z.number().int().min(1),
+  /** Nombre de mots-clés positionnés de la page. */
+  count: z.number().int().min(1),
+  /** Ses mots-clés les plus recherchés (point de départ des recherches de MC.2). */
+  keywords: z.array(z.string().trim().min(1).max(80)).max(5),
+});
+export type RankedPage = z.infer<typeof rankedPageSchema>;
+
+export const MAX_RANKED_PAGES = 20;
+
+/**
  * Catégories GÉNÉRIQUES d'éditeurs (chantier H). Elles ne décrivent aucun thème : elles servent à
  * choisir des gabarits de requêtes. Les types d'éditeurs d'un site (leur nom, leurs mots) viennent
  * toujours de son profil, jamais du code.
@@ -77,6 +97,8 @@ export const brandProfileSchema = z.object({
   publisher_types: z.array(publisherTypeSchema).max(MAX_PUBLISHER_TYPES).optional(),
   /** Expressions courtes qui nomment le sujet du site, de la plus précise à la plus large. */
   theme_terms: z.array(z.string().trim().min(2).max(40)).max(5).optional(),
+  /** MC.7 : pages classées par volume et position (absent : site sans mot-clé positionné, ou profil antérieur). */
+  ranked_pages: z.array(rankedPageSchema).max(MAX_RANKED_PAGES).optional(),
 });
 export type BrandProfile = z.infer<typeof brandProfileSchema>;
 

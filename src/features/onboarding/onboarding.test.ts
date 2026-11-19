@@ -417,7 +417,12 @@ describe("profil de marque dans l'onboarding (MT.1)", () => {
     expect(res.status).toBe("ok");
     const row = user.tables.brand_profiles![0]!;
     expect(row).toMatchObject({ version: 1, source: "llm", cost_usd: 0.001, workspace_id: "ws-1" });
-    expect(b.deps.readSite).toHaveBeenCalledWith("exemple-coloriage.fr", PAGE, "fr"); // accueil non relu
+    expect(b.deps.readSite).toHaveBeenCalledWith(
+      "exemple-coloriage.fr",
+      PAGE,
+      "fr",
+      expect.any(Function),
+    ); // accueil non relu
     expect(user.tables.events!.map((e) => e.type)).toContain("brand_profile.created");
   });
 
@@ -509,6 +514,53 @@ describe("profil de marque dans l'onboarding (MT.1)", () => {
     expect(user.tables.brand_profiles![1]).toMatchObject({ version: 2, source: "utilisateur" });
     expect(user.tables.brand_profiles![0]).toMatchObject({ version: 1, source: "llm" });
     expect(user.tables.events!.map((e) => e.type)).toContain("brand_profile.edited");
+  });
+
+  it("MC.7 : mots-clés demandés pour le marché du site ; une correction du profil garde le classement des pages", async () => {
+    const { user } = setup({ sites: [SITE] });
+    const rankedKeywords = vi.fn(async () => [
+      {
+        keyword: "guide coloriage",
+        position: 12,
+        volume: 320,
+        url: "https://www.exemple-coloriage.fr/guide",
+      },
+    ]);
+    await startFromUrl(user.client, "exemple-coloriage.fr", {
+      readHomepage: vi.fn(),
+      makeLlm: vi.fn(),
+      brand: { ...brandDeps().deps, rankedKeywords },
+    });
+    expect(rankedKeywords).toHaveBeenCalledTimes(1);
+    expect(rankedKeywords.mock.calls[0]).toMatchObject([
+      { domain: "exemple-coloriage.fr", country: "FR", workspaceId: "ws-1" },
+    ]);
+    const preview = (await getLaunchPreview(user.client, "site-1"))!;
+    const expected = [
+      {
+        url: "https://www.exemple-coloriage.fr/guide",
+        volume: 320,
+        position: 12,
+        count: 1,
+        keywords: ["guide coloriage"],
+      },
+    ];
+    expect(preview.brand!.profile.ranked_pages).toEqual(expected);
+    expect(preview.brand!.profile.linkable_resources[0]).toMatchObject({
+      url: "https://exemple-coloriage.fr/guide",
+      selected: true,
+    });
+    const fields = profileToFields(preview.brand!.profile);
+    const res = await saveCorrections(
+      user.client,
+      "site-1",
+      form({ ...base, ...withProfile({ ...fields, tone: "sobre" }) }),
+    );
+    expect(res.status).toBe("ok");
+    const latest = (await getLaunchPreview(user.client, "site-1"))!.brand!;
+    expect(latest).toMatchObject({ version: 2, source: "utilisateur" });
+    expect(latest.profile.tone).toBe("sobre");
+    expect(latest.profile.ranked_pages).toEqual(expected);
   });
 
   it("un profil saisi invalide bloque le lancement avant tout audit", async () => {

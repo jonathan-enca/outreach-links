@@ -4,8 +4,8 @@
  * rubrique). Aucune requête ici : fonction pure, testée.
  */
 
-const SKIP_EXT = /\.(pdf|jpe?g|png|gif|webp|svg|ico|zip|xml|json|css|js|mp4|mp3|txt|rss)$/i;
-const SKIP_PATH =
+export const SKIP_EXT = /\.(pdf|jpe?g|png|gif|webp|svg|ico|zip|xml|json|css|js|mp4|mp3|txt|rss)$/i;
+export const SKIP_PATH =
   /(^|\/)(wp-admin|wp-login|wp-json|cart|panier|checkout|commande|login|connexion|inscription|register|compte|account|mon-compte|feed|tag|tags|author|search|recherche|mentions-legales|legal|cgu|cgv|conditions|privacy|confidentialite|cookies?|politique|page\/\d+)(\/|$)/i;
 
 const BOOST: [RegExp, number][] = [
@@ -28,7 +28,7 @@ export interface PickInput {
 }
 
 /** Première rubrique qui ressemble à un code de langue (« fr », « en-us ») : version linguistique du site. */
-const LOCALE = /^[a-z]{2}(-[a-z]{2})?$/i;
+export const LOCALE = /^[a-z]{2}(-[a-z]{2})?$/i;
 
 function normalize(url: string, host: string): URL | null {
   try {

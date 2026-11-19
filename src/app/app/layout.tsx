@@ -6,19 +6,23 @@ import { MobileBack } from "@/features/shell/mobile-back";
 import { loadOverview } from "@/features/shell/overview";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
-import { currentSiteChoice } from "@/features/shell/current-site";
+import { ALL_SITES, selectedSiteId } from "@/features/shell/current-site";
 import { selectSite, signOut } from "./actions";
 
-/** Menu : sites, compteurs de ce qui attend la personne, compte (la RLS limite à son espace). */
+/**
+ * Menu : sites, compteurs de ce qui attend la personne, compte (la RLS limite à son espace).
+ * Les compteurs suivent le site choisi ; la liste des sites reste complète.
+ */
 async function Nav() {
   const supabase = await createClient();
-  const [{ data: auth }, overview] = await Promise.all([
+  const [{ data: auth }, siteId] = await Promise.all([
     supabase.auth.getUser(),
-    loadOverview(supabase),
+    selectedSiteId(supabase),
   ]);
+  const overview = await loadOverview(supabase, siteId);
   const p = overview.pending;
-  const sites = overview.campaigns.map((c) => ({ id: c.siteId, domain: c.domain }));
-  const currentSite = await currentSiteChoice(sites.map((s) => s.id));
+  const sites = overview.sites;
+  const currentSite = siteId ?? ALL_SITES;
   return (
     <AppNav
       sites={sites}

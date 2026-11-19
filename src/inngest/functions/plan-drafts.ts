@@ -9,6 +9,8 @@ import {
 } from "@/features/drafting/catalogue";
 import type { CatalogueEntry } from "@/features/drafting/shortlist";
 import { BETA_SEND_PLAN, effectivePlan } from "@/features/billing/plans";
+import { trafficScorer } from "@/features/brand/rank-pages";
+import { getLatestBrandProfile } from "@/features/brand/service";
 import { betaEnabled } from "@/features/audits/beta";
 import { draftItem } from "@/features/drafting/draft";
 import { DRAFT_LIMITS, DRAFT_MODELS } from "@/features/drafting/limits";
@@ -173,6 +175,8 @@ export const planDrafts = inngest.createFunction(
         if (!llms) return { skipped: "Rédaction indisponible (clé ou budget LLM).", costUsd: 0 };
         const service = createServiceClient();
         const catalogue = (await loadCatalogueEntries(service, siteId)) ?? [];
+        // MC.7 : classement volume × position gardé dans le profil (lecture gratuite, jamais bloquante).
+        const brand = await getLatestBrandProfile(service, siteId).catch(() => null);
         const reader = createPageReader({ ...readerDeps(), maxRequests: 4, hostDelayMs: 300 });
         const res = await draftItem(
           item,
@@ -182,6 +186,7 @@ export const planDrafts = inngest.createFunction(
             fetch: pageFetcher(),
             readPage: (url) => reader.fetchText(url),
             catalogue,
+            pageTraffic: trafficScorer(brand?.profile.ranked_pages),
             // Pages candidates : déjà lues, sinon lues maintenant et gardées pour les cibles suivantes.
             loadPages: async (urls) => {
               const known = await loadSitePages(service, siteId, urls);

@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { t } from "@/lib/messages";
 import { profileToFields } from "./form";
 import { PublisherTags } from "./publisher-tags";
+import { pageKey } from "./rank-pages";
 import type { StoredBrandProfile } from "./schema";
 
 const areaClass =
@@ -60,12 +61,15 @@ function Field({
 /**
  * MT.2a : « Pages à faire citer » en cases à cocher. L'accueil est toujours incluse (case figée) ;
  * les autres pages sont celles réellement lues sur le site. Une page décochée reste proposée.
+ * MC.7 : une page déjà positionnée dans Google affiche ses recherches par mois et sa meilleure position.
  */
 function CitedPages({ brand, domain }: { brand: StoredBrandProfile | null; domain: string }) {
   const b = t.onboarding.brand;
   const home = `https://${domain}/`;
   const same = (a: string, c: string) => a.replace(/\/+$/, "") === c.replace(/\/+$/, "");
   const resources = brand?.profile.linkable_resources ?? [];
+  const searches = new Map((brand?.profile.ranked_pages ?? []).map((p) => [pageKey(p.url), p]));
+  const hasSearches = resources.some((r) => searches.has(pageKey(r.url)));
   const homeEntry = resources.find((r) => same(r.url, home));
   const pages = [
     { url: home, title: homeEntry?.title ?? b.homePage, selected: homeEntry?.selected !== false },
@@ -74,26 +78,37 @@ function CitedPages({ brand, domain }: { brand: StoredBrandProfile | null; domai
   return (
     <fieldset className="flex flex-col gap-2 rounded-control border border-border p-3">
       <legend className="px-1 text-sm font-medium">{b.resources}</legend>
-      {pages.map((r, i) => (
-        <label key={r.url} className="flex items-start gap-2">
-          <input type="hidden" name="profile_res_all" value={`${r.url} | ${r.title}`} />
-          <input
-            type="checkbox"
-            name="profile_res_on"
-            value={r.url}
-            defaultChecked={r.selected !== false}
-            className="mt-1"
-            aria-describedby="cited-hint"
-            data-testid={`cited-${i}`}
-          />
-          <span>
-            {r.title} <span className="break-all text-sm text-muted-foreground">{r.url}</span>
-            {i === 0 ? (
-              <span className="block text-sm text-muted-foreground">{b.homeAlways}</span>
-            ) : null}
-          </span>
-        </label>
-      ))}
+      {pages.map((r, i) => {
+        const found = searches.get(pageKey(r.url));
+        return (
+          <label key={r.url} className="flex items-start gap-2">
+            <input type="hidden" name="profile_res_all" value={`${r.url} | ${r.title}`} />
+            <input
+              type="checkbox"
+              name="profile_res_on"
+              value={r.url}
+              defaultChecked={r.selected !== false}
+              className="mt-1"
+              aria-describedby="cited-hint"
+              data-testid={`cited-${i}`}
+            />
+            <span>
+              {r.title} <span className="break-all text-sm text-muted-foreground">{r.url}</span>
+              {found ? (
+                <span
+                  className="block text-sm text-muted-foreground"
+                  data-testid={`cited-searches-${i}`}
+                >
+                  {b.pageSearches(found.volume, found.position)}
+                </span>
+              ) : null}
+              {i === 0 ? (
+                <span className="block text-sm text-muted-foreground">{b.homeAlways}</span>
+              ) : null}
+            </span>
+          </label>
+        );
+      })}
       <div className="mt-1 flex flex-col gap-1">
         <label htmlFor="profile_res_add" className="text-sm font-medium">
           {b.addPage}
@@ -109,6 +124,7 @@ function CitedPages({ brand, domain }: { brand: StoredBrandProfile | null; domai
       </div>
       <p id="cited-hint" className="text-sm text-muted-foreground">
         {resources.length > 0 ? b.resourcesHint : b.resourcesNone}
+        {hasSearches ? ` ${b.rankedHint}` : ""}
       </p>
     </fieldset>
   );

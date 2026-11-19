@@ -7,6 +7,7 @@ import { markReadAction, setArchivedAction, setTagAction } from "@/features/conv
 import { Conversations } from "@/features/conversations/conversations";
 import { loadConversations } from "@/features/conversations/service";
 import { queueNoteText } from "@/features/sending/queue-note";
+import { selectedSiteId } from "@/features/shell/current-site";
 import { env } from "@/env";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
@@ -24,6 +25,7 @@ async function Threads() {
   const view = await loadConversations(supabase, {
     now: new Date(),
     realSending: !env.EMAIL_DRY_RUN && env.OUTREACH_SENDING_ENABLED,
+    siteId: await selectedSiteId(supabase),
   });
   const note = view.queue;
   return (

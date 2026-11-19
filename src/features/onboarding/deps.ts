@@ -6,11 +6,14 @@ import {
   type PageRead,
 } from "@/features/triage/page-reader";
 import { createLlmClientFromEnv, type LlmClient } from "@/lib/llm/client";
-import { BRAND_LIMITS } from "@/features/brand/limits";
+import { loadRankedKeywords } from "@/features/brand/keywords";
+import { BRAND_LIMITS, PAGE_RANK } from "@/features/brand/limits";
 import { readSite } from "@/features/brand/read-site";
 import type { BrandDeps } from "@/features/brand/service";
 import { QUERY_LIMITS } from "@/features/queries/limits";
 import type { QueryDeps } from "@/features/queries/service";
+import { dailySpendUsd } from "@/lib/costs";
+import { createDataForSeoClientFromEnv } from "@/lib/dataforseo";
 import { createServiceClient } from "@/lib/supabase/service";
 import { DEDUCE_LIMITS } from "./deduce";
 import type { StartDeps } from "./service";
@@ -51,17 +54,36 @@ function makeBrandLlm(): LlmClient | null {
   });
 }
 
-/** Lecture du site et LLM plafonné du profil de marque (onboarding et analyse unique MU.1). */
+/**
+ * Lecture du site, LLM plafonné du profil de marque et, depuis MC.7, mots-clés positionnés du site
+ * (onboarding et analyse unique MU.1). L'appel DataForSEO est unique, plafonné par appel et par le
+ * plafond quotidien de la plateforme, journalisé dans `cost_ledger` et mis en cache par domaine.
+ */
 export const brandDeps: BrandDeps = {
-  readSite: (domain, home, language) =>
+  readSite: (domain, home, language, priorityPages) =>
     readSite(domain, {
       language,
       fetch: safeFetchPage,
       sleep: (ms) => new Promise<void>((r) => setTimeout(r, ms)),
       now: () => Date.now(),
       home,
+      priorityPages,
     }),
   makeLlm: makeBrandLlm,
+  rankedKeywords: (input) =>
+    loadRankedKeywords(
+      {
+        dfs: () =>
+          createDataForSeoClientFromEnv({
+            maxCostPerCallUsd: PAGE_RANK.maxCostUsd,
+            timeoutMs: PAGE_RANK.timeoutMs,
+            maxRetries: 0,
+          }),
+        dailySpendUsd: () => dailySpendUsd(createServiceClient()),
+        dailyCapUsd: env.DAILY_COST_CAP_USD,
+      },
+      input,
+    ),
 };
 
 export const startDeps: StartDeps = { readHomepage, makeLlm, brand: brandDeps };

@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { declareLinkAction } from "@/features/links/actions";
 import { LinksSection } from "@/features/links/links-section";
 import { listLinks } from "@/features/links/list";
+import { selectedSiteId } from "@/features/shell/current-site";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,7 +15,8 @@ async function Links() {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/connexion");
-  const { rows, sites } = await listLinks(supabase);
+  // Le site choisi dans le menu filtre la liste des liens obtenus.
+  const { rows, sites } = await listLinks(supabase, await selectedSiteId(supabase));
   return <LinksSection rows={rows} sites={sites} declareAction={declareLinkAction} />;
 }
 

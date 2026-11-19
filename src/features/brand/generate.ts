@@ -1,8 +1,17 @@
 import type { LlmClient } from "@/lib/llm/client";
-import { BRAND_LIMITS } from "./limits";
+import { BRAND_LIMITS, PAGE_RANK } from "./limits";
+import { pageKey } from "./rank-pages";
 import type { SiteRead } from "./read-site";
 import { z } from "zod";
-import { BRAND_LANGUAGES, brandProfileSchema, type BrandProfile, type PageRef } from "./schema";
+import {
+  BRAND_LANGUAGES,
+  brandProfileSchema,
+  MAX_RANKED_PAGES,
+  type BrandProfile,
+  type LinkableResource,
+  type PageRef,
+  type RankedPage,
+} from "./schema";
 
 export const brandSystem = (
   language: string = "fr",
@@ -14,7 +23,7 @@ Produis :
 - "offer" : ce que le site propose concrètement aux visiteurs (contenus, outils, produits, services).
 - "language" : la langue principale du site, "fr" ou "en".
 - "audience" : 2 à 5 publics que le site sert (qui l'utilise).
-- "linkable_resources" : 3 à 6 pages précises du site qu'un éditeur aurait intérêt à citer (guides, outils, collections, pages utiles). "url" doit être une adresse qui figure dans les données, copiée telle quelle ; "title" un titre court.
+- "linkable_resources" : 3 à 6 pages précises du site qu'un éditeur aurait intérêt à citer (guides, outils, collections, pages utiles). "url" doit être une adresse qui figure dans les données, copiée telle quelle ; "title" un titre court. Une page qui porte "recherches_google" (recherches par mois, meilleure position, mots-clés) est déjà cherchée dans Google : cite-la en priorité quand un éditeur aurait intérêt à la citer.
 - "name_variants" : les façons dont on peut écrire ou citer le nom du site ou de la marque dans un texte (nom, avec ou sans espace, sans tiret, domaine).
 - "tone" : le ton du site en quelques mots.
 - "personas" : 4 à 6 profils d'ÉDITEURS qui auraient une bonne raison de citer ce site dans leurs propres pages, parce que le site sert leur public ou leur mission. Ce sont des sites qui ne vendent pas de liens et que personne ne sollicite : écoles et enseignants, blogs thématiques, parents, associations, bibliothèques et médiathèques, collectivités, forums modérés, boutiques ou photographes complémentaires, etc., selon ce que fait vraiment le site. Couvre des familles d'éditeurs différentes (éducation, famille, vie associative, institutions et lieux culturels, blogs et forums thématiques, commerce complémentaire) plutôt que plusieurs variantes de la même ; nomme explicitement la vie associative et les institutions quand le site peut les servir. Jamais des concurrents, jamais des clients à démarcher, jamais des places de marché de liens. Pour chacun : "label" (qui, au pluriel), "sites" (les types de sites concrets où on les trouve), "reason" (pourquoi ils citeraient ce site, en une phrase).`;
@@ -79,8 +88,22 @@ const squash = (s: string) =>
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
 
-export function buildBrandPrompt(site: SiteRead): string {
+export function buildBrandPrompt(site: SiteRead, ranked: readonly RankedPage[] = []): string {
   const home = site.home;
+  // MC.7 : le modèle voit ce que chaque page pèse déjà dans Google, pas seulement un extrait.
+  const searches = new Map(ranked.map((r) => [pageKey(r.url), r]));
+  const searchData = (url: string) => {
+    const r = searches.get(pageKey(url));
+    return r
+      ? {
+          recherches_google: {
+            par_mois: r.volume,
+            meilleure_position: r.position,
+            mots_cles: r.keywords.slice(0, 3),
+          },
+        }
+      : {};
+  };
   const payload = {
     domaine: site.domain,
     accueil: {
@@ -97,6 +120,7 @@ export function buildBrandPrompt(site: SiteRead): string {
       description: clip(p.description, 160),
       titres: p.headings.slice(0, 4),
       extrait: clip(p.text, BRAND_LIMITS.pageExcerptChars),
+      ...searchData(p.url),
     })),
   };
   return `Établis le profil de marque.\n<donnees_non_fiables>\n${JSON.stringify(payload)}\n</donnees_non_fiables>`;
@@ -171,6 +195,46 @@ export function normalizeProfile(raw: BrandProfile, site: SiteRead): BrandProfil
   };
 }
 
+/**
+ * MC.7 : les pages les mieux classées par volume et position passent en tête des « pages à faire
+ * citer », cochées. Seules des pages réellement lues (HTTP 200) sont proposées, jamais une adresse
+ * inventée ; le titre est celui du modèle quand il a cité la page, sinon celui de la page. Les autres
+ * pages choisies par le modèle (tri par adresse) complètent la liste, comme avant. Sans classement
+ * (site sans mot-clé positionné, appel en échec), le profil est rendu tel quel.
+ */
+export function withRankedPages(
+  profile: BrandProfile,
+  site: SiteRead,
+  ranked: readonly RankedPage[],
+): BrandProfile {
+  const kept = ranked.filter((r) => r.url.length <= 300).slice(0, MAX_RANKED_PAGES);
+  if (kept.length === 0) return profile;
+  const read = new Map(site.pages.map((p) => [pageKey(p.url), p]));
+  const titled = new Map(profile.linkable_resources.map((r) => [pageKey(r.url), r.title]));
+  const first: LinkableResource[] = [];
+  for (const r of kept) {
+    if (first.length >= PAGE_RANK.preselected) break;
+    const page = read.get(pageKey(r.url));
+    if (!page || page.url.length > 300) continue;
+    // Titre du modèle s'il a cité la page, sinon celui de la page, sinon son adresse.
+    const own = page.title.trim().length >= 2 ? page.title : page.url;
+    first.push({
+      url: page.url,
+      title: titled.get(pageKey(page.url)) ?? clipTo(own, 120),
+      selected: true,
+    });
+  }
+  const taken = new Set(first.map((r) => pageKey(r.url)));
+  const rest = profile.linkable_resources.filter((r) => !taken.has(pageKey(r.url)));
+  const next = brandProfileSchema.safeParse({
+    ...profile,
+    linkable_resources: [...first, ...rest].slice(0, 8),
+    ranked_pages: kept,
+  });
+  // Un classement illisible ne doit jamais coûter le profil.
+  return next.success ? next.data : profile;
+}
+
 export interface GeneratedProfile {
   profile: BrandProfile;
   pagesRead: PageRef[];
@@ -187,10 +251,13 @@ export async function generateBrandProfile(input: {
   workspaceId: string | null;
   /** Langue de la campagne : celle des textes du profil (défaut : français). */
   language?: string;
+  /** MC.7 : pages classées par volume et position (vide : ancien comportement, inchangé). */
+  ranked?: readonly RankedPage[];
   /** Appelé à chaque échec, avec sa cause (jamais muet : essai du 17/11, profil absent sans aucune trace). */
   onError?: (message: string) => void;
 }): Promise<GeneratedProfile | null> {
   const { site, llm, workspaceId } = input;
+  const ranked = input.ranked ?? [];
   const h = site.home;
   if (!llm) {
     input.onError?.("aucun modèle configuré");
@@ -208,7 +275,7 @@ export async function generateBrandProfile(input: {
       const out = await llm.generate({
         task: "brand_profile",
         system: brandSystem(input.language),
-        prompt: buildBrandPrompt(site),
+        prompt: buildBrandPrompt(site, ranked),
         schema: brandGenerationSchema,
         schemaName: "brand_profile",
         maxOutputTokens: BRAND_LIMITS.maxOutputTokens,
@@ -218,7 +285,7 @@ export async function generateBrandProfile(input: {
       const fitted = fitProfile(out.data);
       if (!fitted) throw new Error("profil inutilisable après mise aux limites");
       return {
-        profile: normalizeProfile(fitted, site),
+        profile: withRankedPages(normalizeProfile(fitted, site), site, ranked),
         pagesRead: [h, ...site.pages].map((p) => ({ url: p.url, title: p.title.slice(0, 160) })),
         costUsd: costUsd + out.costUsd,
       };

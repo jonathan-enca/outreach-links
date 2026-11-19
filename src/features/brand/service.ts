@@ -2,7 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { LlmClient } from "@/lib/llm/client";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { generateBrandProfile } from "./generate";
+import type { KeywordsInput } from "./keywords";
 import { generatePublisherTypes } from "./publishers";
+import { rankPages, type RankedKeyword } from "./rank-pages";
 import type { SiteRead } from "./read-site";
 import {
   brandProfileSchema,
@@ -96,9 +98,22 @@ export async function saveBrandProfileVersion(
 }
 
 export interface BrandDeps {
-  /** Lit le site (accueil, sitemap, quelques pages). Ne lève jamais. */
-  readSite: (domain: string, home: SiteRead["home"] | null, language?: string) => Promise<SiteRead>;
+  /**
+   * Lit le site (accueil, sitemap, quelques pages). Ne lève jamais. `priorityPages` (MC.7) : pages à
+   * lire avant celles du tri par adresse, connues seulement quand les mots-clés sont arrivés.
+   */
+  readSite: (
+    domain: string,
+    home: SiteRead["home"] | null,
+    language?: string,
+    priorityPages?: () => Promise<readonly string[]>,
+  ) => Promise<SiteRead>;
   makeLlm: () => LlmClient | null;
+  /**
+   * MC.7 : mots-clés positionnés du site (un appel DataForSEO plafonné, journalisé, mis en cache).
+   * Ne lève jamais : une liste vide garde l'ancien tri par adresse. Absent : jamais d'appel.
+   */
+  rankedKeywords?: (input: KeywordsInput) => Promise<RankedKeyword[]>;
 }
 
 /**
@@ -117,11 +132,40 @@ export async function buildAndStoreBrandProfile(
     language?: string;
     /** Thème du site, s'il est déjà connu (aide à nommer le sujet des recherches). */
     theme?: string | null;
+    /**
+     * Marché de la campagne (pays et langue du site) : celui des mots-clés positionnés (MC.7). Les
+     * mêmes valeurs que l'état des lieux de l'analyse, pour partager son entrée de cache.
+     */
+    market?: { country?: string | null; language?: string | null };
+    /** Analyse en cours, s'il y en a une : le coût des mots-clés lui est rattaché. */
+    auditId?: string | null;
   },
   deps: BrandDeps,
 ): Promise<StoredBrandProfile | null> {
   try {
-    const site = await deps.readSite(input.domain, input.home, input.language);
+    // MC.7 : les mots-clés positionnés sont demandés tout de suite et attendus seulement au moment de
+    // choisir les pages à lire. Échec, plafond ou site sans mot-clé : liste vide, ancien tri.
+    const language = input.language ?? input.market?.language ?? undefined;
+    const loadKeywords = deps.rankedKeywords;
+    const rankedPages = (
+      loadKeywords
+        ? Promise.resolve().then(() =>
+            loadKeywords({
+              domain: input.domain,
+              country: input.market?.country,
+              language: input.market?.language ?? input.language,
+              workspaceId: input.workspaceId,
+              auditId: input.auditId,
+            }),
+          )
+        : Promise.resolve([] as RankedKeyword[])
+    )
+      .then((keywords) => rankPages(keywords, { domain: input.domain, language }))
+      .catch(() => [] as ReturnType<typeof rankPages>);
+    const site = await deps.readSite(input.domain, input.home, input.language, () =>
+      rankedPages.then((pages) => pages.map((p) => p.url)),
+    );
+    const ranked = await rankedPages;
     let llm: LlmClient | null = null;
     try {
       llm = deps.makeLlm();
@@ -148,6 +192,7 @@ export async function buildAndStoreBrandProfile(
       llm,
       workspaceId: input.workspaceId,
       language: input.language,
+      ranked,
       onError: trace("profil"),
     });
     if (!generated) return null;

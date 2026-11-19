@@ -91,8 +91,9 @@ async function currentUserId(supabase: Client): Promise<string | null> {
 
 /**
  * Étape 1 de l'onboarding en une URL : crée le site (ou retrouve celui du même domaine), déduit
- * thème, langue et requêtes depuis la page d'accueil, puis enregistre. AUCUN appel DataForSEO ici ;
- * seul appel payant possible : un appel LLM court, plafonné (voir DEDUCE_LIMITS). La vérification
+ * thème, langue et requêtes depuis la page d'accueil, puis enregistre. Appels payants possibles : un
+ * appel LLM court, plafonné (voir DEDUCE_LIMITS) et, avec le profil de marque, les mots-clés
+ * positionnés du site (MC.7 : un appel DataForSEO plafonné, mis en cache, voir `brandDeps`). La vérification
  * de propriété, le prénom de signature, l'actif offert et la boîte d'envoi sont demandés plus
  * tard, juste avant le premier lot, jamais avant la première valeur.
  */
@@ -119,7 +120,7 @@ export async function startFromUrl(
 
   const { data: existing } = await supabase
     .from("sites")
-    .select("id, niche, priority_queries")
+    .select("id, niche, priority_queries, language")
     .eq("workspace_id", ws.id)
     .eq("domain", domain)
     .eq("country", market.country)
@@ -147,6 +148,7 @@ export async function startFromUrl(
         userId,
         domain,
         home: null,
+        market: { country: market.country, language: existing.language },
       });
       return { status: "ok", siteId: existing.id };
     }
@@ -224,6 +226,7 @@ export async function startFromUrl(
     domain,
     home: page,
     language,
+    market: { country: market.country, language },
   });
   if (brand) {
     await supabase.from("events").insert({
@@ -247,6 +250,8 @@ async function ensureBrandProfile(
     domain: string;
     home: PageRead | null;
     language?: string;
+    /** Pays et langue de la campagne : marché des mots-clés positionnés (MC.7). */
+    market?: { country?: string | null; language?: string | null };
   },
 ): Promise<StoredBrandProfile | null> {
   if (!deps.brand) return null;
@@ -286,11 +291,14 @@ async function applyProfileEdits(
   if (parsed.status === "empty") return { ok: true };
   const latest = await getLatestBrandProfile(supabase, site.id);
   if (latest && sameProfile(latest.profile, parsed.profile)) return { ok: true };
+  // MC.7 : le classement des pages (volume, position, mots-clés) ne vient pas du formulaire ; une
+  // correction du profil le garde tel quel.
+  const ranked = latest?.profile.ranked_pages;
   const saved = await saveBrandProfileVersion(supabase, {
     siteId: site.id,
     workspaceId: site.workspaceId,
     userId,
-    profile: parsed.profile,
+    profile: ranked ? { ...parsed.profile, ranked_pages: ranked } : parsed.profile,
     source: "utilisateur",
     pagesRead: latest?.pagesRead ?? [],
   });
@@ -605,7 +613,7 @@ export async function understandSite(
   if (!userId) return { status: "error", message: ONBOARDING_MESSAGES.unauthenticated };
   const { data: site } = await supabase
     .from("sites")
-    .select("id, workspace_id, domain, language")
+    .select("id, workspace_id, domain, language, country")
     .eq("id", siteId)
     .maybeSingle();
   if (!site) return { status: "error", message: ONBOARDING_MESSAGES.siteNotFound };
@@ -616,6 +624,7 @@ export async function understandSite(
     domain: site.domain,
     home: null,
     language: site.language,
+    market: { country: site.country, language: site.language },
   });
   if (brand) {
     await supabase.from("events").insert({

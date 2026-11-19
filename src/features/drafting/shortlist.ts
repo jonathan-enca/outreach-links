@@ -56,14 +56,24 @@ export interface ShortlistTarget {
  * s'il est rare dans le catalogue (pondération par fréquence inverse) et plus encore quand il figure
  * dans le titre de la page du site. Une page sans mot commun n'est jamais gardée sauf pour compléter à
  * `min` : le modèle voit toujours quelques pages, même quand la cible est éloignée.
+ *
+ * MC.7 : `traffic` donne le score volume × position d'une page (0 sans mot-clé positionné). Il ne
+ * remplace jamais la proximité : il départage deux pages aussi proches l'une que l'autre de la cible,
+ * celle qui a déjà des recherches passant devant (et il ordonne un petit catalogue montré en entier).
  */
 export function shortlistCatalogue<T extends CatalogueEntry>(
   target: ShortlistTarget,
   catalogue: readonly T[],
   max: number,
   min = 8,
+  traffic: (url: string) => number = () => 0,
 ): T[] {
-  if (catalogue.length <= max) return [...catalogue];
+  if (catalogue.length <= max) {
+    return catalogue
+      .map((p, i) => ({ p, i, t: traffic(p.url) }))
+      .sort((a, b) => b.t - a.t || a.i - b.i)
+      .map((x) => x.p);
+  }
   const targetWords = new Map<string, number>();
   const add = (list: string[], weight: number) => {
     for (const w of list) targetWords.set(w, Math.max(targetWords.get(w) ?? 0, weight));
@@ -88,9 +98,9 @@ export function shortlistCatalogue<T extends CatalogueEntry>(
       if (d.strong.has(w)) score += tw * 2 * idf(w);
       else if (d.weak.has(w)) score += tw * idf(w);
     }
-    return { p: d.p, i, score };
+    return { p: d.p, i, score, t: traffic(d.p.url) };
   });
-  scored.sort((a, b) => b.score - a.score || a.i - b.i);
+  scored.sort((a, b) => b.score - a.score || b.t - a.t || a.i - b.i);
   const matching = scored.filter((s) => s.score > 0).slice(0, max);
   const picked =
     matching.length >= min ? matching : scored.slice(0, Math.max(min, matching.length));

@@ -22,6 +22,8 @@ export interface CampaignView {
 }
 
 export interface OverviewView {
+  /** Tous les sites de la personne (le menu), filtrés ou non. */
+  sites: { id: string; domain: string }[];
   campaigns: CampaignView[];
   totals: { targets: number; validated: number; contacted: number; replies: number; links: number };
   /** Ce qui attend l'utilisateur. */
@@ -53,7 +55,7 @@ export interface OverviewRows {
 }
 
 /** Assemble les compteurs par campagne et les totaux (pur, testé). */
-export function buildOverview(r: OverviewRows): OverviewView {
+export function buildOverview(r: OverviewRows): Omit<OverviewView, "sites"> {
   const latest = new Map<string, OverviewRows["audits"][number]>();
   for (const a of [...r.audits].sort((x, y) => y.created_at.localeCompare(x.created_at))) {
     if (!latest.has(a.site_id)) latest.set(a.site_id, a);
@@ -112,7 +114,10 @@ export function buildOverview(r: OverviewRows): OverviewView {
 }
 
 /** Tout ce que l'accueil, le menu et la liste des campagnes montrent (la RLS limite à l'espace de la personne). */
-export async function loadOverview(supabase: Client): Promise<OverviewView> {
+export async function loadOverview(
+  supabase: Client,
+  siteId: string | null = null,
+): Promise<OverviewView> {
   const head = { count: "exact" as const, head: true };
   const [sites, audits, plans, sent, replies, links, queue] = await Promise.all([
     supabase.from("sites").select("id, domain, country").order("created_at", { ascending: true }),
@@ -138,10 +143,22 @@ export async function loadOverview(supabase: Client): Promise<OverviewView> {
       .limit(5000),
     // Les compteurs « à valider » sont ceux de la file elle-même : le menu, l'accueil et l'écran
     // affichent toujours le même nombre (retour de Jonathan, 18/11 : 50 au menu, 31 à l'écran).
-    loadQueue(supabase),
+    loadQueue(supabase, new Date(), siteId),
   ]);
+  // Filtre « un seul site » : sites, analyses, plans, envois, réponses et liens se rattachent à ce site.
+  const onlySite = <T extends { site_id: string }>(rows: T[]) =>
+    siteId ? rows.filter((r) => r.site_id === siteId) : rows;
+  const sitePlans = onlySite(plans.data ?? []);
+  const sitePlanIds = new Set(sitePlans.map((p) => p.id));
+  const siteSent = (sent.data ?? []).filter((s) => !siteId || sitePlanIds.has(s.plan_id));
+  const siteSentIds = new Set(siteSent.map((s) => s.id));
+  const siteReplies = (replies.data ?? []).filter(
+    (r) => !siteId || siteSentIds.has(r.sent_message_id),
+  );
+  const siteAudits = onlySite(audits.data ?? []);
+  const siteSites = (sites.data ?? []).filter((s) => !siteId || s.id === siteId);
   const latestIds = [
-    ...new Map((audits.data ?? []).map((a) => [a.site_id, a.id] as const).reverse()).values(),
+    ...new Map(siteAudits.map((a) => [a.site_id, a.id] as const).reverse()).values(),
   ];
   const targetsByAudit: Record<string, number> = {};
   await Promise.all(
@@ -154,17 +171,19 @@ export async function loadOverview(supabase: Client): Promise<OverviewView> {
       targetsByAudit[auditId] = count ?? 0;
     }),
   );
-  return buildOverview({
-    sites: sites.data ?? [],
-    audits: audits.data ?? [],
+  const view = buildOverview({
+    sites: siteSites,
+    audits: siteAudits,
     targetsByAudit,
-    plans: plans.data ?? [],
-    sent: sent.data ?? [],
-    replies: replies.data ?? [],
-    links: links.data ?? [],
+    plans: sitePlans,
+    sent: siteSent,
+    replies: siteReplies,
+    links: onlySite(links.data ?? []),
     pendingDrafts: queue.messages.length,
     pendingReplies: queue.replies.length,
     pendingForms: queue.forms.length,
     mailboxes: queue.hasMailbox ? 1 : 0,
   });
+  // Le menu liste toujours tous les sites, même quand un seul est choisi.
+  return { ...view, sites: (sites.data ?? []).map((s) => ({ id: s.id, domain: s.domain })) };
 }

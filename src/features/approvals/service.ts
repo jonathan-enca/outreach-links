@@ -13,6 +13,7 @@ import { lintMessage } from "@/features/drafting/lint";
 import { completeTask } from "@/features/tasks/service";
 import { missingDrafts } from "@/features/drafting/service";
 import { formatSendTime } from "@/features/sending/queue-note";
+import { planIdsOfSite } from "@/features/shell/site-scope";
 import type { LintIssue } from "@/features/drafting/types";
 import { t } from "@/lib/messages";
 import type { Database } from "@/lib/supabase/database.types";
@@ -155,7 +156,14 @@ export function isSnoozed(until: string | null, now: Date): boolean {
 export const SNOOZE_HOURS = 24;
 
 /** Tout ce qui attend l'accord de la personne, toutes campagnes confondues (RLS). */
-export async function loadQueue(supabase: Client, now: Date = new Date()): Promise<QueueView> {
+export async function loadQueue(
+  supabase: Client,
+  now: Date = new Date(),
+  siteId: string | null = null,
+): Promise<QueueView> {
+  // Filtre « un seul site » : seuls les éléments dont le plan est à ce site restent (reportés compris).
+  const inSite = siteId ? await planIdsOfSite(supabase, siteId) : null;
+  const inScope = (x: { planId: string }) => !inSite || inSite.has(x.planId);
   const [drafts, replyDrafts, tasks, boxes, missing, declines, handled] = await Promise.all([
     supabase
       .from("target_drafts")
@@ -182,7 +190,7 @@ export async function loadQueue(supabase: Client, now: Date = new Date()): Promi
     missingDrafts(supabase),
     supabase
       .from("draft_declines")
-      .select("plan_item_id, reason, page_url, created_at, link_plan_items(source_domain)")
+      .select("plan_id, plan_item_id, reason, page_url, created_at, link_plan_items(source_domain)")
       .order("created_at", { ascending: false })
       .limit(200),
     supabase
@@ -190,6 +198,10 @@ export async function loadQueue(supabase: Client, now: Date = new Date()): Promi
       .select("id", { count: "exact", head: true })
       .neq("status", "brouillon"),
   ]);
+  // Cibles sans message et cibles écartées : comptées pour le site choisi seulement.
+  const missingPlans = missing.plans.filter((p) => !inSite || inSite.has(p.planId));
+  const missingTotal = missingPlans.reduce((s, p) => s + p.missing, 0);
+  const missingRunning = missingPlans.some((p) => p.status === "en_cours");
   // Les formulaires ne passent pas par l'approbation : ils vont directement dans « Formulaires à remplir ».
   const d = (drafts.data ?? []).filter((x) => x.channel === "email");
   const taskRows = tasks.data ?? [];
@@ -384,30 +396,34 @@ export async function loadQueue(supabase: Client, now: Date = new Date()): Promi
     ...allForms
       .filter((x) => !due(x))
       .map((x) => snoozedItem(x, "formulaires", x.domain, t.toValidate.formSubject)),
-  ].sort((a, b) => a.until.localeCompare(b.until));
+  ]
+    .filter(inScope)
+    .sort((a, b) => a.until.localeCompare(b.until));
   const seen = new Map<string, string>();
-  for (const x of [...messages, ...allReplies, ...allForms])
+  for (const x of [...messages, ...allReplies, ...allForms].filter(inScope))
     if (x.planId && !seen.has(x.planId)) seen.set(x.planId, campaignMap.get(x.planId) ?? "");
   return {
     campaigns: [...seen]
       .map(([id, label]) => ({ id, label }))
       .sort((a, b) => a.label.localeCompare(b.label)),
-    messages: messages.filter(due),
-    replies: allReplies.filter(due),
-    forms: allForms.filter(due),
+    messages: messages.filter(due).filter(inScope),
+    replies: allReplies.filter(due).filter(inScope),
+    forms: allForms.filter(due).filter(inScope),
     snoozed: later.length,
     later,
     handled: (handled.count ?? 0) > 0,
     hasMailbox: (boxes.count ?? 0) > 0,
-    missing: missing.total,
-    drafting: missing.running,
-    declined: (declines.data ?? []).map((r) => ({
-      itemId: r.plan_item_id,
-      domain:
-        (r.link_plan_items as unknown as { source_domain: string } | null)?.source_domain ?? "",
-      pageUrl: r.page_url,
-      reason: r.reason,
-    })),
+    missing: missingTotal,
+    drafting: missingRunning,
+    declined: (declines.data ?? [])
+      .filter((r) => !inSite || inSite.has(r.plan_id))
+      .map((r) => ({
+        itemId: r.plan_item_id,
+        domain:
+          (r.link_plan_items as unknown as { source_domain: string } | null)?.source_domain ?? "",
+        pageUrl: r.page_url,
+        reason: r.reason,
+      })),
   };
 }
 

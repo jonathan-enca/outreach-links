@@ -272,6 +272,16 @@ function understandStage(deps: AnalysisDeps): Stage {
           .maybeSingle();
         const redo = (own?.counters as Record<string, unknown> | null)?.redo === 1;
         const existing = redo && latest?.source === "llm" ? null : latest;
+        // MC.7 : marché des mots-clés positionnés, le même que celui de l'état des lieux (même cache).
+        const market = existing
+          ? null
+          : (
+              await service
+                .from("sites")
+                .select("country, language")
+                .eq("id", run.siteId)
+                .maybeSingle()
+            ).data;
         const profile =
           existing ??
           (await buildAndStoreBrandProfile(
@@ -282,6 +292,8 @@ function understandStage(deps: AnalysisDeps): Stage {
               userId: run.actorId,
               domain: run.domain,
               home: null,
+              market: { country: market?.country ?? "FR", language: market?.language ?? "fr" },
+              auditId: run.auditId,
             },
             deps.brand,
           ));
