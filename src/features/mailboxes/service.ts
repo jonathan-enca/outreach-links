@@ -8,6 +8,7 @@ import { formatSendTime } from "@/features/sending/queue-note";
 import { nextSendStart } from "@/features/sending/schedule";
 import { mailboxSchema, scheduleSchema } from "./schema";
 import { sendSmtp, verifyImap, verifySmtp, type TransportOptions } from "./transport";
+import { sendViaGoogle } from "@/features/google/gmail";
 
 type Client = SupabaseClient<Database>;
 const M = t.mailboxes.messages;
@@ -357,4 +358,62 @@ export async function removeMailbox(
     payload: { mailbox_id: mailboxId },
   });
   return { status: "ok", message: M.removed };
+}
+
+/**
+ * Test d'une boîte Google : un vrai message envoyé par l'API Gmail à l'adresse de la personne connectée.
+ * Rien d'autre n'est envoyé ; la boîte passe en « vérifiée » si l'envoi part.
+ */
+export async function testGoogleMailbox(
+  supabase: Client,
+  mailboxId: string,
+  deps: MailboxDeps,
+): Promise<MailboxState> {
+  const u = await user(supabase);
+  if (!u || !u.email) return { status: "error", message: M.unauthenticated };
+  // RLS : seul un membre voit la boîte.
+  const { data: visible } = await supabase
+    .from("mailboxes")
+    .select("id, workspace_id")
+    .eq("id", mailboxId)
+    .maybeSingle();
+  if (!visible) return { status: "error", message: M.notFound };
+
+  const service = deps.getServiceClient();
+  const { data: box } = await service.from("mailboxes").select("*").eq("id", mailboxId).single();
+  if (!box || box.provider !== "google") return { status: "error", message: M.notFound };
+  if (!deps.realSendingAllowed()) return { status: "ok", message: M.testOkDryRun };
+
+  const r = await sendViaGoogle(
+    service,
+    { id: box.id },
+    {
+      from: { name: box.from_name, address: box.email },
+      to: u.email, // jamais un tiers
+      subject: "Test de votre boîte d'envoi",
+      text: "Ce message confirme que votre boîte Gmail est bien connectée. Vous pouvez l'ignorer.",
+      messageId: `<test-${crypto.randomUUID()}@backleenks.com>`,
+      headers: {},
+    },
+    deps.keyRing(),
+  );
+  const now = new Date().toISOString();
+  const ok = r.ok;
+  await service
+    .from("mailboxes")
+    .update({
+      status: ok ? "verifiee" : r.kind === "auth" ? "erreur" : box.status,
+      last_test_at: now,
+      last_error: ok ? null : r.error.slice(0, 300),
+      updated_at: now,
+    })
+    .eq("id", mailboxId);
+  await supabase.from("events").insert({
+    workspace_id: visible.workspace_id,
+    actor_id: u.id,
+    type: "mailbox.tested",
+    payload: { mailbox_id: mailboxId, ok, sent: ok, provider: "google" },
+  });
+  if (!ok) return { status: "error", message: M.testFail.replace("{detail}", r.error) };
+  return { status: "ok", message: M.testOkSent };
 }

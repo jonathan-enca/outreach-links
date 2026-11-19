@@ -8,6 +8,7 @@ import {
   defaultMailboxDeps,
   linkMailbox,
   removeMailbox,
+  testGoogleMailbox,
   testMailbox,
   unlinkMailbox,
   updateSendSchedule,
@@ -54,6 +55,16 @@ export async function testMailboxAction(
   _prev: MailboxState,
 ): Promise<MailboxState> {
   const r = await testMailbox(await createClient(), mailboxId, deps());
+  revalidatePath(`/app/site/${siteId}`);
+  return r;
+}
+
+export async function testGoogleMailboxAction(
+  siteId: string,
+  mailboxId: string,
+  _prev: MailboxState,
+): Promise<MailboxState> {
+  const r = await testGoogleMailbox(await createClient(), mailboxId, deps());
   revalidatePath(`/app/site/${siteId}`);
   return r;
 }

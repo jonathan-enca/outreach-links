@@ -12,6 +12,7 @@ import {
   connectMailboxAction,
   linkMailboxAction,
   removeMailboxAction,
+  testGoogleMailboxAction,
   testMailboxAction,
   unlinkMailboxAction,
   updateScheduleAction,
@@ -113,9 +114,11 @@ function FailureHelp({ box }: { box: MailboxView }) {
 }
 
 function Row({ siteId, box }: { siteId: string; box: MailboxView }) {
-  const [testState, test, testing] = useActionState(testMailboxAction.bind(null, siteId, box.id), {
-    status: "idle",
-  } as MailboxState);
+  const isGoogle = box.provider === "google";
+  const [testState, test, testing] = useActionState(
+    (isGoogle ? testGoogleMailboxAction : testMailboxAction).bind(null, siteId, box.id),
+    { status: "idle" } as MailboxState,
+  );
   const [rmState, remove, removing] = useActionState(
     removeMailboxAction.bind(null, siteId, box.id),
     { status: "idle" } as MailboxState,
@@ -126,7 +129,6 @@ function Row({ siteId, box }: { siteId: string; box: MailboxView }) {
   );
   const warn = healthText(box.health);
   const others = box.otherSites ?? [];
-  const isGoogle = box.provider === "google";
   return (
     <div className="flex flex-col gap-2 rounded-md border border-border p-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -154,13 +156,11 @@ function Row({ siteId, box }: { siteId: string; box: MailboxView }) {
       ) : null}
       {box.lastError ? <FailureHelp box={box} /> : null}
       <div className="flex flex-wrap gap-2">
-        {isGoogle ? null : (
-          <form action={test}>
-            <Button type="submit" disabled={testing}>
-              {testing ? m.testing : m.test}
-            </Button>
-          </form>
-        )}
+        <form action={test}>
+          <Button type="submit" disabled={testing}>
+            {testing ? m.testing : m.test}
+          </Button>
+        </form>
         <form
           action={remove}
           onSubmit={(e) => {
