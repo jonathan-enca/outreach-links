@@ -4,6 +4,8 @@ import { t } from "@/lib/messages";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { decryptSecret, encryptSecret, parseKeyRing, type KeyRing } from "./crypto";
 import { checkDomainHealth, type HealthReport } from "./health";
+import { betaEnabled } from "@/features/audits/beta";
+import { loadEntitlements, planBlockMessage } from "@/features/billing/entitlements";
 import { formatSendTime } from "@/features/sending/queue-note";
 import { nextSendStart } from "@/features/sending/schedule";
 import { mailboxSchema, scheduleSchema } from "./schema";
@@ -82,6 +84,16 @@ export async function connectMailbox(
     .eq("id", siteId)
     .maybeSingle();
   if (!site) return { status: "error", message: M.siteNotFound };
+
+  // Plafond de boîtes d'envoi du forfait (gratuit : aucune).
+  const ent = await loadEntitlements(supabase, site.workspace_id, new Date(), betaEnabled());
+  const { data: boxes } = await supabase
+    .from("mailboxes")
+    .select("id")
+    .eq("workspace_id", site.workspace_id);
+  if ((boxes?.length ?? 0) >= ent.maxMailboxes) {
+    return { status: "error", message: planBlockMessage(ent, "boite") };
+  }
 
   let enc: { value: string; version: string };
   try {

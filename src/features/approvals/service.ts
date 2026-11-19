@@ -9,6 +9,8 @@ import {
   type SignatureSiteRow,
 } from "@/features/signature/signature";
 import type { AuditActionState } from "@/features/audits/service";
+import { betaEnabled } from "@/features/audits/beta";
+import { loadEntitlements, sendBlock } from "@/features/billing/entitlements";
 import { lintMessage } from "@/features/drafting/lint";
 import { completeTask } from "@/features/tasks/service";
 import { missingDrafts } from "@/features/drafting/service";
@@ -461,6 +463,12 @@ export async function approveMessages(
     isApprovable({ ...d, sendable: sendable.get(d.plan_item_id) === true }),
   );
   if (ok.length === 0) return { status: "error", message: M.notReady };
+  // Forfait (décision du 19/11/2026) : le gratuit prépare tout mais n'approuve aucun envoi ; un
+  // abonné ne dépasse pas son plafond mensuel. Le contrôle est fait ici, au bouton, pas seulement
+  // au moteur d'envoi.
+  const ent = await loadEntitlements(supabase, ok[0].workspace_id, new Date(), betaEnabled());
+  const blocked = sendBlock(ent);
+  if (blocked) return { status: "error", message: blocked };
   // Un email ne s'approuve qu'avec une boîte d'envoi connectée et vérifiée pour son site : sans elle,
   // « Approuver et envoyer » ne pourrait rien envoyer (retour de Jonathan, 18/11).
   const emailPlans = [...new Set(ok.filter((d) => d.channel === "email").map((d) => d.plan_id))];

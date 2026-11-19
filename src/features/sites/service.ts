@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { t } from "@/lib/messages";
 import type { Database } from "@/lib/supabase/database.types";
+import { betaEnabled } from "@/features/audits/beta";
+import { loadEntitlements, planBlockMessage } from "@/features/billing/entitlements";
 import { parseSiteForm, type FieldErrors, type SiteInput } from "./schema";
 import { checkOwnership, type PageFetcher } from "./verify";
 
@@ -54,6 +56,13 @@ export async function createSite(supabase: Client, formData: FormData): Promise<
     .limit(1)
     .maybeSingle();
   if (!ws) return { status: "error", message: SITE_MESSAGES.noWorkspace };
+
+  // Plafond de sites du forfait (gratuit : 1).
+  const ent = await loadEntitlements(supabase, ws.id, new Date(), betaEnabled());
+  const { data: owned } = await supabase.from("sites").select("id").eq("workspace_id", ws.id);
+  if ((owned?.length ?? 0) >= ent.maxSites) {
+    return { status: "error", message: planBlockMessage(ent, "site") };
+  }
 
   const { data, error } = await supabase
     .from("sites")

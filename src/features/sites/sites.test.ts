@@ -1,3 +1,20 @@
+// Forfait simulé : ces tests portent sur la logique de l'action, pas sur le forfait (testé dans
+// src/features/billing/entitlements.test.ts). Un espace gratuit serait refusé ici par design.
+vi.mock("@/features/billing/entitlements", async (orig) => ({
+  ...(await orig<typeof import("@/features/billing/entitlements")>()),
+  loadEntitlements: async () => ({
+    plan: "pro",
+    canSend: true,
+    sendCap: 300,
+    sendUsed: 0,
+    maxSites: 3,
+    maxMailboxes: 2,
+    monthlyCampaigns: 3,
+    dedicatedDomain: false,
+    linkChecks: true,
+  }),
+}));
+
 import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";

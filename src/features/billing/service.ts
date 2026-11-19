@@ -1,7 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { betaEnabled } from "@/features/audits/beta";
 import type { Database } from "@/lib/supabase/database.types";
-import { checkSendAllowance, effectivePlan, isPaidPlan, type BillingPlanKey } from "./plans";
+import { campaignsThisMonth, loadEntitlements, type Entitlements } from "./entitlements";
+import { effectivePlan, isPaidPlan, type BillingPlanKey } from "./plans";
 import type { BillingProvider } from "./stripe";
 
 type Client = SupabaseClient<Database>;
@@ -13,10 +14,12 @@ export interface PlanRow {
   name: string;
   price_eur_cents: number;
   monthly_send_cap: number;
-  monthly_credits: number;
   max_sites: number;
   max_mailboxes: number;
-  monthly_audits: number;
+  monthly_campaigns: number;
+  dedicated_domain: boolean;
+  link_checks: boolean;
+  weekly_digest: boolean;
 }
 
 export interface BillingOverview {
@@ -27,36 +30,35 @@ export interface BillingOverview {
   cancelAtPeriodEnd: boolean;
   hasCustomer: boolean;
   plans: PlanRow[];
-  sendUsed: number | null;
-  sendCap: number | null;
-  credits: number;
+  /** Droits effectifs du forfait en cours (plafonds, envois du mois). */
+  entitlements: Entitlements;
+  /** Campagnes lancées ce mois civil. */
+  campaignsUsed: number;
 }
 
-/** Lecture par la RLS (client utilisateur) : plan, abonnement, usage du mois, solde de crédits. */
+/** Lecture par la RLS (client utilisateur) : plan, abonnement, droits et usage du mois. */
 export async function getBillingOverview(
   supabase: Client,
   now: Date = new Date(),
 ): Promise<BillingOverview | null> {
   const { data: ws } = await supabase.from("workspaces").select("id").limit(1).maybeSingle();
   if (!ws) return null;
-  const [{ data: plans }, { data: sub }, { data: ledger }] = await Promise.all([
+  const [{ data: plans }, { data: sub }] = await Promise.all([
     supabase.from("plans").select("*").order("sort_order"),
     supabase.from("subscriptions").select("*").eq("workspace_id", ws.id).maybeSingle(),
-    supabase.from("credits_ledger").select("delta").eq("workspace_id", ws.id),
   ]);
-  const plan = await effectivePlan(supabase, ws.id, now);
-  const allowance = await checkSendAllowance(supabase, ws.id, now, betaEnabled());
+  const entitlements = await loadEntitlements(supabase, ws.id, now, betaEnabled());
+  const campaignsUsed = await campaignsThisMonth(supabase, ws.id, now);
   return {
     workspaceId: ws.id,
-    plan,
+    plan: entitlements.plan,
     status: sub?.status ?? null,
     periodEnd: sub?.current_period_end ?? null,
     cancelAtPeriodEnd: sub?.cancel_at_period_end ?? false,
     hasCustomer: Boolean(sub?.stripe_customer_id),
     plans: (plans ?? []) as PlanRow[],
-    sendUsed: allowance.allowed ? allowance.used : null,
-    sendCap: allowance.allowed ? allowance.cap : null,
-    credits: (ledger ?? []).reduce((n, r) => n + r.delta, 0),
+    entitlements,
+    campaignsUsed,
   };
 }
 

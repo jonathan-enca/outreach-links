@@ -6,6 +6,11 @@ import { analysisChain, estimateChain, legacyChainEnabled } from "./chain";
 import { env } from "@/env";
 import { dailyCapReached } from "@/lib/costs";
 import { betaEnabled, effectivePlan } from "./beta";
+import {
+  campaignsThisMonth,
+  loadEntitlements,
+  planBlockMessage,
+} from "@/features/billing/entitlements";
 import { estimateDiscovery } from "./estimate";
 import { isTestDomain } from "@/features/sites/test-domains";
 import { canTransition, isPlanKey, limitsFor, type AuditStatus, type PlanKey } from "./plans";
@@ -130,6 +135,16 @@ export async function createAudit(
     .in("status", ["en_attente", "estime", "confirme", "en_cours"])
     .maybeSingle();
   if (active) return { status: "ok", auditId: active.id, message: AUDIT_MESSAGES.alreadyActive };
+
+  // Campagnes lancées par mois selon le forfait (une campagne = une analyse de site + son plan de
+  // liens ; gratuit : 1 en aperçu). Une analyse échouée ne compte pas. Les domaines de test restent exemptés.
+  if (!isTestDomain(site.domain)) {
+    const ent = await loadEntitlements(supabase, site.workspace_id, new Date(), betaEnabled());
+    const used = await campaignsThisMonth(supabase, site.workspace_id, new Date());
+    if (used >= ent.monthlyCampaigns) {
+      return { status: "error", message: planBlockMessage(ent, "campagne") };
+    }
+  }
 
   const { data: ws } = await supabase
     .from("workspaces")

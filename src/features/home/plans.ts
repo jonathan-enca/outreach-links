@@ -9,11 +9,17 @@ export interface PublicPlan {
   monthlySendCap: number;
   maxSites: number;
   maxMailboxes: number;
-  monthlyAudits: number;
+  monthlyCampaigns: number;
+  dedicatedDomain: boolean;
+  linkChecks: boolean;
+  weeklyDigest: boolean;
 }
 
 /** Offres payantes affichées en cartes ; le gratuit (aucun envoi) est un bandeau au-dessus. */
 const KEYS = ["starter", "pro", "business"] as const;
+
+const SELECT =
+  "key, name, price_eur_cents, monthly_send_cap, max_sites, max_mailboxes, monthly_campaigns, dedicated_domain, link_checks, weekly_digest, sort_order";
 
 /**
  * Offres payantes affichées sur la home : lues dans la table `plans` (lecture publique, aucune écriture).
@@ -27,12 +33,7 @@ export async function getPublicPlans(): Promise<PublicPlan[] | null> {
       env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
-    const { data, error } = await db
-      .from("plans")
-      .select(
-        "key, name, price_eur_cents, monthly_send_cap, max_sites, max_mailboxes, monthly_audits, sort_order",
-      )
-      .order("sort_order");
+    const { data, error } = await db.from("plans").select(SELECT).order("sort_order");
     if (error || !data) return null;
     const plans = data
       .filter((p): p is typeof p & { key: PublicPlan["key"] } =>
@@ -45,7 +46,10 @@ export async function getPublicPlans(): Promise<PublicPlan[] | null> {
         monthlySendCap: p.monthly_send_cap,
         maxSites: p.max_sites,
         maxMailboxes: p.max_mailboxes,
-        monthlyAudits: p.monthly_audits,
+        monthlyCampaigns: p.monthly_campaigns,
+        dedicatedDomain: p.dedicated_domain,
+        linkChecks: p.link_checks,
+        weeklyDigest: p.weekly_digest,
       }));
     return plans.length === KEYS.length ? plans : null;
   } catch {

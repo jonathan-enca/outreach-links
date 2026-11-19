@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
+import { betaEnabled } from "@/features/audits/beta";
+import { loadEntitlements } from "@/features/billing/entitlements";
 import { encryptSecret, type KeyRing } from "@/features/mailboxes/crypto";
 import {
   exchangeCode,
@@ -13,7 +15,10 @@ type Client = SupabaseClient<Database>;
 
 export type GoogleConnectResult =
   | { ok: true; email: string; reconnected: boolean }
-  | { ok: false; reason: "scopes" | "no_refresh" | "token" | "profile" | "site" | "save" | "user" };
+  | {
+      ok: false;
+      reason: "scopes" | "no_refresh" | "token" | "profile" | "site" | "save" | "user" | "plan";
+    };
 
 export interface GoogleDeps {
   config: OAuthConfig;
@@ -79,6 +84,13 @@ export async function completeGoogleConnect(
       .eq("id", existing.id);
   }
   if (!mailboxId) {
+    // Plafond de boîtes d'envoi du forfait (gratuit : aucune) : refus avant toute création.
+    const ent = await loadEntitlements(db, site.workspace_id, new Date(), betaEnabled());
+    const { data: boxes } = await db
+      .from("mailboxes")
+      .select("id")
+      .eq("workspace_id", site.workspace_id);
+    if ((boxes?.length ?? 0) >= ent.maxMailboxes) return { ok: false, reason: "plan" };
     const { data: created, error } = await db
       .from("mailboxes")
       .insert({

@@ -1,4 +1,21 @@
-import { describe, expect, it } from "vitest";
+// Forfait simulé : ces tests portent sur la logique de l'action, pas sur le forfait (testé dans
+// src/features/billing/entitlements.test.ts). Un espace gratuit serait refusé ici par design.
+vi.mock("@/features/billing/entitlements", async (orig) => ({
+  ...(await orig<typeof import("@/features/billing/entitlements")>()),
+  loadEntitlements: async () => ({
+    plan: "pro",
+    canSend: true,
+    sendCap: 300,
+    sendUsed: 0,
+    maxSites: 3,
+    maxMailboxes: 2,
+    monthlyCampaigns: 3,
+    dedicatedDomain: false,
+    linkChecks: true,
+  }),
+}));
+
+import { describe, expect, it, vi } from "vitest";
 import { fakeSupabase } from "@/features/audits/fake-supabase";
 import { CATEGORIES, type Category } from "@/features/classification/types";
 import type { LlmClient } from "@/lib/llm/client";
