@@ -8,6 +8,7 @@ import {
   completeTaskAction,
   skipTaskAction,
 } from "@/features/tasks/actions";
+import { selectedSiteId } from "@/features/shell/current-site";
 import { listTasks } from "@/features/tasks/service";
 import { TasksSection } from "@/features/tasks/tasks-section";
 import { t } from "@/lib/messages";
@@ -19,7 +20,7 @@ async function Tasks() {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/connexion");
-  const rows = await listTasks(supabase);
+  const rows = await listTasks(supabase, await selectedSiteId(supabase));
   if (rows.length === 0) {
     return (
       <div className="flex flex-col gap-2 rounded-lg border border-dashed border-border p-6">

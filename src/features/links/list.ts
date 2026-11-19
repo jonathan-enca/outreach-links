@@ -7,15 +7,20 @@ type Client = SupabaseClient<Database>;
 /** Liens de l'utilisateur (la RLS limite à ses espaces), alertes d'abord, puis les plus récents. */
 export async function listLinks(
   supabase: Client,
+  siteId: string | null = null,
 ): Promise<{ rows: LinkRowView[]; sites: { id: string; domain: string }[] }> {
   const [{ data: links }, { data: sites }] = await Promise.all([
     supabase
       .from("links")
       .select(
-        "id, source_url, source_domain, target_url, status, rel, contextual, indexable, exact_page, anchor_found, checks_done, next_check_at, first_live_at, alert",
+        "id, site_id, source_url, source_domain, target_url, status, rel, contextual, indexable, exact_page, anchor_found, checks_done, next_check_at, first_live_at, alert",
       )
       .order("created_at", { ascending: false })
-      .limit(300),
+      .limit(300)
+      .then((r) => ({
+        ...r,
+        data: siteId ? (r.data ?? []).filter((l) => l.site_id === siteId) : r.data,
+      })),
     supabase.from("sites").select("id, domain").order("domain"),
   ]);
   const rows: LinkRowView[] = (links ?? []).map((l) => ({
