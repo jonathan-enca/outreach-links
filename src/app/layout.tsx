@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 import { env } from "@/env";
 import { t } from "@/lib/messages";
 
-const body = Inter({
+const body = Outfit({
+  weight: ["400", "500", "600", "700"],
   variable: "--font-body",
   subsets: ["latin"],
   display: "swap",

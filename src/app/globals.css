@@ -1,53 +1,56 @@
 @import "tailwindcss";
 
 /*
- * Jetons de la direction artistique (docs/da.md, MN.2).
- * Piste I « clair et émeraude » : blanc, encre marine, vert émeraude, surligneur ambre pour le hook.
- * L'application est en mode clair. Les sections « nuit » de la home réutilisent les mêmes noms de jetons
- * dans une surface `.surface-night` : un composant (bouton, carte, pastille) n'a rien à savoir du fond.
+ * Jetons de la charte (planche « Charte graphique » validée, dérivée du site Squadra) :
+ * fond blanc et gris très clair, encre bleu nuit, marine pour toute action, ciel pour les fonds d'accent.
+ * Le vert n'est plus qu'une couleur de statut. Le surligneur ambre reste réservé au passage cité (le hook).
+ * Les composants (bouton, carte, pastille) lisent ces jetons sans rien savoir du fond.
  */
 :root {
-  --background: #ffffff;
-  --foreground: #0e1a2b;
+  --background: #f8fafc;
+  --foreground: #0f172a;
   --card: #ffffff;
-  --card-foreground: #0e1a2b;
+  --card-foreground: #0f172a;
   --muted: #f1f5f9;
-  --muted-foreground: #5b6678;
-  --border: #e3e8ef;
-  --primary: #047857;
+  --muted-foreground: #526074;
+  --border: #e2e8f0;
+  --primary: #003070;
   --primary-foreground: #ffffff;
-  --ring: #047857;
-  --info: #1d4f91;
-  --warning: #8a5300;
-  --success: #166534;
-  --danger: #a3301d;
+  --primary-hover: #00245a;
+  --accent: #e9f6fe;
+  --accent-foreground: #003070;
+  --ring: #003070;
+  --info: #0369a1;
+  --warning: #92400e;
+  --success: #047857;
+  --danger: #be123c;
   /* Surligneur du hook : fond ambre clair, texte toujours en encre. */
   --highlight: #fde68a;
-  --highlight-foreground: #0e1a2b;
-  /* Menu de l'espace client : toujours sombre (maquette validée le 18/11). */
-  --sidebar: #0b1b2e;
-  --sidebar-foreground: #c9d6e3;
-  --sidebar-border: #1c3550;
-  --sidebar-hover: #0f2740;
-  --sidebar-active: #12304a;
-  --sidebar-label: #6f859c;
-  --sidebar-accent: #5eead4;
+  --highlight-foreground: #0f172a;
+  /* Menu de l'espace client : toujours sombre (planche validée : marine profond). */
+  --sidebar: #00245a;
+  --sidebar-foreground: #cfe2f6;
+  --sidebar-border: rgb(255 255 255 / 0.14);
+  --sidebar-hover: rgb(255 255 255 / 0.08);
+  --sidebar-active: rgb(255 255 255 / 0.14);
+  --sidebar-label: #9cc3ea;
+  --sidebar-accent: #5cc8f5;
   color-scheme: light;
 }
 
 /* Surface sombre : bande produit, appel final, pied de page. */
 .surface-night {
-  --background: #0b1b2e;
-  --foreground: #eaf2f8;
-  --card: #12263d;
-  --card-foreground: #eaf2f8;
-  --muted: #162d47;
-  --muted-foreground: #9db0c4;
-  --border: #243a55;
-  --primary: #5eead4;
-  --primary-foreground: #0b1b2e;
-  --ring: #5eead4;
-  --info: #8db8f0;
+  --background: #003070;
+  --foreground: #ffffff;
+  --card: #00245a;
+  --card-foreground: #ffffff;
+  --muted: #00245a;
+  --muted-foreground: #a9d4f9;
+  --border: #2a4d80;
+  --primary: #ffffff;
+  --primary-foreground: #003070;
+  --ring: #5cc8f5;
+  --info: #8cc4f5;
   --warning: #f2c26b;
   --success: #7fd69a;
   --danger: #f29b8a;
@@ -59,18 +62,18 @@
 /* Fenêtre claire posée dans une surface nuit (maquettes de la home) : rend les jetons clairs, badges compris. */
 .light-window {
   --background: #ffffff;
-  --foreground: #0e1a2b;
+  --foreground: #0f172a;
   --card: #ffffff;
-  --card-foreground: #0e1a2b;
+  --card-foreground: #0f172a;
   --muted: #f1f5f9;
-  --muted-foreground: #5b6678;
-  --border: #e3e8ef;
-  --primary: #047857;
+  --muted-foreground: #526074;
+  --border: #e2e8f0;
+  --primary: #003070;
   --primary-foreground: #ffffff;
-  --info: #1d4f91;
-  --warning: #8a5300;
-  --success: #166534;
-  --danger: #a3301d;
+  --info: #0369a1;
+  --warning: #92400e;
+  --success: #047857;
+  --danger: #be123c;
   color-scheme: light;
 }
 
@@ -139,9 +142,15 @@ h3 {
   -webkit-box-decoration-break: clone;
 }
 
-/* Dégradé vert très léger du haut de la home. */
+/* Hero de la home : blanc avec une lueur ciel très légère et un pointillé discret (planche validée). */
 @utility bg-hero-wash {
-  background: linear-gradient(#ecfdf5, #ffffff 520px);
+  background-color: #ffffff;
+  background-image:
+    radial-gradient(60% 50% at 80% 0%, rgb(233 246 254 / 0.9), transparent 70%),
+    radial-gradient(#e2e8f0 1px, transparent 1px);
+  background-size:
+    auto,
+    26px 26px;
 }
 
 /* Quadrillage discret de la bande produit sombre. */
