@@ -98,14 +98,14 @@ describe("listTasks", () => {
     const hidden = world({}, "brouillon");
     expect(await listTasks(hidden.client)).toEqual([]);
   });
-  it("compte les tâches à faire et les relances dues", async () => {
+  it("compte les tâches à faire, jamais de relance (relances à la main retirées)", async () => {
     const w = world({
       status: "fait",
       done_at: "2026-11-10",
       follow_up_status: "en_attente",
       follow_up_due_at: "2026-11-20T00:00:00Z",
     });
-    expect(await countDueTasks(w.client, NOW)).toEqual({ toDo: 0, followUps: 1 });
+    expect(await countDueTasks(w.client, NOW)).toEqual({ toDo: 0, followUps: 0 });
     expect(await countDueTasks(world().client, NOW)).toEqual({ toDo: 1, followUps: 0 });
   });
 });

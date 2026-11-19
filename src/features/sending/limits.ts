@@ -1,3 +1,9 @@
+/**
+ * Relance automatique (décision de Jonathan, 19/11/2026) : désactivée. Sans lecture de la boîte, on ne
+ * sait pas si la personne a déjà répondu : aucune relance ne part tant que ce n'est pas résolu.
+ */
+export const AUTOMATIC_FOLLOW_UP = false;
+
 /** Plafonds et délais du moteur d'envoi (CLAUDE.md 4.4 : 10 emails/heure max, heures ouvrées). */
 export const SEND_LIMITS = {
   /** Plafond dur par heure et par boîte (aussi appliqué en base). */

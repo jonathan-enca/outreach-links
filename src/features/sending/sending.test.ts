@@ -293,6 +293,11 @@ function deps(db: ReturnType<typeof world>, over: Partial<SendDeps> = {}): SendD
   };
 }
 
+/** Moteur avec les relances automatiques activées (les tests de relance les vérifient explicitement). */
+function relDeps(db: ReturnType<typeof world>, over: Partial<SendDeps> = {}): SendDeps {
+  return deps(db, { automaticFollowUp: true, ...over });
+}
+
 describe("moteur d'envoi : dry run", () => {
   it("simule un message par passage, dans l'ordre du lot, sans jamais appeler le SMTP", async () => {
     const db = world();
@@ -363,6 +368,17 @@ describe("moteur d'envoi : dry run", () => {
     }
     const r = await runSendTick(deps(db, { priorityDraftId: "d2" }));
     expect(r[0]).toMatchObject({ result: "plafond" });
+  });
+
+  it("boîte suspendue par la personne : rien ne part, le brouillon reste en attente", async () => {
+    const db = world({ drafts: 1 });
+    db.tables.mailboxes![0] = { ...db.tables.mailboxes![0], sending_paused: true };
+    const d = deps(db);
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "suspendue" });
+    expect(d.send).not.toHaveBeenCalled();
+    expect(db.tables.sent_messages ?? []).toHaveLength(0);
+    db.tables.mailboxes![0] = { ...db.tables.mailboxes![0], sending_paused: false };
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "simule", draftId: "d1" });
   });
 
   it("aucun envoi sans lot validé", async () => {
@@ -439,14 +455,14 @@ describe("moteur d'envoi : plafonds et relances par adresse d'envoi", () => {
   it("supprimer puis recréer la boîte ne remet pas le plafond horaire à zéro", async () => {
     const db = world({ drafts: 3, hourly: 2 });
     db.tables.sent_messages!.push(...detached(2, 20));
-    expect((await runSendTick(deps(db)))[0]).toMatchObject({ result: "plafond" });
+    expect((await runSendTick(relDeps(db)))[0]).toMatchObject({ result: "plafond" });
     expect(db.tables.sent_messages).toHaveLength(2);
   });
 
   it("ni l'échauffement : cinq envois déjà comptés pour l'adresse, le sixième attend", async () => {
     const db = world({ drafts: 3, hourly: 10, daily: 20 });
     db.tables.sent_messages!.push(...detached(5, 90));
-    expect((await runSendTick(deps(db)))[0]).toMatchObject({ result: "plafond" });
+    expect((await runSendTick(relDeps(db)))[0]).toMatchObject({ result: "plafond" });
   });
 
   it("l'historique d'une autre adresse ne compte pas", async () => {
@@ -454,12 +470,12 @@ describe("moteur d'envoi : plafonds et relances par adresse d'envoi", () => {
     db.tables.sent_messages!.push(
       ...detached(2, 20).map((r) => ({ ...r, from_email: "autre@autre-site.fr" })),
     );
-    expect((await runSendTick(deps(db)))[0]).toMatchObject({ result: "simule", draftId: "d1" });
+    expect((await runSendTick(relDeps(db)))[0]).toMatchObject({ result: "simule", draftId: "d1" });
   });
 
   it("la relance d'un message parti d'une boîte supprimée part quand même, depuis la nouvelle boîte", async () => {
     const db = world({ drafts: 1 });
-    const d = deps(db);
+    const d = relDeps(db);
     await runSendTick(d);
     // La boîte d'origine est supprimée : l'envoi garde son adresse mais perd sa boîte.
     db.tables.sent_messages![0]!.mailbox_id = null;
@@ -474,7 +490,7 @@ describe("moteur d'envoi : plafonds et relances par adresse d'envoi", () => {
 
   it("chaque envoi enregistre l'adresse d'envoi", async () => {
     const db = world({ drafts: 1 });
-    await runSendTick(deps(db));
+    await runSendTick(relDeps(db));
     expect(db.tables.sent_messages![0]).toMatchObject({ from_email: "jo@alice-site.fr" });
   });
 });
@@ -516,7 +532,7 @@ describe("moteur d'envoi : mode réel contre un faux serveur SMTP local", () => 
   afterAll(() => new Promise<void>((r) => server.close(() => r())));
 
   const real = (db: ReturnType<typeof world>, now = () => MONDAY_10H) =>
-    deps(db, {
+    relDeps(db, {
       realSendingAllowed: () => true,
       send: (ep, c, m, o) =>
         sendOutreachMail(ep, c, m, {
@@ -668,9 +684,17 @@ describe("moteur d'envoi : mode réel contre un faux serveur SMTP local", () => 
 describe("relance unique : dry run", () => {
   const J10 = addDays(MONDAY_10H, 10);
 
+  it("désactivée par défaut : une relance due n'est jamais envoyée ni simulée", async () => {
+    const db = world({ drafts: 1 });
+    await runSendTick(deps(db));
+    await runSendTick({ ...deps(db), now: () => J10 });
+    expect(db.tables.sent_messages).toHaveLength(1);
+    expect(db.tables.sent_messages![0]).toMatchObject({ step: "initial" });
+  });
+
   async function sentOnce(drafts = 1) {
     const db = world({ drafts });
-    const d = deps(db);
+    const d = relDeps(db);
     await runSendTick(d);
     return { db, d };
   }

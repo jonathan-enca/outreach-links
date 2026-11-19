@@ -9,12 +9,10 @@ import {
   CheckSquare,
   ChevronsUpDown,
   CreditCard,
-  Home,
-  Link2,
   LogOut,
   Mail,
-  MessageSquare,
   PenLine,
+  Send,
   Settings,
   Target,
   type LucideIcon,
@@ -98,20 +96,10 @@ export function AppNav({
   const onSettings = /^\/app\/site(\/[0-9a-f-]{36})?\/?$/i.test(pathname);
   const starts = (p: string) => pathname === p || pathname.startsWith(`${p}/`);
 
+  // Menu simplifié (maquette du 19/11/2026) : Campagnes, Envois, Réglages. « À valider » reste à côté
+  // des campagnes tant que la validation n'est pas une étape de la campagne. Réponses et Liens
+  // obtenus ne sont plus dans le menu (pages toujours accessibles par leur adresse).
   const groups: { title: string | null; items: Item[] }[] = [
-    {
-      title: null,
-      items: [
-        {
-          key: "home",
-          href: "/app",
-          label: n.home,
-          icon: Home,
-          active: pathname === "/app",
-          mobile: true,
-        },
-      ],
-    },
     {
       title: n.groups.prospecting,
       items: [
@@ -127,11 +115,6 @@ export function AppNav({
             /\/(cibles|analyse|etat-des-lieux)$/.test(pathname),
           mobile: true,
         },
-      ],
-    },
-    {
-      title: n.groups.mailbox,
-      items: [
         {
           key: "a-valider",
           href: "/app/a-valider",
@@ -141,27 +124,18 @@ export function AppNav({
           count: counts.toValidate,
           mobile: true,
         },
-        {
-          key: "conversations",
-          href: "/app/inbox",
-          label: n.conversations,
-          icon: MessageSquare,
-          active: starts("/app/inbox"),
-          count: counts.conversations,
-          mobile: true,
-          short: n.short.conversations,
-        },
       ],
     },
     {
-      title: n.groups.results,
+      title: "Envoi",
       items: [
         {
-          key: "liens",
-          href: "/app/liens",
-          label: n.links,
-          icon: Link2,
-          active: starts("/app/liens"),
+          key: "envois",
+          href: "/app/envois",
+          label: "Envois",
+          icon: Send,
+          active: starts("/app/envois"),
+          mobile: true,
         },
       ],
     },

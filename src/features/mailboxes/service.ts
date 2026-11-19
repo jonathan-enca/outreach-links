@@ -392,7 +392,7 @@ export async function testGoogleMailbox(
       to: u.email, // jamais un tiers
       subject: "Test de votre boîte d'envoi",
       text: "Ce message confirme que votre boîte Gmail est bien connectée. Vous pouvez l'ignorer.",
-      messageId: `<test-${crypto.randomUUID()}@backleenks.com>`,
+      messageId: `<test-${crypto.randomUUID()}@${box.email.split("@")[1]}>`,
       headers: {},
     },
     deps.keyRing(),

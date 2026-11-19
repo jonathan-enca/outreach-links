@@ -262,7 +262,7 @@ function finish(threads: ConversationView[], queue: QueueNote | null): Conversat
  * avec le statut « approuvé, en attente d'envoi » (retour de Jonathan, 18/11 : un message approuvé
  * disparaissait de « À valider » sans réapparaître nulle part).
  */
-async function loadQueued(
+export async function loadQueued(
   supabase: Client,
   sentDraftIds: ReadonlySet<string>,
   opts: ConversationsOptions,

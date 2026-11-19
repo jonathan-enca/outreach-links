@@ -2558,6 +2558,7 @@ export type Database = {
           smtp_host: string;
           smtp_ok: boolean | null;
           smtp_port: number;
+          sending_paused: boolean;
           status: string;
           timezone: string;
           updated_at: string;
@@ -2591,6 +2592,7 @@ export type Database = {
           smtp_host: string;
           smtp_ok?: boolean | null;
           smtp_port: number;
+          sending_paused?: boolean;
           status?: string;
           timezone?: string;
           updated_at?: string;
@@ -2624,6 +2626,7 @@ export type Database = {
           smtp_host?: string;
           smtp_ok?: boolean | null;
           smtp_port?: number;
+          sending_paused?: boolean;
           status?: string;
           timezone?: string;
           updated_at?: string;

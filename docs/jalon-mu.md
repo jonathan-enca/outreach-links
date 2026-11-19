@@ -374,3 +374,36 @@ Vérifie que MU.10 est fait dans PROGRESS.md sur main et que j'ai fourni les sit
 | Mauvaises cibles relevées par Jonathan dans la liste | plusieurs en bas de liste                                                                                           | 1 sur 10 au plus                                                       |
 
 Ces cibles chiffrées sont des objectifs de travail, pas des promesses : si une mesure réelle ne les atteint pas, la session le dit avec le chiffre et la cause, et on ajuste le seuil ou le moteur.
+
+## 8. Retour de Jérémie (18/11/2026) : un tunnel en trois étapes, sous-jalon MU.12
+
+**Ce qu'il a vu** (essai, compte réel) :
+
+1. Deux chiffres sans lecture : « 42 cibles, dont 25 liens morts et 17 que personne ne lit ». Ce sont deux tactiques différentes (liens morts des concurrents d'un côté, pages que personne ne sollicite de l'autre), mais l'écran les présente comme une seule liste et ne dit pas ce que chacun veut dire.
+2. Les étapes ne sont pas claires : on sélectionne, on rédige, on envoie, sans fil qui dit où on en est.
+3. L'envoi est technique et pénible.
+
+**Ce qu'il propose** (retenu tel quel, défaut appliqué) : un tunnel simple, où chaque écran fait une seule chose.
+
+- **Étape 1, « Cibles retenues »** : les cibles gardées (écran MU.10), avec le total **et sa décomposition par tactique** (« 25 liens morts + 17 pages que personne ne sollicite = 42 »), un libellé d'une ligne par tactique. Bouton « Rédiger les messages ».
+- **Étape 2, « Messages rédigés »** : une carte par cible gardée, avec le message prêt (objet, texte, adresse de la page du site), relecture et modification sur place, statut « rédigé ». **Rien n'est envoyé.** Bouton « Valider ces N messages » ; une cible sans message écrit (« Rédiger quand même », MU.10) reste visible avec son motif.
+- **Étape 3, « Envoi »** : un seul bouton « Envoyer les N messages validés », avec l'heure de départ prévue de chaque message (règle des jours et heures de la boîte, CLAUDE.md 4.4). Les formulaires ne partent pas : ils deviennent des tâches « copier, coller, c'est fait » (écran existant). Après l'envoi : ce qui est parti, ce qui est programmé, ce qui reste à faire à la main.
+- Un **fil d'étapes** en haut des trois écrans (Cibles retenues · Messages · Envoi), avec l'étape en cours. Les compteurs sont les mêmes partout : un nombre affiché à l'étape 1 est le même à l'étape 3.
+
+**Acceptation** :
+
+- Un nouvel inscrit dit en 5 secondes à quelle étape il est et ce qui l'attend.
+- Le total de cibles se lit avec sa décomposition par tactique, sans calcul à faire.
+- Aucun écran ne mélange sélection et envoi ; l'envoi ne se fait qu'à l'étape 3, après validation.
+- Le même nombre apparaît à chaque étape (ex. 42 → 42 messages → 42 envois programmés).
+- Captures bureau et mobile avec des données réelles ; aucun envoi réel en développement (dry run par défaut).
+
+**Dépendances** : MU.10 (écran « Vos cibles ») ; réutilise le rédacteur (`src/features/drafting`) et la file de validation (`src/features/approvals`, `src/features/sending`). Hors périmètre : le moteur de recherche (MU.6 à MU.9) et l'envoi réel (MB.2).
+
+```
+Lis CLAUDE.md et PROGRESS.md. Puis lis dans docs/jalon-mu.md la section 8 et uniquement ce qu'elle renvoie. Vérifie que MU.10 est fait sur main. Annonce en 3 lignes ce que tu vas faire et ce que tu ne feras pas.
+Construis le tunnel en trois étapes décrit en section 8 : cibles retenues, messages rédigés, envoi. Reste dans le périmètre.
+À la fin : captures connectées bureau et mobile, tests des fichiers touchés, typecheck et lint verts, PROGRESS.md à jour, PR fusionnée dans main.
+```
+
+> **Essai de Jérémie après MU.12** : refaire le parcours sans aide et dire en une phrase où il en est à chaque écran.
