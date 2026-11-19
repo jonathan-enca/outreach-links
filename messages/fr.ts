@@ -2851,6 +2851,12 @@ export const fr = {
   conversations: {
     eyebrow: "Messagerie",
     title: "Conversations",
+    cancel: {
+      label: "Annuler l'envoi",
+      done: "Envoi annulé : le message revient dans « À valider ».",
+      alreadySent: "Ce message est déjà parti : il ne peut plus être annulé.",
+      notWaiting: "Ce message n'attend plus d'envoi.",
+    },
     description: "Tous les messages échangés avec tous vos prospects, toutes campagnes confondues.",
     empty:
       "Aucune conversation pour l'instant. Elles apparaissent ici dès qu'un premier message est parti.",

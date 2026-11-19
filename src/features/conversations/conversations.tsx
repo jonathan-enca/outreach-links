@@ -20,6 +20,7 @@ export interface ConversationActions {
   setTag: (id: string, tag: string, on: boolean) => Result;
   approveReply: (draftId: string) => Result;
   editReply: (draftId: string, input: { subject: string; body: string }) => Result;
+  cancelSend: (id: string) => Result;
 }
 
 const TONE: Record<ThreadStatus, "warning" | "success" | "info" | "neutral" | "danger"> = {
@@ -84,6 +85,17 @@ function Pane({
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge tone={TONE[thread.status]}>{C.status[thread.status]}</Badge>
+          {thread.status === "en_attente" ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={pending}
+              onClick={() => run(() => actions.cancelSend(thread.id))}
+            >
+              {C.cancel.label}
+            </Button>
+          ) : null}
           {thread.status === "en_attente" ? null : (
             <Button
               type="button"
