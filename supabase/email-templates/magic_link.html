@@ -1,6 +1,15 @@
 <!doctype html>
 <html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Votre lien de connexion</title>
+  </head>
   <body style="margin: 0; padding: 0; background: #f1f5f9">
+    <div style="display: none; max-height: 0; overflow: hidden; opacity: 0; color: transparent">
+      Cliquez pour vous connecter à votre espace.
+    </div>
     <table
       role="presentation"
       width="100%"
@@ -16,35 +25,40 @@
             cellpadding="0"
             cellspacing="0"
             style="
-              max-width: 480px;
+              max-width: 520px;
               background: #ffffff;
               border: 1px solid #e3e8ef;
-              border-radius: 14px;
+              border-radius: 16px;
             "
           >
             <tr>
-              <td
-                style="
-                  padding: 28px 32px 0 32px;
-                  font:
-                    700 18px/1.2 Inter,
-                    Arial,
-                    sans-serif;
-                  color: #0e1a2b;
-                "
-              >
-                Autolink.ai
+              <td style="padding: 28px 32px 0 32px">
+                <img
+                  src="https://outreach-links.vercel.app/brand/logo-email.png"
+                  width="140"
+                  alt="backleenks"
+                  style="
+                    display: block;
+                    border: 0;
+                    outline: none;
+                    text-decoration: none;
+                    height: auto;
+                    width: 140px;
+                    max-width: 140px;
+                  "
+                />
               </td>
             </tr>
             <tr>
               <td
                 style="
-                  padding: 20px 32px 0 32px;
+                  padding: 24px 32px 0 32px;
                   font:
                     700 22px/1.3 Inter,
+                    Helvetica,
                     Arial,
                     sans-serif;
-                  color: #0e1a2b;
+                  color: #0b1f44;
                 "
               >
                 Votre lien de connexion
@@ -56,9 +70,10 @@
                   padding: 12px 32px 0 32px;
                   font:
                     400 16px/1.6 Inter,
+                    Helvetica,
                     Arial,
                     sans-serif;
-                  color: #5b6678;
+                  color: #0b1f44;
                 "
               >
                 Cliquez sur le bouton pour vous connecter à votre espace.
@@ -66,68 +81,81 @@
             </tr>
             <tr>
               <td style="padding: 24px 32px 0 32px">
-                <a
-                  href="https://outreach-links.vercel.app/auth/callback?token_hash={{ .TokenHash }}&type=magiclink"
+                <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 0 auto">
+                  <tr>
+                    <td align="center" style="border-radius: 10px; background: #0b3a78">
+                      <a
+                        href="https://outreach-links.vercel.app/auth/callback?token_hash={{ .TokenHash }}&type=magiclink"
+                        style="
+                          display: inline-block;
+                          padding: 14px 26px;
+                          font:
+                            600 16px/1 Inter,
+                            Helvetica,
+                            Arial,
+                            sans-serif;
+                          color: #ffffff;
+                          text-decoration: none;
+                          border-radius: 10px;
+                        "
+                        >Me connecter</a
+                      >
+                    </td>
+                  </tr>
+                </table>
+                <p
                   style="
-                    display: inline-block;
-                    background: #047857;
-                    color: #ffffff;
-                    text-decoration: none;
+                    margin: 24px 0 0;
                     font:
-                      600 16px/1 Inter,
+                      400 13px/1.5 Inter,
+                      Helvetica,
                       Arial,
                       sans-serif;
-                    padding: 14px 22px;
-                    border-radius: 8px;
+                    color: #5b6678;
                   "
-                  >Me connecter</a
                 >
+                  Si le bouton ne fonctionne pas, copiez cette adresse dans votre navigateur :<br /><span
+                    style="word-break: break-all; color: #0b3a78"
+                    >https://outreach-links.vercel.app/auth/callback?token_hash={{ .TokenHash
+                    }}&type=magiclink</span
+                  >
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 28px 32px 0 32px">
+                <hr style="border: 0; border-top: 1px solid #e3e8ef; margin: 0" />
               </td>
             </tr>
             <tr>
               <td
                 style="
-                  padding: 20px 32px 0 32px;
+                  padding: 16px 32px 28px 32px;
                   font:
                     400 13px/1.6 Inter,
+                    Helvetica,
                     Arial,
                     sans-serif;
                   color: #5b6678;
                 "
               >
-                Si le bouton ne fonctionne pas, copiez cette adresse dans votre navigateur :<br /><span
-                  style="word-break: break-all; color: #0e1a2b"
-                  >https://outreach-links.vercel.app/auth/callback?token_hash={{ .TokenHash
-                  }}&type=magiclink</span
-                >
-              </td>
-            </tr>
-            <tr>
-              <td
-                style="
-                  padding: 20px 32px 28px 32px;
-                  font:
-                    400 13px/1.6 Inter,
-                    Arial,
-                    sans-serif;
-                  color: #5b6678;
-                "
-              >
-                Si vous n'avez pas demandé ce lien, ignorez cet email.
+                Si vous n'avez pas demandé ce lien, ignorez cet email.<br /><br />L'équipe
+                backleenks
               </td>
             </tr>
           </table>
           <p
             style="
+              margin: 16px 0 0;
               font:
                 400 12px/1.5 Inter,
+                Helvetica,
                 Arial,
                 sans-serif;
               color: #5b6678;
-              margin: 16px 0 0 0;
             "
           >
-            Autolink.ai
+            Vous recevez cet email parce qu'une action a été demandée sur backleenks.
           </p>
         </td>
       </tr>

@@ -5,8 +5,8 @@ export const fr = {
   // Guides « connecter sa boîte d'envoi » : un fichier à part, un guide par fournisseur.
   mailboxGuides,
   app: {
-    // Nom de travail provisoire : SEUL endroit où il est écrit (docs/naming.md). Le changer ici suffit.
-    name: "Autolink.ai",
+    // Nom du produit : SEUL endroit où il est écrit dans l'interface. Le changer ici suffit.
+    name: "backleenks",
     description:
       "L'outil trouve les pages qui ont une vraie raison de citer votre site, rédige chaque demande de lien et l'envoie depuis votre propre boîte mail, avec votre accord. Aucun lien acheté.",
   },
