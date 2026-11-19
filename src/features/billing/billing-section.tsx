@@ -1,16 +1,14 @@
+"use client";
+
+import { useState } from "react";
 import { Check, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { formatEuros } from "@/lib/money";
 import { t } from "@/lib/messages";
 import type { BillingOverview, PlanRow } from "./service";
 
-/** « 19,90 € » ; sans décimales si le prix est rond. */
-const eur = (cents: number) =>
-  new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
-  }).format(cents / 100);
+type Period = "month" | "year";
 
 const nf = new Intl.NumberFormat("fr-FR");
 
@@ -58,6 +56,15 @@ function rowsOf(p: PlanRow) {
   ] as const;
 }
 
+/** Prix affiché pour une période : en annuel, le montant de l'année divisé par douze, exact. */
+function priceFor(p: PlanRow, period: Period) {
+  if (period === "month") return { main: formatEuros(p.price_eur_cents), billed: null };
+  return {
+    main: formatEuros(Math.round(p.price_annual_eur_cents / 12)),
+    billed: formatEuros(p.price_annual_eur_cents),
+  };
+}
+
 export function BillingSection({
   overview,
   checkout,
@@ -74,6 +81,15 @@ export function BillingSection({
   const e = overview.entitlements;
   const current = overview.plans.find((p) => p.key === overview.plan);
   const isFree = overview.plan === "gratuit";
+  const [period, setPeriod] = useState<Period>("month");
+  const annual = period === "year";
+  const groupId = "periode-facturation-dashboard";
+  const discountPct = (() => {
+    const paid = overview.plans.find((p) => p.price_eur_cents > 0);
+    return paid
+      ? Math.round((1 - paid.price_annual_eur_cents / (12 * paid.price_eur_cents)) * 100)
+      : 0;
+  })();
 
   return (
     <div className="flex flex-col gap-6">
@@ -85,7 +101,7 @@ export function BillingSection({
             {current?.name ?? overview.plan}
             {!isFree && current ? (
               <span className="ml-3 text-base font-normal text-muted-foreground tabular-nums">
-                {eur(current.price_eur_cents)} {b.perMonth}
+                {formatEuros(current.price_eur_cents)} {b.perMonth}
               </span>
             ) : null}
           </h2>
@@ -134,13 +150,44 @@ export function BillingSection({
 
       {/* Comparaison des offres */}
       <section aria-labelledby="offres-titre" className="flex flex-col gap-4">
-        <h3 id="offres-titre" className="font-display text-lg font-semibold">
-          {b.comparison}
-        </h3>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h3 id="offres-titre" className="font-display text-lg font-semibold">
+            {b.comparison}
+          </h3>
+          <div
+            role="group"
+            aria-labelledby={groupId}
+            className="inline-flex gap-1 rounded-card bg-muted p-1"
+          >
+            <span id={groupId} className="sr-only">
+              {b.period.group}
+            </span>
+            <button
+              type="button"
+              aria-pressed={!annual}
+              onClick={() => setPeriod("month")}
+              className={`h-9 rounded-[calc(var(--radius)-2px)] px-4 text-sm font-medium ${!annual ? "bg-card shadow-card" : "text-muted-foreground"}`}
+            >
+              {b.period.monthly}
+            </button>
+            <button
+              type="button"
+              aria-pressed={annual}
+              onClick={() => setPeriod("year")}
+              className={`inline-flex h-9 items-center gap-2 rounded-[calc(var(--radius)-2px)] px-4 text-sm font-medium ${annual ? "bg-card shadow-card" : "text-muted-foreground"}`}
+            >
+              {b.period.annual}
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                {b.period.discount.replace("{pct}", String(discountPct))}
+              </span>
+            </button>
+          </div>
+        </div>
         <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {overview.plans.map((p) => {
             const isCurrent = p.key === overview.plan;
             const isFeatured = p.key === "pro";
+            const price = priceFor(p, period);
             return (
               <li key={p.key}>
                 <Card
@@ -158,14 +205,21 @@ export function BillingSection({
                       </span>
                     ) : null}
                   </div>
-                  <p className="text-2xl font-semibold tabular-nums">
-                    {p.price_eur_cents === 0 ? b.free : eur(p.price_eur_cents)}
-                    {p.price_eur_cents === 0 ? null : (
-                      <span className="ml-1 text-sm font-normal text-muted-foreground">
-                        {b.perMonth}
-                      </span>
-                    )}
-                  </p>
+                  <div>
+                    <p className="text-2xl font-semibold tabular-nums">
+                      {p.price_eur_cents === 0 ? b.free : price.main}
+                      {p.price_eur_cents === 0 ? null : (
+                        <span className="ml-1 text-sm font-normal text-muted-foreground">
+                          {annual ? b.period.perMonthAnnual : b.perMonth}
+                        </span>
+                      )}
+                    </p>
+                    <p className="min-h-5 text-sm text-muted-foreground tabular-nums">
+                      {price.billed && p.price_eur_cents !== 0
+                        ? b.period.billedYearly.replace("{amount}", price.billed)
+                        : " "}
+                    </p>
+                  </div>
                   <dl className="grid gap-2.5 border-t border-border pt-4 text-sm">
                     {rowsOf(p).map((row) => (
                       <div key={row.label} className="flex items-center justify-between gap-3">
@@ -191,6 +245,7 @@ export function BillingSection({
                     {isCurrent || p.key === "gratuit" ? null : isFree ? (
                       <form action={checkout}>
                         <input type="hidden" name="plan" value={p.key} />
+                        <input type="hidden" name="period" value={period} />
                         <Button type="submit" className="w-full">
                           {b.choose(p.name)}
                         </Button>

@@ -16,6 +16,7 @@ export async function checkoutAction(formData: FormData): Promise<void> {
     env.NEXT_PUBLIC_APP_URL,
     formData.get("plan"),
     auth.user.email ?? null,
+    formData.get("period") ?? "month",
   );
   redirect(r.ok ? r.url : `/app/facturation?erreur=${encodeURIComponent(r.error)}`);
 }

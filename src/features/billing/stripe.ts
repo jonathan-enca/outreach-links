@@ -12,10 +12,15 @@ export interface BillingProvider {
   createPortal(input: { customerId: string; returnUrl: string }): Promise<{ url: string }>;
 }
 
+/** Période de facturation : mensuelle, ou annuelle (prix annuel exact, 20 % de remise). */
+export type BillingPeriod = "month" | "year";
+
 export interface CheckoutInput {
   workspaceId: string;
   plan: PaidPlanKey;
   planName: string;
+  period: BillingPeriod;
+  /** Montant TTC facturé à chaque période, en centimes. */
   priceEurCents: number;
   customerId?: string | null;
   customerEmail?: string | null;
@@ -66,12 +71,14 @@ export function createStripeProvider(
       f.set("client_reference_id", i.workspaceId);
       f.set("metadata[workspace_id]", i.workspaceId);
       f.set("metadata[plan]", i.plan);
+      f.set("metadata[period]", i.period);
       f.set("subscription_data[metadata][workspace_id]", i.workspaceId);
       f.set("subscription_data[metadata][plan]", i.plan);
+      f.set("subscription_data[metadata][period]", i.period);
       f.set("line_items[0][quantity]", "1");
       f.set("line_items[0][price_data][currency]", "eur");
       f.set("line_items[0][price_data][unit_amount]", String(i.priceEurCents));
-      f.set("line_items[0][price_data][recurring][interval]", "month");
+      f.set("line_items[0][price_data][recurring][interval]", i.period);
       f.set("line_items[0][price_data][product_data][name]", `${t.app.name} ${i.planName}`);
       if (i.customerId) f.set("customer", i.customerId);
       else if (i.customerEmail) f.set("customer_email", i.customerEmail);

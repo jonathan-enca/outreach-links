@@ -482,7 +482,7 @@ export const fr = {
       popular: "Recommandé",
       unavailable:
         "Les tarifs ne sont pas affichables pour le moment. Ils seront disponibles à la création de votre compte.",
-      note: "Prix TTC, abonnement mensuel, résiliable à tout moment. Un email envoyé est un message parti de votre boîte ; la relance compte pour un.",
+      note: "Prix TTC. Mensuel : résiliable à tout moment. Annuel : 12 mois payés d'avance, à prix réduit. Un email envoyé est un message parti de votre boîte ; la relance compte pour un.",
       rows: {
         sites: "Sites",
         campaigns: "Campagnes par mois",
@@ -493,6 +493,14 @@ export const fr = {
         digest: "Digest hebdomadaire",
       },
       included: "Inclus",
+      period: {
+        group: "Période de facturation",
+        monthly: "Mensuel",
+        annual: "Annuel",
+        discount: "−{pct} %",
+        perMonthAnnual: "TTC par mois, payé à l'année",
+        billedYearly: "Facturé {amount} par an",
+      },
       notIncluded: "Non inclus",
       plans: {
         starter: {
@@ -3191,6 +3199,14 @@ export const fr = {
     },
     choose: (name: string) => `Choisir ${name}`,
     comparison: "Comparer les offres",
+    period: {
+      group: "Période de facturation",
+      monthly: "Mensuel",
+      annual: "Annuel",
+      discount: "−{pct} %",
+      perMonthAnnual: "TTC par mois, payé à l'année",
+      billedYearly: "Facturé {amount} par an",
+    },
     paymentOk: "Merci : votre paiement est en cours de confirmation.",
     link: "Abonnement",
   },

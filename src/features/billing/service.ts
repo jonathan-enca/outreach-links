@@ -3,7 +3,7 @@ import { betaEnabled } from "@/features/audits/beta";
 import type { Database } from "@/lib/supabase/database.types";
 import { campaignsThisMonth, loadEntitlements, type Entitlements } from "./entitlements";
 import { effectivePlan, isPaidPlan, type BillingPlanKey } from "./plans";
-import type { BillingProvider } from "./stripe";
+import type { BillingPeriod, BillingProvider } from "./stripe";
 
 type Client = SupabaseClient<Database>;
 
@@ -13,6 +13,7 @@ export interface PlanRow {
   key: string;
   name: string;
   price_eur_cents: number;
+  price_annual_eur_cents: number;
   monthly_send_cap: number;
   max_sites: number;
   max_mailboxes: number;
@@ -68,12 +69,18 @@ export async function startCheckout(
   appUrl: string,
   planRaw: unknown,
   email: string | null,
+  periodRaw: unknown = "month",
 ): Promise<BillingResult> {
   if (!isPaidPlan(planRaw)) return { ok: false, error: "Plan inconnu." };
+  if (periodRaw !== "month" && periodRaw !== "year")
+    return { ok: false, error: "Période inconnue." };
+  const period: BillingPeriod = periodRaw;
   const { data: ws } = await supabase.from("workspaces").select("id").limit(1).maybeSingle();
   if (!ws) return { ok: false, error: "Espace de travail introuvable." };
   const { data: plan } = await supabase.from("plans").select("*").eq("key", planRaw).maybeSingle();
   if (!plan) return { ok: false, error: "Plan inconnu." };
+  const amount = period === "year" ? plan.price_annual_eur_cents : plan.price_eur_cents;
+  if (amount <= 0) return { ok: false, error: "Cette offre n'est pas disponible à l'année." };
   const current = await effectivePlan(supabase, ws.id, new Date());
   if (current !== "gratuit") {
     return { ok: false, error: "Un abonnement est déjà actif : utilisez le portail client." };
@@ -88,7 +95,8 @@ export async function startCheckout(
       workspaceId: ws.id,
       plan: planRaw,
       planName: plan.name,
-      priceEurCents: plan.price_eur_cents,
+      period,
+      priceEurCents: amount,
       customerId: sub?.stripe_customer_id ?? null,
       customerEmail: email,
       successUrl: `${appUrl}/app/facturation?paiement=ok`,

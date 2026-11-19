@@ -6,6 +6,7 @@ export interface PublicPlan {
   key: "starter" | "pro" | "business";
   name: string;
   priceEurCents: number;
+  priceAnnualEurCents: number;
   monthlySendCap: number;
   maxSites: number;
   maxMailboxes: number;
@@ -19,7 +20,7 @@ export interface PublicPlan {
 const KEYS = ["starter", "pro", "business"] as const;
 
 const SELECT =
-  "key, name, price_eur_cents, monthly_send_cap, max_sites, max_mailboxes, monthly_campaigns, dedicated_domain, link_checks, weekly_digest, sort_order";
+  "key, name, price_eur_cents, price_annual_eur_cents, monthly_send_cap, max_sites, max_mailboxes, monthly_campaigns, dedicated_domain, link_checks, weekly_digest, sort_order";
 
 /**
  * Offres payantes affichées sur la home : lues dans la table `plans` (lecture publique, aucune écriture).
@@ -43,6 +44,7 @@ export async function getPublicPlans(): Promise<PublicPlan[] | null> {
         key: p.key,
         name: p.name,
         priceEurCents: p.price_eur_cents,
+        priceAnnualEurCents: p.price_annual_eur_cents,
         monthlySendCap: p.monthly_send_cap,
         maxSites: p.max_sites,
         maxMailboxes: p.max_mailboxes,
@@ -55,13 +57,4 @@ export async function getPublicPlans(): Promise<PublicPlan[] | null> {
   } catch {
     return null;
   }
-}
-
-/** « 19,90 € » ; sans décimales si le prix est rond. */
-export function formatEuros(cents: number): string {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
-  }).format(cents / 100);
 }
