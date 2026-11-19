@@ -1088,7 +1088,7 @@ export type Database = {
           score_parts?: Json | null;
           sendable?: boolean;
           site_type?: string | null;
-          piste: string;
+          piste?: string;
           niveau?: number;
           stage_reached: number;
           status: string;

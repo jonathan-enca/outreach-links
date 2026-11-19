@@ -35,4 +35,7 @@ set piste = coalesce(
   end)
 where q.piste is null;
 
+-- Obligatoire pour l'application (chaque écrivain la renseigne) ; la valeur par défaut ne sert qu'aux
+-- insertions directes hors application (jeux de données SQL des tests, saisies manuelles).
+alter table public.qualified_targets alter column piste set default 'serp';
 alter table public.qualified_targets alter column piste set not null;
