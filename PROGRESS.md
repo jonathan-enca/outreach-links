@@ -3007,3 +3007,14 @@ Décision de Jonathan sur les pistes et le coût des contacts et des brouillons,
 - Qualification LLM : 0,005 USD par cible.
 - Recherche d'emails : **aucune ligne dans `cost_ledger`** ; coût à établir avant tout lancement.
 - Rien n'est lancé. Les 5 brouillons de test attendent un feu vert écrit de Jonathan.
+
+### Où entre la Search Console dans une campagne (relu le 19/11, code lu, aucun appel)
+
+- **Flag** : `SEARCH_CONSOLE_ENABLED` vaut `false` par défaut (`src/env.ts`). Sans `true` en production, la connexion n'est pas proposée et rien n'est lu. **À vérifier sur l'environnement de production avant tout lancement live.**
+- **Lecture** : `loadSearchConsoleSnapshot` (`src/features/search-console/load.ts`) lit 90 jours, requêtes et pages, en lecture seule, et stocke le résultat dans `audits.links_state.searchConsole`. Elle ne lève jamais : sans connexion ou en cas de panne, elle donne `null` et la campagne continue.
+- **Attente** : `analysis-run.ts` attend l'état des lieux au plus `LINKS_STATE_WAIT.maxChecks` tours, puis lance la recherche **sans lui** (log « recherche sans lui »).
+- **Utilisation réelle, seule voie branchée** : `contentQueries` (`src/features/collection/content-queries.ts`) prend jusqu'à 4 requêtes Search Console (au moins 10 impressions, hors marque) et en fait des requêtes de contenu, cherchées dans la SERP (piste `content`, rang `contenu_search_console`). Le thème et les publics donnent les autres requêtes de contenu.
+- **Non branché** : `proposeVerifiedSites` (MQ.5, `src/features/proposals/service.ts`) reçoit les requêtes Search Console, mais **aucun appelant** dans `src`. Les thèmes et sites proposés par Claude n'entrent donc pas dans une campagne aujourd'hui.
+- **Pas touché** : la liste principale de requêtes (DataForSEO, `universe.queries`), les concurrents (SERP) et les backlinks. La Search Console n'influence donc qu'une partie des requêtes de contenu, pas l'univers principal.
+
+Conséquence pour un lancement live : une campagne avec Search Console connectée ne se distingue d'une campagne sans elle que par ces 4 requêtes de contenu, et seulement si l'état des lieux est fini avant la recherche.
