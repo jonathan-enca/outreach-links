@@ -2728,3 +2728,16 @@ pnpm typecheck && pnpm lint
 ### Prochain sous-jalon recommandé
 
 MQ.1 (PR #206) en premier, puis MQ.5 (thèmes et sites proposés par Claude, avec vérification). L'attente de `etat_des_lieux` avant la recherche est faite dans cette PR (voir ci-dessus).
+## Session du 19/11 (suite 2) : gabarits d'email Supabase remis à la marque backleenks (faite)
+
+- **Constat** : les gabarits du dépôt (`supabase/email-templates/`) étaient déjà à la marque backleenks, mais les modèles **en ligne** dans Supabase (Authentication > Emails) étaient restés sur « Autolink.ai » (vu sur le mail d'inscription reçu). Cause : le dépôt n'est pas relié au projet ; la mise en ligne est manuelle ou se fait par l'API de gestion.
+- **Fait** : les six gabarits (inscription, mot de passe oublié, lien de connexion, invitation, changement d'adresse, ré-authentification) recollés dans le tableau de bord du projet `outreach-links` (réf. `ivjkwhhgtibewqzccvrj`) via le navigateur intégré, connecté par Jonathan. Vérifiés après rechargement : plus aucune trace d'« Autolink », trois mentions de backleenks par gabarit, jeton `{{ .TokenHash }}` (ou `{{ .Token }}` pour la ré-authentification) présent.
+- **Objets et expéditeur** : déjà corrects (`backleenks <noreply@backleenks.com>`, SMTP Resend). Rien à changer.
+- **Test** : demande de réinitialisation envoyée à `jonathan.encaoua@gmail.com` depuis le site (`/mot-de-passe-oublie`) ; Jonathan a validé le rendu (« all good »).
+- **Non testé** : invitation, changement d'adresse, ré-authentification (pas de déclencheur simple) et l'inscription d'une adresse neuve.
+- **Dette** : l'API de gestion Supabase répondait 401 dans cette session (aucun jeton injecté). Le dépôt et le tableau de bord peuvent donc diverger sans qu'on le voie. À chaque changement de gabarit : mettre le fichier à jour **et** le recoller dans Supabase, ou le repousser par l'API.
+- **Note** : `supabase/email-templates/README.md` corrigé (il parlait encore d'« Autolink.ai » en dur).
+
+### Prochain
+
+Vérifier l'inscription sur une adresse neuve quand Jonathan le souhaite (rendu du mail de confirmation dans Gmail), et brancher le nom de marque dans les gabarits à partir de `messages/fr.ts` si la marque change encore.
