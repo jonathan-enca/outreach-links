@@ -13,7 +13,7 @@ export const fr = {
   home: {
     title: "Des backlinks éditoriaux, à partir d'une vraie analyse",
     subtitle:
-      "Entrez votre site : on regarde qui se classe devant vous, d'où viennent leurs liens et quelles pages ont une raison de vous citer. 7 jours d'essai offerts.",
+      "Entrez votre site : on regarde qui se classe devant vous, d'où viennent leurs liens et quelles pages ont une raison de vous citer. Gratuit pour commencer.",
     signIn: "Se connecter",
     nav: {
       label: "Navigation principale",
@@ -26,21 +26,17 @@ export const fr = {
       menu: "Menu",
       openMenu: "Ouvrir le menu",
       closeMenu: "Fermer le menu",
-      cta: "Essai gratuit",
+      cta: "Commencer gratuitement",
     },
     hero: {
-      pill: "7 jours d'essai offerts, sans carte bancaire",
+      pill: "Gratuit pour commencer, sans carte bancaire",
       audience: "Pour les sites, blogs, SaaS et e-commerces",
       title: "Des backlinks gratuits, demandés aux bons sites",
       titleAccent: "Des backlinks gratuits,",
       titleRest: "demandés aux bons sites",
-      lead: "Nous trouvons les sites qui méritent de vous citer, rédigeons pour chacun une demande personnalisée et l'envoyons depuis votre propre boîte mail. Puis nous relançons, classons les réponses et vérifions que le lien est bien en ligne. Vous choisissez les sites et approuvez chaque message : le reste tourne tout seul.",
-      cta: { primary: "Essai gratuit", secondary: "Fonctionnement" },
-      hints: [
-        "7 jours d'essai offerts",
-        "Aucun lien acheté",
-        "Rien n'est envoyé sans votre accord",
-      ],
+      lead: "Nous trouvons les sites qui méritent de vous citer, rédigeons pour chacun une demande personnalisée et l'envoyons depuis votre propre boîte mail. Puis nous relançons une fois, et nous vérifions que le lien est bien en ligne. Vous choisissez les sites et approuvez chaque message : le reste tourne tout seul.",
+      cta: { primary: "Commencer gratuitement", secondary: "Fonctionnement" },
+      hints: ["Gratuit pour commencer", "Aucun lien acheté", "Rien n'est envoyé sans votre accord"],
       refine: "Préciser mes requêtes et mon thème",
       cardsLabel: "Exemples de ce que le service prépare pour vous",
       cards: {
@@ -107,7 +103,7 @@ export const fr = {
         },
         {
           q: "Ce que vous décidez",
-          a: "Les sites à contacter, le texte de chaque message, vos jours et heures d'envoi. Et la réponse à donner quand un site demande de l'argent.",
+          a: "Les sites à contacter, le texte de chaque message, vos jours et heures d'envoi.",
         },
         {
           q: "D'où partent les messages",
@@ -128,9 +124,9 @@ export const fr = {
       exampleLabel: "Exemple de demande",
       frame:
         "Le cadre est le même pour les trois : rien ne part sans votre accord, les envois s'étalent sur la journée, et il n'y a qu'une seule relance.",
-      primary: "Essai gratuit",
+      primary: "Commencer gratuitement",
       secondary: "Fonctionnement",
-      hint: "7 jours d'essai offerts, sans carte bancaire : le temps de voir vos premières cibles.",
+      hint: "Gratuit pour commencer, sans carte bancaire : vous voyez vos premières cibles avant de payer.",
       closing:
         "Ce que nous ne faisons pas : acheter des liens, publier des articles sponsorisés déguisés, monter des réseaux de sites.",
       items: [
@@ -280,8 +276,8 @@ export const fr = {
         },
         {
           role: "tool",
-          title: "Les réponses sont suivies",
-          text: "Chaque réponse arrive dans vos conversations, avec une réponse proposée que vous pouvez modifier. Si un site demande de l'argent, c'est vous qui tranchez. Quand un site dit oui, le lien est contrôlé sur sa page, puis recontrôlé.",
+          title: "Le lien est contrôlé",
+          text: "Sur les offres Pro et Scale, le lien posé est contrôlé sur sa page, puis recontrôlé. S'il disparaît, vous êtes prévenu.",
         },
       ],
       mockup: {
@@ -431,8 +427,8 @@ export const fr = {
           ],
         },
       },
-      cta: "Essai gratuit",
-      ctaHint: "7 jours d'essai offerts, sans carte bancaire.",
+      cta: "Commencer gratuitement",
+      ctaHint: "Gratuit pour commencer, sans carte bancaire.",
     },
     compare: {
       label: "Comparatif",
@@ -474,56 +470,42 @@ export const fr = {
     },
     pricing: {
       label: "Tarifs",
-      title: "Essayez 7 jours. Payez seulement si vous continuez.",
+      title: "Gratuit pour voir. Un abonnement pour envoyer.",
       intro:
-        "Sept jours pour voir les sites à contacter et lire les messages préparés pour vous. Ensuite, un abonnement fixe : le prix ne bouge pas, que vous obteniez deux liens ou vingt.",
+        "Le gratuit vous donne l'analyse de votre site et toutes les opportunités : vous voyez tout avant de payer. Un abonnement fixe débloque l'envoi, avec un plafond clair. Le prix ne dépend pas du nombre de liens obtenus.",
       free: {
-        title: "7 jours d'essai offerts",
-        text: "Sans carte bancaire. Vous voyez ce que l'outil trouve pour votre site avant de payer quoi que ce soit.",
-        cta: "Essai gratuit",
+        title: "Gratuit pour commencer",
+        text: "Sans carte bancaire. Une analyse de votre site, toutes les opportunités et l'aperçu de chaque campagne. Rien n'est envoyé.",
+        cta: "Commencer gratuitement",
       },
       perMonth: "TTC par mois",
       popular: "Recommandé",
       unavailable:
         "Les tarifs ne sont pas affichables pour le moment. Ils seront disponibles à la création de votre compte.",
-      note: "Prix TTC, abonnement mensuel. Un email envoyé est un message parti de votre boîte : la relance et vos réponses comptent chacune pour un. Grille de lancement, susceptible d'évoluer.",
-      limits: {
-        sends: "emails envoyés par mois",
-        sites: "site",
-        sitesPlural: "sites",
-        mailboxes: "boîte mail connectée",
-        mailboxesPlural: "boîtes mail connectées",
-        audits: "analyse complète par mois",
-        auditsPlural: "analyses complètes par mois",
+      note: "Prix TTC, abonnement mensuel, résiliable à tout moment. Un email envoyé est un message parti de votre boîte ; la relance compte pour un.",
+      rows: {
+        sites: "Sites",
+        campaigns: "Campagnes par mois",
+        sends: "Emails envoyés par mois",
+        mailboxes: "Boîtes d'envoi connectées",
+        dedicated: "Domaine d'envoi dédié",
+        linkChecks: "Vérification des liens obtenus",
+        digest: "Digest hebdomadaire",
       },
+      included: "Inclus",
+      notIncluded: "Non inclus",
       plans: {
         starter: {
-          tagline: "Un site, un blog ou une boutique à faire monter.",
-          cta: "Essai gratuit",
-          features: [
-            "Analyse complète et liste de sites classée",
-            "Messages rédigés, à relire et approuver",
-            "Relance unique, réponses suivies au même endroit",
-            "Liens vérifiés, signalés s'ils disparaissent",
-          ],
+          tagline: "Une campagne à la fois, pour un site.",
+          cta: "Choisir Starter",
         },
         pro: {
-          tagline: "Plusieurs sites, ou un rythme plus soutenu.",
-          cta: "Essai gratuit",
-          features: [
-            "Tout Starter",
-            "Réponse prête à insérer quand un site dit oui",
-            "Trois options toutes faites quand on vous demande de payer",
-          ],
+          tagline: "Plusieurs sites, et des liens qui restent suivis.",
+          cta: "Choisir Pro",
         },
         business: {
-          tagline: "Un portefeuille de sites, ou ceux de vos clients.",
-          cta: "Essai gratuit",
-          features: [
-            "Tout Pro",
-            "Une boîte d'envoi par site ou par marque",
-            "De quoi mener plusieurs campagnes de front",
-          ],
+          tagline: "Un portefeuille de sites, avec votre propre domaine d'envoi.",
+          cta: "Choisir Scale",
         },
       },
     },
@@ -533,7 +515,7 @@ export const fr = {
       items: [
         {
           q: "C'est quoi, exactement ?",
-          a: "Backleenks trouve les pages qui ont une raison de vous citer, rédige une demande pour chacune, l'envoie depuis votre boîte mail, relance une fois et vérifie que le lien est en ligne. Rien ne part sans votre accord.",
+          a: "Backleenks trouve les pages qui ont une raison de vous citer, rédige une demande pour chacune, l'envoie depuis votre boîte mail, relance une fois et vérifie que le lien est en ligne (offres Pro et Scale). Rien ne part sans votre accord.",
         },
         {
           q: "C'est fait pour qui ?",
@@ -563,15 +545,15 @@ export const fr = {
         },
         {
           q: "Combien de liens vais-je obtenir ?",
-          a: "On ne peut pas le savoir à l'avance, et nous ne promettons aucun nombre de liens. En face, quelqu'un décide de vous citer ou non. Ce qui dépend de nous : écrire à la bonne page, pour une bonne raison, et ne laisser aucune réponse sans suite.",
+          a: "On ne peut pas le savoir à l'avance, et nous ne promettons aucun nombre de liens. En face, quelqu'un décide de vous citer ou non. Ce qui dépend de nous : écrire à la bonne page, pour une bonne raison, et répondre à chaque site qui vous écrit.",
         },
         {
           q: "Que fait l'IA, et qu'est-ce que je garde en main ?",
-          a: "L'IA cherche, lit les pages, rédige, relance et prépare les réponses. Vous choisissez les sites, relisez les messages et approuvez chaque envoi : rien ne part sans vous. Les emails ne précisent pas qu'une IA a aidé à les écrire, puisque vous les relisez et les signez. Si on vous pose la question, la réponse doit rester honnête.",
+          a: "L'IA cherche, lit les pages, rédige et prépare la relance. Vous choisissez les sites, relisez les messages et approuvez chaque envoi : rien ne part sans vous. Les emails ne précisent pas qu'une IA a aidé à les écrire, puisque vous les relisez et les signez. Si on vous pose la question, la réponse doit rester honnête.",
         },
         {
-          q: "Et si un site me demande de payer ?",
-          a: "Ça arrive souvent, et rien n'est décidé à votre place. Vous avez trois options : décliner, proposer un échange, ou accepter si vous avez fixé un budget, le lien étant alors présenté comme sponsorisé. L'option proposée par défaut est de décliner poliment.",
+          q: "Et si un site réclame de l'argent ?",
+          a: "Vous répondez vous-même, depuis votre boîte. L'outil n'achète aucun lien : si un site réclame de l'argent, c'est vous qui décidez. Décliner poliment reste la réponse la plus saine.",
         },
         {
           q: "Et les sites qui n'ont qu'un formulaire de contact ?",
@@ -590,14 +572,10 @@ export const fr = {
     finalCta: {
       label: "Pour commencer",
       title: "Regardez d'abord ce que l'outil trouve pour votre site",
-      text: "En un quart d'heure environ : les sites à contacter, la demande à faire à chacun, et pourquoi. Sept jours d'essai offerts, et aucun email ne part sans votre accord.",
-      primary: "Essai gratuit",
+      text: "En un quart d'heure environ : les sites à contacter, la demande à faire à chacun, et pourquoi. Gratuit pour commencer, et aucun email ne part sans votre accord.",
+      primary: "Commencer gratuitement",
       secondary: "Voir les tarifs",
-      hints: [
-        "7 jours d'essai offerts",
-        "Aucun lien acheté",
-        "Rien n'est envoyé sans votre accord",
-      ],
+      hints: ["Gratuit pour commencer", "Aucun lien acheté", "Rien n'est envoyé sans votre accord"],
     },
     footer: {
       label: "Pied de page",
@@ -611,7 +589,7 @@ export const fr = {
         { href: "/confidentialite", label: "Confidentialité" },
         { href: "/conditions", label: "Conditions d'utilisation" },
       ],
-      freeAudit: "Essai gratuit",
+      freeAudit: "Commencer gratuitement",
       mailboxGuides: "Connecter sa boîte mail",
       signIn: "Se connecter",
       rights: "Tous droits réservés.",
@@ -3189,27 +3167,30 @@ export const fr = {
   billing: {
     title: "Abonnement",
     description:
-      "Votre plan, vos plafonds d'envoi et vos crédits. Paiement en mode test pour l'instant : aucun prélèvement réel.",
+      "Votre forfait, ce que vous pouvez lancer ce mois-ci, et la gestion de votre abonnement. Paiement en mode test pour l'instant : aucun prélèvement réel.",
     noWorkspace: "Aucun espace de travail trouvé.",
-    currentPlan: "Plan actuel",
+    currentPlan: "Votre forfait",
+    current: "Votre forfait",
+    freeTitle: "Vous êtes au forfait gratuit",
     freeNote:
-      "Le plan gratuit donne l'audit et le plan de liens. L'envoi réel de messages demande un abonnement.",
-    usage: (used: number, cap: number) => `${used} envois sur ${cap} ce mois-ci.`,
+      "Vous analysez votre site, voyez toutes les opportunités et préparez vos messages. Pour les envoyer, choisissez une offre ci-dessous.",
     renewsOn: "Renouvellement le",
     endsOn: "Fin de l'abonnement le",
-    credits: (n: number) => `Crédits disponibles : ${n}.`,
     fakeNote:
       "Les clés de paiement ne sont pas encore configurées : le bouton de souscription n'aboutit pas à un vrai paiement.",
     portal: "Gérer mon abonnement",
+    portalHint: "Changer d'offre ou résilier se fait depuis le portail de facturation.",
     free: "Gratuit",
     perMonth: "TTC par mois",
-    noSending: "Aucun envoi réel",
-    sendCap: (n: number) => `${n} envois par mois`,
-    sites: (n: number) => `${n} site${n > 1 ? "s" : ""}`,
-    audits: (n: number) => `${n} audit${n > 1 ? "s" : ""} complet${n > 1 ? "s" : ""} par mois`,
-    mailboxes: (n: number) => `${n} boîte${n > 1 ? "s" : ""} d'envoi`,
-    creditsPerMonth: (n: number) => `${n} crédits par mois`,
+    meters: {
+      title: "Ce mois-ci",
+      campaigns: "Campagnes lancées",
+      sends: "Emails envoyés",
+      noSends: "Aucun envoi sur ce forfait",
+      of: (used: number, cap: number) => `${used} sur ${cap}`,
+    },
     choose: (name: string) => `Choisir ${name}`,
+    comparison: "Comparer les offres",
     paymentOk: "Merci : votre paiement est en cours de confirmation.",
     link: "Abonnement",
   },

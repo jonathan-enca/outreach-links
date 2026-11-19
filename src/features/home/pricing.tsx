@@ -1,4 +1,4 @@
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Minus } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/messages";
@@ -6,20 +6,28 @@ import { formatEuros, type PublicPlan } from "./plans";
 import { HOME_SECTIONS } from "./sections";
 import { SectionHeading } from "./section-heading";
 
-function limitsFor(plan: PublicPlan): string[] {
-  const l = t.home.pricing.limits;
-  const n = (count: number, one: string, many: string) => `${count} ${count > 1 ? many : one}`;
+const nf = new Intl.NumberFormat("fr-FR");
+
+/**
+ * Lignes de comparaison, dans le même ordre sur chaque carte : on lit les offres en colonne.
+ * Valeurs issues de la table `plans` (aucune valeur écrite en dur ici).
+ */
+function rowsOf(p: PublicPlan, r: typeof t.home.pricing.rows) {
   return [
-    n(plan.maxSites, l.sites, l.sitesPlural),
-    n(plan.monthlyAudits, l.audits, l.auditsPlural),
-    `${new Intl.NumberFormat("fr-FR").format(plan.monthlySendCap)} ${l.sends}`,
-    n(plan.maxMailboxes, l.mailboxes, l.mailboxesPlural),
-  ];
+    { label: r.sites, value: String(p.maxSites) },
+    { label: r.campaigns, value: String(p.monthlyCampaigns) },
+    { label: r.sends, value: nf.format(p.monthlySendCap) },
+    { label: r.mailboxes, value: String(p.maxMailboxes) },
+    { label: r.dedicated, flag: p.dedicatedDomain },
+    { label: r.linkChecks, flag: p.linkChecks },
+    { label: r.digest, flag: p.weeklyDigest },
+  ] as const;
 }
 
 /**
- * Tarifs : un bandeau « gratuit pour commencer », puis les trois offres payantes. Prix et plafonds
- * viennent de la table `plans` ; la carte du milieu est inversée (surface nuit). Aucun prix comparatif.
+ * Tarifs : un bandeau « gratuit pour commencer », puis les trois offres payantes en colonnes
+ * comparables. Prix et plafonds viennent de la table `plans` ; la carte recommandée est inversée
+ * (surface nuit). Aucun prix comparatif, aucune preuve sociale.
  */
 export function Pricing({ plans }: { plans: PublicPlan[] | null }) {
   const s = t.home.pricing;
@@ -32,7 +40,8 @@ export function Pricing({ plans }: { plans: PublicPlan[] | null }) {
     >
       <div className="mx-auto max-w-6xl">
         <SectionHeading id={headingId} label={s.label} title={s.title} intro={s.intro} />
-        <div className="mb-5 flex flex-col items-start gap-4 rounded-card border border-border bg-muted p-5 sm:flex-row sm:items-center sm:justify-between">
+
+        <div className="mb-6 flex flex-col items-start gap-4 rounded-card border border-border bg-muted p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="flex items-center gap-2.5 font-semibold">
               <span aria-hidden className="size-2 rounded-full bg-primary" />
@@ -47,6 +56,7 @@ export function Pricing({ plans }: { plans: PublicPlan[] | null }) {
             </Link>
           </Button>
         </div>
+
         {plans ? (
           <ul className="grid items-stretch gap-5 lg:grid-cols-3">
             {plans.map((p) => {
@@ -65,31 +75,40 @@ export function Pricing({ plans }: { plans: PublicPlan[] | null }) {
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground lg:min-h-10">{copy.tagline}</p>
+                  <p className="mt-1 min-h-10 text-sm text-muted-foreground">{copy.tagline}</p>
                   <p className="mt-5 flex items-baseline gap-1.5">
                     <span className="text-4xl font-bold tabular-nums">
                       {formatEuros(p.priceEurCents)}
                     </span>
                     <span className="text-sm text-muted-foreground">{s.perMonth}</span>
                   </p>
-                  <ul className="mt-5 grid gap-2 border-t border-border pt-5 text-[15px] font-medium">
-                    {limitsFor(p).map((x) => (
-                      <li key={x} className="tabular-nums">
-                        {x}
-                      </li>
-                    ))}
-                  </ul>
-                  <ul className="mt-4 grid flex-1 content-start gap-2 text-[15px]">
-                    {copy.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2 text-muted-foreground">
-                        <Check aria-hidden className="mt-1 size-4 shrink-0 text-primary" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button asChild variant={featured ? "default" : "outline"} className="mt-6 h-11">
+                  <Button asChild variant={featured ? "default" : "outline"} className="mt-5 h-11">
                     <Link href="/inscription">{copy.cta}</Link>
                   </Button>
+                  <dl className="mt-6 grid gap-3 border-t border-border pt-5 text-[15px]">
+                    {rowsOf(p, s.rows).map((row) => (
+                      <div key={row.label} className="flex items-center justify-between gap-4">
+                        <dt className="text-muted-foreground">{row.label}</dt>
+                        <dd className="text-right font-semibold tabular-nums">
+                          {"flag" in row ? (
+                            row.flag ? (
+                              <span className="inline-flex items-center gap-1 text-primary">
+                                <Check aria-hidden className="size-4" />
+                                <span className="sr-only">{s.included}</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-muted-foreground">
+                                <Minus aria-hidden className="size-4" />
+                                <span className="sr-only">{s.notIncluded}</span>
+                              </span>
+                            )
+                          ) : (
+                            row.value
+                          )}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
                 </li>
               );
             })}

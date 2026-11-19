@@ -95,8 +95,11 @@ describe("home FR", () => {
       // L'audit gratuit n'est plus sur la home : aucune ancre #audit ne doit rester.
       expect(src, f).not.toMatch(/#audit/);
     }
-    expect(fr.home.hero.cta).toEqual({ primary: "Essai gratuit", secondary: "Fonctionnement" });
-    expect(fr.home.nav.cta).toBe("Essai gratuit");
+    expect(fr.home.hero.cta).toEqual({
+      primary: "Commencer gratuitement",
+      secondary: "Fonctionnement",
+    });
+    expect(fr.home.nav.cta).toBe("Commencer gratuitement");
     const hero = readFileSync(new URL("hero.tsx", dir), "utf8");
     expect(hero).toContain('href="/inscription"');
     expect(hero).toContain("HOME_SECTIONS.howItWorks");
@@ -169,11 +172,11 @@ describe("home FR", () => {
     }
   });
 
-  it("offre d'entrée : 7 jours d'essai, plus aucune référence à un audit gratuit sur la home", () => {
+  it("offre d'entrée : gratuit pour commencer, plus aucune référence à un audit gratuit sur la home", () => {
     const all = texts(fr.home).join("\n");
     expect(all).not.toMatch(/audit (gratuit|réduit)/i);
-    expect(fr.home.hero.pill).toMatch(/7 jours d'essai/);
-    expect(fr.home.pricing.free.title).toMatch(/7 jours d'essai/);
+    expect(fr.home.hero.pill).toMatch(/Gratuit pour commencer/);
+    expect(fr.home.pricing.free.title).toMatch(/Gratuit pour commencer/);
     expect(Object.keys(fr.home.faq)).not.toContain("intro");
   });
 
@@ -186,7 +189,7 @@ describe("home FR", () => {
   it("tarifs : trois offres payantes, un bandeau gratuit, aucune preuve sociale inventée", () => {
     const p = fr.home.pricing;
     expect(Object.keys(p.plans)).toEqual(["starter", "pro", "business"]);
-    expect(p.free.cta).toBe("Essai gratuit");
+    expect(p.free.cta).toBe("Commencer gratuitement");
     // Les trois tactiques sont dans toutes les offres : la grille n'en parle pas. Prix affichés TTC.
     expect(texts(p).join(" ")).not.toMatch(/tactique/i);
     expect(p.perMonth).toMatch(/TTC/);
@@ -203,7 +206,7 @@ describe("home FR", () => {
       expect(it.example.body.length).toBeLessThan(320);
       expect(it.example.body).not.toMatch(/\bIA\b|intelligence artificielle/i);
     }
-    expect([tac.primary, tac.secondary]).toEqual(["Essai gratuit", "Fonctionnement"]);
+    expect([tac.primary, tac.secondary]).toEqual(["Commencer gratuitement", "Fonctionnement"]);
     expect(texts(tac).join(" ")).not.toMatch(/garanti|digest/i);
   });
 });
