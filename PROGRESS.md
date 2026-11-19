@@ -2827,3 +2827,10 @@ Sous-jalon `PLAN.md > MQ.5`. Branche `mq.5-sites-proposes`. Aucun envoi d'email.
 - Mesurer le coût réel d'un appel et recaler `reservedUsd`.
 
 ### Prochain sous-jalon recommandé : MQ.4 (requêtes de contenu sans lien, SERP), puis MQ.3 après un premier lot de réponses.
+
+### Reprise et vérification (19/11, après MQ.1 et MQ.5 fusionnées)
+
+- Branche mise à jour sur `main` (fusion sans conflit). Typecheck vert ; `pnpm vitest run src/features/collection src/features/queries src/features/analysis src/features/targets` : 278 verts ; format:check vert ; lint : 0 erreur.
+- **Écart à traiter (non fait ici)** : les requêtes de contenu gardent leur tactique `ressources`, donc `pisteFromTactics` les range dans la piste « citation » et non dans une piste propre « requête de contenu ». Pour un rendement séparé, il faut une piste dédiée : ajouter la valeur à `PISTES` et au `check` SQL de `qualified_targets.piste` (migration additive), puis propager l'origine (`regle` / `search_console`).
+- **Écart à traiter** : le gabarit par public (« sites de référence {public} ») n'est pas fait.
+- **Non vérifiable ici** : le rendement réel par piste dépend d'envois réels (aucun envoi en développement).
