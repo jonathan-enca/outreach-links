@@ -370,6 +370,17 @@ describe("moteur d'envoi : dry run", () => {
     expect(r[0]).toMatchObject({ result: "plafond" });
   });
 
+  it("boîte suspendue par la personne : rien ne part, le brouillon reste en attente", async () => {
+    const db = world({ drafts: 1 });
+    db.tables.mailboxes![0] = { ...db.tables.mailboxes![0], sending_paused: true };
+    const d = deps(db);
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "suspendue" });
+    expect(d.send).not.toHaveBeenCalled();
+    expect(db.tables.sent_messages ?? []).toHaveLength(0);
+    db.tables.mailboxes![0] = { ...db.tables.mailboxes![0], sending_paused: false };
+    expect((await runSendTick(d))[0]).toMatchObject({ result: "simule", draftId: "d1" });
+  });
+
   it("aucun envoi sans lot validé", async () => {
     const db = world({ batchStatus: "brouillon" });
     const r = await runSendTick(deps(db));

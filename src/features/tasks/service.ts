@@ -98,11 +98,12 @@ export async function listTasks(
       message: applySignature(d.body, signatureByPlan.get(d.plan_id) ?? null),
       status: x.status,
       doneAt: x.done_at,
-      followUpStatus: x.follow_up_status,
-      followUpDueAt: x.follow_up_due_at,
-      followUpMessage: x.follow_up_message,
-      followUpDoneAt: x.follow_up_done_at,
-      followUpCancelReason: x.follow_up_cancel_reason,
+      // Relances à la main retirées (décision du 19/11/2026) : la page ne montre jamais de relance.
+      followUpStatus: null,
+      followUpDueAt: null,
+      followUpMessage: null,
+      followUpDoneAt: null,
+      followUpCancelReason: null,
     });
   }
   return out;

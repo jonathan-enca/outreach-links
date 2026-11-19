@@ -66,7 +66,13 @@ export function defaultSendDeps(
 export type MailboxOutcome =
   | {
       mailboxId: string;
-      result: "hors_fenetre" | "plafond" | "rien_a_envoyer" | "abonnement_requis" | "quota_mensuel";
+      result:
+        | "hors_fenetre"
+        | "plafond"
+        | "rien_a_envoyer"
+        | "abonnement_requis"
+        | "quota_mensuel"
+        | "suspendue";
     }
   | {
       mailboxId: string;
@@ -130,6 +136,9 @@ async function sendNext(db: Client, box: MailboxRow, deps: SendDeps): Promise<Ma
   const now = deps.now();
   const dry = !deps.realSendingAllowed();
   const base = { mailboxId: box.id };
+
+  // Suspension par la personne (écran « Envois ») : rien ne part, rien n'est annulé.
+  if (box.sending_paused) return { ...base, result: "suspendue" };
 
   // M6.1 : un envoi RÉEL exige un abonnement actif et respecte le plafond mensuel du plan.
   // Le dry run (simulation) n'est pas soumis au plan.
