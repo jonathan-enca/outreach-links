@@ -60,10 +60,7 @@ describe("adresse d'autorisation", () => {
   });
 });
 
-function setup(
-  tokenBody: object | null,
-  profile: object | null = { email: "Jo@Gmail.com" },
-) {
+function setup(tokenBody: object | null, profile: object | null = { email: "Jo@Gmail.com" }) {
   const f = fakeSupabase({ sites: [{ id: "s1", workspace_id: "w1" }] }, { userId: "u1" });
   const fetchFn = vi.fn(async (url: string | URL | Request) => {
     const u = String(url);
