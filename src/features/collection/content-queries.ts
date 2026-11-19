@@ -12,7 +12,7 @@ import type { SearchRow } from "@/features/search-console/api";
  */
 export const CONTENT_QUERY_LIMITS = {
   /** Requêtes Search Console retenues (les plus de clics d'abord). */
-  maxSearchConsoleQueries: 4,
+  maxSearchConsoleQueries: 20,
   /** Impressions minimales pour qu'une requête Search Console serve de base à une recherche. */
   minImpressions: 10,
   /** Publics (audience du profil) retenus au plus : une requête par public, pas plus (coût plafonné). */

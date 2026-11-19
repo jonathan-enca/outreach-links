@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { COLLECTION_LIMITS, citationsCallUsd } from "@/features/collection/limits";
 import { mergeCandidates } from "@/features/collection/normalize";
 import {
   describeCandidates,
@@ -14,14 +15,26 @@ import type { LlmClient } from "@/lib/llm/client";
 import { logger } from "@/lib/logger";
 import type { Database } from "@/lib/supabase/database.types";
 import { SNOWBALL_LIMITS, snowballCostUsd } from "./limits";
+import {
+  prescreenSeeds,
+  rankSeeds,
+  withReferringDomains,
+  type BulkReferringRow,
+} from "./prescreen";
 import { isTargetPage, publicCandidates, seedCandidates, type SeedSource } from "./seeds";
+
+/** Cibles par appel `bulk_referring_domains` (limite du schéma du client). */
+const BULK_TARGETS_PER_CALL = 100;
+/** Coût d'un appel bulk à `n` cibles : forfait par requête + une ligne par cible (grille publique). */
+const bulkCallUsd = (n: number) => 0.024 + n * 0.000036;
 
 type Client = SupabaseClient<Database>;
 
 export const SNOWBALL_PARALLEL = 3;
 
 export type SnowballBy = "graines" | "repli" | "aucune";
-export type SnowballStop = "sans_modele" | "aucune_ressource" | "plafond" | "termine";
+export type SnowballStop =
+  "sans_modele" | "aucune_ressource" | "plafond" | "budget_phase" | "termine";
 
 /** Ce que la phase a fait, compté pour l'écran, le coût et la mesure. Sérialisable. */
 export interface SnowballStats {
@@ -46,7 +59,7 @@ export interface SnowballStats {
 }
 
 export interface SnowballDeps {
-  dfs: Pick<DataForSeoClient, "backlinksBacklinks">;
+  dfs: Pick<DataForSeoClient, "backlinksBacklinks" | "backlinksBulkReferringDomains">;
   service: Client;
   llm: LlmClient | null;
   describe?: (c: readonly ResourceCandidate[]) => Promise<ResourceCandidate[]>;
@@ -63,12 +76,52 @@ export interface SnowballInput {
   max?: number;
   /** Mesure : saute les graines et prend directement le repli « ressources publiques et gratuites ». */
   skipSeeds?: boolean;
+  /**
+   * Pré-tri des graines par `bulk_referring_domains` (MR.1, E2). Désactivé par défaut : sans lui, le
+   * comportement est celui de la boule de neige d'origine.
+   */
+  prescreen?: boolean;
+  /** Plafond de dépense annoncée de la phase (USD, pire cas). Au-dessus, la phase ne se lance pas. */
+  phaseCapUsd?: number;
+  /** Lignes par appel « qui cite » (défaut : celui de la collecte, 150). MR.1 : 1 000. */
+  rowsPerCall?: number;
 }
 
 export interface SnowballOutcome {
   stats: SnowballStats;
   /** Candidats nouveaux, fusionnés par domaine (source « citation », la ressource dans `persona`). */
   candidates: MergedCandidate[];
+}
+
+/**
+ * Taille (domaines citants) des sites de départ, en lots de 100 cibles. Un lot qui échoue ne fait pas
+ * échouer la phase : ses sites restent « taille inconnue », donc écartés par le pré-tri.
+ */
+async function readReferringDomains(
+  deps: SnowballDeps,
+  run: CitationsRun,
+  domains: readonly string[],
+): Promise<BulkReferringRow[]> {
+  const rows: BulkReferringRow[] = [];
+  for (let i = 0; i < domains.length; i += BULK_TARGETS_PER_CALL) {
+    const targets = domains.slice(i, i + BULK_TARGETS_PER_CALL);
+    try {
+      const out = await deps.dfs.backlinksBulkReferringDomains(
+        { targets },
+        { workspaceId: run.workspaceId, auditId: run.auditId },
+      );
+      for (const item of out.result?.items ?? []) {
+        if (!item.target) continue;
+        rows.push({ target: item.target, referring_domains: item.referring_domains ?? null });
+      }
+    } catch (e) {
+      logger.warn("pré-tri des graines : lot impossible", {
+        auditId: run.auditId,
+        error: (e as Error).message,
+      });
+    }
+  }
+  return rows;
 }
 
 /**
@@ -136,8 +189,31 @@ export async function executeSnowball(
     return out;
   };
 
-  const seeds = input.skipSeeds ? [] : seedCandidates(input.pages, ctx, input.used);
+  let seeds = input.skipSeeds ? [] : rankSeeds(seedCandidates(input.pages, ctx, input.used));
   stats.targetPages = input.pages.filter(isTargetPage).length;
+
+  // Pré-tri (MR.1) : taille des sites citants en lots de 100, seuils gratuits, puis classement.
+  const prescreenUsd =
+    input.prescreen && seeds.length > 0
+      ? Math.ceil(seeds.length / BULK_TARGETS_PER_CALL) *
+        bulkCallUsd(Math.min(seeds.length, BULK_TARGETS_PER_CALL))
+      : 0;
+  // Pire cas de la phase avec le nombre de lignes demandé (le réglage par défaut est celui de la collecte).
+  const phaseWorstUsd =
+    max * citationsCallUsd(input.rowsPerCall ?? COLLECTION_LIMITS.citations.rowsPerCall) +
+    SNOWBALL_LIMITS.pickReservedUsd * 2;
+  if (input.phaseCapUsd !== undefined && phaseWorstUsd + prescreenUsd > input.phaseCapUsd) {
+    return empty("budget_phase");
+  }
+  if (input.prescreen && seeds.length > 0) {
+    const rows = await readReferringDomains(
+      deps,
+      input.run,
+      seeds.map((c) => c.domain),
+    );
+    stats.costUsd += prescreenUsd;
+    seeds = rankSeeds(prescreenSeeds(withReferringDomains(seeds, rows)));
+  }
   stats.seedCandidates = seeds.length;
   let picked = await pick("graines", seeds);
   if (picked && picked.resources.length >= SNOWBALL_LIMITS.minSeeds) {
@@ -161,7 +237,9 @@ export async function executeSnowball(
     const lot = resources.slice(i, i + SNOWBALL_PARALLEL);
     const outcomes = await Promise.all(
       lot.map((resource, k) =>
-        runCitationsCall(deps, input.run, resource, i + k, allResources).catch((e) => {
+        runCitationsCall(deps, input.run, resource, i + k, allResources, {
+          rows: input.rowsPerCall,
+        }).catch((e) => {
           logger.warn("boule de neige : appel impossible", {
             resource,
             error: (e as Error).message,

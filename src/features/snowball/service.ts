@@ -163,6 +163,30 @@ export type SnowballResult =
   { status: "fait"; stats: SnowballStats } | { status: "deja" | "pas_prete" };
 
 /**
+ * Réglages du test MR.1, lus à l'exécution. Sans variable, le comportement reste celui d'origine (6 sites,
+ * 150 lignes, pas de pré-tri, pas de plafond de phase). Variables : `SNOWBALL_MAX_RESOURCES` (sites interrogés),
+ * `SNOWBALL_ROWS_PER_CALL` (lignes par appel), `SNOWBALL_PRESCREEN=true` (pré-tri),
+ * `SNOWBALL_PHASE_CAP_USD` (plafond de phase, 3 pour ce test, 5 au plus en général).
+ */
+export function mr1Settings(env: Record<string, string | undefined> = process.env): {
+  max?: number;
+  rowsPerCall?: number;
+  prescreen: boolean;
+  phaseCapUsd?: number;
+} {
+  const pos = (v: string | undefined) => {
+    const n = Number(v);
+    return v !== undefined && Number.isFinite(n) && n > 0 ? n : undefined;
+  };
+  return {
+    max: pos(env.SNOWBALL_MAX_RESOURCES),
+    rowsPerCall: pos(env.SNOWBALL_ROWS_PER_CALL),
+    prescreen: env.SNOWBALL_PRESCREEN === "true",
+    phaseCapUsd: pos(env.SNOWBALL_PHASE_CAP_USD),
+  };
+}
+
+/**
  * Lance la boule de neige d'une analyse (MC.6d) : après le premier passage de qualification, une seule fois
  * (rejouée, elle ne fait rien : les compteurs sont dans `qualification_runs.stats.snowball`). Les pages
  * obtenues entrent dans le STOCK de la qualification (candidats de la collecte et lignes « en réserve »), lues
@@ -218,6 +242,7 @@ export async function runSnowballForAudit(
       pages,
       used,
       known,
+      ...mr1Settings(),
     },
   );
 
