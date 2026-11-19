@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { env as appEnv } from "@/env";
+import { fetchViaGoogle } from "@/features/google/gmail";
 import { decryptSecret, parseKeyRing, type KeyRing } from "@/features/mailboxes/crypto";
 import type { TransportOptions } from "@/features/mailboxes/transport";
 import { logger } from "@/lib/logger";
@@ -15,6 +16,8 @@ export interface ReplyDeps {
   now: () => Date;
   keyRing: () => KeyRing;
   fetch: typeof fetchNewMessages;
+  /** Boîtes connectées par Google : lecture par l'API Gmail (par défaut la vraie). */
+  fetchGoogle?: typeof fetchViaGoogle;
   transportOptions?: TransportOptions;
 }
 
@@ -106,18 +109,22 @@ async function readMailbox(
 
   let password: string;
   try {
-    password = decryptSecret(box.password_enc, deps.keyRing());
+    password = box.provider === "google" ? "" : decryptSecret(box.password_enc, deps.keyRing());
   } catch {
     return { ...base, result: "erreur_cle" };
   }
   const now = deps.now();
   const since = new Date(Math.min(...refs.map((r) => r.sentAt.getTime())));
-  const res = await deps.fetch(
-    { host: box.imap_host, port: box.imap_port },
-    { username: box.username, password },
-    { afterUid: box.imap_last_uid, since, knownUidValidity: box.imap_uid_validity },
-    deps.transportOptions,
-  );
+  const query = { afterUid: box.imap_last_uid, since, knownUidValidity: box.imap_uid_validity };
+  const res =
+    box.provider === "google"
+      ? await (deps.fetchGoogle ?? fetchViaGoogle)(db, box, query, deps.keyRing())
+      : await deps.fetch(
+          { host: box.imap_host, port: box.imap_port },
+          { username: box.username, password },
+          query,
+          deps.transportOptions,
+        );
   if (!res.ok) {
     await db
       .from("mailboxes")

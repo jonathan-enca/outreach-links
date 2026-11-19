@@ -24,7 +24,7 @@ export interface GoogleDeps {
 
 /**
  * Fin de l'autorisation : échange le code, vérifie les autorisations, enregistre la boîte et ses jetons
- * (chiffrés). La boîte reste « en_attente » : l'envoi par l'API Gmail vient en G2, la lecture en G3.
+ * (chiffrés). La boîte est « verifiee » : le moteur l'utilise (envoi et lecture par l'API Gmail, voir gmail.ts).
  * `supabase` est le client de la personne (RLS) : elle doit voir le site et être celle du `state`.
  */
 export async function completeGoogleConnect(
@@ -65,6 +65,19 @@ export async function completeGoogleConnect(
     .maybeSingle();
   let mailboxId = existing?.id;
   const reconnected = Boolean(existing);
+  if (existing) {
+    await db
+      .from("mailboxes")
+      .update({
+        provider: "google",
+        status: "verifiee",
+        smtp_ok: true,
+        imap_ok: true,
+        last_error: null,
+        last_test_at: new Date().toISOString(),
+      })
+      .eq("id", existing.id);
+  }
   if (!mailboxId) {
     const { data: created, error } = await db
       .from("mailboxes")
@@ -82,6 +95,11 @@ export async function completeGoogleConnect(
         imap_host: "imap.gmail.com",
         imap_port: 993,
         provider: "google",
+        // Les jetons viennent d'être obtenus et l'adresse lue : la boîte est prête (envoi et lecture par Gmail).
+        status: "verifiee",
+        smtp_ok: true,
+        imap_ok: true,
+        last_test_at: new Date().toISOString(),
         created_by: state.userId,
       })
       .select("id")

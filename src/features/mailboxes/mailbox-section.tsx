@@ -580,7 +580,8 @@ export function MailboxSection({
       {googleEnabled && (boxes.length === 0 || boxes.every((b) => b.provider === "google")) ? (
         <GoogleConnect siteId={siteId} />
       ) : null}
-      {boxes.length === 0 && (!canReuse || other) ? (
+      {/* v1 archivée : le formulaire SMTP/IMAP n'est proposé que si la connexion Google est fermée. */}
+      {boxes.length === 0 && (!canReuse || other) && !googleEnabled ? (
         <ConnectForm action={connect} pending={pending} />
       ) : null}
       <Status state={state} />

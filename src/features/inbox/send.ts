@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { betaEnabled } from "@/features/audits/beta";
 import { checkSendAllowance } from "@/features/billing/plans";
+import { sendViaGoogle } from "@/features/google/gmail";
 import { decryptSecret } from "@/features/mailboxes/crypto";
 import { logger } from "@/lib/logger";
 import type { Database } from "@/lib/supabase/database.types";
@@ -352,7 +353,7 @@ async function finish(
   let secret: string;
   try {
     const ring = deps.keyRing();
-    password = decryptSecret(box.password_enc, ring);
+    password = box.provider === "google" ? "" : decryptSecret(box.password_enc, ring);
     secret = unsubscribeSecrets(ring)[0]!;
   } catch {
     await db
@@ -377,12 +378,15 @@ async function finish(
     inReplyTo: inbound.message_id,
     unsubscribeUrl: `${deps.appUrl}/api/unsubscribe?t=${makeUnsubscribeToken(inbound.sent_message_id, secret)}`,
   });
-  const res = await deps.send(
-    { host: box.smtp_host, port: box.smtp_port },
-    { username: box.username, password },
-    mail,
-    deps.transportOptions,
-  );
+  const res =
+    box.provider === "google"
+      ? await (deps.sendGoogle ?? sendViaGoogle)(db, box, mail, deps.keyRing())
+      : await deps.send(
+          { host: box.smtp_host, port: box.smtp_port },
+          { username: box.username, password },
+          mail,
+          deps.transportOptions,
+        );
   if (res.ok) {
     await db
       .from("reply_sends")
