@@ -2681,3 +2681,46 @@ pnpm typecheck && pnpm lint
 ### Prochain sous-jalon recommandé : MQ.4 (requêtes de contenu sans lien, SERP)
 
 Peut se faire en parallèle de MQ.1 (déjà en PR) : les requêtes Search Console (`links_state.searchConsole.queries`) en sont une source de plus, à côté des requêtes prioritaires de la SERP.
+
+## Session du 19/11 : MQ.4, requêtes de contenu sans lien (SERP), partielle
+
+Sous-jalon `PLAN.md > MQ.4`. Branche `mq.4-requetes-serp` (depuis `main`, après la fusion de MQ.2 en #207). Tests et typecheck verts ; **0 USD d'API** (rien n'est appelé : tout est pur et testé). Aucun envoi d'email. Aucun fichier de la PR #206 (MQ.1) touché.
+
+### Ce qui change
+
+- `src/features/collection/content-queries.ts` (nouveau, pur) : `contentQueries` produit les requêtes de contenu sans lien, avec deux sources :
+  - **thème** (gabarits fixes, sans LLM) : « liste de ressources {thème} », « sites de référence {thème} » (fr ; équivalents en en). Origine `regle`.
+  - **Search Console** : `searchConsoleSeeds` prend au plus 4 requêtes réelles (`audits.links_state.searchConsole.queries`), les plus de clics d'abord, avec au moins 10 impressions, sans requête de marque, sans doublon. Gabarit « liste de ressources {requête} ». Origine `search_console`.
+  - `searchConsoleRowsOf` lit ces lignes dans le JSON de `links_state` ; une ligne abîmée est ignorée, sans erreur.
+  - Toute requête déjà présente dans l'univers est écartée (comparaison normalisée).
+- `src/features/queries/schema.ts` : `origin` accepte désormais `search_console` (ajout seul).
+- `src/features/collection/plan.ts` : `buildCollectionPlan` accepte `contentQueries`. Elles se placent **après** l'univers, sans dépasser le plafond SERP (60), et leurs rangs sont renumérotés. Sans requêtes de contenu, le plan est identique à avant.
+- `src/features/collection/service.ts` : `previewCollection` lit `links_state`, construit les requêtes de contenu et les passe au plan. Le coût annoncé suit automatiquement (même `estimateCost("serpOrganicLive")` que le reste). Le plan est figé à la confirmation, donc la collecte lancée ne change pas.
+- Tests : `content-queries.test.ts` (nouveau, 9 tests) ; `collection.test.ts` : une attente passe de 10 à 12 requêtes SERP (les 2 requêtes de thème s'ajoutent à l'univers de la fixture). Le pire cas reste sous le budget de la phase.
+
+### Décisions prises ici (à valider)
+
+- **Piste propre** : chaque requête garde sa tactique (`ressources`) et son origine (`regle` / `search_console`). C'est ce qui permettra à MQ.1 de mesurer le rendement par source. MQ.1 n'est pas encore fusionnée : le tableau par piste n'existe pas encore.
+- **Coût dans `cost_ledger`** : ces requêtes passent par le même chemin de collecte SERP que les autres (client DataForSEO déjà enregistré), donc rien de nouveau à câbler.
+- **Par public (persona)** : le gabarit « sites de référence {public} » n'est PAS encore fait. Seules les requêtes par thème le sont. À ajouter si le rendement du thème ne suffit pas.
+
+### Limite connue (à décider)
+
+- **Ordre des étapes** : `etat_des_lieux` (qui écrit `links_state`) tourne en parallèle et n'est pas attendu avant la recherche. Les requêtes Search Console ne sont donc prises en compte **que si l'état des lieux est déjà écrit au moment de la prévisualisation**. Sinon, le plan est identique à avant : aucune erreur, mais la source ne sert pas toujours. Pour la rendre fiable, il faudrait attendre `etat_des_lieux` avant `recherche` (changement de flux, hors de ce sous-jalon). **Décision de Jonathan demandée.**
+- De plus, le drapeau `SEARCH_CONSOLE_ENABLED` reste faux en production : tant qu'il l'est, cette source est vide.
+
+### Commandes
+
+```bash
+pnpm vitest run src/features/collection src/features/queries
+pnpm typecheck && pnpm lint
+```
+
+### Dettes et pièges
+
+- Les requêtes de contenu se mélangent à l'univers à l'ordre du plan : le **rendement** (`yieldStop`) les traite comme les autres ; à surveiller quand MQ.1 mesurera.
+- Le coût worst-case de la phase SERP augmente de quelques requêtes ; il reste borné par le budget de la phase (`phaseBudgetUsd`).
+
+### Prochain sous-jalon recommandé
+
+MQ.1 (PR #206) en premier, puis MQ.5 (thèmes et sites proposés par Claude, avec vérification). Si Jonathan tranche pour l'attente de `etat_des_lieux`, la petite modification de flux peut se faire juste avant MQ.5.

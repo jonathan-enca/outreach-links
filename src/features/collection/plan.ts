@@ -63,6 +63,11 @@ export interface PlanInput {
   competitors?: readonly CompetitorFacts[];
   /** Concurrents non retenus par l'audit (MC.6b) : proposés seulement au choix des ressources comparables. */
   otherCompetitors?: readonly CompetitorFacts[];
+  /**
+   * MQ.4 : requêtes de contenu sans lien (thème et Search Console, voir `contentQueries`). Elles
+   * prennent des places en fin de liste SERP, après l'univers, sans dépasser le plafond de la phase.
+   */
+  contentQueries?: readonly PlannedQuery[];
 }
 
 /** Écritures distinctes du nom (« Mega Coloring » et « mega-coloring » = une, « megacoloring » = une autre). */
@@ -83,9 +88,15 @@ export function distinctVariants(variants: readonly string[], domain: string): s
 
 export function buildCollectionPlan(input: PlanInput): CollectionPlan {
   const ordered = [...input.queries].sort((a, b) => a.rank - b.rank);
-  const serp = ordered
+  // MQ.4 : les requêtes de contenu prennent les dernières places ; l'univers garde le reste du plafond.
+  const extra = (input.contentQueries ?? []).slice(0, COLLECTION_LIMITS.serp.maxQueries);
+  const universeSerp = ordered
     .filter((q) => q.tactic !== "mentions")
-    .slice(0, COLLECTION_LIMITS.serp.maxQueries);
+    .slice(0, COLLECTION_LIMITS.serp.maxQueries - extra.length);
+  const serp = [
+    ...universeSerp,
+    ...extra.map((q, i) => ({ ...q, rank: universeSerp.length + i + 1 })),
+  ];
 
   // Mentions de marque : seulement les écritures qui ne sont pas descriptives du thème.
   const themeWords = [input.theme, ...input.targetKeywords];
