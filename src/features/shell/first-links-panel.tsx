@@ -90,7 +90,11 @@ export async function FirstLinksPanel({ o }: { o: OverviewView }) {
               </div>
               {!s.done ? (
                 <Button asChild size="sm" variant={s.key === nextKey ? "default" : "outline"}>
-                  <Link href={s.href}>{H.steps.go[s.key]}</Link>
+                  {s.href.startsWith("/api/") ? (
+                    <a href={s.href}>{H.steps.go[s.key]}</a>
+                  ) : (
+                    <Link href={s.href}>{H.steps.go[s.key]}</Link>
+                  )}
                 </Button>
               ) : null}
             </li>

@@ -1,7 +1,9 @@
 import { START_HREF, siteHref } from "./next-step";
 
 /** Adresse de l'écran Search Console d'un site (la carte est sur la page du site). */
-export const searchConsoleHref = (siteId: string) => `/app/site/${siteId}#search-console`;
+/** Lance directement l'autorisation Google de la Search Console pour ce site (pas de page intermédiaire). */
+export const searchConsoleHref = (siteId: string) =>
+  `/api/google/start?site=${siteId}&purpose=search_console`;
 
 /**
  * « Vos premiers liens » : le fil des premières actions, visible dès l'arrivée (accueil et écrans
