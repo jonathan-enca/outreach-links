@@ -1987,6 +1987,9 @@ export const fr = {
     google: {
       title: "Connectez la boîte depuis laquelle vous enverrez",
       hint: "Gmail : vos messages partent de votre propre adresse, à un rythme régulier, et ceux que vous avez approuvés sont les seuls à partir. Nous lisons les réponses à ces messages, rien d'autre.",
+      upgradeTitle: "Connecter Gmail, sans mot de passe",
+      upgradeHint:
+        "Votre boîte actuelle utilise un mot de passe d'application. Avec Google, un clic suffit : en reconnectant la même adresse, elle passe à la connexion Google sans rien perdre.",
       button: "Connecter Gmail",
       safe: "Connexion par Google : nous ne voyons ni ne stockons votre mot de passe, et vous pouvez retirer l'accès à tout moment depuis votre compte Google.",
       connected: "Connectée par Google : envoi et lecture des réponses par Gmail.",

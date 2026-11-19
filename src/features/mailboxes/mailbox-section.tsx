@@ -577,8 +577,8 @@ export function MailboxSection({
           </div>
         </div>
       ) : null}
-      {googleEnabled && (boxes.length === 0 || boxes.every((b) => b.provider === "google")) ? (
-        <GoogleConnect siteId={siteId} />
+      {googleEnabled && !boxes.some((b) => b.provider === "google") ? (
+        <GoogleConnect siteId={siteId} upgrade={boxes.length > 0} />
       ) : null}
       {/* v1 archivée : le formulaire SMTP/IMAP n'est proposé que si la connexion Google est fermée. */}
       {boxes.length === 0 && (!canReuse || other) && !googleEnabled ? (
