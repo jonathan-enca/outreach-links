@@ -69,7 +69,7 @@ describe("contentQueries (MQ.4)", () => {
   });
 
   it("dédoublonne et plafonne les requêtes Search Console", () => {
-    const many = Array.from({ length: 9 }, (_, i) => row(`sujet ${i} enfant`, 100 - i));
+    const many = Array.from({ length: 25 }, (_, i) => row(`sujet ${i} enfant`, 100 - i));
     const seeds = searchConsoleSeeds([...many, row("Sujet 0 Enfant", 1)], "mega-coloring.com", []);
     expect(seeds).toHaveLength(CONTENT_QUERY_LIMITS.maxSearchConsoleQueries);
     expect(new Set(seeds.map((s) => s.toLowerCase())).size).toBe(seeds.length);

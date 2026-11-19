@@ -463,17 +463,19 @@ export async function runCitationsCall(
   resource: string,
   index: number,
   resources: readonly string[],
+  opts: { rows?: number } = {},
 ): Promise<StepOutcome> {
   const L = COLLECTION_LIMITS.citations;
+  const rows = opts.rows ?? L.rowsPerCall;
   const label = `citations-${index + 1}`;
-  if (!(await guarded(deps.service, run, citationsCallUsd(L.rowsPerCall)))) {
+  if (!(await guarded(deps.service, run, citationsCallUsd(rows)))) {
     return blockedOutcome("citations", label);
   }
   const out = await withProviderRetry(() =>
     deps.dfs.backlinksBacklinks(
       {
         target: resource,
-        limit: L.rowsPerCall,
+        limit: rows,
         mode: "one_per_domain",
         exclude_internal_backlinks: true,
         backlinks_status_type: "live",
