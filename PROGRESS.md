@@ -2650,12 +2650,14 @@ Périmètre tenu : chaque cible retenue garde sa **piste de découverte** (la so
 - « Envoi » = premier message `envoye` (les relances et les simulations `simule` ne comptent pas) ; « lien » = statut `live` au dernier contrôle.
 
 ### Commandes
+
 ```bash
 pnpm vitest run src/features/targets src/features/qualification src/features/snowball
 TRACKING_REPORT=1 TRACKING_REPORT_OUT=/tmp/suivi.md pnpm demo:tracking
 ```
 
 ### Dettes et pièges
+
 - Le fallback « serp » sans source est un choix : une cible sans source connue (données anciennes) tombe dans « Résultats Google ». À surveiller après la reprise.
 - La reprise SQL déduit la piste d'une cible par sa première source dans la collecte ; une cible trouvée par plusieurs sources garde la plus forte.
 - Le niveau 1 suppose que la boule de neige ne trouve que des sites cités par des cibles retenues (vrai aujourd'hui).
@@ -2696,12 +2698,14 @@ Sous-jalon `PLAN.md > MQ.2`. Branche `mq.2-search-console`. **0 USD d'API** : au
 - L'écran de consentement Google doit déclarer le scope `webmasters.readonly` (à ajouter dans Google Cloud, pas fait ici : action de Jonathan dans le navigateur).
 
 ### Commandes
+
 ```bash
 pnpm vitest run src/features/search-console src/features/google src/features/analysis src/inngest
 pnpm typecheck && pnpm lint
 ```
 
 ### Dettes et pièges
+
 - **Pas affiché dans l'écran d'audit** : les requêtes sont stockées dans `links_state.searchConsole` mais aucun écran ne les montre encore.
 - **Pas utilisé par le premier passage ni par l'onboarding** : les pages classées de MC.7 viennent toujours de DataForSEO. Les pages Search Console (MQ.2) ne sont pas encore proposées à l'onboarding ; à brancher avec MQ.3 / MQ.4.
 - **Le volume n'est pas comparable** : Search Console donne clics et impressions sur 90 jours, pas le volume mensuel de DataForSEO. Ne pas mélanger les deux dans `RankedKeyword`.
@@ -2717,6 +2721,7 @@ pnpm typecheck && pnpm lint
 - Bouton « Déconnecter la Search Console » (aujourd'hui : reconnecter remplace l'ancienne connexion).
 - Plafond de lectures par site et cache des requêtes (aujourd'hui : un appel de deux requêtes par audit, sans cache).
 - Ajouter le scope `webmasters.readonly` à l'écran de consentement Google Cloud, puis G4.
+
 ### Prochain sous-jalon recommandé : MQ.4 (requêtes de contenu sans lien, SERP)
 
 Peut se faire en parallèle de MQ.1 (déjà en PR) : les requêtes Search Console (`links_state.searchConsole.queries`) en sont une source de plus, à côté des requêtes prioritaires de la SERP.
