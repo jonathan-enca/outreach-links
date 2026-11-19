@@ -2766,6 +2766,7 @@ export type Database = {
           link_checks: boolean;
           monthly_campaigns: number;
           weekly_digest: boolean;
+          price_annual_eur_cents: number;
           name: string;
           price_eur_cents: number;
           sort_order: number;
@@ -2780,6 +2781,7 @@ export type Database = {
           link_checks?: boolean;
           monthly_campaigns?: number;
           weekly_digest?: boolean;
+          price_annual_eur_cents: number;
           name: string;
           price_eur_cents: number;
           sort_order: number;
@@ -2794,6 +2796,7 @@ export type Database = {
           link_checks?: boolean;
           monthly_campaigns?: number;
           weekly_digest?: boolean;
+          price_annual_eur_cents?: number;
           name?: string;
           price_eur_cents?: number;
           sort_order?: number;
