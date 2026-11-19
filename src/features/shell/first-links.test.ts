@@ -36,7 +36,7 @@ describe("firstLinkSteps", () => {
     expect(steps[0]).toMatchObject({
       key: "searchConsole",
       optional: true,
-      href: "/app/site/s1#search-console",
+      href: "/api/google/start?site=s1&purpose=search_console",
     });
     expect(steps[1]?.key).toBe("campaign");
   });

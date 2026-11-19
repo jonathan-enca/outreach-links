@@ -9,9 +9,11 @@ import {
   CheckSquare,
   ChevronsUpDown,
   CreditCard,
+  LayoutDashboard,
   LogOut,
   Mail,
   PenLine,
+  Search,
   Send,
   Settings,
   Target,
@@ -101,6 +103,18 @@ export function AppNav({
   // obtenus ne sont plus dans le menu (pages toujours accessibles par leur adresse).
   const groups: { title: string | null; items: Item[] }[] = [
     {
+      title: null,
+      items: [
+        {
+          key: "accueil",
+          href: "/app",
+          label: n.home,
+          icon: LayoutDashboard,
+          active: pathname === "/app",
+        },
+      ],
+    },
+    {
       title: n.groups.prospecting,
       items: [
         {
@@ -148,6 +162,13 @@ export function AppNav({
           label: n.mailbox,
           icon: Mail,
           active: starts("/app/reglages/boite"),
+        },
+        {
+          key: "search-console",
+          href: "/app/reglages/search-console",
+          label: n.searchConsole,
+          icon: Search,
+          active: starts("/app/reglages/search-console"),
         },
         {
           key: "messages",
