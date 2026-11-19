@@ -2637,7 +2637,7 @@ Sous-jalon `PLAN.md > MQ.2`. Branche `mq.2-search-console`. **0 USD d'API** : au
   - `service.ts` : `completeSearchConsoleConnect` (échange du code, vérification du scope lecture seule, propriété du site, jeton de renouvellement chiffré, upsert dans `search_console_connections`).
   - `load.ts` : `readSearchConsoleStatus` (sans jeton, pour l'affichage), `loadSearchConsoleSnapshot` (ne lève jamais : `null` si pas connecté, jeton refusé, panne ou drapeau coupé), `searchConsoleEnabled`.
   - `search-console-connect.tsx` : la carte. Résultat lu dans le paramètre `sc` (le paramètre `google` reste celui de la boîte).
-  - `search-console.test.ts` : 17 tests (API simulée, autorisation, lecture, connexion).
+  - `search-console.test.ts` : 14 tests (API simulée, autorisation, lecture, connexion).
 - `src/features/google/oauth.ts` : `SEARCH_CONSOLE_SCOPE` (`webmasters.readonly`, demandé à part de Gmail), `purpose` dans le `state` (absent = `gmail`, les états existants restent valides), `buildAuthUrl` accepte la liste de scopes, `refreshAccess` (jeton d'accès).
 - `src/app/api/google/start/route.ts` : `?purpose=search_console` (404 si le drapeau est coupé). `callback/route.ts` : branche Search Console ; Gmail inchangé.
 - `src/features/analysis/links-state.ts` : étape « search-console » (hors plafonds DataForSEO, puisque gratuite) et champ `searchConsole` ; `links-state.test.ts` (nouveau, 2 tests). `src/inngest/functions/analysis-links-state.ts` branche la lecture réelle.
