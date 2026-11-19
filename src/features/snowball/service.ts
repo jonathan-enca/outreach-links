@@ -6,6 +6,7 @@ import type { FunnelStats } from "@/features/qualification/funnel";
 import { toRow as targetRow } from "@/features/qualification/run";
 import type { Situation } from "@/features/qualification/types";
 import { SITUATIONS } from "@/features/qualification/types";
+import { pisteOf } from "@/features/targets/tracking";
 import { logger } from "@/lib/logger";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import type { MergedCandidate } from "@/features/collection/types";
@@ -18,6 +19,9 @@ import {
 import type { SeedSource } from "./seeds";
 
 type Client = SupabaseClient<Database>;
+
+/** Niveau de boule de neige des sites trouvés par cette phase (MQ.1) : ceux cités par les cibles retenues. */
+const SNOWBALL_NIVEAU = 1;
 
 const PAGE = 1000;
 const INSERT_CHUNK = 300;
@@ -94,7 +98,7 @@ export async function persistSnowball(
     const chunk = fresh.slice(i, i + INSERT_CHUNK);
     const ins = await service
       .from("collection_candidates")
-      .insert(chunk.map((c) => candidateRow(cRun, c)));
+      .insert(chunk.map((c) => ({ ...candidateRow(cRun, c), niveau: SNOWBALL_NIVEAU })));
     if (ins.error) throw new Error(`boule de neige : ${ins.error.message}`);
     const stock = await service.from("qualified_targets").upsert(
       chunk.map((c) =>
@@ -102,6 +106,8 @@ export async function persistSnowball(
           domain: c.domain,
           url: c.url,
           tactics: c.tactics,
+          piste: pisteOf(c.sources, c.tactics),
+          niveau: SNOWBALL_NIVEAU,
           status: "reserve",
           stageReached: 3,
           exclusionReason: "hors_budget_lecture",
