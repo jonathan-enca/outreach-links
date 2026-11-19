@@ -1984,6 +1984,27 @@ export const fr = {
     smtpPort: "Port SMTP",
     imapHost: "Serveur IMAP",
     imapPort: "Port IMAP",
+    google: {
+      title: "Connecter avec Google",
+      hint: "Un clic, sans mot de passe à copier : Google vous demande l'autorisation d'envoyer les messages que vous aurez approuvés et de lire les réponses à ces messages. Vous pouvez retirer l'accès à tout moment depuis votre compte Google.",
+      button: "Connecter avec Google",
+      connected:
+        "Connexion Google enregistrée. L'envoi par Gmail n'est pas encore activé : cette boîte ne sert pas encore à envoyer.",
+      ok: "Connexion Google enregistrée. L'envoi par Gmail n'est pas encore activé : cette boîte ne sert pas encore à envoyer.",
+      errors: {
+        invalide: "La connexion a expiré ou n'est pas valide. Recommencez.",
+        refuse: "Google n'a pas donné l'accès : rien n'a été enregistré.",
+        scopes:
+          "Il manque une autorisation : laissez cochés l'envoi et la lecture des réponses sur l'écran de Google.",
+        no_refresh:
+          "Google n'a pas renvoyé d'accès durable. Retirez l'accès dans votre compte Google puis recommencez.",
+        token: "Google a refusé l'échange. Recommencez.",
+        profile: "Impossible de lire l'adresse du compte. Recommencez.",
+        site: "Ce site est introuvable.",
+        user: "Vous n'êtes pas connecté avec le même compte. Recommencez.",
+        save: "Impossible d'enregistrer la boîte. Recommencez.",
+      },
+    },
     connect: "Connecter la boîte",
     connecting: "Connexion…",
     test: "Tester la connexion",

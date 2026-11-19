@@ -5,7 +5,7 @@ import type { AvailableMailbox, MailboxView } from "./mailbox-section";
 type Client = SupabaseClient<Database>;
 
 const COLUMNS =
-  "id, email, status, smtp_ok, imap_ok, last_error, smtp_host, health, hourly_cap, daily_cap, send_days, send_window_start, send_window_end";
+  "id, email, status, smtp_ok, imap_ok, last_error, smtp_host, health, hourly_cap, daily_cap, send_days, send_window_start, send_window_end, provider";
 
 /**
  * Boîtes d'envoi d'un site : celles qui lui sont rattachées, et celles de l'espace de travail
@@ -39,6 +39,7 @@ export async function loadMailboxes(
       imapOk: r.imap_ok,
       lastError: r.last_error,
       smtpHost: r.smtp_host,
+      provider: r.provider,
       health: (r.health as MailboxView["health"]) ?? null,
       hourlyCap: r.hourly_cap,
       dailyCap: r.daily_cap,

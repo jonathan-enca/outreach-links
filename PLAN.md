@@ -466,6 +466,15 @@ Trois sources, de la moins chère à la plus chère. Aujourd'hui : 11 candidats 
 
 **Hors périmètre pour l'instant.** Boîtes hébergées par utilisateur, serveur de messagerie propre, marque blanche.
 
+## G. Connexion de la boîte par compte Google (décision de Jonathan, 18/11/2026 ; cadrée le 19/11/2026)
+
+**Objectif.** Un clic « Connecter avec Google » à la place du mot de passe d'application. Projet Google Cloud `outreach-links-oauth` **publié en production sans vérification** depuis le 19/11 (plafond de 100 utilisateurs, écran « application non vérifiée ») ; le passage en production passe par la vérification Google (envoi : scope sensible ; lecture : scope restreint, audit de sécurité). Tout est derrière le drapeau `GOOGLE_OAUTH_ENABLED` (faux par défaut).
+
+- **G1 : connexion et jetons (fait).** Écran de consentement, routes `/api/google/start` et `/api/google/callback` (`state` chiffré + cookie, expirant à 10 min), jeton de renouvellement chiffré (table `mailbox_google_tokens`), boîte `provider = 'google'` créée **« en attente »** (le moteur ne prend que les boîtes « vérifiées » : rien ne peut partir ni être lu par erreur). Hors périmètre : envoi et lecture.
+- **G2 : envoi par l'API Gmail.** Renouvellement du jeton d'accès, envoi `users.messages.send` dans le fil (relance), mêmes plafonds, même moteur ; la boîte Google passe « vérifiée » après un test réel.
+- **G3 : lecture des réponses par l'API Gmail** (à la place d'IMAP pour ces boîtes), rattachement par fil, classification existante.
+- **G4 : vérification Google et passage en production** (page de confidentialité, vidéo de démonstration, évaluation de sécurité du scope restreint).
+
 ## Plus tard (hors plan v1)
 
 OAuth Gmail/Outlook, extension navigateur pour formulaires et badges SERP, module annuaires, serveur MCP, marque blanche, autres langues.

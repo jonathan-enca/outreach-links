@@ -2500,6 +2500,36 @@ export type Database = {
           },
         ];
       };
+      mailbox_google_tokens: {
+        Row: {
+          connected_at: string;
+          key_version: string;
+          mailbox_id: string;
+          refresh_token_enc: string;
+          scopes: string;
+          updated_at: string;
+          workspace_id: string;
+        };
+        Insert: {
+          connected_at?: string;
+          key_version: string;
+          mailbox_id: string;
+          refresh_token_enc: string;
+          scopes: string;
+          updated_at?: string;
+          workspace_id: string;
+        };
+        Update: {
+          connected_at?: string;
+          key_version?: string;
+          mailbox_id?: string;
+          refresh_token_enc?: string;
+          scopes?: string;
+          updated_at?: string;
+          workspace_id?: string;
+        };
+        Relationships: [];
+      };
       mailboxes: {
         Row: {
           created_at: string;
@@ -2519,6 +2549,7 @@ export type Database = {
           key_version: string;
           last_error: string | null;
           last_test_at: string | null;
+          provider: string;
           password_enc: string;
           send_days: number[];
           send_window_end: number;
@@ -2551,6 +2582,7 @@ export type Database = {
           key_version: string;
           last_error?: string | null;
           last_test_at?: string | null;
+          provider?: string;
           password_enc: string;
           send_days?: number[];
           send_window_end?: number;
@@ -2583,6 +2615,7 @@ export type Database = {
           key_version?: string;
           last_error?: string | null;
           last_test_at?: string | null;
+          provider?: string;
           password_enc?: string;
           send_days?: number[];
           send_window_end?: number;
