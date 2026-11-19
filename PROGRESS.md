@@ -2607,6 +2607,19 @@ pnpm typecheck && pnpm lint
 - Remarques consignées dans `docs/jalon-mu.md` section 8 (sous-jalon **MU.12** : cibles retenues → messages rédigés → envoi). Pas encore codé : à faire dans une session dédiée, après MU.10.
 - Décompte à expliquer dans l’écran : « 42 cibles » = liens morts des concurrents + pages que personne ne sollicite (deux tactiques, à présenter séparément).
 
+## Décisions du 19/11 (suite) : premier passage, Search Console, boule de neige (faite, à valider)
+
+Décisions de Jonathan, à appliquer dans les prochains sous-jalons. Aucun code modifié dans cette note.
+
+- **DataForSEO reste la source du graphe de liens** (qui cite qui, backlinks, SERP). Pas d'alternative gratuite retenue.
+- **Pas de seeds saisies à la main** : le produit est 100 % automatisé et les utilisateurs ne connaissent pas ces sites. Les seeds viennent de l'audit, de la SERP et de Search Console.
+- **Requêtes de contenu sans lien** : chercher des pages qui citent des ressources, via la SERP (requêtes « liste de ressources », « liens utiles », etc. par thème). Peu coûteux, à faire.
+- **Claude propose une liste de thèmes et de sites qui citent des ressources** : toujours vérifier chaque adresse (HTTP 200, contenu réel) avant d'en faire une cible.
+- **Search Console dans l'onboarding** : proposer de connecter la Search Console du site, sur le modèle de la boîte d'envoi (facultatif, fortement conseillé). Pas encore dans le code (aucune occurrence dans `src/`). Elle donne les requêtes réelles du site, donc les pistes d'orientation et les pages à pousser, sans devoir deviner.
+- **Premier passage** : à améliorer en lisant la page candidate (lecture gratuite, sans LLM) avant de trier sur les signaux seuls. Les poids de `provisionalScore` (`src/features/qualification/free.ts`) restent à recaler sur des données réelles, pas à la main.
+- **Boule de neige** : la faire tourner en profondeur (2 à 3 niveaux) plutôt qu'en largeur, mesurer le rendement à chaque niveau sur un échantillon relu à la main, et continuer tant que le rendement tient. Coût attendu : environ 0,2 USD par niveau. Elle hérite de la qualité des premières cibles : pas d'amplification avant d'avoir des réponses réelles.
+- **Mesure à mettre en place avant tout** : rendement réel (réponses, liens obtenus) par source (tactique) et par type de site. Aujourd'hui la source est souvent non renseignée, donc le rendement par piste n'est pas mesurable.
+
 ## Session du 19/11 (suite 2) : gabarits d'email Supabase remis à la marque backleenks (faite)
 
 - **Constat** : les gabarits du dépôt (`supabase/email-templates/`) étaient déjà à la marque backleenks, mais les modèles **en ligne** dans Supabase (Authentication > Emails) étaient restés sur « Autolink.ai » (vu sur le mail d'inscription reçu). Cause : le dépôt n'est pas relié au projet ; la mise en ligne est manuelle ou se fait par l'API de gestion.

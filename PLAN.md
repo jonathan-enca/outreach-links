@@ -475,6 +475,60 @@ Trois sources, de la moins chère à la plus chère. Aujourd'hui : 11 candidats 
 - **G3 : lecture des réponses par l'API Gmail (fait le 19/11, avec G2).** (à la place d'IMAP pour ces boîtes), rattachement par fil, classification existante.
 - **G4 : vérification Google et passage en production** (page de confidentialité, vidéo de démonstration, évaluation de sécurité du scope restreint).
 
+## MQ. Qualité des cibles et boucle de retour (décisions de Jonathan, 19/11/2026)
+
+Pourquoi : aujourd'hui, aucune cible n'a reçu de mail, donc la qualité est un jugement de Claude, pas une mesure. Ce jalon met d'abord la mesure en place, puis améliore le premier passage et étend la boule de neige sur des chiffres réels.
+
+Décisions déjà prises (à ne pas rouvrir) : DataForSEO reste la source du graphe de liens ; pas de seeds saisies à la main (produit 100 % automatisé) ; requêtes de contenu sans lien via la SERP ; toute liste de sites proposée par Claude est vérifiée (HTTP 200, contenu réel) ; la Search Console est proposée à l'onboarding, facultative et fortement conseillée, sur le modèle de la boîte d'envoi ; boule de neige en profondeur plutôt qu'en largeur.
+
+Ordre : **MQ.1 d'abord** (sans elle, rien n'est mesurable). MQ.2, MQ.4 et MQ.5 peuvent se faire en parallèle après. MQ.3 après MQ.1 et un premier lot de réponses. MQ.6 après MQ.1. MQ.7 à la fin.
+
+### MQ.1 Source et suivi par cible (prérequis)
+
+- Chaque cible garde sa piste de découverte (liste de tactiques, pas « inconnu »), sa profondeur (niveau de boule de neige) et son type de site.
+- Tableau interne : cibles, messages envoyés, réponses, liens obtenus, par piste, par niveau et par type de site.
+- **Acceptation** : sur le site de test, 100 % des cibles retenues ont une piste renseignée ; le tableau s'affiche avec des chiffres vides mais justes.
+
+### MQ.2 Search Console à l'onboarding (facultatif, fortement conseillé)
+
+- Écran d'onboarding : connecter la Search Console du site, sur le modèle de la boîte d'envoi (même place, même formulation : facultatif, fortement conseillé).
+- Lecture seule : requêtes, pages, positions. Les requêtes et pages servent à l'audit et au premier passage (pages à pousser, requêtes de MQ.4).
+- Sans connexion, l'audit fonctionne comme aujourd'hui.
+- Point de vigilance : le scope Google correspondant est sensible, il passe par la vérification OAuth (voir G4).
+- **Acceptation** : un site connecté donne ses requêtes réelles dans l'audit ; un site non connecté ne voit aucune erreur.
+
+### MQ.3 Premier passage : lire avant de trier (après MQ.1)
+
+- Avant le tri sur signaux (`provisionalScore`, `src/features/qualification/free.ts`), lecture gratuite de la page candidate (sans LLM) : présence de ressources citées, nature éditoriale, page vivante.
+- Les poids (bonus lien mort, plafond d'autorité, etc.) sont recalés sur les réponses réelles de MQ.1, pas à la main.
+- **Acceptation** : sur deux sites de thèmes différents, la part des candidats lus qui deviennent des cibles augmente, sans baisse du nombre de cibles en liste courte.
+
+### MQ.4 Requêtes de contenu sans lien (SERP)
+
+- Pour chaque thème et chaque public, requêtes du type « liste de ressources », « liens utiles », « sites de référence » + thème, via la SERP DataForSEO (peu coûteux).
+- Les résultats entrent dans le même tri que les autres candidats, avec leur piste propre (MQ.1).
+- **Acceptation** : chaque piste a un rendement mesuré ; le coût par requête est noté dans `cost_ledger`.
+
+### MQ.5 Thèmes et sites proposés par Claude, avec vérification
+
+- Claude propose une liste de thèmes et de sites qui citent des ressources, à partir du profil du site (et des requêtes Search Console si MQ.2 est connecté).
+- Chaque adresse est vérifiée : HTTP 200, contenu réel, présence d'une ressource citée. Une adresse qui ne passe pas est écartée et notée.
+- **Acceptation** : aucune adresse inventée n'arrive en liste courte ; le taux d'écart est affiché.
+
+### MQ.6 Boule de neige en profondeur (après MQ.1)
+
+- Deux ou trois niveaux : niveau 1 = sites cités par les cibles retenues ; niveau 2 = sites cités par les cibles du niveau 1 ; etc.
+- Rendement mesuré à chaque niveau sur un échantillon relu à la main (20 cibles par niveau) ; on continue tant que le rendement tient.
+- Coût annoncé par niveau (environ 0,2 USD) et plafonné.
+- Pas d'amplification tant que MQ.1 n'a pas de réponses réelles.
+- **Acceptation** : le rendement de chaque niveau est affiché ; sur deux sites de thèmes différents.
+
+### MQ.7 Pilote mesuré
+
+- Lot de 100 messages répartis sur 4 à 5 types de sites et sur les pistes de MQ.4 à MQ.6, validés par Jonathan avant envoi.
+- Suivi des réponses et des liens pendant 30 jours.
+- **Acceptation** : décision écrite (quelles pistes, quels types de sites, quelle profondeur de boule de neige) dans `PROGRESS.md`.
+
 ## Plus tard (hors plan v1)
 
 OAuth Gmail/Outlook, extension navigateur pour formulaires et badges SERP, module annuaires, serveur MCP, marque blanche, autres langues.
