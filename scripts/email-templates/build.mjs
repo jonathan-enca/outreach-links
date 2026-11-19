@@ -7,12 +7,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const BRAND = "backleenks";
-const BRAND_COLOR = "#0f766e";
-const INK = "#0e1a2b";
+// Couleurs du logo validé (marine), et non plus l'émeraude de docs/da.md.
+const BRAND_COLOR = "#0b3a78";
+const INK = "#0b1f44";
 const MUTED = "#5b6678";
 const APP_URL = "https://outreach-links.vercel.app";
-// Remplacer par l'URL du logo une fois hébergé (PNG, 160 px de large environ).
-const LOGO_URL = process.env.EMAIL_LOGO_URL ?? "";
+// Logo hébergé avec le site (public/brand/logo-email.png). EMAIL_LOGO_URL permet de le remplacer.
+const LOGO_URL = process.env.EMAIL_LOGO_URL ?? `${APP_URL}/brand/logo-email.png`;
 
 const FONT = "Inter, Helvetica, Arial, sans-serif";
 
