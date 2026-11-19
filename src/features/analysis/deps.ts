@@ -12,6 +12,7 @@ import type { AnalysisDeps } from "./run";
  */
 export function productionAnalysisDeps(
   launchLinksState: (run: AnalysisRun) => Promise<void>,
+  awaitLinksState?: (run: AnalysisRun) => Promise<void>,
 ): AnalysisDeps {
   return {
     service: createServiceClient,
@@ -21,5 +22,6 @@ export function productionAnalysisDeps(
     qualDeps: (ctx, run) => productionQualDeps(ctx, run),
     findDeps: (run) => productionFindDeps(run),
     launchLinksState,
+    awaitLinksState,
   };
 }

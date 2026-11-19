@@ -4,8 +4,11 @@ import type { AuditActionState, SendEvent } from "@/features/audits/service";
 import { getLatestBrandProfile } from "@/features/brand/service";
 import { getLatestQueryUniverse } from "@/features/queries/service";
 import { dailyCapReached, totalCostForAudit } from "@/lib/costs";
+import { estimateCost } from "@/lib/dataforseo/endpoints";
 import { t } from "@/lib/messages";
 import type { Database, Json } from "@/lib/supabase/database.types";
+import { contentQueries, searchConsoleRowsOf } from "./content-queries";
+import { COLLECTION_LIMITS } from "./limits";
 import {
   buildCollectionPlan,
   estimateCollection,
@@ -36,7 +39,7 @@ export async function previewCollection(service: Client, auditId: string): Promi
   const { data: audit } = await service
     .from("audits")
     .select(
-      "id, status, workspace_id, cost_cap_usd, sites(id, domain, niche, language, goal, target_keywords)",
+      "id, status, workspace_id, cost_cap_usd, links_state, sites(id, domain, niche, language, goal, target_keywords)",
     )
     .eq("id", auditId)
     .maybeSingle();
@@ -69,15 +72,31 @@ export async function previewCollection(service: Client, auditId: string): Promi
     sampleUrl: c.sample_url,
   });
   const retained = (comps.data ?? []).filter((c) => c.selected);
+  const theme = site.niche ?? "";
+  const nameVariants = profile?.profile.name_variants ?? [];
+  // MQ.4 : requêtes de contenu sans lien (thème + Search Console si l'état des lieux l'a déjà lue).
+  const extra = contentQueries({
+    theme,
+    language: site.language,
+    domain: site.domain,
+    nameVariants,
+    searchConsoleQueries: searchConsoleRowsOf(audit.links_state),
+    existing: universe.queries.map((q) => q.q),
+    perQueryUsd: estimateCost("serpOrganicLive", {
+      keyword: "exemple",
+      depth: COLLECTION_LIMITS.serp.depth,
+    }),
+  });
   const plan = buildCollectionPlan({
     queries: universe.queries,
+    contentQueries: extra,
     competitorDomains: retained.map((c) => c.domain),
     competitors: retained.map(facts),
     // MC.6b : les concurrents non retenus servent seulement de candidats au choix des ressources comparables.
     otherCompetitors: (comps.data ?? []).filter((c) => !c.selected).map(facts),
     language: site.language,
-    theme: site.niche ?? "",
-    nameVariants: profile?.profile.name_variants ?? [],
+    theme,
+    nameVariants,
     domain: site.domain,
     goal: site.goal === "mots_cles" ? "mots_cles" : "autorite_generale",
     targetKeywords: site.target_keywords,
