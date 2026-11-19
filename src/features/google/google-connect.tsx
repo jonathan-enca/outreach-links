@@ -20,11 +20,11 @@ function Result() {
 }
 
 /** Bouton « Connecter avec Google » (G1) : un lien, l'autorisation se fait sur l'écran de Google. */
-export function GoogleConnect({ siteId }: { siteId: string }) {
+export function GoogleConnect({ siteId, upgrade = false }: { siteId: string; upgrade?: boolean }) {
   return (
     <div className="flex flex-col gap-2 rounded-md border border-border p-4">
-      <h3 className="font-semibold">{g.title}</h3>
-      <p className="text-sm text-muted-foreground">{g.hint}</p>
+      <h3 className="font-semibold">{upgrade ? g.upgradeTitle : g.title}</h3>
+      <p className="text-sm text-muted-foreground">{upgrade ? g.upgradeHint : g.hint}</p>
       <div>
         <Button asChild>
           <a href={`/api/google/start?site=${encodeURIComponent(siteId)}`}>
