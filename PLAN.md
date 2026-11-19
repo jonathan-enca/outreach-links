@@ -439,6 +439,8 @@ Trois sources, de la moins chère à la plus chère. Aujourd'hui : 11 candidats 
 
 **Suite immédiate : MC.2.** Une fois MC.7 fait, MC.2 doit partir des **mots-clés de ces pages** pour écrire ses recherches par sujet et par public (par exemple pour le calculateur de congés payés : les pages RH, paie et droit du travail qui citent déjà des calculateurs). C'est là que le nombre de cibles pertinentes augmente ; MC.7 améliore surtout la qualité des cibles déjà trouvées (qualification, constats, demandes).
 
+**MC.7 faite (19/11/2026)** : les mots-clés positionnés sont demandés pendant la création du profil de marque (même appel et mêmes paramètres que l'état des lieux, donc même cache ; coût réel moyen mesuré en base : 0,013 USD), les pages sont classées par `log10(1 + volume) × facteur de position` (`brand/rank-pages.ts`, constantes dans `brand/limits.ts`), les 5 premières sont lues, proposées en tête et cochées, le modèle reçoit volume, position et mots-clés, l'écran les affiche, et le rédacteur s'en sert pour départager deux pages aussi proches l'une que l'autre. Le classement (20 pages au plus, 5 mots-clés par page) est gardé dans le profil : `brand_profiles.profile.ranked_pages`, **point de départ de MC.2**. Vérifié sur données figées de la base, sans appel payant : squadraplanning.com (article « temps de pause » puis les trois calculateurs positionnés) et monjardinbio.com. Détail dans `PROGRESS.md`.
+
 ## Plus tard (hors plan v1)
 
 OAuth Gmail/Outlook, extension navigateur pour formulaires et badges SERP, module annuaires, serveur MCP, marque blanche, autres langues.

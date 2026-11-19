@@ -553,7 +553,8 @@ Demande : « design ok », reprendre le wording pour qu'il soit meilleur et plus
 
 ## Backlog (idées hors périmètre)
 
-- **MC.7 puis MC.2 (18/11, après l'audit de la campagne squadraplanning.com)** : MC.7 (pages à pousser choisies par volume et position dès l'onboarding, formule fixe, voir `PLAN.md`) puis MC.2 en partant des mots-clés de ces pages. Autres constats du même audit, non planifiés : liste courte triée par score global plutôt que par pertinence (18 cibles sur 34 à fit 0,3) ; concurrents qui passent le filtre (shifty-app, kazalendar, dimo-rh, elevo) et ne sont refusés qu'à la rédaction ; cibles hors pays (Canada, Québec, Belgique) ; 36 appels du modèle sur 72 en échec par « sortie tronquée » à la qualification ; contrôle « promesse » du linter peut-être trop sévère (brouillon logiciels-solutions.fr) ; le mail dit « fondateur » alors que `founder_confirmed_at` est vide.
+- **Après MC.7 (19/11), non planifié** : (1) les sites créés avant MC.7 n'ont pas de classement de pages dans leur profil ; il n'arrive qu'à une nouvelle lecture du site (« Reprendre à partir d'ici » sur l'étape « Comprendre votre site »), un rattrapage gratuit depuis le cache DataForSEO serait possible ; (2) sur une boutique, des fiches produit entrent dans les 5 pages présélectionnées (monjardinbio.com : 2 sur 5), la formule ne connaît pas la nature de la page, à observer sur une vraie campagne avant d'y toucher ; (3) l'appel des mots-clés à l'onboarding n'a pas de plafond par espace de travail (seulement le plafond par appel et le plafond quotidien de la plateforme) ; (4) le volume et la position ne sont pas affichés sur l'écran de relecture des pages après audit (hors périmètre de MC.7) ; (5) `audits.links_state.keywords.top` ne garde toujours que 20 mots-clés sur 100 (le profil, lui, part des 100).
+- **MC.7 (fait le 19/11) puis MC.2 (18/11, après l'audit de la campagne squadraplanning.com)** : MC.7 (pages à pousser choisies par volume et position dès l'onboarding, formule fixe, voir `PLAN.md`) puis MC.2 en partant des mots-clés de ces pages. Autres constats du même audit, non planifiés : liste courte triée par score global plutôt que par pertinence (18 cibles sur 34 à fit 0,3) ; concurrents qui passent le filtre (shifty-app, kazalendar, dimo-rh, elevo) et ne sont refusés qu'à la rédaction ; cibles hors pays (Canada, Québec, Belgique) ; 36 appels du modèle sur 72 en échec par « sortie tronquée » à la qualification ; contrôle « promesse » du linter peut-être trop sévère (brouillon logiciels-solutions.fr) ; le mail dit « fondateur » alors que `founder_confirmed_at` est vide.
 
 - **Arrière-plan (17/11, étape 1)** : pas d'étape « liens morts » pour les cibles ajoutées par la lecture de la réserve (manuel ou automatique) ; jugement des lots d'arrière-plan à tarif réduit (étape 2) ; barre fixe « Valider ces demandes » qui recouvre le message de fin sur mobile (MU.10).
 - Essai de 7 jours (16/11) : le coder dans la facturation (début, fin, blocage ou passage à l'offre), avec ou sans carte ; aligner la page d'inscription, les conditions et le sort de l'audit gratuit public (`/audit-gratuit`).
@@ -626,7 +627,9 @@ Demande : « design ok », reprendre le wording pour qu'il soit meilleur et plus
 
 ## Prochain sous-jalon recommandé
 
-**Priorité NOW (18/11/2026) : MC.7** (pages à pousser par volume et position, calcul à l'onboarding ; `PLAN.md > MC.7`), **puis MC.2** (recherches de cibles à partir des mots-clés de ces pages). Décisions de Jonathan : calcul à l'onboarding malgré le léger surcoût, mélange volume et position, formule fixe sans calibrage coûteux.
+**Priorité NOW (19/11/2026) : MC.7 fait. Suite : MC.2** (recherches de cibles par sujet et par public, écrites à partir des mots-clés des pages choisies : `brand_profiles.profile.ranked_pages`, voir « Session du 19/11 : MC.7 » en fin de fichier). À relire d'abord à la lumière de MC.6 (voir `PLAN.md`). (Les textes ci-dessous sont d'anciennes recommandations.)
+
+**Ancienne priorité (18/11/2026) : MC.7** (pages à pousser par volume et position, calcul à l'onboarding ; `PLAN.md > MC.7`), **puis MC.2** (recherches de cibles à partir des mots-clés de ces pages). Décisions de Jonathan : calcul à l'onboarding malgré le léger surcoût, mélange volume et position, formule fixe sans calibrage coûteux.
 
 **Priorité NOW (16/11/2026) : MU.0 fait. Suite : MU.1** (une seule analyse, de bout en bout ; `docs/jalon-mu.md`, prompt à copier dans le sous-jalon). MB.2 et MT.7 passent après MU. (Les textes ci-dessous sont d'anciennes recommandations.)
 
@@ -2501,3 +2504,61 @@ Maquette validée par Jonathan le 18/11 (`docs/mockups/vos-cibles-bas.md`, déci
 - Variable d'environnement facultative `SEND_PRIORITY_DRAFT_ID` (uuid d'un brouillon validé) : ce brouillon part avant la file et peut dépasser le quota d'échauffement (5 par jour la première semaine), **jamais** le plafond horaire ni le plafond journalier de la boîte (appliqués aussi en base). Une seule fois : un brouillon déjà parti est ignoré. Absente par défaut ; à retirer de Vercel après usage.
 - Fichiers : `src/env.ts`, `src/features/sending/service.ts` (`sendPriorityDraft`), 2 tests dans `sending.test.ts`.
 - Usage : test des boîtes mail (message vers info@oma-and-me.com, brouillon `0857c99b-d72d-4d5a-95fb-0ce9dbac30b1`).
+
+## Session du 19/11 : MC.7, pages à pousser choisies par volume et par position dès l'onboarding (faite)
+
+Sous-jalon `PLAN.md > MC.7`. Branche `mc7-pages-par-volume`. **0 USD d'API** : aucun appel réel à DataForSEO ni au modèle, vérification sur données figées tirées de la base. Aucune migration (le classement vit dans le JSON du profil).
+
+### Ce qui change pour la personne
+
+- À l'étape « Ce que nous avons compris de votre site », les **pages qui ont déjà des recherches dans Google sont proposées en premier et cochées** (5 au plus), avec la ligne « 390 recherches par mois, position 88 ». Les pages trouvées par l'ancien tri (adresse) complètent la liste, comme avant. L'accueil reste proposé par défaut et décochable.
+- Rien ne change pour un site sans mot-clé positionné, ni si l'appel échoue : l'écran et le profil sont ceux d'avant.
+
+### Ce qui change dans le code
+
+- `brand/rank-pages.ts` (nouveau, pur) : `positionFactor`, `pageScore` = `log10(1 + volume total de la page) × facteur de sa meilleure position` (0,3 de 1 à 3 ; 1,0 de 4 à 20 ; 0,7 de 21 à 50 ; 0,4 au-delà), `rankPages` (regroupe les mots-clés par adresse du site, écarte l'accueil, les autres domaines, les fichiers, les pages jamais proposées, les autres versions linguistiques et les adresses à paramètres), `trafficScorer`, `pageKey`. Constantes dans `brand/limits.ts` (`PAGE_RANK`, `RANKED_KEYWORDS_LIMIT`).
+- `brand/keywords.ts` (nouveau) : `rankedKeywordsParams` (UNE définition des paramètres, utilisée aussi par `analysis/links-state.ts` : même clé de cache), `toRankedKeywords`, `loadRankedKeywords` (ne lève jamais : plafond par appel 0,03 USD, plafond quotidien de la plateforme, délai 12 s, sans nouvelle tentative ; toute panne donne une liste vide).
+- `brand/service.ts` : `BrandDeps.rankedKeywords` (facultatif) ; l'appel part dès le début et n'est attendu qu'au moment de choisir les pages à lire (il court pendant la lecture de l'accueil et du sitemap). `brand/read-site.ts` : `priorityPages`, les 5 pages les mieux classées sont lues avant celles du tri par adresse, toujours 8 pages au plus et 16 requêtes au plus. `brand/generate.ts` : `recherches_google` (volume, position, 3 mots-clés) dans les données envoyées au modèle, une phrase de consigne, `withRankedPages` (pages classées en tête, `selected: true`, seulement si la page a été lue avec succès ; titre du modèle sinon titre de la page).
+- `brand/schema.ts` : `ranked_pages` (facultatif, 20 pages au plus : adresse, volume, meilleure position, nombre de mots-clés, 5 mots-clés). `onboarding/service.ts` : une correction du profil par l'utilisateur garde ce classement ; le marché (pays, langue) est passé à l'appel. `onboarding/deps.ts` : dépendance de production. `analysis/run.ts` : même chose quand le profil est (re)fait pendant l'analyse, coût rattaché à l'audit.
+- `brand/brand-fields.tsx` et `messages/fr.ts` : volume et position affichés. `drafting/shortlist.ts`, `drafting/draft.ts`, `inngest/functions/plan-drafts.ts` : à proximité égale avec la cible, la page qui a déjà des recherches passe devant (un petit catalogue montré en entier commence par elles) ; la proximité n'est jamais dépassée par le trafic.
+
+### Vérification sur données figées (aucun appel payant)
+
+Fixtures `src/features/brand/fixtures/ranked-keywords.*.txt`, copiées de la base le 19/11 (`audits.links_state.keywords.top` pour squadraplanning.com : 20 mots-clés, c'est tout ce que le site a ; `dataforseo_cache` pour monjardinbio.com : 100 mots-clés).
+
+| Site                | Pages classées | Les 5 premières (score, volume par mois, meilleure position)                                                                                                                                                                 |
+| ------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| squadraplanning.com | 4              | `blog/temps-pause-legal-travail` (1,87 ; 470 ; 21), `calculators/conges-payes` (1,25 ; 1 360 ; 77), `calculators/jours-ouvres` (1,23 ; 1 170 ; 85), `calculators/cout-salarie` (1,18 ; 880 ; 82)                             |
+| monjardinbio.com    | 53             | cloportes (5,00 ; 99 000 ; 17), céleris-raves (4,73 ; 54 200 ; 5), taille de l'olivier (4,65 ; 44 400 ; 14), gazon de placage, fiche produit (4,47 ; 29 600 ; 13), larves de coccinelles, fiche produit (4,38 ; 24 200 ; 13) |
+
+Critère de `PLAN.md` atteint : pour squadraplanning.com, les calculateurs positionnés et l'article sur le temps de pause sont dans les 5 premières pages (seuls 3 des 7 calculateurs ont des mots-clés positionnés : les 4 autres ne peuvent pas sortir de cette source et restent à la charge du tri par adresse). Pour monjardinbio.com le classement est cohérent à la main : gros volumes en positions 4 à 20 devant, pages déjà premières ou deuxièmes loin derrière (paillage, 43 300 recherches, position 1 : rang 48 sur 53), page en position 93 toujours classée.
+
+**Coût** : grille 0,022 USD par site (0,012 + 100 lignes) ; coût réel moyen des 16 appels `labs.ranked_keywords` déjà en base : **0,0129 USD** (0,012 à 0,024). Avec le cache (7 jours), l'état des lieux de l'analyse qui suit ne repaie pas.
+
+### Décisions [auto]
+
+- Les pages classées sont **toujours** proposées et cochées (pas seulement suggérées au modèle) ; les autres pages choisies par le modèle restent proposées et cochées comme avant (8 pages au plus au total).
+- Une page classée n'est proposée que si elle a été **lue avec succès** : jamais une adresse connue de Google seulement.
+- L'accueil n'entre pas dans le classement (ses recherches sont surtout le nom de la marque) : il garde sa case à part.
+- Le classement est stocké dans le profil plutôt que sur chaque page proposée : une seule source pour l'écran, le rédacteur et MC.2.
+- Dans le rédacteur, le trafic ne fait que **départager des égalités** de proximité (lecture stricte de « à pertinence égale »).
+
+### Commandes
+
+```bash
+pnpm vitest run src/features/brand src/features/drafting src/features/onboarding src/features/analysis
+pnpm typecheck && pnpm lint
+```
+
+### Dettes et pièges
+
+- **Non mesuré sur un vrai onboarding** : pas de run réel dans cette session (pas de clés, et consigne de ne rien payer). À constater au prochain site créé : ligne `labs.ranked_keywords` dans `cost_ledger` sans `audit_id`, `ranked_pages` dans le profil, pages cochées à l'écran. L'effet de la nouvelle phrase de consigne sur le modèle n'est pas mesuré non plus.
+- **Sites de test** (remove-me.io, mega-coloring.com) : leur audit ne relit jamais un cache antérieur à sa création, donc ces deux sites paient l'appel deux fois (onboarding puis audit), environ 0,013 USD de plus.
+- L'appel à l'onboarding précède toute confirmation de coût par l'utilisateur (décision de Jonathan du 18/11) et n'a pas de plafond par espace de travail : voir Backlog.
+- Les adresses renvoyées par DataForSEO portent souvent `www.` : la comparaison passe par `pageKey` (hôte sans `www`, sans barre finale). Toute nouvelle comparaison d'adresses de pages du site doit l'utiliser.
+- La PR #181 (MC.6g, sortie du jugement à 520 jetons) est toujours ouverte avec une CI rouge et attend une décision sur le plafond de campagne : non touchée ici.
+- Le plan de MC.7 dormait sur la branche `claude/awesome-fermi-a7ohab`, jamais fusionnée : il est repris dans cette PR, la branche peut être supprimée.
+
+### Prochain sous-jalon recommandé : MC.2
+
+Écrire les recherches par sujet et par public à partir des mots-clés des pages cochées (`profile.ranked_pages[].keywords`, croisés avec `linkable_resources` cochées). Mesurer sur deux sites de thèmes différents.

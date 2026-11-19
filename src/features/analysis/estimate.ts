@@ -1,4 +1,5 @@
 import { AUDIT_BUDGET } from "@/features/audits/beta";
+import { RANKED_KEYWORDS_LIMIT } from "@/features/brand/limits";
 import { PLAN_LIMITS } from "@/features/audits/plans";
 import { SIZE_SPARES } from "@/features/backlinks/limits";
 import { collectionTargetUsd } from "@/features/collection/limits";
@@ -12,7 +13,8 @@ const r6 = (n: number) => Math.round(n * 1e6) / 1e6;
 
 /** Volumes de l'état des lieux (étape parallèle) : trois appels, bornés. */
 export const LINKS_STATE_LIMITS = {
-  rankedKeywords: 100,
+  /** Même volume que l'appel de l'onboarding (MC.7) : même entrée de cache. */
+  rankedKeywords: RANKED_KEYWORDS_LIMIT,
   referringDomains: 100,
   /** Mots-clés et domaines gardés dans `audits.links_state` (le reste n'est que compté). */
   keptKeywords: 20,

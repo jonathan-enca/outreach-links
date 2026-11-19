@@ -1,4 +1,4 @@
-import { serpLocation } from "@/features/sites/market";
+import { rankedKeywordsParams, toRankedKeywords } from "@/features/brand/keywords";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { assertCanSpend, spendLimitsFor } from "@/features/collection/guard";
 import { BudgetExceededError, type DataForSeoClient } from "@/lib/dataforseo";
@@ -165,27 +165,14 @@ export async function executeLinksState(
   });
 
   const keywords = await runStep("mots-cles", async () => {
-    const p = {
-      target: run.domain,
-      limit: L.rankedKeywords,
-      order_by: ["keyword_data.keyword_info.search_volume,desc"],
-      ...serpLocation(run.market?.country, run.market?.language),
-    };
+    // Mêmes paramètres que l'appel de l'onboarding (MC.7) : la réponse vient alors du cache.
+    const p = rankedKeywordsParams(run.domain, run.market);
     const out = await part(guard, estimateCost("labsRankedKeywords", p), async () => {
       const r = (await deps.dfs().labsRankedKeywords(p, ids)).result;
-      const top = (r?.items ?? []).flatMap((it) => {
-        const el = it.ranked_serp_element?.serp_item;
-        if (!el?.url || !el.rank_group) return [];
-        return [
-          {
-            keyword: it.keyword_data.keyword,
-            position: el.rank_group,
-            volume: it.keyword_data.keyword_info?.search_volume ?? 0,
-            url: el.url,
-          },
-        ];
-      });
-      return { total: r?.total_count ?? null, top: top.slice(0, L.keptKeywords) };
+      return {
+        total: r?.total_count ?? null,
+        top: toRankedKeywords(r).slice(0, L.keptKeywords),
+      };
     });
     await progress.update("etat_des_lieux", {
       counters: { done: 3, total: 3, ...(out.ok ? { keywords: out.value.total ?? 0 } : {}) },

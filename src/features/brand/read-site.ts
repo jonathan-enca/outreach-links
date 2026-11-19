@@ -5,8 +5,9 @@ import {
   type PageReader,
 } from "@/features/triage/page-reader";
 import type { PageFetcher } from "@/features/sites/verify";
-import { BRAND_LIMITS } from "./limits";
+import { BRAND_LIMITS, PAGE_RANK } from "./limits";
 import { pickPages } from "./pick-pages";
+import { pageKey } from "./rank-pages";
 import { parseSitemap, rankChildSitemaps } from "./sitemap";
 
 export interface SiteRead {
@@ -31,6 +32,12 @@ export interface ReadSiteDeps {
    * (accueil, pages choisies, profil), jamais traduit.
    */
   language?: string | null;
+  /**
+   * MC.7 : pages les mieux classées par volume et position, à lire AVANT celles du tri par adresse.
+   * Attendue seulement au moment de choisir les pages (l'appel des mots-clés court pendant la lecture
+   * de l'accueil et du sitemap). Liste vide ou échec : l'ancien tri seul.
+   */
+  priorityPages?: () => Promise<readonly string[]>;
 }
 
 const usable = (p: PageRead) => p.status === 200 && (p.text.length > 0 || p.title.length > 0);
@@ -105,12 +112,26 @@ export async function readSite(domain: string, deps: ReadSiteDeps): Promise<Site
 
   const homeLinks = home.links.map((l) => l.href);
   const knownUrls = [...new Set([...homeLinks, ...sitemapUrls])];
-  const chosen = pickPages({
+  const byAddress = pickPages({
     home: home.url,
     candidates: [...homeLinks, ...sitemapUrls],
     lang: deps.language ?? home.lang,
     max: BRAND_LIMITS.maxExtraPages,
   });
+  // Les pages qui ont déjà des recherches passent devant ; le tri par adresse complète.
+  const priority = deps.priorityPages
+    ? (await deps.priorityPages().catch(() => [] as readonly string[]))
+        .filter(sameSite)
+        .slice(0, PAGE_RANK.preselected)
+    : [];
+  const seen = new Set<string>([pageKey(home.url), pageKey(`${origin}/`)]);
+  const chosen: string[] = [];
+  for (const url of [...priority, ...byAddress]) {
+    const k = pageKey(url);
+    if (seen.has(k) || chosen.length >= BRAND_LIMITS.maxExtraPages) continue;
+    seen.add(k);
+    chosen.push(url);
+  }
 
   const pages: PageRead[] = [];
   for (const url of chosen) {

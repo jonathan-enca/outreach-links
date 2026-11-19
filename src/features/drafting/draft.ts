@@ -26,6 +26,11 @@ export interface DraftDeps {
   /** Catalogue COMPLET du site à promouvoir (adresse, titre, titre principal, description). */
   catalogue: readonly CatalogueEntry[];
   /**
+   * MC.7 : score volume × position d'une page du site (0 sans mot-clé positionné). À proximité égale
+   * avec la cible, la page qui a déjà des recherches est montrée d'abord. Absent : aucun départage.
+   */
+  pageTraffic?: (url: string) => number;
+  /**
    * Texte des pages candidates (lues en entier par le rédacteur) : celles déjà lues, les autres lues au
    * besoin. Absent : le texte est pris dans le catalogue quand il y figure.
    */
@@ -104,6 +109,8 @@ export async function draftItem(
     { url: page.url, title: page.title, description: page.description, text: page.text },
     deps.catalogue,
     DRAFT_LIMITS.shortlistPages,
+    undefined,
+    deps.pageTraffic,
   );
   let triagePassage: string | null = null;
   let chosenUrls: string[];
