@@ -378,6 +378,7 @@ Ces cibles chiffrées sont des objectifs de travail, pas des promesses : si une 
 ## 8. Retour de Jérémie (18/11/2026) : un tunnel en trois étapes, sous-jalon MU.12
 
 **Ce qu'il a vu** (essai, compte réel) :
+
 1. Deux chiffres sans lecture : « 42 cibles, dont 25 liens morts et 17 que personne ne lit ». Ce sont deux tactiques différentes (liens morts des concurrents d'un côté, pages que personne ne sollicite de l'autre), mais l'écran les présente comme une seule liste et ne dit pas ce que chacun veut dire.
 2. Les étapes ne sont pas claires : on sélectionne, on rédige, on envoie, sans fil qui dit où on en est.
 3. L'envoi est technique et pénible.
@@ -390,6 +391,7 @@ Ces cibles chiffrées sont des objectifs de travail, pas des promesses : si une 
 - Un **fil d'étapes** en haut des trois écrans (Cibles retenues · Messages · Envoi), avec l'étape en cours. Les compteurs sont les mêmes partout : un nombre affiché à l'étape 1 est le même à l'étape 3.
 
 **Acceptation** :
+
 - Un nouvel inscrit dit en 5 secondes à quelle étape il est et ce qui l'attend.
 - Le total de cibles se lit avec sa décomposition par tactique, sans calcul à faire.
 - Aucun écran ne mélange sélection et envoi ; l'envoi ne se fait qu'à l'étape 3, après validation.
