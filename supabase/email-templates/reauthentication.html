@@ -1,111 +1,37 @@
 <!doctype html>
 <html lang="fr">
-  <body style="margin: 0; padding: 0; background: #f1f5f9">
-    <table
-      role="presentation"
-      width="100%"
-      cellpadding="0"
-      cellspacing="0"
-      style="background: #f1f5f9; padding: 32px 16px"
-    >
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Votre code de confirmation</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f1f5f9">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">Votre code de confirmation.</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px">
       <tr>
         <td align="center">
-          <table
-            role="presentation"
-            width="100%"
-            cellpadding="0"
-            cellspacing="0"
-            style="
-              max-width: 480px;
-              background: #ffffff;
-              border: 1px solid #e3e8ef;
-              border-radius: 14px;
-            "
-          >
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border:1px solid #e3e8ef;border-radius:16px">
             <tr>
-              <td
-                style="
-                  padding: 28px 32px 0 32px;
-                  font:
-                    700 18px/1.2 Inter,
-                    Arial,
-                    sans-serif;
-                  color: #0e1a2b;
-                "
-              >
-                Autolink.ai
-              </td>
+              <td style="padding:28px 32px 0 32px"><span style="font:700 22px/1 Inter, Helvetica, Arial, sans-serif;letter-spacing:-0.02em;color:#0e1a2b">backleenks<span style="color:#0f766e">.</span></span></td>
             </tr>
             <tr>
-              <td
-                style="
-                  padding: 20px 32px 0 32px;
-                  font:
-                    700 22px/1.3 Inter,
-                    Arial,
-                    sans-serif;
-                  color: #0e1a2b;
-                "
-              >
-                Votre code de confirmation
-              </td>
+              <td style="padding:24px 32px 0 32px;font:700 22px/1.3 Inter, Helvetica, Arial, sans-serif;color:#0e1a2b">Votre code de confirmation</td>
             </tr>
             <tr>
-              <td
-                style="
-                  padding: 12px 32px 0 32px;
-                  font:
-                    400 16px/1.6 Inter,
-                    Arial,
-                    sans-serif;
-                  color: #5b6678;
-                "
-              >
-                Saisissez ce code pour confirmer l'opération :
-              </td>
+              <td style="padding:12px 32px 0 32px;font:400 16px/1.6 Inter, Helvetica, Arial, sans-serif;color:#0e1a2b">Saisissez ce code pour confirmer l'opération :</td>
             </tr>
             <tr>
-              <td
-                style="
-                  padding: 24px 32px 0 32px;
-                  font:
-                    700 28px/1 Inter,
-                    Arial,
-                    sans-serif;
-                  letter-spacing: 4px;
-                  color: #0e1a2b;
-                "
-              >
-                {{ .Token }}
-              </td>
+              <td style="padding:24px 32px 0 32px"><div style="margin:8px 0 4px;text-align:center;font:700 32px/1.2 ui-monospace,Menlo,monospace;letter-spacing:6px;color:#0e1a2b">{{ .Token }}</div></td>
             </tr>
             <tr>
-              <td
-                style="
-                  padding: 20px 32px 28px 32px;
-                  font:
-                    400 13px/1.6 Inter,
-                    Arial,
-                    sans-serif;
-                  color: #5b6678;
-                "
-              >
-                Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.
-              </td>
+              <td style="padding:28px 32px 0 32px"><hr style="border:0;border-top:1px solid #e3e8ef;margin:0" /></td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 28px 32px;font:400 13px/1.6 Inter, Helvetica, Arial, sans-serif;color:#5b6678">Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.<br /><br />L'équipe backleenks</td>
             </tr>
           </table>
-          <p
-            style="
-              font:
-                400 12px/1.5 Inter,
-                Arial,
-                sans-serif;
-              color: #5b6678;
-              margin: 16px 0 0 0;
-            "
-          >
-            Autolink.ai
-          </p>
+          <p style="margin:16px 0 0;font:400 12px/1.5 Inter, Helvetica, Arial, sans-serif;color:#5b6678">Vous recevez cet email parce qu'une action a été demandée sur backleenks.</p>
         </td>
       </tr>
     </table>
