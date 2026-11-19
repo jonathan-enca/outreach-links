@@ -2989,7 +2989,7 @@ Les 28 cibles avec une adresse ne sont pas un lot : 6 ont un contact vérifié o
 ### Décision écrite demandée (acceptation MQ.7), à prendre par Jonathan
 
 Options proposées, en attente de réponse écrite :
-- **Pistes** : `serp` et `content` en premier (plus gros volume), `citation` et `mention` ensuite si le pilote le justifie.
+- **Pistes** : **décidé par Jonathan (19/11) : `serp` et `content` uniquement.** `citation`, `mention` et `intersection` hors pilote.
 - **Types de sites** : écoles, blogs, associations, e-commerces, médias (à confirmer avec le volume réel ; `media` et `autre` à exclure par défaut).
 - **Profondeur de boule de neige** : niveau 0 seul pour le pilote ; niveau 1 seulement après relecture de 20 cibles par site.
 - **Taille du pilote** : commencer par un lot de 20 après recherche d'emails et relecture, puis passer à 100 si le taux de contact est bon.
@@ -2997,3 +2997,10 @@ Options proposées, en attente de réponse écrite :
 ### Prochain sous-jalon recommandé
 
 Décision de Jonathan sur les pistes et le coût des contacts et des brouillons, puis : recherche d'emails sur les cibles `serp` et `content` sans contact (annoncer le coût), brouillons de 5 cibles pour mesurer le coût réel, lot de 20 relu à la main. Ensuite la fenêtre de 30 jours dans `tracking.ts`.
+
+### Coûts mesurés pour la suite (lecture de `cost_ledger`, 19/11, aucun appel lancé)
+
+- Brouillon LLM (`llm.outreach_draft`) : **0,061 USD en moyenne** (27 appels). 5 brouillons ≈ 0,30 USD ; 100 ≈ 6,10 USD.
+- Qualification LLM : 0,005 USD par cible (547 appels).
+- Recherche d'emails : **aucune ligne dans `cost_ledger`** ; coût à établir avant tout lancement (finder externe ou HTTP seul).
+- Rien n'est lancé. Les 5 brouillons de test attendent un feu vert écrit de Jonathan (coût annoncé ci-dessus).
