@@ -17,6 +17,7 @@ import { pisteOf } from "@/features/targets/tracking";
 import { batchWorstUsd, QUALIFY_LIMITS } from "./limits";
 import { batchSchema, judgeBatch, judgementRequest, toJudgements, type BatchItem } from "./llm";
 import { isHomeUrl, pageVerdict, rescueFromHome, type PageVerdict } from "./page";
+import { prereadBoost, rescored } from "./prescore";
 import { finalScore, judgementExclusion, preContactScore, requestAndWhy } from "./score";
 import type {
   ContactOutcome,
@@ -134,6 +135,8 @@ export interface QualInput {
   model: string;
   /** Réglages de volume ou de seuil pour une expérience mesurée (défaut : `QUALIFY_LIMITS`). */
   tuning?: {
+    /** MQ.3 : `false` coupe la lecture gratuite avant le tri (tests et replays). */
+    prereadEnabled?: boolean;
     maxPagesRead?: number;
     maxLlmTargets?: number;
     maxContactTargets?: number;
@@ -535,6 +538,38 @@ export async function executeQualification(
     if (!y || y.read >= R.probePages) return L.sourceFloor;
     return Math.max(L.sourceFloor, Math.min(R.probeFloor, R.probePages - y.read));
   };
+
+  // MQ.3. Lecture gratuite des premiers candidats AVANT le tri par score provisoire (HTTP seul).
+  // Le score recalé ne change que l'ordre de lecture ; aucun candidat n'est écarté ici.
+  if (L.preread.enabled && input.tuning?.prereadEnabled !== false) {
+    const sample = alive()
+      .sort(
+        (a, b) =>
+          b.free.provisionalScore - a.free.provisionalScore ||
+          a.free.candidate.domain.localeCompare(b.free.candidate.domain),
+      )
+      .slice(0, L.preread.maxCandidates);
+    const signals = await runStep("preread", async () => {
+      const d = deps();
+      return mapByHost(
+        sample,
+        (t) => t.free.candidate.domain,
+        async (t) => {
+          const c = t.free.candidate;
+          const read = await d.readPage(c, { robotsOk: t.robotsOk });
+          return prereadBoost(read, c, input.ctx);
+        },
+        { concurrency: L.readConcurrency, sameHostDelayMs: L.hostDelayMs, sleep: d.sleep },
+      );
+    });
+    const byDomain = new Map(signals.map((s) => [s.domain, s]));
+    for (const t of sample) {
+      const s = byDomain.get(t.free.candidate.domain);
+      if (s && s.boost !== 1) {
+        t.free = { ...t.free, provisionalScore: rescored(t.free.provisionalScore, s.boost) };
+      }
+    }
+  }
 
   // 2 bis. Robots.txt AVANT lecture (gratuit, léger, en parallèle) sur la tête de chaque file.
   let queues = buildQueues();

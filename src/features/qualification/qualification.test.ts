@@ -455,6 +455,8 @@ const input = (candidates: QualCandidate[], budgetUsd = 0.1) => ({
   candidates,
   budgetUsd,
   model: "gpt-4o-mini",
+  // MQ.3 coupée : ces tests fixent le nombre de pages lues par le tri d'origine.
+  tuning: { prereadEnabled: false },
 });
 
 describe("entonnoir complet", () => {
