@@ -668,6 +668,13 @@ export const fr = {
           ],
         },
         {
+          title: "Données Google (Gmail)",
+          body: [
+            "Si vous connectez votre compte Gmail, nous demandons deux autorisations : l'envoi d'emails (gmail.send), pour envoyer les messages que vous avez validés, et la lecture des réponses (gmail.readonly), pour détecter les réponses aux seuls fils de campagne. Nous ne lisons aucun autre message, nous n'utilisons ces données ni pour de la publicité, ni pour entraîner des modèles, et nous ne les vendons pas.",
+            "L'utilisation des informations reçues des API Google respecte la Politique relative aux données utilisateur des services API Google, y compris les exigences d'Utilisation limitée. Vous pouvez révoquer l'accès à tout moment depuis les paramètres de votre compte Google ou depuis Réglages > Boîte d'envoi.",
+          ],
+        },
+        {
           title: "Données des sites contactés",
           body: [
             "Nous lisons des pages publiques et des adresses de contact publiées par les sites cibles, à des fins de prospection professionnelle. Chaque message permet de refuser ; une désinscription alimente une liste de suppression et arrête tout envoi. Ces données sont conservées pour une durée limitée et supprimées à la demande.",
