@@ -4,7 +4,10 @@ import { decryptSecret, encryptSecret, type KeyRing } from "@/features/mailboxes
 /** Envoi seul (sensible, pas d'audit CASA). Les réponses arrivent dans la boîte perso de l'utilisateur. */
 export const GOOGLE_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
 /** Identité du compte connecté (non sensibles) : pour récupérer l'adresse Gmail. */
-export const GOOGLE_EMAIL_SCOPES = ["openid", "https://www.googleapis.com/auth/userinfo.email"] as const;
+export const GOOGLE_EMAIL_SCOPES = [
+  "openid",
+  "https://www.googleapis.com/auth/userinfo.email",
+] as const;
 export const GOOGLE_SCOPES = [GOOGLE_SEND_SCOPE, ...GOOGLE_EMAIL_SCOPES] as const;
 
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
