@@ -5,19 +5,20 @@ import { t } from "@/lib/messages";
 import { MobileMenu } from "./mobile-menu";
 import { HOME_SECTIONS } from "./sections";
 
-export function homeNavLinks() {
+/** `base` : "" sur la home (ancres locales), "/" sur les pages légales (ancres vers la home). */
+export function homeNavLinks(base = "") {
   const n = t.home.nav;
   return [
-    { href: `#${HOME_SECTIONS.tactics}`, label: n.tactics },
-    { href: `#${HOME_SECTIONS.howItWorks}`, label: n.how },
-    { href: `#${HOME_SECTIONS.pricing}`, label: n.pricing },
-    { href: `#${HOME_SECTIONS.faq}`, label: n.faq },
+    { href: `${base}#${HOME_SECTIONS.tactics}`, label: n.tactics },
+    { href: `${base}#${HOME_SECTIONS.howItWorks}`, label: n.how },
+    { href: `${base}#${HOME_SECTIONS.pricing}`, label: n.pricing },
+    { href: `${base}#${HOME_SECTIONS.faq}`, label: n.faq },
   ];
 }
 
 /** En-tête collant de la home (68 px). Sur mobile, les liens passent dans un panneau latéral. */
-export function SiteHeader() {
-  const links = homeNavLinks();
+export function SiteHeader({ base = "" }: { base?: string }) {
+  const links = homeNavLinks(base);
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-[68px] max-w-6xl items-center justify-between gap-4 px-4 sm:px-7">

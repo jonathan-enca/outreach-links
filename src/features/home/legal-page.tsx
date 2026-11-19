@@ -1,24 +1,19 @@
 import Link from "next/link";
-import { Logo } from "@/components/brand/logo";
 import { t } from "@/lib/messages";
+import { SiteFooter } from "./site-footer";
+import { SiteHeader } from "./site-header";
 
 interface Doc {
   title: string;
   sections: readonly { title: string; body: readonly string[] }[];
 }
 
-/** Page légale (provisoire, voir l'encart) : mise en page commune aux trois documents. */
+/** Page légale (provisoire, voir l'encart) : en-tête et pied de page du site, mise en page commune aux trois documents. */
 export function LegalPage({ doc }: { doc: Doc }) {
   const l = t.legalPages;
   return (
     <>
-      <header className="border-b border-border">
-        <div className="mx-auto flex h-[68px] max-w-3xl items-center px-4 sm:px-7">
-          <Link href="/" aria-label={t.app.name} className="rounded-control">
-            <Logo />
-          </Link>
-        </div>
-      </header>
+      <SiteHeader base="/" />
       <main id="contenu" className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-7">
         <h1 className="text-3xl font-bold sm:text-4xl">{doc.title}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{l.updated}</p>
@@ -41,6 +36,7 @@ export function LegalPage({ doc }: { doc: Doc }) {
           </Link>
         </p>
       </main>
+      <SiteFooter />
     </>
   );
 }
