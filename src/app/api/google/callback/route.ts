@@ -5,15 +5,17 @@ import { readState } from "@/features/google/oauth";
 import { completeGoogleConnect } from "@/features/google/service";
 import { defaultMailboxDeps } from "@/features/mailboxes/service";
 import { parseKeyRing } from "@/features/mailboxes/crypto";
+import { completeSearchConsoleConnect } from "@/features/search-console/service";
+import { searchConsoleEnabled } from "@/features/search-console/load";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 
-const back = (siteId: string | null, result: string) => {
+const back = (siteId: string | null, result: string, param = "google", anchor = "boite-envoi") => {
   const path = siteId ? `/app/site/${siteId}` : "/app/reglages/boite";
-  return new URL(`${path}?google=${result}#boite-envoi`, env.NEXT_PUBLIC_APP_URL);
+  return new URL(`${path}?${param}=${result}#${anchor}`, env.NEXT_PUBLIC_APP_URL);
 };
 
-/** Retour de Google : vérifie le `state` et le cookie, puis enregistre la boîte. */
+/** Retour de Google : vérifie le `state` et le cookie, puis enregistre la boîte (ou la Search Console). */
 export async function GET(req: NextRequest) {
   const cfg = googleConfig();
   if (!cfg) return new NextResponse("Not found", { status: 404 });
@@ -28,8 +30,22 @@ export async function GET(req: NextRequest) {
     return clear(NextResponse.redirect(back(null, "invalide")));
   }
   const code = req.nextUrl.searchParams.get("code");
+  const searchConsole = state.purpose === "search_console";
+  const anchor = searchConsole ? "search-console" : "boite-envoi";
+  const param = searchConsole ? "sc" : "google";
   if (req.nextUrl.searchParams.get("error") || !code) {
-    return clear(NextResponse.redirect(back(state.siteId, "refuse")));
+    return clear(NextResponse.redirect(back(state.siteId, "refuse", param, anchor)));
+  }
+  if (searchConsole) {
+    if (!searchConsoleEnabled()) return new NextResponse("Not found", { status: 404 });
+    const supabase = await createClient();
+    const result = await completeSearchConsoleConnect(supabase, state, code, {
+      config: cfg,
+      keyRing: () => ring,
+      getServiceClient: createServiceClient,
+    });
+    const key = result.ok ? "ok" : result.reason;
+    return clear(NextResponse.redirect(back(state.siteId, key, param, anchor)));
   }
   const supabase = await createClient();
   const result = await completeGoogleConnect(supabase, state, code, {

@@ -2619,3 +2619,65 @@ Décisions de Jonathan, à appliquer dans les prochains sous-jalons. Aucun code 
 - **Premier passage** : à améliorer en lisant la page candidate (lecture gratuite, sans LLM) avant de trier sur les signaux seuls. Les poids de `provisionalScore` (`src/features/qualification/free.ts`) restent à recaler sur des données réelles, pas à la main.
 - **Boule de neige** : la faire tourner en profondeur (2 à 3 niveaux) plutôt qu'en largeur, mesurer le rendement à chaque niveau sur un échantillon relu à la main, et continuer tant que le rendement tient. Coût attendu : environ 0,2 USD par niveau. Elle hérite de la qualité des premières cibles : pas d'amplification avant d'avoir des réponses réelles.
 - **Mesure à mettre en place avant tout** : rendement réel (réponses, liens obtenus) par source (tactique) et par type de site. Aujourd'hui la source est souvent non renseignée, donc le rendement par piste n'est pas mesurable.
+
+## Session du 19/11 : MQ.2, Search Console connectée en lecture seule (partielle, derrière un drapeau)
+
+Sous-jalon `PLAN.md > MQ.2`. Branche `mq.2-search-console`. **0 USD d'API** : aucun appel réel à Google ni à DataForSEO, tout est testé avec des réponses simulées. Aucun envoi d'email. Le parcours réel dans un navigateur n'est pas fait (drapeau coupé, vérification Google G4 absente).
+
+### Ce qui change pour la personne
+
+- Sur la page du site, juste **avant la boîte d'envoi** : une carte « Connecter la Search Console (facultatif, fortement conseillé) », même formulation que la boîte. Une fois connectée : « Propriété …, compte …. Lecture seule. ».
+- Une fois connectée, l'état des lieux de l'audit garde les **90 derniers jours** de requêtes et de pages réelles (100 de chaque, les plus vues d'abord) dans `audits.links_state.searchConsole`.
+- Sans connexion : `searchConsole` vaut `null`, aucune erreur, l'audit fonctionne comme avant.
+
+### Ce qui change dans le code
+
+- `src/features/search-console/` (nouveau) :
+  - `api.ts` : propriétés du compte, `pickProperty` (domaine `sc-domain:` d'abord, puis https / http, avec ou sans www ; une propriété « non vérifiée » ne compte pas), `queryRows` (dimension `query` ou `page`, lecture seule), `analyticsWindow` (90 jours, 3 jours de retard).
+  - `service.ts` : `completeSearchConsoleConnect` (échange du code, vérification du scope lecture seule, propriété du site, jeton de renouvellement chiffré, upsert dans `search_console_connections`).
+  - `load.ts` : `readSearchConsoleStatus` (sans jeton, pour l'affichage), `loadSearchConsoleSnapshot` (ne lève jamais : `null` si pas connecté, jeton refusé, panne ou drapeau coupé), `searchConsoleEnabled`.
+  - `search-console-connect.tsx` : la carte. Résultat lu dans le paramètre `sc` (le paramètre `google` reste celui de la boîte).
+  - `search-console.test.ts` : 17 tests (API simulée, autorisation, lecture, connexion).
+- `src/features/google/oauth.ts` : `SEARCH_CONSOLE_SCOPE` (`webmasters.readonly`, demandé à part de Gmail), `purpose` dans le `state` (absent = `gmail`, les états existants restent valides), `buildAuthUrl` accepte la liste de scopes, `refreshAccess` (jeton d'accès).
+- `src/app/api/google/start/route.ts` : `?purpose=search_console` (404 si le drapeau est coupé). `callback/route.ts` : branche Search Console ; Gmail inchangé.
+- `src/features/analysis/links-state.ts` : étape « search-console » (hors plafonds DataForSEO, puisque gratuite) et champ `searchConsole` ; `links-state.test.ts` (nouveau, 2 tests). `src/inngest/functions/analysis-links-state.ts` branche la lecture réelle.
+- `src/app/app/site/[id]/page.tsx` : carte affichée seulement si le drapeau est ouvert.
+- `src/env.ts` : `SEARCH_CONSOLE_ENABLED` (faux par défaut).
+- `messages/fr.ts` : bloc `searchConsole`.
+- **Migration** `supabase/migrations/2026121900000100_search_console.sql` (additive) : table `search_console_connections` (une ligne par site, jeton chiffré, aucun droit pour `anon` / `authenticated`, lecture et écriture par le serveur seulement). Postérieure à `2026121900000000` (PR #206), pas de conflit de nom.
+- `src/lib/supabase/database.types.ts` : **seul ajout** ; un bloc `search_console_connections` inséré après `mailbox_google_tokens`, rien d'autre. Les fichiers de la PR #206 (`qualification`, `snowball`, `targets/tracking*`) ne sont pas touchés.
+
+### Drapeau et vérification Google
+
+- `SEARCH_CONSOLE_ENABLED` reste **faux** en production. Pour l'ouvrir : poser `SEARCH_CONSOLE_ENABLED=true` sur Vercel (le client OAuth Google est déjà renseigné, `GOOGLE_OAUTH_ENABLED=true` requis).
+- Le scope `webmasters.readonly` est **sensible** : sans vérification (G4), l'écran Google affiche « application non vérifiée » et l'application est limitée à 100 utilisateurs, comme pour Gmail. Ne pas ouvrir le drapeau en public avant G4.
+- L'écran de consentement Google doit déclarer le scope `webmasters.readonly` (à ajouter dans Google Cloud, pas fait ici : action de Jonathan dans le navigateur).
+
+### Commandes
+
+```bash
+pnpm vitest run src/features/search-console src/features/google src/features/analysis src/inngest
+pnpm typecheck && pnpm lint
+```
+
+### Dettes et pièges
+
+- **Pas affiché dans l'écran d'audit** : les requêtes sont stockées dans `links_state.searchConsole` mais aucun écran ne les montre encore.
+- **Pas utilisé par le premier passage ni par l'onboarding** : les pages classées de MC.7 viennent toujours de DataForSEO. Les pages Search Console (MQ.2) ne sont pas encore proposées à l'onboarding ; à brancher avec MQ.3 / MQ.4.
+- **Le volume n'est pas comparable** : Search Console donne clics et impressions sur 90 jours, pas le volume mensuel de DataForSEO. Ne pas mélanger les deux dans `RankedKeyword`.
+- **Propriété absente** : si le compte Google n'a pas de propriété pour le domaine, la connexion est refusée avec le message « pas de propriété » (rien n'est enregistré).
+- **Parcours réel non vérifié** : aucun consentement Google réel ni appel à l'API Search Console dans cette session.
+- Le paramètre de retour est `sc` (pas `google`) pour ne pas mélanger les messages des deux cartes.
+
+### Backlog (hors périmètre, à ne pas coder ici)
+
+- Afficher les requêtes et pages Search Console dans l'écran d'audit.
+- Proposer les pages Search Console à l'onboarding et au premier passage (avec MQ.3).
+- Utiliser les requêtes Search Console comme source de MQ.4 (requêtes de contenu sans lien).
+- Bouton « Déconnecter la Search Console » (aujourd'hui : reconnecter remplace l'ancienne connexion).
+- Plafond de lectures par site et cache des requêtes (aujourd'hui : un appel de deux requêtes par audit, sans cache).
+- Ajouter le scope `webmasters.readonly` à l'écran de consentement Google Cloud, puis G4.
+
+### Prochain sous-jalon recommandé : MQ.4 (requêtes de contenu sans lien, SERP)
+
+Peut se faire en parallèle de MQ.1 (déjà en PR) : les requêtes Search Console (`links_state.searchConsole.queries`) en sont une source de plus, à côté des requêtes prioritaires de la SERP.
