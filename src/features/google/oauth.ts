@@ -9,6 +9,9 @@ export const GOOGLE_EMAIL_SCOPES = [
   "https://www.googleapis.com/auth/userinfo.email",
 ] as const;
 export const GOOGLE_SCOPES = [GOOGLE_SEND_SCOPE, ...GOOGLE_EMAIL_SCOPES] as const;
+/** MQ.2 : lecture seule des données de la Search Console (requêtes, pages, positions). Demandé à part. */
+export const SEARCH_CONSOLE_SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
+export const SEARCH_CONSOLE_SCOPES = [SEARCH_CONSOLE_SCOPE, ...GOOGLE_EMAIL_SCOPES] as const;
 
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -26,6 +29,8 @@ export interface OAuthState {
   userId: string;
   nonce: string;
   exp: number;
+  /** Ce que l'autorisation sert : la boîte d'envoi (défaut, G1) ou la Search Console (MQ.2). */
+  purpose?: "gmail" | "search_console";
 }
 
 export const newNonce = () => randomBytes(16).toString("base64url");
@@ -36,11 +41,12 @@ export const newNonce = () => randomBytes(16).toString("base64url");
  * en cookie httpOnly : l'autorisation ne vaut que dans le navigateur qui l'a demandée) et une expiration.
  */
 export function signState(
-  p: Omit<OAuthState, "exp">,
+  p: Omit<OAuthState, "exp" | "purpose"> & { purpose?: OAuthState["purpose"] },
   ring: KeyRing,
   now: number = Date.now(),
 ): string {
-  return encryptSecret(JSON.stringify({ ...p, exp: now + STATE_TTL_MS }), ring).value;
+  const purpose = p.purpose ?? "gmail";
+  return encryptSecret(JSON.stringify({ ...p, purpose, exp: now + STATE_TTL_MS }), ring).value;
 }
 
 export function readState(
@@ -59,19 +65,25 @@ export function readState(
       s.exp < now
     )
       return null;
-    return { siteId: s.siteId, userId: s.userId, nonce: s.nonce, exp: s.exp };
+    const purpose = s.purpose === "search_console" ? "search_console" : "gmail";
+    return { siteId: s.siteId, userId: s.userId, nonce: s.nonce, exp: s.exp, purpose };
   } catch {
     return null;
   }
 }
 
 /** Adresse de consentement Google. `access_type=offline` + `prompt=consent` : on reçoit toujours un jeton de renouvellement. */
-export function buildAuthUrl(cfg: OAuthConfig, state: string, loginHint?: string): string {
+export function buildAuthUrl(
+  cfg: OAuthConfig,
+  state: string,
+  loginHint?: string,
+  scopes: readonly string[] = GOOGLE_SCOPES,
+): string {
   const u = new URL(AUTH_URL);
   u.searchParams.set("client_id", cfg.clientId);
   u.searchParams.set("redirect_uri", cfg.redirectUri);
   u.searchParams.set("response_type", "code");
-  u.searchParams.set("scope", GOOGLE_SCOPES.join(" "));
+  u.searchParams.set("scope", scopes.join(" "));
   u.searchParams.set("access_type", "offline");
   u.searchParams.set("prompt", "consent");
   u.searchParams.set("include_granted_scopes", "false");
@@ -81,9 +93,12 @@ export function buildAuthUrl(cfg: OAuthConfig, state: string, loginHint?: string
 }
 
 /** Vrai si la personne a laissé cochées les deux autorisations (elle peut en décocher une sur l'écran Google). */
-export function hasRequiredScopes(granted: string | undefined | null): boolean {
+export function hasRequiredScopes(
+  granted: string | undefined | null,
+  required: readonly string[] = GOOGLE_SCOPES,
+): boolean {
   const have = new Set((granted ?? "").split(/\s+/));
-  return GOOGLE_SCOPES.every((s) => have.has(s));
+  return required.every((s) => have.has(s));
 }
 
 type Fetch = typeof fetch;
@@ -136,4 +151,26 @@ export async function fetchGmailAddress(
   if (!res.ok) return null;
   const j = (await res.json()) as { email?: string };
   return j.email ? j.email.trim().toLowerCase() : null;
+}
+
+/** Jeton d'accès à partir du jeton de renouvellement (MQ.2 : la Search Console). Null si Google refuse. */
+export async function refreshAccess(
+  cfg: OAuthConfig,
+  refreshToken: string,
+  fetchFn: Fetch = fetch,
+): Promise<string | null> {
+  const res = await fetchFn(TOKEN_URL, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: cfg.clientId,
+      client_secret: cfg.clientSecret,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!res.ok) return null;
+  const j = (await res.json()) as { access_token?: string };
+  return j.access_token ?? null;
 }
