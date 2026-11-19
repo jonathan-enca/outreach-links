@@ -16,6 +16,7 @@ import {
   unlinkMailboxAction,
   updateScheduleAction,
 } from "./actions";
+import { GoogleConnect } from "@/features/google/google-connect";
 import { explainMailboxError } from "./explain-error";
 import { healthWarnings } from "./health-warnings";
 import {
@@ -39,6 +40,8 @@ export interface MailboxView {
   /** Serveur d'envoi enregistré : sert à retrouver le guide d'une adresse à son propre domaine. */
   smtpHost?: string | null;
   health: { spf: boolean; dkim: boolean; dmarc: boolean } | null;
+  /** "google" : boîte connectée par compte Google (pas de mot de passe, pas de test SMTP/IMAP). */
+  provider?: string;
   hourlyCap: number;
   dailyCap: number;
   /** Jours (ISO, 1 = lundi) et heures d'envoi choisis ; absents : les horaires conseillés. */
@@ -123,6 +126,7 @@ function Row({ siteId, box }: { siteId: string; box: MailboxView }) {
   );
   const warn = healthText(box.health);
   const others = box.otherSites ?? [];
+  const isGoogle = box.provider === "google";
   return (
     <div className="flex flex-col gap-2 rounded-md border border-border p-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -132,10 +136,14 @@ function Row({ siteId, box }: { siteId: string; box: MailboxView }) {
       {others.length > 0 ? (
         <p className="text-sm text-muted-foreground">{m.reuse.sharedWith(others.join(", "))}</p>
       ) : null}
-      <p className="text-sm">
-        {m.smtp} : {box.smtpOk === null ? "—" : box.smtpOk ? m.ok : m.ko} · {m.imap} :{" "}
-        {box.imapOk === null ? "—" : box.imapOk ? m.ok : m.ko}
-      </p>
+      {isGoogle ? (
+        <p className="text-sm">{m.google.connected}</p>
+      ) : (
+        <p className="text-sm">
+          {m.smtp} : {box.smtpOk === null ? "—" : box.smtpOk ? m.ok : m.ko} · {m.imap} :{" "}
+          {box.imapOk === null ? "—" : box.imapOk ? m.ok : m.ko}
+        </p>
+      )}
       <p className="text-sm">
         {m.caps.replace("{hourly}", String(box.hourlyCap)).replace("{daily}", String(box.dailyCap))}
       </p>
@@ -146,11 +154,13 @@ function Row({ siteId, box }: { siteId: string; box: MailboxView }) {
       ) : null}
       {box.lastError ? <FailureHelp box={box} /> : null}
       <div className="flex flex-wrap gap-2">
-        <form action={test}>
-          <Button type="submit" disabled={testing}>
-            {testing ? m.testing : m.test}
-          </Button>
-        </form>
+        {isGoogle ? null : (
+          <form action={test}>
+            <Button type="submit" disabled={testing}>
+              {testing ? m.testing : m.test}
+            </Button>
+          </form>
+        )}
         <form
           action={remove}
           onSubmit={(e) => {
@@ -529,10 +539,13 @@ export function MailboxSection({
   siteId,
   boxes,
   available = [],
+  googleEnabled = false,
 }: {
   siteId: string;
   boxes: MailboxView[];
   available?: AvailableMailbox[];
+  /** G1 : vrai si la connexion par compte Google est ouverte (drapeau + client OAuth). */
+  googleEnabled?: boolean;
 }) {
   // L'état vit ici : le message « Boîte enregistrée » doit rester quand le formulaire disparaît.
   const [state, connect, pending] = useActionState(connectMailboxAction.bind(null, siteId), {
@@ -563,6 +576,9 @@ export function MailboxSection({
             </Button>
           </div>
         </div>
+      ) : null}
+      {googleEnabled && (boxes.length === 0 || boxes.every((b) => b.provider === "google")) ? (
+        <GoogleConnect siteId={siteId} />
       ) : null}
       {boxes.length === 0 && (!canReuse || other) ? (
         <ConnectForm action={connect} pending={pending} />

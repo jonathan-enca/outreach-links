@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
+import { googleConfig } from "@/features/google/config";
 import { loadMailboxes } from "@/features/mailboxes/load";
 import { MailboxSection } from "@/features/mailboxes/mailbox-section";
 import { updateSiteAction } from "@/features/sites/actions";
@@ -42,7 +43,12 @@ async function Site({ params }: { params: Promise<{ id: string }> }) {
           }}
         />
       </Card>
-      <MailboxSection siteId={site.id} boxes={boxes} available={available} />
+      <MailboxSection
+        siteId={site.id}
+        boxes={boxes}
+        available={available}
+        googleEnabled={googleConfig() !== null}
+      />
     </div>
   );
 }
