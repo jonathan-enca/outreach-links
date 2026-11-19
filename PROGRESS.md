@@ -2601,4 +2601,3 @@ pnpm typecheck && pnpm lint
 - Outlook : pas encore (OAuth Microsoft, jalon 7).
 
 ### Prochain : essai réel de bout en bout avec une boîte Gmail de test, puis G4 (vérification Google).
-
