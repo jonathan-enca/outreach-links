@@ -77,3 +77,51 @@ describe("plafond du catalogue : une page sur N", () => {
     expect(out.at(-1)).toMatch(/sujet-29\d$/);
   });
 });
+
+describe("départage par volume et position (MC.7)", () => {
+  const traffic = (scores: Record<string, number>) => (url: string) =>
+    scores[new URL(url).pathname.slice(1)] ?? 0;
+
+  it("petit catalogue montré en entier : les pages qui ont déjà des recherches d'abord, le reste dans l'ordre", () => {
+    const small = [entry("a"), entry("b"), entry("c"), entry("d")];
+    const out = shortlistCatalogue(
+      { url: "https://x.example/p", title: "p" },
+      small,
+      25,
+      8,
+      traffic({ c: 2.1, d: 3 }),
+    );
+    expect(out.map((p) => new URL(p.url).pathname)).toEqual(["/d", "/c", "/a", "/b"]);
+    // Sans classement : l'ordre du catalogue, comme avant.
+    expect(shortlistCatalogue({ url: "https://x.example/p", title: "p" }, small, 25)).toEqual(
+      small,
+    );
+  });
+
+  it("à proximité égale, la page qui a déjà du trafic passe devant ; jamais devant une page plus proche", () => {
+    const catalogue: CatalogueEntry[] = [
+      entry("outils/simulateur-pret", "Simulateur de prêt"),
+      entry("outils/simulateur-epargne", "Simulateur d'épargne"),
+      entry("outils/simulateur-retraite", "Simulateur de retraite"),
+      ...Array.from({ length: 60 }, (_, i) => entry(`divers/page-${i}`, `Divers numéro ${i}`)),
+    ];
+    const target = {
+      url: "https://blog.example/outils-utiles",
+      title: "Les meilleurs simulateurs",
+    };
+    const plain = shortlistCatalogue(target, catalogue, 25);
+    expect(plain.slice(0, 3).map((p) => p.url)).toEqual(catalogue.slice(0, 3).map((p) => p.url));
+    const ranked = shortlistCatalogue(
+      target,
+      catalogue,
+      25,
+      8,
+      traffic({ "outils/simulateur-retraite": 2.4, "divers/page-7": 4.9 }),
+    );
+    expect(ranked[0]!.url).toContain("simulateur-retraite");
+    expect(ranked.slice(1, 3).map((p) => p.url)).toEqual(catalogue.slice(0, 2).map((p) => p.url));
+    // Une page sans rapport avec la cible ne passe jamais devant, quel que soit son trafic.
+    const seven = ranked.findIndex((p) => p.url.endsWith("divers/page-7"));
+    expect(seven === -1 || seven >= 3).toBe(true);
+  });
+});

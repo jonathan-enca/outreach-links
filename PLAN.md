@@ -412,6 +412,35 @@ Trois sources, de la moins chère à la plus chère. Aujourd'hui : 11 candidats 
 
 **Hors périmètre.** Recherche du bon destinataire (auteur de l'article plutôt que l'adresse générale), exemples de messages de Jonathan, presse et journalistes : à traiter après.
 
+### MC.7 Pages à pousser choisies par volume et par position, dès l'onboarding (ajouté le 18/11/2026)
+
+**Pourquoi (campagne squadraplanning.com du 18/11).** Les pages proposées à l'utilisateur sont choisies sur l'adresse seule (`brand/pick-pages.ts` : profondeur, mots « guide », « blog », « outil »), puis le modèle en retient 3 à 6 sur des extraits de 500 caractères. Les 7 calculateurs du site (volumes de 90 à 390 par mois) et l'article `temps-pause-legal-travail` (position 21) n'ont pas été lus : ils ne sont pas dans les pages cochées, alors que le catalogue du sitemap les contient. Les mots-clés positionnés (`ranked_keywords`) sont mesurés plus tard, à l'audit, après le choix des pages, et ne servent à rien d'autre qu'à l'affichage. Or les « pages proposables » alimentent la qualification (pertinent ou hors sujet), les constats (lien mort ou inadapté remplaçable) et la rédaction : sur les 9 premières cibles traitées, 5 ont été refusées.
+
+**Décisions de Jonathan (18/11/2026).** Le calcul se fait **à l'onboarding**, avant que l'utilisateur coche ses pages, malgré un très léger surcoût (environ 0,013 USD par site, avec le cache DataForSEO par domaine). Le classement est un **mélange volume et position**, par une **formule fixe** : pas de calibrage coûteux, pas de nouvelle analyse complète pour la régler.
+
+**Périmètre.**
+
+- Appeler `labsRankedKeywords` (100 mots-clés triés par volume, mêmes paramètres et même client que `analysis/links-state.ts`, donc passage par `cost_ledger` et cache par domaine) au moment où le profil de marque est généré. Échec, plafond atteint ou site sans mot-clé positionné : retour silencieux à l'ancien tri par adresse, jamais de blocage de l'onboarding.
+- Regrouper les mots-clés par URL du site (même langue que le site) : volume total, meilleure position, nombre de mots-clés.
+- **Formule fixe, pure et testée** (`brand/rank-pages.ts` ou équivalent) : `score = log10(1 + volume total de la page) × facteur de position`, avec facteur 0,3 pour les positions 1 à 3 (déjà en haut), 1,0 pour 4 à 20 (un lien peut faire passer en page 1), 0,7 pour 21 à 50, 0,4 au-delà de 50 (jamais zéro : une page à fort volume en position 80 reste candidate). La meilleure position de la page décide du facteur. Les constantes sont nommées et regroupées dans `brand/limits.ts` pour être changées à la main plus tard.
+- Les 3 à 5 premières pages alimentent `linkable_resources` : présélectionnées (`selected: true`) et passées au modèle avec leurs mots-clés, volume et position (pas seulement un extrait de 500 caractères), pour qu'il choisisse et titre. Les pages sans mot-clé positionné se complètent avec l'ancien tri par adresse (`pickPages`). L'accueil reste proposé par défaut et décochable. Une page citée doit toujours exister dans les URL connues du site (aucune adresse inventée).
+- L'écran d'onboarding montre, pour chaque page proposée, son volume et sa meilleure position quand on les connaît (« 390 recherches par mois, position 88 »).
+- Même classement utilisé en tête de la présélection du catalogue du rédacteur (`drafting/shortlist.ts`) : à volume ou pertinence égale, la page qui a déjà du trafic passe devant.
+
+**Critères d'acceptation.**
+
+- Test unitaire de la formule sur des données figées tirées des audits déjà en base (`audits.links_state.keywords.top`, cache DataForSEO) : pour squadraplanning.com, les calculateurs et `temps-pause-legal-travail` figurent dans les 5 premières pages ; sur au moins un autre site de thème différent, le classement est cohérent à la main. **Aucun appel réel à DataForSEO ni au modèle pour cette vérification.** Un audit ancien sans mot-clé exploitable est sauté.
+- Site sans mot-clé positionné : le comportement actuel est inchangé (test).
+- Échec ou plafond de l'appel : l'onboarding aboutit quand même, avec l'ancien tri (test).
+- Le coût est enregistré dans `cost_ledger` et le cache évite de payer deux fois le même domaine (test).
+- Aucun mot ni seuil propre à un thème dans le code (règle de généralité du 17/11).
+
+**Hors périmètre.** Les requêtes de recherche de cibles (voir MC.2 : elles ne dépendent toujours pas des pages choisies), l'écran de relecture des pages après audit, le calibrage des poids sur des campagnes réelles.
+
+**Suite immédiate : MC.2.** Une fois MC.7 fait, MC.2 doit partir des **mots-clés de ces pages** pour écrire ses recherches par sujet et par public (par exemple pour le calculateur de congés payés : les pages RH, paie et droit du travail qui citent déjà des calculateurs). C'est là que le nombre de cibles pertinentes augmente ; MC.7 améliore surtout la qualité des cibles déjà trouvées (qualification, constats, demandes).
+
+**MC.7 faite (19/11/2026)** : les mots-clés positionnés sont demandés pendant la création du profil de marque (même appel et mêmes paramètres que l'état des lieux, donc même cache ; coût réel moyen mesuré en base : 0,013 USD), les pages sont classées par `log10(1 + volume) × facteur de position` (`brand/rank-pages.ts`, constantes dans `brand/limits.ts`), les 5 premières sont lues, proposées en tête et cochées, le modèle reçoit volume, position et mots-clés, l'écran les affiche, et le rédacteur s'en sert pour départager deux pages aussi proches l'une que l'autre. Le classement (20 pages au plus, 5 mots-clés par page) est gardé dans le profil : `brand_profiles.profile.ranked_pages`, **point de départ de MC.2**. Vérifié sur données figées de la base, sans appel payant : squadraplanning.com (article « temps de pause » puis les trois calculateurs positionnés) et monjardinbio.com. Détail dans `PROGRESS.md`.
+
 ## ME. Chantier envoi des mails (décisions de Jonathan, 19/11/2026)
 
 **Objectif v1.** Atteindre les 100 premiers utilisateurs avec un envoi **intégré au site, sans aucune friction** (rien à connecter), simple, très peu cher et activable vite. Les vraies complexités (domaines et serveurs de messagerie par utilisateur) viennent au passage à l'échelle.

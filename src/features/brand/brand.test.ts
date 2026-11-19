@@ -1,7 +1,10 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { fakeSupabase } from "@/features/audits/fake-supabase";
 import type { PageRead } from "@/features/triage/page-reader";
 import type { LlmClient } from "@/lib/llm/client";
+import { BrandFields } from "./brand-fields";
 import { parseProfileForm, profileToFields, sameProfile } from "./form";
 import {
   BRAND_SYSTEM,
@@ -9,11 +12,14 @@ import {
   domainNameVariants,
   generateBrandProfile,
   normalizeProfile,
+  withRankedPages,
 } from "./generate";
+import { PAGE_RANK } from "./limits";
 import { pickPages } from "./pick-pages";
+import type { RankedKeyword } from "./rank-pages";
 import { readSite, type SiteRead } from "./read-site";
 import { parseSitemap, rankChildSitemaps } from "./sitemap";
-import { brandProfileSchema, type BrandProfile } from "./schema";
+import { brandProfileSchema, type BrandProfile, type RankedPage } from "./schema";
 import {
   buildAndStoreBrandProfile,
   getLatestBrandProfile,
@@ -264,6 +270,78 @@ describe("readSite", () => {
     const r = await readSite(DOMAIN, deps(fetch));
     expect(fetch.mock.calls.length).toBeLessThanOrEqual(16);
     expect(r.pages.length).toBeLessThanOrEqual(8);
+  });
+
+  it("MC.7 : les pages classées par volume et position sont lues d'abord, le tri par adresse complète", async () => {
+    const o = `https://${DOMAIN}`;
+    const www = `https://www.${DOMAIN}`;
+    const web = fakeWeb({
+      [`${o}/robots.txt`]: { status: 200, text: "" },
+      [`${o}/`]: { status: 200, text: html("Accueil", [`${o}/guide`, `${o}/a-propos`]) },
+      [`${o}/guide`]: { status: 200, text: html("Guide") },
+      [`${o}/a-propos`]: { status: 200, text: html("À propos") },
+      // Connue de Google seulement : ni dans l'accueil, ni dans le sitemap.
+      [`${www}/outils/calculateur`]: { status: 200, text: html("Calculateur") },
+    });
+    const r = await readSite(DOMAIN, {
+      ...deps(web.fetch),
+      priorityPages: async () => [
+        `${www}/outils/calculateur`,
+        `${o}/guide`,
+        "https://autre.fr/page",
+        `${o}/`,
+      ],
+    });
+    expect(r.pages.map((p) => p.title)).toEqual(["Calculateur", "Guide", "À propos"]);
+    expect(web.hits.filter((u) => u === `${o}/guide`)).toHaveLength(1); // jamais lue deux fois
+    expect(web.hits.some((u) => u.includes("autre.fr"))).toBe(false);
+    expect(web.hits.filter((u) => u === `${o}/`)).toHaveLength(1); // l'accueil n'est pas relu
+    expect(r.requests).toBeLessThanOrEqual(16);
+  });
+
+  it("MC.7 : jamais plus de pages lues qu'avant, et au plus 5 pages classées", async () => {
+    const o = `https://${DOMAIN}`;
+    const links = Array.from({ length: 12 }, (_, i) => `${o}/rubrique-${i}/page`);
+    const ranked = Array.from({ length: 9 }, (_, i) => `${o}/classee-${i}`);
+    const fetch = vi.fn(async (u: string) =>
+      u.endsWith("/robots.txt")
+        ? { status: 200, text: "" }
+        : u === `${o}/`
+          ? { status: 200, text: html("Accueil", links) }
+          : { status: 200, text: html(u.replace(`${o}/`, "")) },
+    );
+    const r = await readSite(DOMAIN, { ...deps(fetch), priorityPages: async () => ranked });
+    expect(r.pages).toHaveLength(8);
+    const titles = r.pages.map((p) => p.title);
+    expect(titles.slice(0, PAGE_RANK.preselected)).toEqual(
+      ranked.slice(0, PAGE_RANK.preselected).map((u) => u.replace(`${o}/`, "")),
+    );
+    expect(titles.filter((x) => x.startsWith("classee-"))).toHaveLength(PAGE_RANK.preselected);
+  });
+
+  it("MC.7 : sans page classée, ou si le classement échoue, les pages lues sont celles d'avant", async () => {
+    const o = `https://${DOMAIN}`;
+    const routes = {
+      [`${o}/robots.txt`]: { status: 200, text: "" },
+      [`${o}/`]: { status: 200, text: html("Accueil", [`${o}/guide`, `${o}/a-propos`]) },
+      [`${o}/guide`]: { status: 200, text: html("Guide") },
+      [`${o}/a-propos`]: { status: 200, text: html("À propos") },
+    };
+    const before = await readSite(DOMAIN, deps(fakeWeb(routes).fetch));
+    const empty = await readSite(DOMAIN, {
+      ...deps(fakeWeb(routes).fetch),
+      priorityPages: async () => [],
+    });
+    const failing = await readSite(DOMAIN, {
+      ...deps(fakeWeb(routes).fetch),
+      priorityPages: async () => {
+        throw new Error("mots-clés indisponibles");
+      },
+    });
+    const urls = (x: SiteRead) => x.pages.map((p) => p.url);
+    expect(urls(before)).toHaveLength(2);
+    expect(urls(empty)).toEqual(urls(before));
+    expect(urls(failing)).toEqual(urls(before));
   });
 });
 
@@ -689,5 +767,207 @@ describe("profil : un champ trop long est raccourci, jamais rejeté", () => {
     expect(errors).toEqual([]);
     expect(out?.profile.offer.length).toBeLessThanOrEqual(300);
     expect(out?.profile.tone.length).toBeLessThanOrEqual(120);
+  });
+});
+
+describe("MC.7 : pages classées par volume et position dans le profil", () => {
+  const o = `https://${DOMAIN}`;
+  const CALC = `${o}/outils/calculateur`;
+  const GUIDE = `${o}/guide`;
+  const ranked = (url: string, volume: number, position: number): RankedPage => ({
+    url,
+    volume,
+    position,
+    count: 1,
+    keywords: [`mot-clé de ${new URL(url).pathname}`],
+  });
+  const read = (over: Partial<SiteRead> = {}) =>
+    siteRead({
+      pages: [page(GUIDE), page(CALC, { title: "Calculateur de congés" })],
+      knownUrls: [GUIDE, `${o}/jamais-lue`],
+      ...over,
+    });
+  const kw = (url: string, position: number, volume: number): RankedKeyword => ({
+    keyword: `mot-clé de ${new URL(url).pathname}`,
+    position,
+    volume,
+    url,
+  });
+
+  it("le modèle voit le volume, la position et les mots-clés des pages, pas seulement un extrait", () => {
+    const prompt = buildBrandPrompt(read(), [ranked(CALC, 390, 88)]);
+    expect(prompt).toContain(
+      '"recherches_google":{"par_mois":390,"meilleure_position":88,"mots_cles":["mot-clé de /outils/calculateur"]}',
+    );
+    expect(prompt.match(/recherches_google/g)).toHaveLength(1); // le guide n'a pas de mot-clé
+    expect(prompt.endsWith("</donnees_non_fiables>")).toBe(true);
+    expect(BRAND_SYSTEM).toContain("recherches_google");
+    // Sans classement, le prompt est celui d'avant.
+    expect(buildBrandPrompt(read(), [])).toBe(buildBrandPrompt(read()));
+    expect(buildBrandPrompt(read())).not.toContain("recherches_google");
+  });
+
+  it("les pages classées passent en tête, cochées, titrées par le modèle ou par la page ; jamais une page non lue", () => {
+    const out = withRankedPages(PROFILE, read(), [
+      ranked(`${o}/jamais-lue`, 9_000, 10),
+      ranked(`https://www.${DOMAIN}/outils/calculateur/`, 390, 88),
+      ranked(GUIDE, 50, 30),
+    ]);
+    expect(out.linkable_resources).toEqual([
+      { url: CALC, title: "Calculateur de congés", selected: true },
+      { url: GUIDE, title: "Guide du coloriage", selected: true },
+    ]);
+    // Le classement complet est gardé (affichage, départage du rédacteur, MC.2).
+    expect(out.ranked_pages?.map((p) => p.volume)).toEqual([9_000, 390, 50]);
+    expect(brandProfileSchema.safeParse(out).success).toBe(true);
+  });
+
+  it("au plus 5 pages présélectionnées, les autres pages du modèle complètent, 8 au total", () => {
+    const pages = Array.from({ length: 7 }, (_, i) => page(`${o}/outil-${i}`));
+    const model = Array.from({ length: 6 }, (_, i) => ({
+      url: `${o}/choix-${i}`,
+      title: `Choix ${i}`,
+    }));
+    const out = withRankedPages(
+      { ...PROFILE, linkable_resources: model },
+      read({ pages }),
+      pages.map((p, i) => ranked(p.url, 1_000 - i, 10)),
+    );
+    expect(out.linkable_resources).toHaveLength(8);
+    expect(out.linkable_resources.filter((r) => r.selected === true)).toHaveLength(
+      PAGE_RANK.preselected,
+    );
+    expect(out.linkable_resources.slice(0, 5).map((r) => r.url)).toEqual(
+      pages.slice(0, 5).map((p) => p.url),
+    );
+    expect(out.linkable_resources.slice(5).map((r) => r.title)).toEqual([
+      "Choix 0",
+      "Choix 1",
+      "Choix 2",
+    ]);
+  });
+
+  it("site sans mot-clé positionné : le profil est rendu tel quel", () => {
+    expect(withRankedPages(PROFILE, read(), [])).toBe(PROFILE);
+  });
+
+  const build = async (rankedKeywords?: (input: unknown) => Promise<RankedKeyword[]>) => {
+    const db = fakeSupabase({ brand_profiles: [] });
+    const generate = vi.fn<(o: { prompt: string }) => Promise<unknown>>(async () => ({
+      data: PROFILE,
+      costUsd: 0.001,
+    }));
+    const priority: string[][] = [];
+    const stored = await buildAndStoreBrandProfile(
+      db.client,
+      {
+        siteId: "s1",
+        workspaceId: "ws-1",
+        userId: "u1",
+        domain: DOMAIN,
+        home: null,
+        language: "fr",
+        market: { country: "FR", language: "fr" },
+      },
+      {
+        readSite: async (_domain, _home, _language, priorityPages) => {
+          priority.push([...((await priorityPages?.()) ?? [])]);
+          return read();
+        },
+        makeLlm: () => ({ generate }) as unknown as LlmClient,
+        ...(rankedKeywords ? { rankedKeywords } : {}),
+      },
+    );
+    return { stored, generate, priority, db };
+  };
+
+  it("à la création du profil : mots-clés demandés une fois, pages classées lues, proposées et cochées", async () => {
+    const rankedKeywords = vi.fn(async () => [kw(CALC, 88, 390), kw(GUIDE, 60, 50)]);
+    const { stored, generate, priority } = await build(rankedKeywords);
+    expect(rankedKeywords).toHaveBeenCalledTimes(1);
+    expect(rankedKeywords).toHaveBeenCalledWith({
+      domain: DOMAIN,
+      country: "FR",
+      language: "fr",
+      workspaceId: "ws-1",
+      auditId: undefined,
+    });
+    expect(priority).toEqual([[CALC, GUIDE]]);
+    expect(generate.mock.calls[0]![0].prompt).toContain('"par_mois":390');
+    expect(stored?.profile.linkable_resources).toEqual([
+      { url: CALC, title: "Calculateur de congés", selected: true },
+      { url: GUIDE, title: "Guide du coloriage", selected: true },
+    ]);
+    expect(stored?.profile.ranked_pages).toEqual([
+      {
+        url: CALC,
+        volume: 390,
+        position: 88,
+        count: 1,
+        keywords: ["mot-clé de /outils/calculateur"],
+      },
+      { url: GUIDE, volume: 50, position: 60, count: 1, keywords: ["mot-clé de /guide"] },
+    ]);
+  });
+
+  it("site sans mot-clé positionné : comportement inchangé", async () => {
+    const before = await build();
+    const none = await build(async () => []);
+    expect(none.stored?.profile).toEqual(before.stored?.profile);
+    expect(none.stored?.profile.ranked_pages).toBeUndefined();
+    expect(none.priority).toEqual([[]]);
+    expect(none.generate.mock.calls[0]![0].prompt).toBe(before.generate.mock.calls[0]![0].prompt);
+  });
+
+  it("échec ou plafond de l'appel : l'onboarding aboutit quand même, avec l'ancien tri", async () => {
+    const before = await build();
+    const rejected = await build(async () => {
+      throw new Error("plafond quotidien atteint");
+    });
+    const thrown = await build(() => {
+      throw new Error("identifiants absents");
+    });
+    for (const out of [rejected, thrown]) {
+      expect(out.stored).toMatchObject({ version: 1, source: "llm" });
+      expect(out.stored?.profile).toEqual(before.stored?.profile);
+      expect(out.priority).toEqual([[]]);
+    }
+  });
+
+  it("l'écran affiche le volume et la meilleure position des pages proposées quand on les connaît", () => {
+    const profile = withRankedPages(PROFILE, read(), [
+      ranked(CALC, 1_170, 85),
+      ranked(`${o}/jamais-lue`, 9_000, 10),
+    ]);
+    const html = renderToStaticMarkup(
+      createElement(BrandFields, {
+        domain: DOMAIN,
+        brand: {
+          version: 1,
+          source: "llm",
+          profile,
+          pagesRead: [],
+          costUsd: 0,
+          createdAt: "2026-11-19T00:00:00Z",
+        },
+      }),
+    );
+    expect(html).toMatch(/1\s170 recherches par mois, position 85/);
+    expect(html.match(/recherches? par mois/g)).toHaveLength(1); // rien d'inventé pour les autres pages
+    expect(html).not.toContain("9\u202f000");
+    const plain = renderToStaticMarkup(
+      createElement(BrandFields, {
+        domain: DOMAIN,
+        brand: {
+          version: 1,
+          source: "llm",
+          profile: PROFILE,
+          pagesRead: [],
+          costUsd: 0,
+          createdAt: "2026-11-19T00:00:00Z",
+        },
+      }),
+    );
+    expect(plain).not.toMatch(/par mois/);
   });
 });
