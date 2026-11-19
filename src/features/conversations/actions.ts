@@ -4,7 +4,19 @@ import { revalidatePath } from "next/cache";
 import type { AuditActionState } from "@/features/audits/service";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { cancelSend } from "@/features/sending/cancel";
 import { markRead, setArchived, setTag } from "./service";
+
+/** Annule l'envoi d'un message approuvé qui n'est pas encore parti (identifiant « attente-<brouillon> »). */
+export async function cancelSendAction(threadId: string): Promise<AuditActionState> {
+  const r = await cancelSend(
+    await createClient(),
+    createServiceClient,
+    threadId.replace(/^attente-/, ""),
+  );
+  revalidatePath("/app", "layout");
+  return r;
+}
 
 export async function markReadAction(threadId: string): Promise<AuditActionState> {
   const r = await markRead(await createClient(), createServiceClient, threadId);
