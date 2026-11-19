@@ -13,6 +13,7 @@ import {
   type AuthorityImpact,
   type FreeVerdict,
 } from "./free";
+import { pisteOf } from "@/features/targets/tracking";
 import { batchWorstUsd, QUALIFY_LIMITS } from "./limits";
 import { batchSchema, judgeBatch, judgementRequest, toJudgements, type BatchItem } from "./llm";
 import { isHomeUrl, pageVerdict, rescueFromHome, type PageVerdict } from "./page";
@@ -1151,6 +1152,8 @@ export async function executeQualification(
       domain: c.domain,
       url: t.page?.url ?? c.url,
       tactics: c.tactics,
+      piste: pisteOf(c.sources, c.tactics),
+      niveau: c.niveau ?? 0,
       status,
       stageReached: t.stage,
       exclusionReason: t.reason,

@@ -1053,6 +1053,8 @@ export type Database = {
           score_parts: Json | null;
           sendable: boolean;
           site_type: string | null;
+          piste: string;
+          niveau: number;
           stage_reached: number;
           status: string;
           tactics: string[];
@@ -1086,6 +1088,8 @@ export type Database = {
           score_parts?: Json | null;
           sendable?: boolean;
           site_type?: string | null;
+          piste?: string;
+          niveau?: number;
           stage_reached: number;
           status: string;
           tactics: string[];
@@ -1119,6 +1123,8 @@ export type Database = {
           score_parts?: Json | null;
           sendable?: boolean;
           site_type?: string | null;
+          piste?: string;
+          niveau?: number;
           stage_reached?: number;
           status?: string;
           tactics?: string[];
@@ -1201,6 +1207,7 @@ export type Database = {
           domain_rank: number | null;
           id: string;
           language: string | null;
+          niveau: number;
           page_type: string | null;
           signal_count: number;
           sources: Json;
@@ -1219,6 +1226,7 @@ export type Database = {
           domain_rank?: number | null;
           id?: string;
           language?: string | null;
+          niveau?: number;
           page_type?: string | null;
           signal_count?: number;
           sources?: Json;
@@ -1237,6 +1245,7 @@ export type Database = {
           domain_rank?: number | null;
           id?: string;
           language?: string | null;
+          niveau?: number;
           page_type?: string | null;
           signal_count?: number;
           sources?: Json;

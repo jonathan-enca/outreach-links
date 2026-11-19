@@ -2620,6 +2620,50 @@ Décisions de Jonathan, à appliquer dans les prochains sous-jalons. Aucun code 
 - **Boule de neige** : la faire tourner en profondeur (2 à 3 niveaux) plutôt qu'en largeur, mesurer le rendement à chaque niveau sur un échantillon relu à la main, et continuer tant que le rendement tient. Coût attendu : environ 0,2 USD par niveau. Elle hérite de la qualité des premières cibles : pas d'amplification avant d'avoir des réponses réelles.
 - **Mesure à mettre en place avant tout** : rendement réel (réponses, liens obtenus) par source (tactique) et par type de site. Aujourd'hui la source est souvent non renseignée, donc le rendement par piste n'est pas mesurable.
 
+## Session du 19/11 : MQ.1, piste et niveau par cible, tableau interne (faite, sans envoi)
+
+Périmètre tenu : chaque cible retenue garde sa **piste de découverte** (la source qui l'a trouvée), son **niveau de boule de neige** et son **type de site** ; un tableau interne montre cibles, envois, réponses et liens par piste, par niveau et par type de site. Aucun envoi réel, aucun appel payant. Prérequis : aucun (MQ.1 ouvre le jalon MQ).
+
+### Ce qui change pour la personne
+
+- Rien à l'écran pour l'instant : le suivi est interne. Les cibles ont désormais une piste renseignée (plus de « inconnu » par défaut).
+
+### Ce qui change dans le code
+
+- **Piste** = source du candidat (`lien_mort`, `citation`, `mention`, `intersection`, `content`, `serp`), priorité dans cet ordre ; à défaut de source, déduite de la tactique (`src/features/targets/tracking.ts`, `pisteOf`, `pisteFromTactics`).
+- **Niveau** : `collection_candidates.niveau` et `qualified_targets.niveau`, 0 au premier passage, 1 pour ce que trouve la boule de neige (`SNOWBALL_NIVEAU` dans `src/features/snowball/service.ts`). MQ.6 ajoutera les niveaux suivants.
+- **Écriture** : `qualification/funnel.ts` (résultat), `qualification/run.ts` (`toRow`, lecture du niveau), `snowball/service.ts` (lignes en stock).
+- **Migration** `supabase/migrations/2026121900000000_target_piste.sql` : colonnes, reprise de l'existant (piste depuis les sources, sinon la tactique), `piste` obligatoire ensuite.
+- **Tableau interne** : `src/features/targets/tracking.ts` (agrégation pure et Markdown) et `tracking-report.ts` (lecture service_role paginée, jointure `joinTracking` : cible → éléments de plan du même audit → brouillons → envoi initial `envoye` → réponse `reponse` → lien `live`). Une cible compte au plus une fois par colonne. Pas de page dans l'application (ce n'est pas un écran client) : commande `pnpm demo:tracking`, avec `TRACKING_REPORT_OUT=<fichier>` pour écrire le Markdown.
+- `src/lib/supabase/database.types.ts` mis à la main pour les nouvelles colonnes (pas de CLI Supabase ici) : à régénérer quand la migration est appliquée.
+
+### Vérifications
+
+- `pnpm typecheck` : vert. `pnpm lint` : 0 erreur (avertissements déjà présents, aucun dans les fichiers touchés). Prettier : vert sur les fichiers touchés.
+- `pnpm vitest run src/features/targets src/features/qualification src/features/snowball` : 172 tests verts (fichiers touchés) (dont 9 nouveaux dans `tracking.test.ts` : piste, suivi par dimension, jointure).
+- **Pas vérifié** : la migration n'a pas été appliquée à la base (pas de CLI Supabase ici, et l'accès distant n'a pas été utilisé) ; le tableau sur le site de test n'a donc pas encore été lu en base. Le critère « 100 % des cibles retenues ont une piste » tient par construction (la piste est toujours calculée, la colonne est obligatoire après reprise) mais reste à constater sur la base.
+
+### Décisions [auto]
+
+- Piste et niveau sont stockés sur `qualified_targets` (pas recalculés à la lecture) pour qu'une cible garde sa piste même si les candidats sont régénérés.
+- Le tableau interne n'est pas exposé aux espaces clients (pas de contrôle d'administrateur dans le code) : lecture par service_role uniquement.
+- « Envoi » = premier message `envoye` (les relances et les simulations `simule` ne comptent pas) ; « lien » = statut `live` au dernier contrôle.
+
+### Commandes
+
+```bash
+pnpm vitest run src/features/targets src/features/qualification src/features/snowball
+TRACKING_REPORT=1 TRACKING_REPORT_OUT=/tmp/suivi.md pnpm demo:tracking
+```
+
+### Dettes et pièges
+
+- Le fallback « serp » sans source est un choix : une cible sans source connue (données anciennes) tombe dans « Résultats Google ». À surveiller après la reprise.
+- La reprise SQL déduit la piste d'une cible par sa première source dans la collecte ; une cible trouvée par plusieurs sources garde la plus forte.
+- Le niveau 1 suppose que la boule de neige ne trouve que des sites cités par des cibles retenues (vrai aujourd'hui).
+
+### Prochain sous-jalon recommandé : MQ.2 ou MQ.4 (peuvent se faire en parallèle), puis MQ.3 après un premier lot de réponses.
+
 ## Session du 19/11 : MQ.2, Search Console connectée en lecture seule (partielle, derrière un drapeau)
 
 Sous-jalon `PLAN.md > MQ.2`. Branche `mq.2-search-console`. **0 USD d'API** : aucun appel réel à Google ni à DataForSEO, tout est testé avec des réponses simulées. Aucun envoi d'email. Le parcours réel dans un navigateur n'est pas fait (drapeau coupé, vérification Google G4 absente).
@@ -2742,3 +2786,44 @@ MQ.1 (PR #206) en premier, puis MQ.5 (thèmes et sites proposés par Claude, ave
 ### Prochain
 
 Vérifier l'inscription sur une adresse neuve quand Jonathan le souhaite (rendu du mail de confirmation dans Gmail), et brancher le nom de marque dans les gabarits à partir de `messages/fr.ts` si la marque change encore.
+
+## Session du 19/11 (suite 3) : MQ.5, thèmes et sites proposés par Claude, avec vérification (faite, pas encore branchée)
+
+Sous-jalon `PLAN.md > MQ.5`. Branche `mq.5-sites-proposes`. Aucun envoi d'email. **Un appel LLM par audit**, plafonné (`PROPOSAL_LIMITS`, sortie 2 000 jetons, coût réservé 0,05 USD à valider sur un vrai appel) ; les lectures de pages sont gratuites. Tout est testé avec un faux client LLM et un faux lecteur de pages : aucun appel réel.
+
+### Ce qui change pour la personne
+
+- Rien à l'écran : le module n'est pas encore branché dans la collecte ni dans l'écran d'audit.
+
+### Ce qui change dans le code
+
+- `src/features/proposals/` (nouveau) :
+  - `schema.ts` : `PROPOSAL_LIMITS` (15 sites, 8 thèmes, 30 requêtes Search Console au plus) et `proposalsSchema` (thèmes ; sites avec domaine, page exacte, ressource citée, raison).
+  - `verify.ts` : `checkProposal` enchaîne les contrôles : adresse valide, pas le site lui-même, appartient au domaine proposé, robots.txt, joignable, HTTP 200, texte réel (300 caractères au moins), nom de la ressource présent sur la page (sans accents ni casse). Un motif de rejet par proposition. `verifyProposals` : lectures par lots de 4, doublons d'adresse écartés, `gapRate` = écartées / proposées. `gapLabel` : la ligne « N sur M propositions écartées (P %) ».
+  - `service.ts` : `proposeVerifiedSites` : un appel `llm.generate` (tâche `site_proposals`, enregistrée dans `cost_ledger` par le client), sortie revalidée par zod, puis vérification. Renvoie `null` sans client, en cas de panne, de plafond dépassé ou de sortie non conforme (rien n'est inventé).
+  - `proposals.test.ts` : 18 tests (contrôles un par un, taux d'écart, coût, échecs).
+
+### Vérifications
+
+- `pnpm vitest run src/features/proposals` : 18 verts.
+- `pnpm typecheck` : vert. `pnpm lint` et `prettier` sur les fichiers touchés : verts.
+
+### Décisions [auto]
+
+- Le module renvoie une liste vérifiée (`kept`) et le taux d'écart ; il n'alimente pas encore la liste courte. Brancher `kept` dans la collecte (origine « proposition ») est la suite, pour ne pas toucher `collection/` dans ce sous-jalon.
+- Les thèmes ne sont pas vérifiés (ce ne sont pas des adresses) ; seules les adresses comptent.
+- Le nom de la ressource doit apparaître sur la page : c'est la preuve minimale qu'une page cite bien quelque chose de comparable, sans règle propre à un thème.
+
+### Dettes et pièges
+
+- **Non branché** : aucun écran, aucune collecte n'appelle encore `proposeVerifiedSites`. Le taux d'écart n'est donc affiché que par la fonction `gapLabel`.
+- **Coût non mesuré** : 0,05 USD est une estimation ; à mesurer sur un vrai appel (site de test) avant de fixer le plafond.
+- **Page citée réelle mais hors sujet** : la vérification prouve que la page existe et cite la ressource, pas que le message sera accepté. Le tri (MQ.3) reste nécessaire.
+- Search Console : les requêtes (`links_state.searchConsole.queries`) doivent être passées par l'appelant ; le module ne les lit pas lui-même.
+
+### Backlog (hors périmètre)
+
+- Brancher `kept` dans la collecte (origine « proposition ») et dans l'écran d'audit, avec le taux d'écart affiché.
+- Mesurer le coût réel d'un appel et recaler `reservedUsd`.
+
+### Prochain sous-jalon recommandé : MQ.4 (requêtes de contenu sans lien, SERP), puis MQ.3 après un premier lot de réponses.
