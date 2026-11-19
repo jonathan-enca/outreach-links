@@ -533,7 +533,7 @@ export const fr = {
       items: [
         {
           q: "C'est quoi, exactement ?",
-          a: "Un outil de netlinking par email. Il trouve les pages qui ont une raison de vous citer, rédige une demande pour chacune, l'envoie depuis votre boîte mail, relance une fois, suit les réponses et vérifie que le lien est en ligne. Rien ne part sans votre accord.",
+          a: "Backleenks trouve les pages qui ont une raison de vous citer, rédige une demande pour chacune, l'envoie depuis votre boîte mail, relance une fois et vérifie que le lien est en ligne. Rien ne part sans votre accord.",
         },
         {
           q: "C'est fait pour qui ?",
@@ -541,7 +541,7 @@ export const fr = {
         },
         {
           q: "Qui envoie les emails ?",
-          a: "Vous. Chaque message part de votre propre adresse, avec votre nom et votre signature, et les réponses arrivent dans votre boîte habituelle. L'outil prépare le message, puis l'envoie par votre messagerie une fois que vous l'avez approuvé : rien ne passe par une adresse à notre nom ni par un serveur d'envoi partagé avec d'autres clients. Les emails partent un par un, aux jours et heures que vous choisissez : cinq par jour la première semaine, puis un peu plus chaque semaine, pour ménager votre adresse.",
+          a: "Vous. Chaque message part de votre propre adresse, avec votre nom et votre signature, et les réponses arrivent dans votre boîte habituelle. Backleenks prépare le message, puis l'envoie par votre messagerie une fois que vous l'avez approuvé : rien ne passe par une adresse à notre nom ni par un serveur d'envoi partagé avec d'autres clients. Les emails partent un par un, aux jours et heures que vous choisissez : cinq par jour la première semaine, puis un peu plus chaque semaine, pour ménager votre adresse.",
         },
         {
           q: "Comment relier ma boîte mail ?",
@@ -670,7 +670,7 @@ export const fr = {
         {
           title: "Données Google (Gmail)",
           body: [
-            "Si vous connectez votre compte Gmail, nous demandons deux autorisations : l'envoi d'emails (gmail.send), pour envoyer les messages que vous avez validés, et la lecture des réponses (gmail.readonly), pour détecter les réponses aux seuls fils de campagne. Nous ne lisons aucun autre message, nous n'utilisons ces données ni pour de la publicité, ni pour entraîner des modèles, et nous ne les vendons pas.",
+            "Si vous connectez votre compte Gmail, nous demandons une seule autorisation : envoyer des emails en votre nom. Nous l'utilisons pour envoyer les messages que vous avez validés, et rien d'autre. Nous ne lisons ni votre boîte ni vos contacts. Les réponses arrivent dans votre boîte habituelle. Nous n'utilisons pas ces données pour de la publicité ni pour entraîner des modèles, et nous ne les vendons pas. Vous pouvez retirer l'accès à tout moment depuis votre compte Google ou depuis Réglages > Boîte d'envoi.",
             "L'utilisation des informations reçues des API Google respecte la Politique relative aux données utilisateur des services API Google, y compris les exigences d'Utilisation limitée. Vous pouvez révoquer l'accès à tout moment depuis les paramètres de votre compte Google ou depuis Réglages > Boîte d'envoi.",
           ],
         },
@@ -1981,7 +1981,7 @@ export const fr = {
   },
   mailboxes: {
     title: "Boîte d'envoi",
-    body: "Les messages partent de votre propre boîte : nous envoyons ceux que vous avez approuvés et lisons les réponses, rien d'autre. Le mot de passe est chiffré avant d'être enregistré et n'est jamais affiché ni relu. Ici, rien n'est envoyé à un tiers : le test vérifie seulement la connexion et, si l'envoi réel est activé, vous adresse un message de test à vous-même.",
+    body: "Les messages partent de votre propre boîte, uniquement ceux que vous avez approuvés. Le mot de passe est chiffré avant d'être enregistré et n'est jamais affiché ni relu. Ici, rien n'est envoyé à un tiers : le test vérifie seulement la connexion et, si l'envoi réel est activé, vous adresse un message de test à vous-même.",
     emptyTitle: "Aucune boîte connectée",
     email: "Adresse d'envoi",
     fromName: "Nom affiché",
@@ -1993,19 +1993,19 @@ export const fr = {
     imapPort: "Port IMAP",
     google: {
       title: "Connectez la boîte depuis laquelle vous enverrez",
-      hint: "Gmail : vos messages partent de votre propre adresse, à un rythme régulier, et ceux que vous avez approuvés sont les seuls à partir. Nous lisons les réponses à ces messages, rien d'autre.",
+      hint: "Gmail : vos messages partent de votre propre adresse, à un rythme régulier, et seuls ceux que vous avez approuvés partent. Les réponses arrivent dans votre boîte habituelle, comme d'habitude.",
       upgradeTitle: "Connecter Gmail, sans mot de passe",
       upgradeHint:
         "Votre boîte actuelle utilise un mot de passe d'application. Avec Google, un clic suffit : en reconnectant la même adresse, elle passe à la connexion Google sans rien perdre.",
       button: "Connecter Gmail",
       safe: "Connexion par Google : nous ne voyons ni ne stockons votre mot de passe, et vous pouvez retirer l'accès à tout moment depuis votre compte Google.",
-      connected: "Connectée par Google : envoi et lecture des réponses par Gmail.",
+      connected: "Connectée avec Google. Les messages approuvés partent depuis cette adresse.",
       ok: "Boîte Gmail connectée. Elle est prête : les messages que vous approuvez partiront depuis cette adresse.",
       errors: {
         invalide: "La connexion a expiré ou n'est pas valide. Recommencez.",
         refuse: "Google n'a pas donné l'accès : rien n'a été enregistré.",
         scopes:
-          "Il manque une autorisation : laissez cochés l'envoi et la lecture des réponses sur l'écran de Google.",
+          "Une autorisation manque : sur l'écran de Google, laissez cochée la case qui permet d'envoyer des emails, puis réessayez.",
         no_refresh:
           "Google n'a pas renvoyé d'accès durable. Retirez l'accès dans votre compte Google puis recommencez.",
         token: "Google a refusé l'échange. Recommencez.",
