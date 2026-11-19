@@ -7,7 +7,7 @@ import { sendOutreachMail, type TransportOptions } from "@/features/mailboxes/tr
 import { logger } from "@/lib/logger";
 import type { Database } from "@/lib/supabase/database.types";
 import { checkSendAllowance } from "@/features/billing/plans";
-import { SEND_LIMITS } from "./limits";
+import { AUTOMATIC_FOLLOW_UP, SEND_LIMITS } from "./limits";
 import { buildOutgoing, makeMessageId, makeUnsubscribeToken, unsubscribeSecrets } from "./message";
 import { buildFollowUp, skipReasonForSignals, type SignalKind } from "./followup";
 import { addDays, effectiveDailyCap, isInSendWindow } from "./schedule";
@@ -36,6 +36,8 @@ export interface SendDeps {
   appUrl: string;
   /** Brouillon validé à envoyer en priorité, en dépassant le quota d'échauffement (une fois). */
   priorityDraftId?: string;
+  /** Relances automatiques : par défaut AUTOMATIC_FOLLOW_UP (désactivées). */
+  automaticFollowUp?: boolean;
   transportOptions?: TransportOptions;
 }
 
@@ -186,9 +188,11 @@ async function sendNext(db: Client, box: MailboxRow, deps: SendDeps): Promise<Ma
   }
   if (inHour >= hourly || rows.length >= daily) return { ...base, result: "plafond" };
 
-  // Relances dues d'abord : une relance en retard passe avant un nouvel envoi.
-  const followUp = await sendNextFollowUp(db, box, dry, now, deps);
-  if (followUp) return { ...base, ...followUp };
+  // Relances dues d'abord : une relance en retard passe avant un nouvel envoi (désactivées par défaut).
+  if (deps.automaticFollowUp ?? AUTOMATIC_FOLLOW_UP) {
+    const followUp = await sendNextFollowUp(db, box, dry, now, deps);
+    if (followUp) return { ...base, ...followUp };
+  }
 
   // Candidats : brouillons email des lots VALIDÉS des plans des sites qui utilisent cette boîte, dans l'ordre.
   const { data: links } = await db.from("mailbox_sites").select("site_id").eq("mailbox_id", box.id);
