@@ -2728,6 +2728,7 @@ pnpm typecheck && pnpm lint
 ### Prochain sous-jalon recommandé
 
 MQ.1 (PR #206) en premier, puis MQ.5 (thèmes et sites proposés par Claude, avec vérification). L'attente de `etat_des_lieux` avant la recherche est faite dans cette PR (voir ci-dessus).
+
 ## Session du 19/11 (suite 2) : gabarits d'email Supabase remis à la marque backleenks (faite)
 
 - **Constat** : les gabarits du dépôt (`supabase/email-templates/`) étaient déjà à la marque backleenks, mais les modèles **en ligne** dans Supabase (Authentication > Emails) étaient restés sur « Autolink.ai » (vu sur le mail d'inscription reçu). Cause : le dépôt n'est pas relié au projet ; la mise en ligne est manuelle ou se fait par l'API de gestion.
