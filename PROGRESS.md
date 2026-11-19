@@ -2601,3 +2601,8 @@ pnpm typecheck && pnpm lint
 - Outlook : pas encore (OAuth Microsoft, jalon 7).
 
 ### Prochain : essai réel de bout en bout avec une boîte Gmail de test, puis G4 (vérification Google).
+
+## Retour de Jérémie (18/11/2026) : tunnel en trois étapes
+
+- Remarques consignées dans `docs/jalon-mu.md` section 8 (sous-jalon **MU.12** : cibles retenues → messages rédigés → envoi). Pas encore codé : à faire dans une session dédiée, après MU.10.
+- Décompte à expliquer dans l’écran : « 42 cibles » = liens morts des concurrents + pages que personne ne sollicite (deux tactiques, à présenter séparément).
