@@ -1,6 +1,7 @@
 import type { ContactStatus } from "@/features/contacts/types";
 import type { CollectionSourceRef } from "@/features/collection/types";
 import type { Tactic } from "@/features/queries/schema";
+import type { Piste } from "@/features/targets/tracking";
 
 /**
  * Entonnoir de qualification (MT.4, docs/audit-v2.md phase 4), du moins cher au plus cher :
@@ -118,6 +119,8 @@ export interface QualCandidate {
   signalCount: number;
   /** Langue de la page selon le fournisseur, quand il la donne (chantier G : filtre avant lecture). */
   language?: string | null;
+  /** Niveau de boule de neige (MQ.1) : 0 = premier passage. Absent = 0. */
+  niveau?: number;
 }
 
 /** Contexte de la qualification (site à promouvoir, exclusions). */
@@ -209,6 +212,9 @@ export interface QualResult {
   domain: string;
   url: string | null;
   tactics: Tactic[];
+  /** Piste de découverte et niveau de boule de neige (MQ.1). Absents : déduits des tactiques, niveau 0. */
+  piste?: Piste;
+  niveau?: number;
   status: QualStatus;
   stageReached: Stage;
   exclusionReason: ExclusionReason | null;

@@ -4,6 +4,7 @@ import { siteResources } from "@/features/findings/run";
 import { getLatestBrandProfile } from "@/features/brand/service";
 import { COLLECTION_SOURCES } from "@/features/collection/types";
 import { TACTICS } from "@/features/queries/schema";
+import { pisteFromTactics } from "@/features/targets/tracking";
 import { logger } from "@/lib/logger";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import type { FunnelStats, QualInput } from "./funnel";
@@ -70,7 +71,7 @@ export async function loadQualificationInput(
     service
       .from("collection_candidates")
       .select(
-        "domain, url, title, tactics, sources, competitors_count, domain_rank, spam_score, page_type, signal_count, language",
+        "domain, url, title, tactics, sources, competitors_count, domain_rank, spam_score, page_type, signal_count, language, niveau",
       )
       .eq("collection_id", col.id)
       .limit(MAX_CANDIDATES),
@@ -98,6 +99,7 @@ export async function loadQualificationInput(
     pageType: r.page_type,
     signalCount: r.signal_count,
     language: r.language,
+    niveau: r.niveau,
   }));
 
   const contacted = await service.rpc("domains_contacted_elsewhere", {
@@ -198,6 +200,8 @@ export function toRow(run: Pick<QualRunRow, "id" | "auditId" | "workspaceId">, r
     domain: r.domain,
     url: r.url,
     tactics: r.tactics.length ? r.tactics : ["inconnus"],
+    piste: r.piste ?? pisteFromTactics(r.tactics),
+    niveau: r.niveau ?? 0,
     status: r.status,
     stage_reached: r.stageReached,
     exclusion_reason: r.exclusionReason,

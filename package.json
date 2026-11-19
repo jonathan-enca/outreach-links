@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "demo:dataforseo": "DATAFORSEO_LIVE_DEMO=1 vitest run src/lib/dataforseo/demo.live.test.ts",
     "demo:audit": "AUDIT_LIVE_DEMO=1 vitest run src/features/audits/validation.live.test.ts",
+    "demo:tracking": "TRACKING_REPORT=1 VITEST_REAL_ENV=1 vitest run src/features/targets/tracking-report.live.test.ts",
     "demo:public-audit": "PUBLIC_AUDIT_LIVE_DEMO=1 vitest run src/features/public-audit/measure.live.test.ts",
     "demo:triage": "TRIAGE_LIVE_EVAL=1 vitest run src/features/triage/eval.live.test.ts",
     "demo:replies": "REPLIES_LIVE_EVAL=1 vitest run src/features/classification/eval.live.test.ts",

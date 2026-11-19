@@ -485,6 +485,8 @@ Ordre : **MQ.1 d'abord** (sans elle, rien n'est mesurable). MQ.2, MQ.4 et MQ.5 p
 
 ### MQ.1 Source et suivi par cible (prérequis)
 
+**MQ.1 faite (19/11/2026)** : piste (source) et niveau de boule de neige stockés par cible, tableau interne par piste, niveau et type de site (`pnpm demo:tracking`). Migration `2026121900000000_target_piste.sql` à appliquer ; constat sur la base à faire. Détail dans `PROGRESS.md`.
+
 - Chaque cible garde sa piste de découverte (liste de tactiques, pas « inconnu »), sa profondeur (niveau de boule de neige) et son type de site.
 - Tableau interne : cibles, messages envoyés, réponses, liens obtenus, par piste, par niveau et par type de site.
 - **Acceptation** : sur le site de test, 100 % des cibles retenues ont une piste renseignée ; le tableau s'affiche avec des chiffres vides mais justes.

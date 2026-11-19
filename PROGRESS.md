@@ -2619,3 +2619,47 @@ Décisions de Jonathan, à appliquer dans les prochains sous-jalons. Aucun code 
 - **Premier passage** : à améliorer en lisant la page candidate (lecture gratuite, sans LLM) avant de trier sur les signaux seuls. Les poids de `provisionalScore` (`src/features/qualification/free.ts`) restent à recaler sur des données réelles, pas à la main.
 - **Boule de neige** : la faire tourner en profondeur (2 à 3 niveaux) plutôt qu'en largeur, mesurer le rendement à chaque niveau sur un échantillon relu à la main, et continuer tant que le rendement tient. Coût attendu : environ 0,2 USD par niveau. Elle hérite de la qualité des premières cibles : pas d'amplification avant d'avoir des réponses réelles.
 - **Mesure à mettre en place avant tout** : rendement réel (réponses, liens obtenus) par source (tactique) et par type de site. Aujourd'hui la source est souvent non renseignée, donc le rendement par piste n'est pas mesurable.
+
+## Session du 19/11 : MQ.1, piste et niveau par cible, tableau interne (faite, sans envoi)
+
+Périmètre tenu : chaque cible retenue garde sa **piste de découverte** (la source qui l'a trouvée), son **niveau de boule de neige** et son **type de site** ; un tableau interne montre cibles, envois, réponses et liens par piste, par niveau et par type de site. Aucun envoi réel, aucun appel payant. Prérequis : aucun (MQ.1 ouvre le jalon MQ).
+
+### Ce qui change pour la personne
+
+- Rien à l'écran pour l'instant : le suivi est interne. Les cibles ont désormais une piste renseignée (plus de « inconnu » par défaut).
+
+### Ce qui change dans le code
+
+- **Piste** = source du candidat (`lien_mort`, `citation`, `mention`, `intersection`, `content`, `serp`), priorité dans cet ordre ; à défaut de source, déduite de la tactique (`src/features/targets/tracking.ts`, `pisteOf`, `pisteFromTactics`).
+- **Niveau** : `collection_candidates.niveau` et `qualified_targets.niveau`, 0 au premier passage, 1 pour ce que trouve la boule de neige (`SNOWBALL_NIVEAU` dans `src/features/snowball/service.ts`). MQ.6 ajoutera les niveaux suivants.
+- **Écriture** : `qualification/funnel.ts` (résultat), `qualification/run.ts` (`toRow`, lecture du niveau), `snowball/service.ts` (lignes en stock).
+- **Migration** `supabase/migrations/2026121900000000_target_piste.sql` : colonnes, reprise de l'existant (piste depuis les sources, sinon la tactique), `piste` obligatoire ensuite.
+- **Tableau interne** : `src/features/targets/tracking.ts` (agrégation pure et Markdown) et `tracking-report.ts` (lecture service_role paginée, jointure `joinTracking` : cible → éléments de plan du même audit → brouillons → envoi initial `envoye` → réponse `reponse` → lien `live`). Une cible compte au plus une fois par colonne. Pas de page dans l'application (ce n'est pas un écran client) : commande `pnpm demo:tracking`, avec `TRACKING_REPORT_OUT=<fichier>` pour écrire le Markdown.
+- `src/lib/supabase/database.types.ts` mis à la main pour les nouvelles colonnes (pas de CLI Supabase ici) : à régénérer quand la migration est appliquée.
+
+### Vérifications
+
+- `pnpm typecheck` : vert. `pnpm lint` : 0 erreur (avertissements déjà présents, aucun dans les fichiers touchés). Prettier : vert sur les fichiers touchés.
+- `pnpm vitest run src/features/targets src/features/qualification src/features/snowball` : 172 tests verts (fichiers touchés) (dont 9 nouveaux dans `tracking.test.ts` : piste, suivi par dimension, jointure).
+- **Pas vérifié** : la migration n'a pas été appliquée à la base (pas de CLI Supabase ici, et l'accès distant n'a pas été utilisé) ; le tableau sur le site de test n'a donc pas encore été lu en base. Le critère « 100 % des cibles retenues ont une piste » tient par construction (la piste est toujours calculée, la colonne est obligatoire après reprise) mais reste à constater sur la base.
+
+### Décisions [auto]
+
+- Piste et niveau sont stockés sur `qualified_targets` (pas recalculés à la lecture) pour qu'une cible garde sa piste même si les candidats sont régénérés.
+- Le tableau interne n'est pas exposé aux espaces clients (pas de contrôle d'administrateur dans le code) : lecture par service_role uniquement.
+- « Envoi » = premier message `envoye` (les relances et les simulations `simule` ne comptent pas) ; « lien » = statut `live` au dernier contrôle.
+
+### Commandes
+
+```bash
+pnpm vitest run src/features/targets src/features/qualification src/features/snowball
+TRACKING_REPORT=1 TRACKING_REPORT_OUT=/tmp/suivi.md pnpm demo:tracking
+```
+
+### Dettes et pièges
+
+- Le fallback « serp » sans source est un choix : une cible sans source connue (données anciennes) tombe dans « Résultats Google ». À surveiller après la reprise.
+- La reprise SQL déduit la piste d'une cible par sa première source dans la collecte ; une cible trouvée par plusieurs sources garde la plus forte.
+- Le niveau 1 suppose que la boule de neige ne trouve que des sites cités par des cibles retenues (vrai aujourd'hui).
+
+### Prochain sous-jalon recommandé : MQ.2 ou MQ.4 (peuvent se faire en parallèle), puis MQ.3 après un premier lot de réponses.
