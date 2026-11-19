@@ -15,6 +15,8 @@ export const COLLECTION_SOURCES = [
   "mention",
   "lien_mort",
   "citation",
+  // MQ.4 : page trouvée par une requête de contenu sans lien (piste propre).
+  "requete_contenu",
 ] as const;
 export type CollectionSource = (typeof COLLECTION_SOURCES)[number];
 

@@ -80,6 +80,7 @@ export async function previewCollection(service: Client, auditId: string): Promi
     language: site.language,
     domain: site.domain,
     nameVariants,
+    publics: profile?.profile.audience ?? [],
     searchConsoleQueries: searchConsoleRowsOf(audit.links_state),
     existing: universe.queries.map((q) => q.q),
     perQueryUsd: estimateCost("serpOrganicLive", {
