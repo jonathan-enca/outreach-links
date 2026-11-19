@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import type { AuditActionState } from "@/features/audits/service";
 import { t } from "@/lib/messages";
 import type { ConversationsView, ConversationView } from "./service";
-import { THREAD_STATUSES, type ThreadStatus } from "./status";
+import type { ThreadStatus } from "./status";
 
 const C = t.conversations;
 type Result = Promise<AuditActionState>;
@@ -246,11 +246,8 @@ export function Conversations({
   actions: ConversationActions;
 }) {
   const router = useRouter();
-  const [campaign, setCampaign] = useState("all");
-  const [read, setRead] = useState("all");
-  const [status, setStatus] = useState("all");
-  const [tag, setTag] = useState("all");
-  const [box, setBox] = useState<"inbox" | "archived" | "all">("inbox");
+  /** Deux boîtes seulement, comme une messagerie : la réception et les archives. Pas de filtres. */
+  const [box, setBox] = useState<"inbox" | "archived">("inbox");
   /** Archivages faits pendant cette visite : l'écran suit aussitôt, sans attendre le rechargement. */
   const [override, setOverride] = useState<Map<string, boolean>>(() => new Map());
   const isArchived = (x: ConversationView) => override.get(x.id) ?? x.archived;
@@ -265,22 +262,18 @@ export function Conversations({
     const needle = q.trim().toLowerCase();
     return view.threads.filter(
       (x) =>
-        (box === "all" || (box === "archived" ? isArchived(x) : !isArchived(x))) &&
-        (campaign === "all" || x.campaignId === campaign) &&
-        (read === "all" || (x.unread && !seen.has(x.id))) &&
-        (status === "all" || x.status === status) &&
-        (tag === "all" || x.tags.includes(tag)) &&
+        (box === "archived" ? isArchived(x) : !isArchived(x)) &&
         (!needle || `${x.domain} ${x.email}`.toLowerCase().includes(needle)),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- isArchived ne dépend que de `override`
-  }, [view.threads, campaign, read, status, tag, q, seen, box, override]);
+  }, [view.threads, q, box, override]);
   const archivedCount = view.threads.filter(isArchived).length;
   const archive = (id: string, on: boolean) => {
     const at = rows.findIndex((x) => x.id === id);
     const next = rows[at + 1] ?? rows[at - 1] ?? null;
     setOverride((prev) => new Map(prev).set(id, on));
     // Le fil quitte la liste affichée : on passe au suivant (boîte à zéro).
-    if (box !== "all") setSelected(next && next.id !== id ? next.id : null);
+    setSelected(next && next.id !== id ? next.id : null);
   };
   const current = view.threads.find((x) => x.id === selected) ?? null;
   const open = (x: ConversationView) => {
@@ -296,76 +289,39 @@ export function Conversations({
   return (
     <Card className="overflow-hidden p-0">
       <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
-        {view.campaigns.length > 1 ? (
-          <select
-            aria-label={C.filters.campaign}
-            className={SELECT}
-            value={campaign}
-            onChange={(e) => setCampaign(e.target.value)}
-          >
-            <option value="all">{C.filters.allCampaigns}</option>
-            {view.campaigns.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-        ) : null}
-        <select
-          aria-label={C.filters.box}
-          className={SELECT}
-          value={box}
-          onChange={(e) => setBox(e.target.value as typeof box)}
-        >
-          <option value="inbox">{C.filters.inbox(view.threads.length - archivedCount)}</option>
-          <option value="archived">{C.filters.archivedBox(archivedCount)}</option>
-          <option value="all">{C.filters.allBox}</option>
-        </select>
-        <select
-          aria-label={C.filters.read}
-          className={SELECT}
-          value={read}
-          onChange={(e) => setRead(e.target.value)}
-        >
-          <option value="all">{C.filters.allRead}</option>
-          <option value="unread">{C.filters.unread}</option>
-        </select>
-        <select
-          aria-label={C.filters.status}
-          className={SELECT}
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-        >
-          <option value="all">{C.filters.allStatus}</option>
-          {THREAD_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {C.status[s]}
-            </option>
-          ))}
-        </select>
-        {view.tags.length > 0 ? (
-          <select
-            aria-label={C.filters.tag}
-            className={SELECT}
-            value={tag}
-            onChange={(e) => setTag(e.target.value)}
-          >
-            <option value="all">{C.filters.allTags}</option>
-            {view.tags.map((x) => (
-              <option key={x} value={x}>
-                {x}
-              </option>
-            ))}
-          </select>
-        ) : null}
         <input
           type="search"
           aria-label={C.filters.search}
           placeholder={C.filters.search}
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          className={`${SELECT} min-w-[10rem] flex-1`}
+          className="h-10 min-w-[10rem] flex-1 rounded-full border border-border bg-muted px-4 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
+        <div role="group" aria-label={C.filters.box} className="flex gap-1">
+          {(
+            [
+              ["inbox", C.filters.inbox(view.threads.length - archivedCount)],
+              ["archived", C.filters.archivedBox(archivedCount)],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={box === key}
+              onClick={() => {
+                setBox(key);
+                setSelected(null);
+              }}
+              className={`h-10 rounded-full px-4 text-sm font-semibold ${
+                box === key
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="grid lg:grid-cols-[22rem_minmax(0,1fr)]">
         <ul
@@ -387,36 +343,38 @@ export function Conversations({
                 type="button"
                 aria-current={x.id === selected ? "true" : undefined}
                 onClick={() => open(x)}
-                className={`flex w-full flex-col gap-1 px-3.5 py-3 text-left hover:bg-muted ${
-                  x.id === selected ? "lg:bg-primary/10" : ""
+                className={`grid w-full grid-cols-[minmax(0,10rem)_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5 text-left hover:bg-muted ${
+                  x.id === selected ? "lg:bg-accent" : ""
                 }`}
               >
-                <span className="flex items-center justify-between gap-2">
-                  <span className="flex min-w-0 items-center gap-1.5 font-semibold">
-                    {x.unread && !seen.has(x.id) ? (
-                      <span
-                        title={C.filters.unread}
-                        className="size-2 shrink-0 rounded-full bg-info"
-                      />
-                    ) : null}
-                    <span className="truncate">{x.domain}</span>
-                  </span>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {new Date(x.lastAt).toLocaleDateString("fr-FR", {
-                      day: "numeric",
-                      month: "short",
-                    })}
+                <span className="flex min-w-0 items-center gap-2">
+                  {x.unread && !seen.has(x.id) ? (
+                    <span
+                      title={C.filters.unread}
+                      className="size-2 shrink-0 rounded-full bg-primary"
+                    />
+                  ) : (
+                    <span aria-hidden className="size-2 shrink-0" />
+                  )}
+                  <span
+                    className={`truncate text-sm ${
+                      x.unread && !seen.has(x.id) ? "font-bold" : "font-medium"
+                    }`}
+                  >
+                    {x.domain}
                   </span>
                 </span>
-                <span className="truncate text-sm text-muted-foreground">{x.preview}</span>
-                <span className="flex flex-wrap gap-1.5">
-                  <Badge tone={TONE[x.status]}>{C.status[x.status]}</Badge>
-                  {x.category ? <Badge tone="neutral">{x.category}</Badge> : null}
-                  {x.tags.map((g) => (
-                    <Badge key={g} tone="info">
-                      {g}
-                    </Badge>
-                  ))}
+                <span className="flex min-w-0 items-baseline gap-2">
+                  <span className="shrink-0">
+                    <Badge tone={TONE[x.status]}>{C.status[x.status]}</Badge>
+                  </span>
+                  <span className="truncate text-sm text-muted-foreground">{x.preview}</span>
+                </span>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {new Date(x.lastAt).toLocaleDateString("fr-FR", {
+                    day: "numeric",
+                    month: "short",
+                  })}
                 </span>
               </button>
             </li>
