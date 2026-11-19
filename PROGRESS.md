@@ -2958,3 +2958,42 @@ pnpm typecheck && pnpm lint
 ```
 
 ### Prochain sous-jalon recommandé : MQ.7 (pilote mesuré) après les premières réponses réelles ; avant, les essais en direct de MQ.3 sur deux sites de thèmes différents (Jonathan lance).
+
+## Session du 19/11 (suite 7) : MQ.7, préparation du pilote (lot non construit, décision en attente)
+
+Sous-jalon `PLAN.md > MQ.7`. Branche `mq.7-pilote-mesure` (depuis `origin/main` à jour, après #214). **0 USD d'API** : aucune requête payante, aucun LLM, aucun envoi, aucun compte saisi. `SNOWBALL_DEEP_ENABLED` reste coupé.
+
+### Prérequis vérifiés (19/11, sur `main`)
+
+- MQ.1 (#206), MQ.4 (#209 puis #211), MQ.5 (#210), MQ.6 (#213) fusionnées. MQ.2 (#207) et MQ.3 (#212) aussi.
+
+### Ce que dit la base réelle (lecture seule, projet `ivjkwhhgtibewqzccvrj`)
+
+- `qualified_targets` : 759 lignes, toutes au niveau 0. Pistes : `content` 371, `serp` 302, `intersection` 60, `mention` 24, `citation` 2. Aucune au niveau 1.
+- Contacts : **3 adresses vérifiées et envoyables**, 9 à vérifier (`email_a_verifier`), 20 `email_invalide`, 16 seulement par formulaire (tâches manuelles), le reste sans contact.
+- `target_drafts` 0, `target_contacts` 0, `batch_items` 0, `sent_messages` 0, `inbound_messages` 0, `links` 0, `site_pages` 0, `site_catalogue` 0.
+
+**Conséquence : un lot de 100 messages envoyables n'existe pas, et ne peut pas être construit sans dépense.** Il faudrait, avant tout brouillon :
+1. une recherche d'emails sur les cibles sans contact (finder payant, à annoncer) ;
+2. des brouillons LLM pour chaque cible retenue (coût par brouillon à mesurer sur 5 cibles avant de lancer le lot) ;
+3. si l'on veut 4 à 5 types de sites et le niveau 1 de la boule de neige, des audits DataForSEO supplémentaires (coût à annoncer, plafonné).
+
+Les 28 cibles avec une adresse ne sont pas un lot : 6 ont un contact vérifié ou à vérifier avec un accroche honnête ; plusieurs accroches sont vides ou hors sujet (ex. `coloriages.ai` cité comme ressource alors qu'il paraît être un concurrent direct ; une cible `bayard-presse.com` de type média ; des accroches au titre de page seul). À trier à la main avant tout brouillon.
+
+### Ce qui n'est pas fait (volontairement)
+
+- **Pas de lot de 100 messages** et donc pas de présentation de lot à Jonathan : la liste courte serait de 3 cibles, ce qui n'est pas un pilote.
+- **Suivi 30 jours** : le tableau par piste, niveau et type de site existe (`src/features/targets/tracking.ts`, MQ.1) mais n'a pas de fenêtre de 30 jours. Ajout reporté : sans envoi, il ne mesurerait rien.
+- **Boule de neige profonde** : pas branchée, interrupteur coupé. Le niveau 1 n'a pas été lancé.
+
+### Décision écrite demandée (acceptation MQ.7), à prendre par Jonathan
+
+Options proposées, en attente de réponse écrite :
+- **Pistes** : `serp` et `content` en premier (plus gros volume), `citation` et `mention` ensuite si le pilote le justifie.
+- **Types de sites** : écoles, blogs, associations, e-commerces, médias (à confirmer avec le volume réel ; `media` et `autre` à exclure par défaut).
+- **Profondeur de boule de neige** : niveau 0 seul pour le pilote ; niveau 1 seulement après relecture de 20 cibles par site.
+- **Taille du pilote** : commencer par un lot de 20 après recherche d'emails et relecture, puis passer à 100 si le taux de contact est bon.
+
+### Prochain sous-jalon recommandé
+
+Décision de Jonathan sur les pistes et le coût des contacts et des brouillons, puis : recherche d'emails sur les cibles `serp` et `content` sans contact (annoncer le coût), brouillons de 5 cibles pour mesurer le coût réel, lot de 20 relu à la main. Ensuite la fenêtre de 30 jours dans `tracking.ts`.
