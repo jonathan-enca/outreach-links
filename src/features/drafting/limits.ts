@@ -46,12 +46,14 @@ export const DRAFT_LIMITS = {
 } as const;
 
 /**
- * Modèles de la rédaction (décision de Jonathan, 17/11/2026, après essai sur 20 cibles) : le petit
+ * Modèles de la rédaction. Rédaction passée à Haiku 5.5 le 19/11/2026 (décision de Jonathan, coût : ~0,06 USD
+ * par message avec Opus, ~40 fois moins avec Haiku ; qualité à relire). Avant : Opus 5.5 (17/11/2026, après essai
+ * sur 20 cibles) : le petit
  * modèle trie, le modèle fort rejuge et rédige. Sur ces 20 cibles, les modèles intermédiaire et fort
  * ont rendu les mêmes verdicts ; le petit a retenu 4 angles en trop mais n'en a manqué aucun.
  * Hors Anthropic (développement), le modèle par défaut du fournisseur sert aux deux étapes.
  */
 export const DRAFT_MODELS = {
   triage: "claude-haiku-5-5",
-  writer: "claude-opus-5-5",
+  writer: "claude-haiku-5-5",
 } as const;
