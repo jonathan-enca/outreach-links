@@ -58,10 +58,12 @@ export async function runReplyTick(deps: ReplyDeps): Promise<ReplyOutcome[]> {
   const { data: boxes, error } = await db.from("mailboxes").select("*").eq("status", "verifiee");
   if (error) throw new Error(error.message);
   const out: ReplyOutcome[] = [];
+  // Les boîtes Google sont en envoi seul : leurs réponses arrivent dans la boîte perso de l'utilisateur.
   for (const box of (boxes ??
     []) as unknown as (Database["public"]["Tables"]["mailboxes"]["Row"] & {
     password_enc: string;
   })[]) {
+    if (box.provider === "google") continue;
     try {
       out.push(await readMailbox(db, box, deps));
     } catch (e) {
