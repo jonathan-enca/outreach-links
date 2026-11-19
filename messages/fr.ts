@@ -2596,6 +2596,11 @@ export const fr = {
       steps: {
         title: "Vos premiers liens",
         progress: (done: number, total: number) => `${done} sur ${total} faits`,
+        searchConsole: "Connectez la Search Console",
+        searchConsoleDone: "Search Console connectée",
+        searchConsoleHint:
+          "Facultatif, fortement conseillé : vos vraies requêtes et pages orientent les cibles. Lecture seule.",
+        optional: "Facultatif",
         campaign: "Créez votre première campagne",
         campaignDone: "Campagne créée",
         campaignHint: "Nous analysons votre site et trouvons les sites à contacter.",
@@ -2605,10 +2610,11 @@ export const fr = {
         mailbox: "Connectez votre boîte d'envoi",
         mailboxDone: "Boîte d'envoi connectée",
         mailboxHint: "Les messages partent de votre adresse, à un rythme régulier.",
-        send: "Envoyez votre premier lot",
-        sendDone: "Premier lot envoyé",
+        send: "Envoyer des emails",
+        sendDone: "Premiers emails envoyés",
         sendHint: "Vous relisez chaque message avant qu'il parte.",
         go: {
+          searchConsole: "Connecter",
           campaign: "Commencer",
           validate: "Voir les cibles",
           mailbox: "Connecter",

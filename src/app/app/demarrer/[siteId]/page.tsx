@@ -10,7 +10,9 @@ import { Card } from "@/components/ui/card";
 import { launchJourneyAction, saveCorrectionsAction } from "@/features/onboarding/actions";
 import { LaunchPanel } from "@/features/onboarding/launch-panel";
 import { getLaunchPreview } from "@/features/onboarding/service";
+import { FirstLinksPanel } from "@/features/shell/first-links-panel";
 import { JourneySteps } from "@/features/shell/journey-steps";
+import { loadOverview } from "@/features/shell/overview";
 import { siteHref } from "@/features/shell/next-step";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
@@ -22,7 +24,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 async function Review({ params }: { params: Promise<{ siteId: string }> }) {
   const { siteId } = await params;
   if (!UUID.test(siteId)) notFound();
-  const preview = await getLaunchPreview(await createClient(), siteId);
+  const supabase = await createClient();
+  const preview = await getLaunchPreview(supabase, siteId);
   if (!preview) notFound();
   if (preview.auditId) {
     return (
@@ -34,13 +37,19 @@ async function Review({ params }: { params: Promise<{ siteId: string }> }) {
       </Card>
     );
   }
+  const overview = await loadOverview(supabase, null);
   return (
-    <LaunchPanel
-      preview={preview}
-      action={launchJourneyAction.bind(null, siteId)}
-      saveAction={saveCorrectionsAction.bind(null, siteId)}
-      emailEnabled={ANALYSIS_EMAIL_VERIFIED && Boolean(env.RESEND_API_KEY)}
-    />
+    <>
+      <LaunchPanel
+        preview={preview}
+        action={launchJourneyAction.bind(null, siteId)}
+        saveAction={saveCorrectionsAction.bind(null, siteId)}
+        emailEnabled={ANALYSIS_EMAIL_VERIFIED && Boolean(env.RESEND_API_KEY)}
+      />
+      <div className="mt-6">
+        <FirstLinksPanel o={overview} />
+      </div>
+    </>
   );
 }
 
