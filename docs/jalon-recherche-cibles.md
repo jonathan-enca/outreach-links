@@ -8,32 +8,33 @@
 
 Dans la campagne mesurée, l'appel « qui cite ce site ? » est le seul canal qui produit des cibles de liste courte à partir de sites tiers. Il est aujourd'hui limité à 6 sites par niveau.
 
-| Chiffre | Ce qu'il mesure | Source |
-|---|---|---|
-| 76 | Cibles de liste courte du niveau 0, toutes pistes confondues (56 en citation, 11 en contenu, 4 en SERP, 2 en intersection, 2 en liens morts, 1 en requête de contenu) | `qualified_targets` |
-| 420 | Sites distincts cités par les liens sortants de ces 76 pages (lecture gratuite) | `page.cites.links` |
-| 69 | Parmi les 420, sites cités par au moins 2 de ces pages (17 par au moins 3) | Calcul sur les liens sortants, **avant** les filtres du code |
-| 60 | Les 60 sites les plus cités montrés au modèle (tri par nombre de citations, puis alphabétique) | `src/features/snowball/seeds.ts` |
-| 6 | Sites réellement interrogés au niveau 1 (« qui cite ce site ? ») | `maxResources` |
-| 403 | Pages candidates trouvées pour ces 6 sites, après filtres spam et autorité (environ 67 par site) | `collection_candidates` |
-| 12 | Cibles de liste courte issues de ces 403 (environ 2 par site) | `qualified_targets` |
+| Chiffre | Ce qu'il mesure                                                                                                                                                       | Source                                                       |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| 76      | Cibles de liste courte du niveau 0, toutes pistes confondues (56 en citation, 11 en contenu, 4 en SERP, 2 en intersection, 2 en liens morts, 1 en requête de contenu) | `qualified_targets`                                          |
+| 420     | Sites distincts cités par les liens sortants de ces 76 pages (lecture gratuite)                                                                                       | `page.cites.links`                                           |
+| 69      | Parmi les 420, sites cités par au moins 2 de ces pages (17 par au moins 3)                                                                                            | Calcul sur les liens sortants, **avant** les filtres du code |
+| 60      | Les 60 sites les plus cités montrés au modèle (tri par nombre de citations, puis alphabétique)                                                                        | `src/features/snowball/seeds.ts`                             |
+| 6       | Sites réellement interrogés au niveau 1 (« qui cite ce site ? »)                                                                                                      | `maxResources`                                               |
+| 403     | Pages candidates trouvées pour ces 6 sites, après filtres spam et autorité (environ 67 par site)                                                                      | `collection_candidates`                                      |
+| 12      | Cibles de liste courte issues de ces 403 (environ 2 par site)                                                                                                         | `qualified_targets`                                          |
 
 **Le goulot d'étranglement est le nombre de sites interrogés**, pas le tri : 6 sites sur 420 sont testés.
 
 Autres constats :
+
 - La Search Console est branchée (20 h 39 UTC le 19/11) et lue au lancement : 100 requêtes, 100 pages. Seules les 4 requêtes les plus cliquées (au moins 10 impressions) servent à des recherches Google ; elles ont donné 1 cible de liste courte sur 20 (13 en réserve, 6 exclues). Les 100 pages ne servent à rien dans la recherche de cibles.
 - Le mode différé existe pour la SERP seulement (0,0006 USD par page, contre 0,002 en direct). Testé le 19/11 : 0,0006 USD, résultat prêt après 38 secondes. Pour les backlinks, DataForSEO ne propose que le mode direct.
 
 ## 2. Coûts unitaires (USD)
 
-| Poste | Prix | Remarque |
-|---|---|---|
-| Appel « qui cite ce site ? » (backlinks, live) | 0,024 par requête + 0,000036 par ligne | 150 lignes = 0,029. Le forfait domine : une requête par site, pas une par ligne. |
-| SERP, mode direct | 0,002 par page de 10 résultats | Utilisé aujourd'hui. |
-| SERP, mode différé (task_post puis task_get) | 0,0006 par page | Économie d'environ 0,15 USD sur 35 requêtes. |
-| `bulk_referring_domains` (pré-tri) | Prix non publié sur la page de la doc ; hypothèse : 0,024 par requête + 0,000036 par cible renvoyée | Jusqu'à 1 000 sites par requête ; renvoie seulement des totaux (nombre de domaines citants), pas les pages. |
-| Jugement LLM d'une page | environ 0,0016 en direct | Mode lots (API par lots) : tarif réduit de moitié, déjà codé pour l'arrière-plan (`LLM_BATCH_JUDGEMENT`). |
-| Requête Google en différé | 0,0006 | Pour les requêtes de contenu et les requêtes Search Console. |
+| Poste                                          | Prix                                                                                                | Remarque                                                                                                    |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Appel « qui cite ce site ? » (backlinks, live) | 0,024 par requête + 0,000036 par ligne                                                              | 150 lignes = 0,029. Le forfait domine : une requête par site, pas une par ligne.                            |
+| SERP, mode direct                              | 0,002 par page de 10 résultats                                                                      | Utilisé aujourd'hui.                                                                                        |
+| SERP, mode différé (task_post puis task_get)   | 0,0006 par page                                                                                     | Économie d'environ 0,15 USD sur 35 requêtes.                                                                |
+| `bulk_referring_domains` (pré-tri)             | Prix non publié sur la page de la doc ; hypothèse : 0,024 par requête + 0,000036 par cible renvoyée | Jusqu'à 1 000 sites par requête ; renvoie seulement des totaux (nombre de domaines citants), pas les pages. |
+| Jugement LLM d'une page                        | environ 0,0016 en direct                                                                            | Mode lots (API par lots) : tarif réduit de moitié, déjà codé pour l'arrière-plan (`LLM_BATCH_JUDGEMENT`).   |
+| Requête Google en différé                      | 0,0006                                                                                              | Pour les requêtes de contenu et les requêtes Search Console.                                                |
 
 ## 3. Pipeline proposé
 
@@ -59,13 +60,13 @@ Autres constats :
 
 Hypothèses : coûts fixes de la campagne après économie différée d'environ 0,35 USD ; pré-tri à 0,04 USD ; 20 pages jugées par site ; rendement entre 1 et 2 cibles de liste courte par site (fourchette observée sur 6 sites, probablement haute).
 
-| Sites interrogés (N) | DataForSEO | Total avec pré-tri | Cibles de liste courte attendues | Coût par cible |
-|---|---|---|---|---|
-| 6 (aujourd'hui, pour mémoire) | 0,2 | ≈ 1,5 (sans pré-tri, avec SERP en direct : 1,51 réel) | 12 | ≈ 0,12 |
-| 20 | 0,6 | ≈ 1,6 | 20 à 40 | ≈ 0,05 |
-| 30 | 0,9 | ≈ 2,2 | 30 à 60 | ≈ 0,05 |
-| 40 | 1,2 | ≈ 2,8 | 40 à 80 | ≈ 0,05 |
-| 50 | 1,5 | ≈ 3,4 | 50 à 100 | ≈ 0,05 |
+| Sites interrogés (N)          | DataForSEO | Total avec pré-tri                                    | Cibles de liste courte attendues | Coût par cible |
+| ----------------------------- | ---------- | ----------------------------------------------------- | -------------------------------- | -------------- |
+| 6 (aujourd'hui, pour mémoire) | 0,2        | ≈ 1,5 (sans pré-tri, avec SERP en direct : 1,51 réel) | 12                               | ≈ 0,12         |
+| 20                            | 0,6        | ≈ 1,6                                                 | 20 à 40                          | ≈ 0,05         |
+| 30                            | 0,9        | ≈ 2,2                                                 | 30 à 60                          | ≈ 0,05         |
+| 40                            | 1,2        | ≈ 2,8                                                 | 40 à 80                          | ≈ 0,05         |
+| 50                            | 1,5        | ≈ 3,4                                                 | 50 à 100                         | ≈ 0,05         |
 
 À titre de comparaison : sans pré-tri, le jugement de 67 pages par site ferait environ 0,11 USD par site de plus.
 

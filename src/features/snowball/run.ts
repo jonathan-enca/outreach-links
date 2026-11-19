@@ -34,11 +34,7 @@ export const SNOWBALL_PARALLEL = 3;
 
 export type SnowballBy = "graines" | "repli" | "aucune";
 export type SnowballStop =
-  | "sans_modele"
-  | "aucune_ressource"
-  | "plafond"
-  | "budget_phase"
-  | "termine";
+  "sans_modele" | "aucune_ressource" | "plafond" | "budget_phase" | "termine";
 
 /** Ce que la phase a fait, compté pour l'écran, le coût et la mesure. Sérialisable. */
 export interface SnowballStats {
@@ -193,9 +189,7 @@ export async function executeSnowball(
     return out;
   };
 
-  let seeds = input.skipSeeds
-    ? []
-    : rankSeeds(seedCandidates(input.pages, ctx, input.used));
+  let seeds = input.skipSeeds ? [] : rankSeeds(seedCandidates(input.pages, ctx, input.used));
   stats.targetPages = input.pages.filter(isTargetPage).length;
 
   // Pré-tri (MR.1) : taille des sites citants en lots de 100, seuils gratuits, puis classement.

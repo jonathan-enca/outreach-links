@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ResourceCandidate } from "@/features/collection/resource-judge";
-import {
-  normalizeDomain,
-  prescreenSeeds,
-  rankSeeds,
-  withReferringDomains,
-} from "./prescreen";
+import { normalizeDomain, prescreenSeeds, rankSeeds, withReferringDomains } from "./prescreen";
 
 const cand = (domain: string, over: Partial<ResourceCandidate> = {}): ResourceCandidate => ({
   domain,
@@ -112,7 +107,9 @@ describe("mr1Settings", () => {
         SNOWBALL_PHASE_CAP_USD: "3",
       }),
     ).toEqual({ max: 20, rowsPerCall: 1000, prescreen: true, phaseCapUsd: 3 });
-    expect(mr1Settings({ SNOWBALL_MAX_RESOURCES: "abc", SNOWBALL_PHASE_CAP_USD: "-1" })).toMatchObject({
+    expect(
+      mr1Settings({ SNOWBALL_MAX_RESOURCES: "abc", SNOWBALL_PHASE_CAP_USD: "-1" }),
+    ).toMatchObject({
       max: undefined,
       phaseCapUsd: undefined,
     });
