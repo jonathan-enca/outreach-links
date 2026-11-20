@@ -3,12 +3,18 @@ import { languageVersionHref, parseHtml } from "@/features/triage/page-reader";
 import { brandSystem } from "@/features/brand/generate";
 import { MARKETS, MARKET_COUNTRIES, serpLocation, sortedByLabel } from "./market";
 import { t } from "@/lib/messages";
+import { COUNTRIES } from "./schema";
 
 describe("liste des pays : français et anglais, triée", () => {
   it("retient les principaux marchés, Australie comprise, sans Monaco", () => {
     expect([...MARKET_COUNTRIES].sort()).toEqual(["AU", "BE", "CA", "CH", "FR", "GB", "LU", "US"]);
     expect(serpLocation("AU", "en")).toEqual({ location_code: 2036, language_code: "en" });
     for (const code of MARKET_COUNTRIES) expect(t.sites.countries[code]).toBeTruthy();
+  });
+
+  it("un site ne peut plus être enregistré dans un pays retiré (Monaco)", () => {
+    expect(COUNTRIES).not.toContain("MC");
+    expect(COUNTRIES).toContain("AU");
   });
 
   it("les listes s'affichent dans l'ordre alphabétique des libellés, pas dans l'ordre du code", () => {
