@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { AppNav } from "@/components/app-nav";
 import { MobileBack } from "@/features/shell/mobile-back";
 import { loadOverview } from "@/features/shell/overview";
+import { targetsMenuState } from "@/features/targets/service";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 import { ALL_SITES, selectedSiteId } from "@/features/shell/current-site";
@@ -19,7 +20,10 @@ async function Nav() {
     supabase.auth.getUser(),
     selectedSiteId(supabase),
   ]);
-  const overview = await loadOverview(supabase, siteId);
+  const [overview, cibles] = await Promise.all([
+    loadOverview(supabase, siteId),
+    siteId ? targetsMenuState(supabase, siteId).catch(() => null) : Promise.resolve(null),
+  ]);
   const p = overview.pending;
   const sites = overview.sites;
   const currentSite = siteId ?? ALL_SITES;
@@ -28,7 +32,12 @@ async function Nav() {
       sites={sites}
       currentSite={currentSite}
       selectSite={selectSite}
-      counts={{ toValidate: p.drafts + p.replies + p.forms, conversations: p.replies }}
+      counts={{
+        toValidate: p.drafts + p.replies + p.forms,
+        conversations: p.replies,
+        toDecide: cibles?.toDecide ?? 0,
+        targetsDone: cibles?.done ?? false,
+      }}
       email={auth.user?.email ?? null}
       signOut={signOut}
     />

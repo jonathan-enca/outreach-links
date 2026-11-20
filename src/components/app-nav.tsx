@@ -27,6 +27,9 @@ export interface NavCounts {
   toValidate: number;
   /** Réponses à traiter. */
   conversations: number;
+  /** Étape « Cibles » du site choisi : sites encore à décider, et coche quand tout est retenu. */
+  toDecide?: number;
+  targetsDone?: boolean;
 }
 
 interface Item {
@@ -44,6 +47,8 @@ interface Item {
   short?: string;
   /** Numéro de l'étape de la campagne (1, 2, 3) : affiché dans une pastille. */
   step?: number;
+  /** Étape terminée : la pastille montre une coche verte à la place du numéro. */
+  done?: boolean;
 }
 
 /**
@@ -138,6 +143,8 @@ export function AppNav({
           icon: CheckSquare,
           step: 1,
           active: starts("/app/cibles") || starts("/app/taches") || /\/cibles$/.test(pathname),
+          count: counts.toDecide,
+          done: counts.targetsDone,
           mobile: true,
         },
         {
@@ -303,7 +310,7 @@ export function AppNav({
             ) : null}
             {g.items
               .filter((i) => !i.mobileOnly)
-              .map(({ key, href, label, icon: Icon, active, count, step }) => (
+              .map(({ key, href, label, icon: Icon, active, count, step, done }) => (
                 <Link
                   key={key}
                   href={href}
@@ -320,12 +327,14 @@ export function AppNav({
                       aria-hidden
                       className={cn(
                         "grid size-5 shrink-0 place-items-center rounded-full border text-[11px] font-semibold",
-                        active
-                          ? "border-sidebar-accent bg-sidebar-accent text-sidebar"
-                          : "border-sidebar-label",
+                        done
+                          ? "border-[#4ade80] bg-[#4ade80] text-[#052e16]"
+                          : active
+                            ? "border-sidebar-accent bg-sidebar-accent text-sidebar"
+                            : "border-sidebar-label",
                       )}
                     >
-                      {step}
+                      {done ? <Check className="size-3" strokeWidth={3} /> : step}
                     </span>
                   ) : (
                     <Icon aria-hidden className="size-4 shrink-0" />

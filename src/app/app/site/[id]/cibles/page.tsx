@@ -6,6 +6,7 @@ import { Target } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { draftAnywayAction, draftMissingAction } from "@/features/approvals/actions";
 import { legacyChainEnabled } from "@/features/audits/chain";
 import { JourneySteps } from "@/features/shell/journey-steps";
 import { loadAnalysisSnapshot } from "@/features/analysis/status";
@@ -19,7 +20,7 @@ import {
   startQualificationAction,
   validateRequestsAction,
 } from "@/features/targets/actions";
-import { loadTargets } from "@/features/targets/service";
+import { loadTargets, targetsLead } from "@/features/targets/service";
 import { TargetsScreen } from "@/features/targets/targets-screen";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
@@ -71,7 +72,7 @@ async function Targets({ params }: { params: Promise<{ id: string }> }) {
   if (!view) notFound();
   return (
     <>
-      <PageHeader title={t.targets.title} description={t.targets.description} />
+      <PageHeader title={t.targets.title} description={targetsLead(view)} />
       <TargetsScreen
         view={view}
         auditId={auditId}
@@ -83,6 +84,8 @@ async function Targets({ params }: { params: Promise<{ id: string }> }) {
           saveSettings: saveMessageSettingsAction.bind(null, auditId),
           validate: validateRequestsAction.bind(null, auditId),
           readMore: readMoreAction.bind(null, auditId),
+          draftMissing: draftMissingAction.bind(null, id),
+          draftAnyway: draftAnywayAction,
         }}
       />
     </>

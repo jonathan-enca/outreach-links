@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ExternalLink, FileText, Globe, Link2, Mail, MessageSquareText, Tag } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -9,9 +10,22 @@ import { Card } from "@/components/ui/card";
 import { formatUsd } from "@/features/audits/format";
 import type { AuditActionState } from "@/features/audits/service";
 import { t } from "@/lib/messages";
-import { cardTactics, eligibleIds, isEligible, primaryRequest, primaryTactic } from "./cards";
+import {
+  cardTactics,
+  countStates,
+  eligibleIds,
+  isEligible,
+  primaryRequest,
+  primaryTactic,
+} from "./cards";
 import { remainingMinutes, roundedMinutes } from "./live";
-import { FOUNDER_ROLES, type FindingView, type TargetCard, type TargetsRunView } from "./types";
+import {
+  FOUNDER_ROLES,
+  type FindingView,
+  type MessageState,
+  type TargetCard,
+  type TargetsRunView,
+} from "./types";
 import type { TargetsView } from "./service";
 
 const M = t.targets;
@@ -990,6 +1004,343 @@ export function LiveBanner({
   );
 }
 
+const A = M.after;
+const APPROVE_HREF = "/app/a-valider";
+const EMAILS_HREF = "/app/envois";
+
+/**
+ * Carte d'avancement (maquette `docs/mockups/cibles-apres-validation.html`) : le lien entre « Cibles »
+ * et « À approuver ». Pendant la rédaction, on peut relire les premiers messages sans attendre.
+ */
+export function ProgressCard({
+  counts,
+  total,
+  toDecide,
+  onDraftMissing,
+  draftPending,
+}: {
+  counts: Record<MessageState, number>;
+  total: number;
+  toDecide: number;
+  onDraftMissing: () => void;
+  draftPending: boolean;
+}) {
+  const ready = counts.a_relire;
+  const writing = counts.en_redaction;
+  const waiting = counts.a_rediger;
+  const written = total - writing - waiting;
+  const done = writing === 0 && waiting === 0;
+  const pct = (n: number) => `${(n / Math.max(total, 1)) * 100}%`;
+  let title: string;
+  let body: string;
+  let action: React.ReactNode;
+  const btn = "h-11 w-full shrink-0 sm:h-10 sm:w-auto";
+  if (writing > 0) {
+    title = A.writingTitle(written, total);
+    body = A.writingBody;
+    action =
+      ready > 0 ? (
+        <Button asChild className={btn}>
+          <Link href={APPROVE_HREF}>{A.readSome(ready)}</Link>
+        </Button>
+      ) : (
+        <Button type="button" disabled className={btn}>
+          {A.firstSoon}
+        </Button>
+      );
+  } else if (waiting > 0) {
+    title = A.waitingTitle(waiting);
+    body = A.waitingBody;
+    action = (
+      <Button type="button" className={btn} disabled={draftPending} onClick={onDraftMissing}>
+        {draftPending ? M.validate.busy : A.draftMissing(waiting)}
+      </Button>
+    );
+  } else if (ready > 0) {
+    title = A.readyTitle(ready);
+    body = A.readyBody;
+    action = (
+      <Button asChild className={btn}>
+        <Link href={APPROVE_HREF}>{A.readAll}</Link>
+      </Button>
+    );
+  } else {
+    title = A.doneTitle;
+    body = A.doneBody;
+    action = (
+      <Button asChild variant="outline" className={btn}>
+        <Link href={EMAILS_HREF}>{A.seeEmails}</Link>
+      </Button>
+    );
+  }
+  const keys: { n: number; label: string; swatch: string }[] = [
+    { n: ready, label: A.keys.ready, swatch: "bg-primary" },
+    { n: counts.approuve, label: A.keys.approved, swatch: "bg-success" },
+    { n: writing, label: A.keys.writing, swatch: "bg-primary/25" },
+    { n: waiting, label: A.keys.waiting, swatch: "bg-muted-foreground/30" },
+    { n: counts.refuse, label: A.keys.refused, swatch: "bg-warning/30" },
+  ];
+  const next: React.ReactNode[] = [];
+  if (toDecide > 0)
+    next.push(
+      <span key="d">
+        {A.nextDecide(toDecide)}{" "}
+        <a href="#a-decider" className="font-medium text-primary hover:underline">
+          {A.nextDecideLink}
+        </a>
+      </span>,
+    );
+  if (counts.refuse > 0)
+    next.push(
+      <span key="r">
+        {A.nextRefused(counts.refuse)}{" "}
+        <a href="#retenues" className="font-medium text-primary hover:underline">
+          {A.nextRefusedLink}
+        </a>
+      </span>,
+    );
+  return (
+    <Card
+      role="region"
+      aria-label={A.region}
+      data-testid="drafting-progress"
+      className={`grid gap-x-6 gap-y-3.5 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-5 ${done ? "border-success/30 bg-gradient-to-b from-success/5 to-card to-70%" : ""}`}
+    >
+      <div className="min-w-0">
+        <h2 className="font-display text-lg font-semibold" aria-live="polite">
+          {title}
+        </h2>
+        <p className="mt-0.5 text-[14.5px] text-muted-foreground text-pretty">{body}</p>
+      </div>
+      {action}
+      <div className="flex flex-col gap-2 sm:col-span-2">
+        <div
+          role="progressbar"
+          aria-label={A.bar}
+          aria-valuemin={0}
+          aria-valuemax={total}
+          aria-valuenow={written}
+          className="flex h-2 overflow-hidden rounded-full bg-muted"
+        >
+          <span className="h-full bg-primary" style={{ width: pct(ready + counts.approuve) }} />
+          {writing > 0 ? (
+            <span
+              className="h-full animate-pulse bg-primary/25 motion-reduce:animate-none"
+              style={{ width: pct(writing) }}
+            />
+          ) : null}
+        </div>
+        <p className="flex flex-wrap gap-x-[18px] gap-y-1 text-[13.5px] text-muted-foreground">
+          {keys
+            .filter((k) => k.n > 0)
+            .map((k) => (
+              <span key={k.label} className="inline-flex items-center gap-1.5">
+                <span aria-hidden="true" className={`size-2.5 rounded-[3px] ${k.swatch}`} />
+                <strong className="font-semibold text-foreground tabular-nums">{k.n}</strong>
+                {k.label}
+              </span>
+            ))}
+        </p>
+      </div>
+      {next.length > 0 ? (
+        <p className="flex flex-wrap gap-x-4 gap-y-1.5 border-t border-border/60 pt-3 text-sm text-muted-foreground sm:col-span-2">
+          {next}
+        </p>
+      ) : null}
+    </Card>
+  );
+}
+
+/** Colonnes de « Retenues » sur écran large : site, demande, contact, message. */
+const KEPT_COLS = "xl:grid-cols-[minmax(10rem,1fr)_9.5rem_9.5rem_minmax(15rem,1.4fr)]";
+
+const STATE_TAG: Record<MessageState, string> = {
+  en_redaction: "",
+  a_rediger: "bg-muted text-foreground",
+  a_relire: "bg-info/10 text-info",
+  approuve: "bg-success/10 text-success",
+  refuse: "bg-warning/15 text-warning",
+};
+
+/** Le message d'une cible retenue : son état, et l'action qui va avec. */
+function MessageCell({
+  state,
+  onAnyway,
+  busy,
+}: {
+  state: MessageState;
+  onAnyway: () => void;
+  busy: boolean;
+}) {
+  const act =
+    "ml-auto shrink-0 text-[13.5px] font-medium whitespace-nowrap text-primary hover:underline";
+  return (
+    <div className="flex w-full items-center gap-2.5 text-sm">
+      {state === "en_redaction" ? (
+        <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+          <span
+            aria-hidden="true"
+            className="size-[7px] animate-pulse rounded-full bg-muted-foreground motion-reduce:animate-none"
+          />
+          {A.states.en_redaction}
+        </span>
+      ) : (
+        <span className={`${TAG} ${STATE_TAG[state]}`}>{A.states[state]}</span>
+      )}
+      {state === "a_relire" ? (
+        <Link href={APPROVE_HREF} className={act}>
+          {A.review}
+        </Link>
+      ) : null}
+      {state === "refuse" ? (
+        <button
+          type="button"
+          className={`${act} disabled:opacity-50`}
+          disabled={busy}
+          onClick={onAnyway}
+        >
+          {A.anyway}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+/** « Retenues » : chaque site retenu garde sa ligne, avec l'état de son message. */
+export function RetainedList({
+  cards,
+  messages,
+  onAnyway,
+  busy,
+}: {
+  cards: readonly TargetCard[];
+  messages: TargetsView["messages"];
+  onAnyway: (itemId: string) => void;
+  busy: boolean;
+}) {
+  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
+  const toggleOpen = (id: string) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  return (
+    <Card className="overflow-hidden p-0" data-testid="retained-list">
+      <div
+        aria-hidden="true"
+        className={`hidden border-b border-border bg-muted/60 text-[13px] font-medium text-muted-foreground xl:grid ${KEPT_COLS}`}
+      >
+        <HeadCell icon={Globe} className="flex">
+          {TB.site}
+        </HeadCell>
+        <HeadCell icon={Link2} className="flex">
+          {TB.request}
+        </HeadCell>
+        <HeadCell icon={Mail} className="flex">
+          {TB.contact}
+        </HeadCell>
+        <HeadCell icon={MessageSquareText} className="flex">
+          {A.messageColumn}
+        </HeadCell>
+      </div>
+      <ul>
+        {cards.map((c, i) => {
+          const req = primaryRequest(c);
+          const why = c.why ?? c.hook ?? req.lines[0] ?? "";
+          const isOpen = open.has(c.id);
+          const msg = messages[c.id];
+          const state = msg?.state ?? "en_redaction";
+          const ContactIcon = c.contact.kind === "formulaire" ? FileText : Mail;
+          return (
+            <li
+              key={c.id}
+              data-testid="retained-row"
+              className={`group grid cursor-pointer grid-cols-2 gap-y-1.5 border-b border-border px-3 py-2.5 last:border-b-0 hover:bg-muted/50 xl:gap-y-0 xl:p-0 ${KEPT_COLS}`}
+              onClick={(e) => {
+                if ((e.target as HTMLElement).closest("a,button")) return;
+                toggleOpen(c.id);
+              }}
+            >
+              <div className={`${CELL} relative col-span-2 flex items-center gap-2 xl:col-span-1`}>
+                <span
+                  aria-hidden="true"
+                  className={`flex size-5 shrink-0 items-center justify-center rounded-[5px] text-[11px] font-semibold uppercase ${INITIAL_TINTS[i % INITIAL_TINTS.length]}`}
+                >
+                  {c.domain.charAt(0)}
+                </span>
+                <span className="min-w-0 font-medium break-words xl:truncate" title={c.domain}>
+                  {c.domain}
+                </span>
+                <a
+                  href={c.pageUrl ?? `https://${c.domain}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={TB.openSiteLabel(c.domain)}
+                  className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-card px-1.5 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring xl:absolute xl:right-2 xl:opacity-0 xl:group-hover:opacity-100 xl:focus-visible:opacity-100"
+                >
+                  {TB.openSite}
+                  <ExternalLink aria-hidden="true" className="size-3" />
+                </a>
+              </div>
+              <div className={CELL}>
+                <span className={`${TAG} ${REQUEST_TAG[req.kind]}`}>
+                  {TB.requestTags[req.kind]}
+                </span>
+              </div>
+              <div
+                className={`${CELL} flex items-center gap-1.5 text-sm ${c.contact.kind === "email" && !c.contact.verified ? "text-warning" : "text-muted-foreground"}`}
+              >
+                <ContactIcon aria-hidden="true" className="size-3.5 shrink-0" />
+                <span className="truncate">{contactShort(c)}</span>
+              </div>
+              <div
+                className={`${CELL} col-span-2 flex-col items-stretch xl:col-span-1 ${isOpen ? "xl:items-stretch" : ""}`}
+              >
+                <MessageCell
+                  state={state}
+                  busy={busy}
+                  onAnyway={() => (msg ? onAnyway(msg.itemId) : undefined)}
+                />
+                {isOpen && why ? (
+                  <span className="mt-1 block text-sm text-muted-foreground text-pretty">
+                    {why}
+                  </span>
+                ) : null}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
+  );
+}
+
+/** Titre de section (« À décider », « Retenues ») avec son nombre et une consigne courte. */
+function SectionHead({
+  id,
+  title,
+  count,
+  hint,
+}: {
+  id: string;
+  title: string;
+  count: number;
+  hint: string;
+}) {
+  return (
+    <div id={id} className="flex scroll-mt-4 flex-wrap items-baseline gap-x-2.5 gap-y-1">
+      <h2 className="font-display text-lg font-semibold">{title}</h2>
+      <span className="rounded-full bg-muted px-2 text-[12.5px] text-muted-foreground tabular-nums">
+        {count}
+      </span>
+      <p className="basis-full text-[13.5px] text-muted-foreground sm:ml-auto sm:basis-auto">
+        {hint}
+      </p>
+    </div>
+  );
+}
+
 /** Filtres : une rangée qui défile au doigt sur téléphone, qui passe à la ligne sur écran large. */
 export function TargetsScreen({
   view,
@@ -1007,6 +1358,9 @@ export function TargetsScreen({
     saveSettings: (fd: FormData) => Promise<AuditActionState>;
     validate: (ids: string[]) => Promise<AuditActionState>;
     readMore: Act;
+    /** Après validation : relancer la rédaction des messages manquants, ou d'un message refusé. */
+    draftMissing?: Act;
+    draftAnyway?: (itemId: string) => Promise<AuditActionState>;
   };
 }) {
   // Cibles arrivées pendant la lecture d'arrière-plan : mises de côté jusqu'au clic de l'utilisateur, pour
@@ -1065,6 +1419,25 @@ export function TargetsScreen({
       for (const id of eligible) next.delete(id);
       return next;
     });
+  // Cibles retenues : elles restent à l'écran, avec l'état de leur message (plus d'écran vide).
+  const kept = useMemo(() => cards.filter((x) => x.alreadyValidated), [cards]);
+  const states = countStates(kept, view.messages);
+  const [dState, setDState] = useState<AuditActionState>({ status: "idle" });
+  const [dPending, startDraft] = useTransition();
+  const runDraft = (fn: (() => Promise<AuditActionState>) | undefined) =>
+    fn
+      ? startDraft(async () => {
+          setDState(await fn());
+          router.refresh();
+        })
+      : undefined;
+  // Pendant la rédaction, l'écran se met à jour seul (comme « À approuver »).
+  const drafting = view.drafting || states.en_redaction > 0;
+  useEffect(() => {
+    if (!drafting) return;
+    const id = setInterval(() => router.refresh(), 5000);
+    return () => clearInterval(id);
+  }, [drafting, router]);
   const c = view.collection;
   const qDone = q.status === "termine";
   const m = M.steps;
@@ -1175,10 +1548,25 @@ export function TargetsScreen({
           <Card className="p-6 text-muted-foreground">{M.list.empty}</Card>
         ) : (
           <>
-            {pending.length === 0 ? (
-              <Card className="p-6 text-muted-foreground">{M.list.allValidated}</Card>
-            ) : (
+            {kept.length > 0 ? (
+              <ProgressCard
+                counts={states}
+                total={kept.length}
+                toDecide={pending.length}
+                draftPending={dPending}
+                onDraftMissing={() => runDraft(actions.draftMissing)}
+              />
+            ) : null}
+            {pending.length === 0 ? null : (
               <>
+                {kept.length > 0 ? (
+                  <SectionHead
+                    id="a-decider"
+                    title={A.decideTitle}
+                    count={pending.length}
+                    hint={A.decideHint}
+                  />
+                ) : null}
                 <TargetList
                   cards={pending}
                   selected={selected}
@@ -1219,6 +1607,26 @@ export function TargetsScreen({
               </>
             )}
             <Message state={vState} />
+            {kept.length > 0 ? (
+              <div className="flex flex-col gap-2.5">
+                <SectionHead
+                  id="retenues"
+                  title={A.keptTitle}
+                  count={kept.length}
+                  hint={A.keptHint}
+                />
+                <RetainedList
+                  cards={kept}
+                  messages={view.messages}
+                  busy={dPending}
+                  onAnyway={(itemId) =>
+                    runDraft(actions.draftAnyway ? () => actions.draftAnyway!(itemId) : undefined)
+                  }
+                />
+                <p className="text-[13px] text-muted-foreground">{A.keptExplain}</p>
+                <Message state={dState} />
+              </div>
+            ) : null}
             {askSettings ? (
               <MessageSettingsForm
                 site={view.siteDomain}

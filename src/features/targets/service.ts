@@ -22,6 +22,7 @@ import {
   type FindingView,
   type FounderRole,
   type FunnelView,
+  type MessageState,
   type MoreView,
   type SkippedView,
   type TargetCard,
@@ -147,6 +148,10 @@ export interface TargetsView {
   findings: TargetsRunView & { preview: FindingsPreview | null; count: number };
   /** Liste courte, dans l'ordre du rang. */
   cards: TargetCard[];
+  /** État du message de chaque cible retenue (id de la cible → état), pour la section « Retenues ». */
+  messages: Record<string, RetainedMessage>;
+  /** Une rédaction tourne pour cette campagne : l'écran se met à jour seul. */
+  drafting: boolean;
   /** Cibles « mentions » sans contact (mention seulement) : visibles, jamais validées. */
   contactless: TargetCard[];
   /**
@@ -160,6 +165,114 @@ export interface TargetsView {
   /** Chantier G : ce que l'analyse a examiné, le stock, et l'état de « Lire d'autres sites ». */
   funnel: FunnelView | null;
   more: MoreView;
+}
+
+/**
+ * État du message d'une cible retenue (maquette `docs/mockups/cibles-apres-validation.html`) :
+ * approuvé, à relire, refusé par la personne, en rédaction, ou en attente d'une rédaction (plafond
+ * atteint, rédaction interrompue). Pur, testé.
+ */
+export function messageStateOf(x: {
+  draftStatus: string | null;
+  refused: boolean;
+  running: boolean;
+}): MessageState {
+  if (x.draftStatus === "valide") return "approuve";
+  if (x.draftStatus) return "a_relire";
+  if (x.refused) return "refuse";
+  return x.running ? "en_redaction" : "a_rediger";
+}
+
+/** Message d'une cible retenue : son état et l'élément de plan qui le porte (« Rédiger quand même »). */
+export interface RetainedMessage {
+  state: MessageState;
+  itemId: string;
+}
+
+/** Phrase d'introduction de l'écran Cibles : elle change dès qu'au moins une cible est retenue. */
+export function targetsLead(view: Pick<TargetsView, "cards">): string {
+  const kept = view.cards.filter((c) => c.alreadyValidated).length;
+  if (kept === 0) return t.targets.description;
+  const left = view.cards.length - kept;
+  return left > 0 ? t.targets.after.leadSome(left) : t.targets.after.leadAll;
+}
+
+/**
+ * Étape « Cibles » du menu pour le site choisi : sites encore à décider, et si toutes les cibles sont
+ * retenues (coche). Mêmes données que l'écran, pour que les deux disent le même nombre. Null sans
+ * analyse terminée.
+ */
+export async function targetsMenuState(
+  supabase: Client,
+  siteId: string,
+): Promise<{ toDecide: number; done: boolean } | null> {
+  const { data: audit } = await supabase
+    .from("audits")
+    .select("id, analysis_status, status")
+    .eq("site_id", siteId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!audit) return null;
+  const finished =
+    audit.analysis_status === "termine" ||
+    (audit.analysis_status === "aucun" && audit.status === "termine");
+  if (!finished) return null;
+  const view = await loadTargets(
+    supabase,
+    () => {
+      throw new Error("sans service");
+    },
+    audit.id,
+    { previews: false },
+  );
+  if (!view) return null;
+  const kept = view.cards.filter((c) => c.alreadyValidated).length;
+  const toDecide = view.cards.length - kept;
+  return { toDecide, done: kept > 0 && toDecide === 0 };
+}
+
+interface MessageStates {
+  byTarget: Record<string, RetainedMessage>;
+  drafting: boolean;
+}
+
+/** États des messages des cibles retenues : brouillons, refus de la personne et rédactions en cours. */
+async function loadMessageStates(
+  supabase: Client,
+  briefs: readonly { target_id: string | null; plan_item_id: string; plan_id: string }[],
+): Promise<MessageStates> {
+  const kept = briefs.filter((b) => b.target_id);
+  if (kept.length === 0) return { byTarget: {}, drafting: false };
+  const itemIds = kept.map((b) => b.plan_item_id);
+  const planIds = [...new Set(kept.map((b) => b.plan_id))];
+  const [drafts, refusals, runs] = await Promise.all([
+    supabase.from("target_drafts").select("plan_item_id, status").in("plan_item_id", itemIds),
+    supabase
+      .from("draft_declines")
+      .select("plan_item_id, retry_requested")
+      .eq("declined_by", "utilisateur")
+      .in("plan_item_id", itemIds),
+    supabase.from("draft_runs").select("plan_id, status").in("plan_id", planIds),
+  ]);
+  const draftOf = new Map((drafts.data ?? []).map((d) => [d.plan_item_id, d.status]));
+  const refused = new Set(
+    (refusals.data ?? []).filter((r) => !r.retry_requested).map((r) => r.plan_item_id),
+  );
+  const running = new Set(
+    (runs.data ?? []).filter((r) => r.status === "en_cours").map((r) => r.plan_id),
+  );
+  const byTarget: Record<string, RetainedMessage> = {};
+  for (const b of kept)
+    byTarget[b.target_id!] = {
+      itemId: b.plan_item_id,
+      state: messageStateOf({
+        draftStatus: draftOf.get(b.plan_item_id) ?? null,
+        refused: refused.has(b.plan_item_id),
+        running: running.has(b.plan_id),
+      }),
+    };
+  return { byTarget, drafting: running.size > 0 };
 }
 
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
@@ -247,6 +360,7 @@ export async function loadTargets(
   let findingsCount = 0;
   let publisherTypes: PublisherType[] = [];
   let stock = 0;
+  let messages: MessageStates = { byTarget: {}, drafting: false };
   if (qrun && qrun.status === "termine") {
     const [short, extra, lost, fnd, profile, stockRes] = await Promise.all([
       supabase
@@ -283,11 +397,15 @@ export async function loadTargets(
     findingsCount = findings.length;
     const ids = (short.data ?? []).map((r) => r.id);
     const briefs = ids.length
-      ? await supabase.from("plan_item_briefs").select("target_id").in("target_id", ids)
-      : { data: [] as { target_id: string | null }[] };
+      ? await supabase
+          .from("plan_item_briefs")
+          .select("target_id, plan_item_id, plan_id")
+          .in("target_id", ids)
+      : { data: [] as { target_id: string | null; plan_item_id: string; plan_id: string }[] };
     const validated = new Set(
       (briefs.data ?? []).flatMap((b) => (b.target_id ? [b.target_id] : [])),
     );
+    messages = await loadMessageStates(supabase, briefs.data ?? []);
     const resources = siteResources(site.domain, profile?.profile);
     // Chantier H : chaque cible est rangée sous le type d'éditeur cherché auquel elle correspond.
     publisherTypes = profile ? resolvePublishers(profile.profile, "").types : [];
@@ -370,6 +488,8 @@ export async function loadTargets(
     qualification: { ...runView(qrun), preview: qPreview },
     findings: { ...runView(frunRes.data), preview: fPreview, count: findingsCount },
     cards,
+    messages: messages.byTarget,
+    drafting: messages.drafting,
     contactless,
     noContact,
     competitors: (comps.data ?? [])
