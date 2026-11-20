@@ -1333,9 +1333,7 @@ export function TargetsScreen({
                 onCancel={() => setAskSettings(false)}
               />
             ) : null}
-            {view.funnel ? (
-              <MoreSites funnel={view.funnel} more={view.more} />
-            ) : null}
+            {view.funnel ? <MoreSites funnel={view.funnel} more={view.more} /> : null}
           </>
         )}
       </section>
@@ -1366,7 +1364,6 @@ export function TargetsScreen({
           ) : null}
         </section>
       ) : null}
-
     </div>
   );
 }

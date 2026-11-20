@@ -322,11 +322,7 @@ export interface DraftStats {
   formulaire: number;
 }
 
-export function summarize(
-  results: DraftResult[],
-  notDrafted: number,
-  skipped: number,
-): DraftStats {
+export function summarize(results: DraftResult[], notDrafted: number, skipped: number): DraftStats {
   return {
     drafted: results.length,
     skipped,

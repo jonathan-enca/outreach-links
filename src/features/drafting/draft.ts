@@ -5,13 +5,7 @@ import { DRAFT_LIMITS } from "./limits";
 import { lintMessage, maxSimilarity } from "./lint";
 import { movedAway, readableHtml } from "./readable";
 import { shortlistCatalogue, type CatalogueEntry } from "./shortlist";
-import type {
-  DraftContext,
-  DraftItem,
-  DraftResult,
-  LintIssue,
-  TargetPage,
-} from "./types";
+import type { DraftContext, DraftItem, DraftResult, LintIssue, TargetPage } from "./types";
 import { triageTarget, writeMessage } from "./write";
 
 export interface DraftDeps {
