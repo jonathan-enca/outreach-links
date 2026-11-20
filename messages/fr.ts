@@ -1691,8 +1691,8 @@ export const fr = {
       mentionsSkipped: "Cette recherche n'a pas été lancée : {reason}.",
       deadPagesSkipped:
         "Les pages disparues de {n} concurrent(s) n'ont pas été cherchées (site trop gros ou d'une autre langue) : {names}.",
-      selectAll: "Tout retenir",
-      selectNone: "Tout écarter",
+      selectAll: (n: number) => `Tout cocher (${n})`,
+      selectNone: (n: number) => `Tout décocher (${n})`,
       selected: (n: number) => `${n} ${n > 1 ? "sites retenus" : "site retenu"}`,
       selectedOf: (total: number) => `sur ${total}`,
     },
@@ -3028,6 +3028,7 @@ export const fr = {
     anyway: "Rédiger quand même",
     reviewNote: "À relire :",
     hintMailbox: "Connectez d'abord une boîte d'envoi pour approuver et envoyer ce message.",
+    sending: "Envoi en cours…",
     hintNotReady: "Corrigez d'abord les points signalés en rouge.",
     drafting: "Rédaction en cours : les nouveaux messages apparaissent ici dans quelques minutes.",
     to: "À :",

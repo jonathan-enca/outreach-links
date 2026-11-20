@@ -553,7 +553,8 @@ export function MailboxSection({
   } as MailboxState);
   // Des boîtes déjà connectées existent : on propose de les réutiliser, ou d'en connecter une autre.
   const [other, setOther] = useState(false);
-  const canReuse = boxes.length === 0 && available.length > 0;
+  // Une boîte déjà connectée sur un autre site se réutilise même si ce site en a déjà une (plusieurs sites).
+  const canReuse = available.length > 0;
   return (
     <Card id="boite-envoi" className="flex scroll-mt-4 flex-col gap-4 p-6">
       <h2 className="text-lg font-semibold">{m.title}</h2>
@@ -570,11 +571,13 @@ export function MailboxSection({
           {available.map((b) => (
             <AvailableRow key={b.id} siteId={siteId} box={b} />
           ))}
-          <div>
-            <Button type="button" variant="outline" onClick={() => setOther((v) => !v)}>
-              {other ? m.reuse.back : m.reuse.other}
-            </Button>
-          </div>
+          {boxes.length === 0 ? (
+            <div>
+              <Button type="button" variant="outline" onClick={() => setOther((v) => !v)}>
+                {other ? m.reuse.back : m.reuse.other}
+              </Button>
+            </div>
+          ) : null}
         </div>
       ) : null}
       {googleEnabled && !boxes.some((b) => b.provider === "google") ? (

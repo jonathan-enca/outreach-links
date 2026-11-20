@@ -534,7 +534,7 @@ function Reader({
                 }
               >
                 <Send aria-hidden />
-                {pending ? V.busy : V.approve}
+                {pending ? V.sending : V.approve}
               </Button>
             )}
             {blocked ? <p className="text-[13px] text-muted-foreground">{blocked}</p> : null}
@@ -1264,7 +1264,7 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
               >
                 <Send aria-hidden className="size-4" />
                 {pending
-                  ? V.busy
+                  ? V.sending
                   : V.bulkApprove(
                       selection.approveMessageIds.length + selection.approveReplyIds.length,
                     )}
@@ -1311,6 +1311,6 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
 }
 
 const BAR_BUTTON =
-  "inline-flex h-10 items-center justify-center gap-2 rounded-control px-3 text-sm font-medium whitespace-nowrap disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-accent";
-const BAR_GHOST = `${BAR_BUTTON} border border-background/30 text-background hover:bg-background/10`;
-const BAR_MAIN = `${BAR_BUTTON} bg-sidebar-accent font-semibold text-sidebar`;
+  "inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-control px-3 text-sm font-medium whitespace-nowrap transition-[background-color,transform,filter] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-accent";
+const BAR_GHOST = `${BAR_BUTTON} border border-background/30 text-background hover:bg-background/20 active:bg-background/25`;
+const BAR_MAIN = `${BAR_BUTTON} bg-sidebar-accent font-semibold text-sidebar hover:brightness-110 active:brightness-95`;

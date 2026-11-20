@@ -11,7 +11,7 @@ function bottomTexts(): string[] {
     else if (typeof v === "function") out.push(String((v as (...a: number[]) => unknown)(2, 64)));
     else if (v && typeof v === "object") Object.values(v).forEach(walk);
   };
-  [M.validate, M.noContact, M.origin, M.founder, M.list.selectAll, M.list.selectNone].forEach(walk);
+  [M.validate, M.noContact, M.origin, M.founder].forEach(walk);
   out.push(M.list.selected(27), M.list.selectedOf(64));
   return out;
 }
@@ -25,9 +25,9 @@ describe("bas de l'écran « Vos cibles »", () => {
     expect(M.founder.saveAndValidate(1)).toBe("Enregistrer et rédiger le message");
   });
 
-  it("garde « Tout retenir » et « Tout écarter » (décision du 18/11)", () => {
-    expect(M.list.selectAll).toBe("Tout retenir");
-    expect(M.list.selectNone).toBe("Tout écarter");
+  it("« Tout cocher » et « Tout décocher » disent combien de sites ils touchent", () => {
+    expect(M.list.selectAll(31)).toBe("Tout cocher (31)");
+    expect(M.list.selectNone(31)).toBe("Tout décocher (31)");
   });
 
   it("accorde les compteurs", () => {

@@ -141,12 +141,12 @@ export function AppNav({
       ],
     },
     {
-      title: "Envoi",
+      title: "Messagerie",
       items: [
         {
           key: "envois",
           href: "/app/envois",
-          label: "Envois",
+          label: "Mails envoyés",
           icon: Send,
           active: starts("/app/envois"),
           mobile: true,
