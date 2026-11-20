@@ -18,9 +18,9 @@ export const fr = {
     nav: {
       label: "Navigation principale",
       whatItIs: "C'est quoi",
-      tactics: "Tactiques",
+      tactics: "La méthode",
       howItWorks: "Comment ça marche",
-      how: "Fonctionnement",
+      how: "Comment ça marche",
       pricing: "Tarifs",
       faq: "FAQ",
       menu: "Menu",
@@ -29,20 +29,20 @@ export const fr = {
       cta: "Commencer gratuitement",
     },
     hero: {
-      pill: "Gratuit pour commencer, sans carte bancaire",
+      pill: "Gratuit : voyez vos sites à contacter avant de payer quoi que ce soit",
       audience: "Pour les sites, blogs, SaaS et e-commerces",
       title: "Des backlinks gratuits, demandés aux bons sites",
       titleAccent: "Des backlinks gratuits,",
       titleRest: "demandés aux bons sites",
-      lead: "Nous trouvons les sites qui méritent de vous citer, rédigeons pour chacun une demande personnalisée et l'envoyons depuis votre propre boîte mail. Puis nous relançons une fois, et nous vérifions que le lien est bien en ligne. Vous choisissez les sites et approuvez chaque message : le reste tourne tout seul.",
-      cta: { primary: "Commencer gratuitement", secondary: "Fonctionnement" },
+      lead: "Nous trouvons les sites qui ont une vraie raison de citer le vôtre et écrivons à chacun un message sur mesure. Il part de votre boîte mail une fois que vous l'avez relu ; ensuite, une relance et la vérification du lien se font seules.",
+      cta: { primary: "Commencer gratuitement", secondary: "Comment ça marche" },
       hints: ["Gratuit pour commencer", "Aucun lien acheté", "Rien n'est envoyé sans votre accord"],
       refine: "Préciser mes requêtes et mon thème",
       cardsLabel: "Exemples de ce que le service prépare pour vous",
       cards: {
         target: {
           tag: "Cible qualifiée",
-          badge: "Qualifiée",
+          badge: "Retenu",
           relevance: "Pertinence",
           checks: "Vendeur de liens : non · Concurrent : non",
         },
@@ -68,12 +68,12 @@ export const fr = {
           tag: "Réponse",
           ago: "il y a 2 min",
           quote: "« Avec plaisir, je l'ajoute à ma page ressources. »",
-          status: "lien à poser",
+          status: "va ajouter le lien",
         },
         live: {
           tag: "Lien vérifié en ligne",
           url: "blog-voyage.fr/ressources",
-          kind: "dofollow",
+          kind: "suivi par Google",
         },
       },
     },
@@ -95,7 +95,7 @@ export const fr = {
         },
         {
           q: "Pour qui",
-          a: "Un site vitrine, un blog, un SaaS, une boutique en ligne. Tous ceux qui veulent des liens éditoriaux sans sortir la carte bancaire sur une plateforme de liens sponsorisés.",
+          a: "Un site vitrine, un blog, un SaaS, une boutique en ligne. Tous ceux qui veulent des liens sans les acheter sur une plateforme de liens sponsorisés.",
         },
         {
           q: "Ce que l'outil fait seul",
@@ -116,17 +116,17 @@ export const fr = {
       ],
     },
     tactics: {
-      label: "Tactiques",
+      label: "La méthode",
       title: "Trois façons d'obtenir un lien sans l'acheter",
       intro:
         "Les meilleurs liens ne sont pas en vente. Ils sont sur des pages qui recommandent déjà des ressources comme les vôtres, sur des pages dont un lien ne mène plus nulle part, ou chez des gens qui parlent déjà de vous.",
-      kicker: "Tactique",
+      kicker: "Méthode",
       exampleLabel: "Exemple de demande",
       frame:
         "Le cadre est le même pour les trois : rien ne part sans votre accord, les envois s'étalent sur la journée, et il n'y a qu'une seule relance.",
       primary: "Commencer gratuitement",
-      secondary: "Fonctionnement",
-      hint: "Gratuit pour commencer, sans carte bancaire : vous voyez vos premières cibles avant de payer.",
+      secondary: "Comment ça marche",
+      hint: "Gratuit : voyez vos sites à contacter avant de payer quoi que ce soit.",
       closing:
         "Ce que nous ne faisons pas : acheter des liens, publier des articles sponsorisés déguisés, monter des réseaux de sites.",
       items: [
@@ -185,7 +185,7 @@ export const fr = {
           },
         },
         {
-          title: "Les mentions de votre marque sans lien",
+          title: "Les sites qui parlent de vous sans faire de lien",
           text: "Un article, un comparatif ou un forum cite déjà votre site sans le lier. L'auteur vous connaît : il lui reste un lien à ajouter.",
           steps: [
             {
@@ -225,13 +225,13 @@ export const fr = {
       footnote: "Site du fondateur · liens demandés à la main",
       summary: {
         authority: "Autorité du domaine",
-        traffic: "Trafic organique",
+        traffic: "Trafic venu de Google",
         links: "Liens obtenus",
         linksNote: "Sur l'ensemble des quatre sites",
       },
       metrics: {
-        traffic: "Trafic organique par mois",
-        referring: "Nouveaux sites référents de bon niveau",
+        traffic: "Visites venues de Google par mois",
+        referring: "Nouveaux sites de qualité qui vous citent",
         links: "Liens obtenus",
       },
       kinds: {
@@ -256,12 +256,12 @@ export const fr = {
         },
         {
           role: "tool",
-          title: "L'analyse part chercher",
+          title: "L'outil cherche les bons sites",
           text: "Qui se classe devant vous, quels sites leur font des liens, quelles pages citent déjà des ressources comme les vôtres. Chaque page est lue avant d'être retenue. Comptez un quart d'heure : un email vous prévient quand c'est prêt.",
         },
         {
           role: "you",
-          title: "Vous recevez une liste courte",
+          title: "Vous choisissez les sites à contacter",
           text: "Pas deux mille domaines à trier : quelques dizaines de sites classés, avec pour chacun la demande à faire et la raison. Vous gardez ceux que vous voulez contacter.",
         },
         {
@@ -420,7 +420,7 @@ export const fr = {
             },
             {
               who: "classe-de-lea.example",
-              what: "Lien en ligne, dofollow",
+              what: "Lien en ligne, suivi par Google",
               status: "Lien obtenu",
               tone: "accent",
             },
@@ -428,7 +428,7 @@ export const fr = {
         },
       },
       cta: "Commencer gratuitement",
-      ctaHint: "Gratuit pour commencer, sans carte bancaire.",
+      ctaHint: "Gratuit : voyez vos sites à contacter avant de payer quoi que ce soit.",
     },
     compare: {
       label: "Comparatif",
@@ -443,7 +443,7 @@ export const fr = {
         },
         {
           label: "Les liens obtenus",
-          values: ["Sponsorisés, à déclarer comme tels", "Éditoriaux, quand on vous répond"],
+          values: ["Sponsorisés, à déclarer comme tels", "Gratuits, quand on vous répond"],
         },
         {
           label: "Qui choisit les sites",
@@ -461,7 +461,7 @@ export const fr = {
       usColumn: "Avec nous",
       usValues: [
         "Un abonnement fixe, peu importe le nombre de liens",
-        "Éditoriaux, quand on vous répond",
+        "Gratuits, quand on vous répond",
         "L'analyse propose, vous choisissez",
         "L'outil rédige, vous relisez, la relance part seule",
         "Il est recontrôlé, et signalé dans votre espace",
@@ -472,10 +472,10 @@ export const fr = {
       label: "Tarifs",
       title: "Gratuit pour voir. Un abonnement pour envoyer.",
       intro:
-        "Le gratuit vous donne l'analyse de votre site et toutes les opportunités : vous voyez tout avant de payer. Un abonnement fixe débloque l'envoi, avec un plafond clair. Le prix ne dépend pas du nombre de liens obtenus.",
+        "Le gratuit vous donne l'analyse de votre site et tous les sites à contacter et les messages prêts : vous voyez tout avant de payer. Un abonnement fixe débloque l'envoi, avec un plafond clair. Le prix ne dépend pas du nombre de liens obtenus.",
       free: {
         title: "Gratuit pour commencer",
-        text: "Sans carte bancaire. Une analyse de votre site, toutes les opportunités et l'aperçu de chaque campagne. Rien n'est envoyé.",
+        text: "Sans carte bancaire. Une analyse de votre site, tous les sites à contacter et les messages prêts à relire. Rien n'est envoyé.",
         cta: "Commencer gratuitement",
       },
       perMonth: "TTC par mois",
@@ -487,10 +487,10 @@ export const fr = {
         sites: "Sites",
         campaigns: "Campagnes par mois",
         sends: "Emails envoyés par mois",
-        mailboxes: "Boîtes d'envoi connectées",
-        dedicated: "Domaine d'envoi dédié",
+        mailboxes: "Adresses mail d'envoi",
+        dedicated: "Votre propre domaine d'envoi",
         linkChecks: "Vérification des liens obtenus",
-        digest: "Digest hebdomadaire",
+        digest: "Bilan de la semaine par email",
       },
       included: "Inclus",
       period: {
@@ -527,7 +527,7 @@ export const fr = {
         },
         {
           q: "C'est fait pour qui ?",
-          a: "Pour ceux qui ont un site à faire monter et pas le temps de faire du netlinking : éditeurs de sites, blogueurs, fondateurs de SaaS, e-commerçants. Si vous gérez plusieurs sites, ou ceux de vos clients, l'offre Business est prévue pour ça.",
+          a: "Pour ceux qui ont un site à faire monter et pas le temps de faire du netlinking : éditeurs de sites, blogueurs, fondateurs de SaaS, e-commerçants. Si vous gérez plusieurs sites, ou ceux de vos clients, l'offre Scale est prévue pour ça.",
         },
         {
           q: "Qui envoie les emails ?",
@@ -535,13 +535,11 @@ export const fr = {
         },
         {
           q: "Comment relier ma boîte mail ?",
-          a: "En quelques minutes, depuis les réglages. Vous choisissez votre messagerie, vous collez un mot de passe d'application (un mot de passe réservé à cette connexion, créé chez votre messagerie ; chez certains fournisseurs, c'est celui de la boîte), puis un test vérifie l'envoi et la lecture des réponses. Ce mot de passe est chiffré, ne sert qu'à envoyer les messages que vous avez approuvés et à lire leurs réponses, et vous pouvez le révoquer à tout moment.",
-          link: { href: "/aide/boite-envoi", label: "Voir le guide de votre messagerie" },
+          a: "En un clic : vous vous connectez avec votre compte Google et vous autorisez l'envoi. Aucun mot de passe à copier. Cet accès ne sert qu'à envoyer les messages que vous avez approuvés et à lire leurs réponses, et vous pouvez le retirer à tout moment depuis votre compte Google.",
         },
         {
           q: "Quelles messageries sont compatibles ?",
-          a: "Gmail et Google Workspace, Yahoo, iCloud, GMX, AOL, Mailo et Zoho ; les adresses Orange, Free, SFR, La Poste et Bouygues ; les adresses à votre nom de domaine chez OVHcloud, IONOS, Gandi, o2switch, Infomaniak, Hostinger ou LWS ; et plus largement toute boîte qui accepte une connexion IMAP et SMTP par mot de passe. Pas encore compatibles : Outlook et Hotmail, Microsoft 365, Proton Mail et Tuta, qui ne permettent pas ce type de connexion. Si vous avez le choix, prenez une adresse au nom de votre site : c'est elle qui inspire le plus confiance à l'éditeur qui vous lit.",
-          link: { href: "/aide/boite-envoi", label: "Voir la liste complète et les guides" },
+          a: "Gmail et Google Workspace, y compris une adresse à votre nom de domaine gérée par Google. Les autres messageries (Outlook, Yahoo, Orange, OVHcloud…) ne sont pas encore compatibles. Si vous avez le choix, prenez une adresse au nom de votre site : c'est elle qui inspire le plus confiance à l'éditeur qui vous lit.",
         },
         {
           q: "Est-ce que c'est du spam ?",
@@ -569,7 +567,7 @@ export const fr = {
         },
         {
           q: "Combien ça coûte ? Puis-je essayer sans carte ?",
-          a: "Oui. Les sept premiers jours sont offerts, sans carte bancaire. Si vous continuez, vous choisissez l'une des trois offres de la section Tarifs, plus haut.",
+          a: "Oui. Vous voyez gratuitement, sans carte bancaire, tous les sites à contacter et les messages prêts. La carte n'est demandée que pour envoyer : vous choisissez alors l'une des trois offres.",
         },
         {
           q: "Est-ce légal ? Et mes données ?",
@@ -588,7 +586,7 @@ export const fr = {
     footer: {
       label: "Pied de page",
       tagline:
-        "Des liens éditoriaux demandés aux bons sites, depuis votre boîte mail, avec votre accord.",
+        "Des liens gratuits demandés aux bons sites, depuis votre boîte mail, avec votre accord.",
       productTitle: "Produit",
       accountTitle: "Compte",
       legalTitle: "Informations légales",
@@ -598,7 +596,6 @@ export const fr = {
         { href: "/conditions", label: "Conditions d'utilisation" },
       ],
       freeAudit: "Commencer gratuitement",
-      mailboxGuides: "Connecter sa boîte mail",
       signIn: "Se connecter",
       rights: "Tous droits réservés.",
     },
@@ -714,45 +711,47 @@ export const fr = {
   },
   auth: {
     title: "Connexion",
-    welcome: "Bon retour",
-    welcomeIntro: "Connectez-vous à votre espace.",
+    welcome: "Se connecter",
+    welcomeIntro: "Content de vous revoir.",
     email: "Adresse email",
     password: "Mot de passe",
     submit: "Se connecter",
     showPassword: "Afficher le mot de passe",
     hidePassword: "Masquer le mot de passe",
     forgotLink: "Mot de passe oublié ?",
-    noAccount: "Vous n'avez pas encore d'espace ?",
-    createOne: "Créer mon espace",
+    noAccount: "Pas encore de compte ?",
+    createOne: "Créer un compte gratuit",
     backToSite: "Retour au site",
     terms: "Conditions d'utilisation",
     privacy: "Confidentialité",
     signOut: "Se déconnecter",
     errorCallback:
-      "Le lien est invalide ou a expiré. Reconnectez-vous ou demandez un nouveau lien.",
+      "Ce lien ne marche plus : il a déjà servi ou il a expiré. Connectez-vous, ou demandez un nouveau lien avec « Mot de passe oublié ».",
     signupConfirm: "Vérifiez votre boîte mail.",
     checkInbox: {
       title: "Vérifiez votre boîte mail",
-      signup:
-        "Si un espace peut être créé pour {email}, un lien de confirmation vient d'y être envoyé. Cliquez dessus pour ouvrir votre espace.",
+      signupTitle: "Confirmez votre adresse email",
+      resend: "Renvoyer le lien",
+      resent: "Lien renvoyé.",
+      signup: "Nous venons d'envoyer un lien à {email}. Cliquez dessus pour ouvrir votre compte.",
       reset:
-        "Si un espace existe pour {email}, un lien pour choisir un nouveau mot de passe vient d'y être envoyé.",
-      spam: "Rien reçu après quelques minutes ? Regardez dans vos courriers indésirables.",
-      otherAddress: "Utiliser une autre adresse",
-      haveAccount: "Vous avez déjà un espace ?",
+        "Si un compte existe pour {email}, un lien pour choisir un nouveau mot de passe vient d'y être envoyé.",
+      spam: "Rien reçu après deux minutes ? Regardez dans vos courriers indésirables, ou renvoyez le lien.",
+      otherAddress: "Corriger mon adresse",
+      haveAccount: "Déjà un compte ?",
       signIn: "Se connecter",
     },
     forgot: {
       title: "Mot de passe oublié",
       intro:
-        "Entrez votre email : nous vous envoyons un lien pour choisir un nouveau mot de passe.",
-      submit: "Envoyer le lien",
+        "Indiquez l'adresse email de votre compte : nous vous envoyons un lien pour choisir un nouveau mot de passe.",
+      submit: "Recevoir le lien",
       sent: "Lien envoyé.",
       back: "Retour à la connexion",
     },
     reset: {
       title: "Nouveau mot de passe",
-      intro: "Choisissez le mot de passe de votre espace.",
+      intro: "Choisissez un nouveau mot de passe pour votre compte.",
       password: "Nouveau mot de passe",
       submit: "Enregistrer le mot de passe",
     },
@@ -770,10 +769,11 @@ export const fr = {
     },
   },
   signup: {
-    title: "Créez votre espace",
-    intro: "Trois champs et vous y êtes : aucune carte pour voir vos premières cibles.",
+    title: "Créer votre compte",
+    intro:
+      "Gratuit, sans carte bancaire. Vos premiers sites à contacter arrivent en un quart d'heure environ.",
     fields: {
-      name: "Votre nom",
+      name: "Votre prénom et nom (il signera vos messages)",
       namePlaceholder: "Camille Martin",
       email: "Adresse email",
       emailPlaceholder: "camille@monsite.fr",
@@ -781,25 +781,25 @@ export const fr = {
       passwordPlaceholder: "Choisissez un mot de passe sûr",
       passwordHint: "8 caractères au moins.",
     },
-    submit: "Créer mon espace",
+    submit: "Créer mon compte",
     steps: [
       "Confirmez votre adresse email : un lien vous est envoyé.",
-      "Ajoutez l'adresse de votre site : nous déduisons le thème et les recherches à surveiller.",
-      "Voyez vos vraies cibles et des exemples de messages, gratuitement. La carte n'est demandée qu'au premier envoi réel.",
+      "Donnez l'adresse de votre site : l'outil comprend votre sujet et cherche les sites qui ont une raison de vous citer.",
+      "Choisissez les sites et relisez les messages, gratuitement. La carte n'est demandée que pour envoyer.",
     ],
-    already: "Vous avez déjà un espace ?",
+    already: "Déjà un compte ?",
     signIn: "Se connecter",
-    legal: "En créant votre espace, vous acceptez les",
+    legal: "En créant votre compte, vous acceptez les",
     legalLink: "conditions d'utilisation",
     panel: {
-      label: "Netlinking par audit",
-      title: "Les demandes partent toutes seules. Vous validez les lots.",
+      label: "Pourquoi backleenks",
+      title: "Des backlinks gratuits, sans les acheter ni y passer vos soirées.",
       points: [
         "Messages envoyés depuis votre propre boîte mail",
-        "Tri des cibles : liens payants, sites piratés et concurrents écartés",
+        "Seulement des sites qui ont une vraie raison de vous citer : ni vendeurs de liens, ni concurrents",
         "Chaque lien vérifié sur la page en ligne",
       ],
-      agent: "agent",
+      agent: "suivi de vos demandes",
       running: "En cours",
       example: "Exemple",
       lines: [
@@ -807,8 +807,8 @@ export const fr = {
         { step: "Réponse", text: "« Avec plaisir, je l'ajoute à ma page ressources. »" },
         { step: "Envoi", text: "Demande envoyée depuis vous@votresite.fr" },
         {
-          step: "Brouillon",
-          text: "Accroche tirée de leur page : « guide complet des randonnées en Bretagne »",
+          step: "Message prêt",
+          text: "Passage cité de leur page : « guide complet des randonnées en Bretagne »",
         },
       ],
     },

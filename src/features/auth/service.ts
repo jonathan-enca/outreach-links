@@ -95,6 +95,23 @@ export async function requestPasswordReset(
   return { status: "ok", message: A.forgot.sent, email: parsed.data };
 }
 
+/** Renvoie le lien de confirmation d'inscription. Même réponse que l'adresse existe ou non. */
+export async function resendSignupLink(
+  supabase: SupabaseClient,
+  rawEmail: string,
+  appUrl: string,
+): Promise<AuthState> {
+  const parsed = email.safeParse(rawEmail.trim());
+  if (!parsed.success) return { status: "error", message: A.errors.email };
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email: parsed.data,
+    options: { emailRedirectTo: `${appUrl}/auth/callback` },
+  });
+  if (error?.status === 429) return { status: "error", message: A.errors.rateLimit };
+  return { status: "ok", message: A.checkInbox.resent, email: parsed.data };
+}
+
 export async function setNewPassword(
   supabase: SupabaseClient,
   newPassword: string,

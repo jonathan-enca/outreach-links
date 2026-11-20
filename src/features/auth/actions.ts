@@ -2,9 +2,17 @@
 
 import { redirect } from "next/navigation";
 import { env } from "@/env";
+import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 import { cleanAppUrl } from "./destination";
-import { requestPasswordReset, setNewPassword, signIn, signUp, type AuthState } from "./service";
+import {
+  requestPasswordReset,
+  resendSignupLink,
+  setNewPassword,
+  signIn,
+  signUp,
+  type AuthState,
+} from "./service";
 
 const field = (fd: FormData, k: string) =>
   typeof fd.get(k) === "string" ? (fd.get(k) as string) : "";
@@ -43,4 +51,15 @@ export async function forgotPasswordAction(_prev: AuthState, fd: FormData): Prom
 
 export async function resetPasswordAction(_prev: AuthState, fd: FormData): Promise<AuthState> {
   return done(await setNewPassword(await createClient(), field(fd, "password")));
+}
+
+/** Bouton « Renvoyer le lien » de l'écran qui suit l'inscription ou la demande de mot de passe. */
+export async function resendLinkAction(_prev: AuthState, fd: FormData): Promise<AuthState> {
+  const supabase = await createClient();
+  const appUrl = cleanAppUrl(env.NEXT_PUBLIC_APP_URL);
+  const state =
+    field(fd, "kind") === "reset"
+      ? await requestPasswordReset(supabase, field(fd, "email"), appUrl)
+      : await resendSignupLink(supabase, field(fd, "email"), appUrl);
+  return state.status === "ok" ? { ...state, message: t.auth.checkInbox.resent } : state;
 }

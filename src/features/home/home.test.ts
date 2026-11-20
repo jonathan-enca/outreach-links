@@ -86,7 +86,7 @@ describe("home FR", () => {
     expect(sum.trafficRatio).toBeGreaterThan(1);
   });
 
-  it("tous les boutons « essai gratuit » mènent à l'inscription, « Fonctionnement » à « Comment ça marche »", async () => {
+  it("tous les boutons « essai gratuit » mènent à l'inscription, « Comment ça marche » à sa section", async () => {
     const { readdirSync, readFileSync } = await import("node:fs");
     const dir = new URL(".", import.meta.url);
     const files = readdirSync(dir).filter((f) => f.endsWith(".tsx"));
@@ -97,7 +97,7 @@ describe("home FR", () => {
     }
     expect(fr.home.hero.cta).toEqual({
       primary: "Commencer gratuitement",
-      secondary: "Fonctionnement",
+      secondary: "Comment ça marche",
     });
     expect(fr.home.nav.cta).toBe("Commencer gratuitement");
     const hero = readFileSync(new URL("hero.tsx", dir), "utf8");
@@ -152,30 +152,23 @@ describe("home FR", () => {
     }
   });
 
-  it("FAQ : qui envoie, comment relier sa boîte, quelles messageries, d'après la liste des guides", () => {
+  it("FAQ : qui envoie, comment relier sa boîte (Google), quelles messageries (Gmail seulement)", () => {
     const items: readonly FaqItem[] = fr.home.faq.items;
     const find = (re: RegExp) => items.find((i) => re.test(i.q));
     expect(find(/qui envoie/i)?.a).toMatch(/votre propre adresse/);
     const how = find(/relier ma boîte/i);
-    expect(how?.a).toMatch(/mot de passe d'application/);
-    expect(how?.link?.href).toBe("/aide/boite-envoi");
+    expect(how?.a).toMatch(/compte Google/);
+    expect(how?.link).toBeUndefined();
     const compat = find(/messageries sont compatibles/i);
-    const [yes, no] = compat!.a.split("Pas encore compatibles");
-    expect(no).toBeDefined();
-    // Nom court d'un fournisseur : « Yahoo Mail » se dit « Yahoo », « Bouygues Telecom » « Bouygues ».
-    const short = (name: string) => name.replace(/ (Mail|Telecom)$/, "");
-    // Une messagerie dite compatible l'est dans les guides, et inversement : à mettre à jour ensemble.
-    for (const p of fr.mailboxGuides.providers) {
-      if (p.slug === "autre") continue;
-      expect(p.compatible ? yes : no, p.name).toContain(short(p.name));
-      if (!p.compatible) expect(yes, p.name).not.toContain(short(p.name));
-    }
+    expect(compat?.a).toMatch(/^Gmail et Google Workspace/);
+    expect(compat?.a).toMatch(/pas encore compatibles/);
+    expect(compat?.link).toBeUndefined();
   });
 
   it("offre d'entrée : gratuit pour commencer, plus aucune référence à un audit gratuit sur la home", () => {
     const all = texts(fr.home).join("\n");
     expect(all).not.toMatch(/audit (gratuit|réduit)/i);
-    expect(fr.home.hero.pill).toMatch(/Gratuit pour commencer/);
+    expect(fr.home.hero.pill).toMatch(/^Gratuit : voyez vos sites à contacter/);
     expect(fr.home.pricing.free.title).toMatch(/Gratuit pour commencer/);
     expect(Object.keys(fr.home.faq)).not.toContain("intro");
   });
@@ -206,7 +199,7 @@ describe("home FR", () => {
       expect(it.example.body.length).toBeLessThan(320);
       expect(it.example.body).not.toMatch(/\bIA\b|intelligence artificielle/i);
     }
-    expect([tac.primary, tac.secondary]).toEqual(["Commencer gratuitement", "Fonctionnement"]);
+    expect([tac.primary, tac.secondary]).toEqual(["Commencer gratuitement", "Comment ça marche"]);
     expect(texts(tac).join(" ")).not.toMatch(/garanti|digest/i);
   });
 });
