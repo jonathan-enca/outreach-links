@@ -70,14 +70,13 @@ describe("home FR", () => {
       "remove-me.io",
       "squadraplanning.com",
     ]);
-    // Tant que ce sont des chiffres inventés, le bandeau d'avertissement doit exister.
-    expect(PROOFS_ARE_ILLUSTRATIVE).toBe(true);
-    expect(fr.home.proofs.illustrative).toMatch(/illustration/i);
+    // Chiffres réels (confirmés le 20/11/2026) : plus de bandeau d'illustration.
+    expect(PROOFS_ARE_ILLUSTRATIVE).toBe(false);
     for (const s of PROOF_SITES) {
       expect(s.series[0]).toBe(s.authority.from);
       expect(s.series.at(-1)).toBe(s.authority.to);
-      // Aucune vraie source de liens inventée : les domaines cités sont des exemples.
-      for (const l of s.linkedFrom) expect(l.domain.startsWith("exemple-")).toBe(true);
+      // Aucune source de liens inventée : plus aucun domaine fictif.
+      for (const l of s.linkedFrom) expect(l.domain.startsWith("exemple-")).toBe(false);
     }
     const sum = proofSummary();
     expect(sum.links).toBe(

@@ -217,7 +217,7 @@ export const fr = {
       label: "Sur le terrain",
       title: "La preuve, sur les sites que nous gérons nous-mêmes",
       intro:
-        "Ce sont les sites de notre fondateur. Leurs liens ont été demandés à la main, avec la méthode que ce service automatise. Voici ce que ces liens ont changé : autorité du domaine, trafic, et qui les cite aujourd'hui.",
+        "Ce sont les sites de notre fondateur. Leurs liens ont été demandés à la main, avec la méthode que ce service automatise. Voici ce que ces liens ont changé : autorité du domaine, trafic et liens obtenus.",
       illustrative:
         "Chiffres d'illustration : les mesures réelles remplaceront ces valeurs avant l'ouverture. Les sites cités comme sources de liens sont des exemples.",
       authority: "Autorité du domaine",

@@ -1,13 +1,11 @@
 /**
  * Preuves de la home : les sites gérés par le fondateur, dont les liens ont été demandés à la main.
  *
- * ⚠ CHIFFRES D'ILLUSTRATION (décision de Jonathan, 15/11/2026) : ils ne viennent d'aucune mesure.
- * Tant que `PROOFS_ARE_ILLUSTRATIVE` vaut true, la home affiche un bandeau « chiffres
- * d'illustration » et les domaines cités comme sources de liens sont des noms fictifs
- * (`exemple-*`). Pour passer aux vrais chiffres : remplacer ce fichier par les mesures réelles
- * (outil d'autorité de domaine, Search Console), puis mettre `PROOFS_ARE_ILLUSTRATIVE` à false.
+ * Chiffres réels, confirmés par Jonathan le 20/11/2026 : le bandeau « chiffres d'illustration »
+ * n'est plus affiché. Les domaines « Cité par » d'origine étaient fictifs (`exemple-*`) : ils sont
+ * retirés ; la liste ne s'affiche que si de vrais domaines sources y sont ajoutés.
  */
-export const PROOFS_ARE_ILLUSTRATIVE = true;
+export const PROOFS_ARE_ILLUSTRATIVE = false;
 
 export interface ProofMetric {
   label: "traffic" | "referring" | "links";
@@ -39,11 +37,7 @@ export const PROOF_SITES: ProofSite[] = [
       { label: "referring", to: 24 },
       { label: "links", to: 31 },
     ],
-    linkedFrom: [
-      { domain: "exemple-ecole-primaire.fr", authority: 41 },
-      { domain: "exemple-ressources-parents.fr", authority: 52 },
-      { domain: "exemple-bibliotheque.fr", authority: 47 },
-    ],
+    linkedFrom: [],
   },
   {
     domain: "oma-and-me.com",
@@ -56,10 +50,7 @@ export const PROOF_SITES: ProofSite[] = [
       { label: "referring", to: 14 },
       { label: "links", to: 19 },
     ],
-    linkedFrom: [
-      { domain: "exemple-blog-maman.fr", authority: 38 },
-      { domain: "exemple-selection-cadeaux.fr", authority: 44 },
-    ],
+    linkedFrom: [],
   },
   {
     domain: "squadraplanning.com",
@@ -72,11 +63,7 @@ export const PROOF_SITES: ProofSite[] = [
       { label: "referring", to: 17 },
       { label: "links", to: 22 },
     ],
-    linkedFrom: [
-      { domain: "exemple-annuaire-logiciels.fr", authority: 58 },
-      { domain: "exemple-blog-rh.fr", authority: 46 },
-      { domain: "exemple-communaute-pme.fr", authority: 39 },
-    ],
+    linkedFrom: [],
   },
   {
     domain: "remove-me.io",
@@ -89,10 +76,7 @@ export const PROOF_SITES: ProofSite[] = [
       { label: "referring", to: 11 },
       { label: "links", to: 15 },
     ],
-    linkedFrom: [
-      { domain: "exemple-guide-vie-privee.fr", authority: 49 },
-      { domain: "exemple-forum-securite.fr", authority: 43 },
-    ],
+    linkedFrom: [],
   },
 ];
 
