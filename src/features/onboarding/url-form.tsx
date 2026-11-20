@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Check, Circle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MARKET_COUNTRIES } from "@/features/sites/market";
+import { sortedByLabel } from "@/features/sites/market";
 import { siteHref } from "@/features/shell/next-step";
 import { t } from "@/lib/messages";
 import type { StartState } from "./service";
@@ -196,9 +196,9 @@ export function UrlForm({
             className={selectClass}
             disabled={busy}
           >
-            {MARKET_COUNTRIES.map((c) => (
-              <option key={c} value={c}>
-                {t.sites.countries[c]}
+            {sortedByLabel(t.sites.countries).map(({ code, label }) => (
+              <option key={code} value={code}>
+                {label}
               </option>
             ))}
           </select>
@@ -215,8 +215,8 @@ export function UrlForm({
             disabled={busy}
           >
             <option value="auto">{m.languageAuto}</option>
-            <option value="fr">{t.sites.languages.fr}</option>
             <option value="en">{t.sites.languages.en}</option>
+            <option value="fr">{t.sites.languages.fr}</option>
           </select>
         </div>
       </div>

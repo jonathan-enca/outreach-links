@@ -53,7 +53,7 @@ const TLD_COUNTRY: Record<string, string> = {
   ch: "CH",
   ca: "CA",
   lu: "LU",
-  mc: "MC",
+  au: "AU",
 };
 
 /** Pays déduit de l'extension du domaine ; la France par défaut (marché de lancement). */

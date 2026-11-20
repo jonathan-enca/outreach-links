@@ -1,8 +1,10 @@
 import { z } from "zod";
 import { t } from "@/lib/messages";
 import { normalizeDomain } from "./domain";
+import { MARKET_COUNTRIES, type MarketCountry } from "./market";
 
-export const COUNTRIES = ["FR", "BE", "CH", "CA", "LU", "MC", "GB", "US"] as const;
+/** Mêmes pays que le formulaire d'étape 1 (une seule liste : `MARKETS`). */
+export const COUNTRIES = MARKET_COUNTRIES as [MarketCountry, ...MarketCountry[]];
 export const LANGUAGES = ["fr", "en"] as const;
 
 const text = (min: number, max: number, message: string) =>
