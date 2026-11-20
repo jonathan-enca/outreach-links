@@ -9,6 +9,7 @@ import { logger } from "@/lib/logger";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import type { FunnelStats, QualInput } from "./funnel";
 import { QUALIFY_LIMITS } from "./limits";
+import { carriedUnreadDomains, type PriorVerdict } from "./reserve";
 import type { QualCandidate, QualContext, QualResult } from "./types";
 
 type Client = SupabaseClient<Database>;
@@ -85,22 +86,18 @@ export async function loadQualificationInput(
   ]);
   if (cands.error) throw new Error(`loadQualificationInput : ${cands.error.message}`);
 
-  const candidates: QualCandidate[] = (cands.data ?? []).map((r) => ({
-    domain: r.domain,
-    url: r.url,
-    title: r.title,
-    tactics: (r.tactics ?? []).filter((x): x is (typeof TACTICS)[number] =>
-      (TACTICS as readonly string[]).includes(x),
-    ),
-    sources: z.array(sourceSchema).catch([]).parse(r.sources),
-    competitorsCount: r.competitors_count,
-    domainRank: r.domain_rank === null ? null : Number(r.domain_rank),
-    spamScore: r.spam_score === null ? null : Number(r.spam_score),
-    pageType: r.page_type,
-    signalCount: r.signal_count,
-    language: r.language,
-    niveau: r.niveau,
-  }));
+  const candidates: QualCandidate[] = (cands.data ?? []).map(toCandidate);
+  // Réserve du site : les sites trouvés dans une analyse passée et jamais lus reviennent ici, sans relecture
+  // de ce qui a déjà été lu. Ils sont lus ou restent en stock selon le budget de cette analyse.
+  candidates.push(
+    ...(await loadCarriedCandidates(
+      service,
+      site.id,
+      auditId,
+      new Set(candidates.map((c) => c.domain)),
+      MAX_CANDIDATES - candidates.length,
+    )),
+  );
 
   const contacted = await service.rpc("domains_contacted_elsewhere", {
     p_workspace: audit.workspace_id,
@@ -133,6 +130,106 @@ export async function loadQualificationInput(
       suppressedEmails: (sup.data ?? []).flatMap((s) => (s.email ? [s.email.toLowerCase()] : [])),
     },
   };
+}
+
+type CandidateRow = Pick<
+  Database["public"]["Tables"]["collection_candidates"]["Row"],
+  | "domain"
+  | "url"
+  | "title"
+  | "tactics"
+  | "sources"
+  | "competitors_count"
+  | "domain_rank"
+  | "spam_score"
+  | "page_type"
+  | "signal_count"
+  | "language"
+  | "niveau"
+>;
+
+/** Ligne de collecte -> candidat de qualification. */
+function toCandidate(r: CandidateRow): QualCandidate {
+  return {
+    domain: r.domain,
+    url: r.url,
+    title: r.title,
+    tactics: (r.tactics ?? []).filter((x): x is (typeof TACTICS)[number] =>
+      (TACTICS as readonly string[]).includes(x),
+    ),
+    sources: z.array(sourceSchema).catch([]).parse(r.sources),
+    competitorsCount: r.competitors_count,
+    domainRank: r.domain_rank === null ? null : Number(r.domain_rank),
+    spamScore: r.spam_score === null ? null : Number(r.spam_score),
+    pageType: r.page_type,
+    signalCount: r.signal_count,
+    language: r.language,
+    niveau: r.niveau,
+  };
+}
+
+/**
+ * Sites de la réserve d'un site, repris d'une analyse passée (pur hors lectures en base) : seuls les sites
+ * dont tous les verdicts passés sont « hors_budget_lecture » (jamais lus), absents de la collecte courante.
+ * Chaque site garde la ligne de collecte la plus récente qui le contient.
+ */
+export async function loadCarriedCandidates(
+  service: Client,
+  siteId: string,
+  auditId: string,
+  current: ReadonlySet<string>,
+  room: number,
+): Promise<QualCandidate[]> {
+  if (room <= 0) return [];
+  const { data: prev, error } = await service
+    .from("qualification_runs")
+    .select("id, collection_id, created_at")
+    .eq("site_id", siteId)
+    .neq("audit_id", auditId)
+    .eq("status", "termine")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`loadCarriedCandidates : ${error.message}`);
+  if (!prev?.length) return [];
+  const runIds = prev.map((r) => r.id);
+  const verdicts: PriorVerdict[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error: vErr } = await service
+      .from("qualified_targets")
+      .select("domain, exclusion_reason")
+      .in("run_id", runIds)
+      .order("id")
+      .range(from, from + 999);
+    if (vErr) throw new Error(`loadCarriedCandidates : ${vErr.message}`);
+    for (const r of data ?? [])
+      verdicts.push({ domain: r.domain, exclusionReason: r.exclusion_reason });
+    if ((data ?? []).length < 1000) break;
+  }
+  const domains = carriedUnreadDomains(verdicts)
+    .filter((d) => !current.has(d))
+    .slice(0, room);
+  if (!domains.length) return [];
+  // Rang de chaque collecte : la plus récente d'abord.
+  const collections = prev.map((r) => r.collection_id);
+  const rankOf = new Map(collections.map((c, i) => [c, i]));
+  const found = new Map<string, { rank: number; row: CandidateRow }>();
+  for (let i = 0; i < domains.length; i += 200) {
+    const { data, error: cErr } = await service
+      .from("collection_candidates")
+      .select(
+        "domain, url, title, tactics, sources, competitors_count, domain_rank, spam_score, page_type, signal_count, language, niveau, collection_id",
+      )
+      .in("collection_id", collections)
+      .in("domain", domains.slice(i, i + 200));
+    if (cErr) throw new Error(`loadCarriedCandidates : ${cErr.message}`);
+    for (const r of data ?? []) {
+      const rank = rankOf.get(r.collection_id) ?? Number.MAX_SAFE_INTEGER;
+      const prevFound = found.get(r.domain);
+      if (!prevFound || rank < prevFound.rank) found.set(r.domain, { rank, row: r });
+    }
+  }
+  return [...found.values()]
+    .map((f) => toCandidate(f.row))
+    .sort((a, b) => a.domain.localeCompare(b.domain));
 }
 
 const planSchema = z.object({ model: z.string(), budgetUsd: z.number() });
