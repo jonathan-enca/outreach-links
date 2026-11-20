@@ -11,7 +11,6 @@ import {
   CreditCard,
   LogOut,
   Mail,
-  PenLine,
   Send,
   Settings,
   Target,
@@ -93,7 +92,6 @@ export function AppNav({
     setSiteMenu(false);
     if (choice !== currentSite && selectSite) startSwitch(() => selectSite(choice));
   }
-  const onSettings = /^\/app\/site(\/[0-9a-f-]{36})?\/?$/i.test(pathname);
   const starts = (p: string) => pathname === p || pathname.startsWith(`${p}/`);
 
   // Menu simplifié (maquette du 19/11/2026) : Campagnes, Envois, Réglages. « À valider » reste à côté
@@ -148,13 +146,6 @@ export function AppNav({
           label: n.mailbox,
           icon: Mail,
           active: starts("/app/reglages/boite"),
-        },
-        {
-          key: "messages",
-          href: "/app/reglages/messages",
-          label: n.yourMessages,
-          icon: PenLine,
-          active: starts("/app/reglages/messages") || onSettings || starts("/app/garde-fous"),
         },
         {
           key: "notifications",

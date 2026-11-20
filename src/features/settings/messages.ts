@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AuditActionState } from "@/features/audits/service";
-import { COUNTERPARTS, SIGNATURE_ROLES, type Counterpart } from "@/features/signature/signature";
+import { SIGNATURE_ROLES } from "@/features/signature/signature";
 import { t } from "@/lib/messages";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -54,7 +54,6 @@ export interface MessageSettingsInput {
   showSite: boolean;
   linkedinUrl: string | null;
   phone: string | null;
-  counterparts: Counterpart[];
   /** "keep" : inchangé ; "remove" : retiré ; sinon la nouvelle image. */
   logo: "keep" | "remove" | ParsedLogo;
 }
@@ -104,7 +103,6 @@ export function parseMessageSettings(
       showSite: on(fd, "showSite"),
       linkedinUrl,
       phone,
-      counterparts: COUNTERPARTS.filter((c) => on(fd, `counterpart_${c}`)),
       logo,
     },
   };
@@ -135,7 +133,6 @@ export async function saveSignatureSettings(
       signature_show_site: v.showSite,
       signature_linkedin_url: v.linkedinUrl,
       signature_phone: v.phone,
-      counterparts: v.counterparts,
     })
     .eq("id", siteId)
     .select("id, signature_logo_token");
