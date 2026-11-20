@@ -1718,7 +1718,61 @@ export const fr = {
         "Vos cibles apparaissent ici quand l'analyse est terminée. Rien n'est contacté à cette étape.",
       masterLabel: "Sélectionner tous les sites affichés",
       selectedCount: (n: number, total: number) => `${n} sur ${total} sélectionnés`,
-      allValidated: "Tous ces sites ont déjà leur message. Retrouvez-les dans « À approuver ».",
+    },
+    /** Après « Préparer les messages » (maquette `docs/mockups/cibles-apres-validation.html`, 20/11). */
+    after: {
+      leadSome: (n: number) =>
+        `Il reste ${n} ${n > 1 ? "sites" : "site"} à décider. Ceux que vous avez retenus sont plus bas, avec l'avancement de leur message.`,
+      leadAll:
+        "Toutes vos cibles sont retenues. Leurs messages s'écrivent ici, puis vous les relisez dans « À approuver ».",
+      region: "Avancement de vos messages",
+      writingTitle: (done: number, total: number) =>
+        `Rédaction des messages : ${done} sur ${total}`,
+      writingBody:
+        "Chaque message arrive dans « À approuver » dès qu'il est écrit. Vous pouvez commencer à relire sans attendre, ou quitter la page : la rédaction continue.",
+      waitingTitle: (n: number) => `${n} ${n > 1 ? "messages restent" : "message reste"} à rédiger`,
+      waitingBody:
+        "La rédaction s'est arrêtée avant la fin. Relancez-la : vous relirez chaque message avant tout envoi.",
+      readyTitle: (n: number) =>
+        `${n} ${n > 1 ? "messages sont prêts" : "message est prêt"} à relire`,
+      readyBody:
+        "Rien n'est parti. Vous relisez, modifiez si besoin, puis approuvez dans « À approuver ».",
+      doneTitle: "Tous vos messages sont traités",
+      doneBody: "Les messages approuvés partent de votre boîte, au rythme prévu.",
+      readSome: (n: number) =>
+        n > 1 ? `Relire les ${n} messages prêts` : "Relire le message prêt",
+      readAll: "Relire et approuver",
+      firstSoon: "Premiers messages dans une minute",
+      draftMissing: (n: number) => (n > 1 ? `Rédiger les ${n} messages` : "Rédiger le message"),
+      seeEmails: "Voir les emails",
+      bar: "Avancement de la rédaction",
+      keys: {
+        ready: "prêts à relire",
+        writing: "en rédaction",
+        waiting: "à rédiger",
+        approved: "approuvés",
+        refused: "refusés par vous",
+      },
+      nextDecide: (n: number) => `Encore ${n} ${n > 1 ? "sites" : "site"} à décider.`,
+      nextDecideLink: "Les voir",
+      nextRefused: (n: number) => `${n} ${n > 1 ? "sites refusés" : "site refusé"} par vous.`,
+      nextRefusedLink: "Voir lesquels",
+      decideTitle: "À décider",
+      decideHint: "Décochez ceux que vous ne voulez pas contacter.",
+      keptTitle: "Retenues",
+      keptHint: "Chaque site garde sa ligne, avec l'état de son message.",
+      keptExplain:
+        "Un clic sur une ligne affiche la raison du ciblage. Les sites décochés restent dans « À décider » : rien n'est perdu.",
+      messageColumn: "Message",
+      states: {
+        en_redaction: "Rédaction en cours",
+        a_rediger: "À rédiger",
+        a_relire: "À relire",
+        approuve: "Approuvé",
+        refuse: "Refusé par vous",
+      },
+      review: "Relire →",
+      anyway: "Rédiger quand même",
     },
     /** Sites pertinents sans email ni formulaire (mentions sans lien comprises) : listés, jamais validés. */
     noContact: {

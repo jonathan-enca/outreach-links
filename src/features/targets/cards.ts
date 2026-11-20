@@ -1,6 +1,6 @@
 import type { FindingKind } from "@/features/findings/types";
 import type { Tactic } from "@/features/queries/schema";
-import type { FindingView, TacticFilter, TargetCard } from "./types";
+import type { FindingView, MessageState, TacticFilter, TargetCard } from "./types";
 
 /** Les constats les plus probants d'abord : une preuve constatée (404/410), puis la mention vérifiée. */
 const KIND_ORDER: FindingKind[] = ["lien_mort", "mention_sans_lien", "lien_inadapte"];
@@ -85,4 +85,20 @@ export function isEligible(card: TargetCard): boolean {
 
 export function eligibleIds(cards: readonly TargetCard[]): string[] {
   return cards.filter(isEligible).map((c) => c.id);
+}
+
+/** Nombre de cibles retenues dans chaque état de message. */
+export function countStates(
+  kept: readonly TargetCard[],
+  messages: Readonly<Record<string, { state: MessageState }>>,
+): Record<MessageState, number> {
+  const out: Record<MessageState, number> = {
+    en_redaction: 0,
+    a_rediger: 0,
+    a_relire: 0,
+    approuve: 0,
+    refuse: 0,
+  };
+  for (const c of kept) out[messages[c.id]?.state ?? "en_redaction"]++;
+  return out;
 }

@@ -11,6 +11,9 @@ export const isFounderRole = (v: unknown): v is FounderRole =>
 
 export type TacticFilter = "toutes" | Tactic;
 
+/** État du message d'une cible retenue (section « Retenues » de l'écran Cibles). */
+export type MessageState = "en_redaction" | "a_rediger" | "a_relire" | "approuve" | "refuse";
+
 /** Un constat de MT.5 tel qu'affiché : la citation est celle de la page. */
 export interface FindingView {
   id: string;

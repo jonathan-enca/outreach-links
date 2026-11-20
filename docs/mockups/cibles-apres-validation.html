@@ -1,0 +1,1251 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maquette « Cibles », après validation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Jetons repris de src/app/globals.css (version en ligne, bleu marine, police Outfit). */
+      :root {
+        --background: #f8fafc;
+        --foreground: #0f172a;
+        --card: #ffffff;
+        --muted: #f1f5f9;
+        --muted-foreground: #526074;
+        --border: #e2e8f0;
+        --hairline: #edf1f6;
+        --primary: #003070;
+        --primary-hover: #00245a;
+        --sidebar: #00245a;
+        --sidebar-foreground: #cfe2f6;
+        --sidebar-label: #9cc3ea;
+        --warning: #92400e;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: Outfit, system-ui, sans-serif;
+        font-size: 15px;
+        line-height: 1.5;
+        font-variant-numeric: tabular-nums;
+      }
+      .app {
+        display: grid;
+        grid-template-columns: 232px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      .side {
+        background: var(--sidebar);
+        color: var(--sidebar-foreground);
+        padding: 20px 12px;
+      }
+      .side .logo {
+        color: #fff;
+        font-weight: 600;
+        font-size: 18px;
+        padding: 0 8px 16px;
+      }
+      .side .label {
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--sidebar-label);
+        padding: 14px 8px 4px;
+      }
+      .side a {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px;
+        border-radius: 8px;
+        color: inherit;
+        text-decoration: none;
+        font-size: 14.5px;
+      }
+      .side a.on {
+        background: rgb(255 255 255 / 0.14);
+        color: #fff;
+        font-weight: 500;
+      }
+      .side .n {
+        font-size: 12px;
+        background: rgb(255 255 255 / 0.16);
+        border-radius: 99px;
+        padding: 0 7px;
+      }
+      main {
+        padding: 28px 32px 40px;
+        min-width: 0;
+      }
+      h1 {
+        font-size: 30px;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        margin: 0 0 6px;
+      }
+      .lead {
+        color: var(--muted-foreground);
+        margin: 0 0 18px;
+        font-size: 16px;
+      }
+      .note {
+        color: var(--muted-foreground);
+        font-size: 14px;
+        margin: 0 0 12px;
+      }
+
+      /* Le tableau, façon base Notion : en-têtes discrets avec icône, filets fins, étiquettes pastel. */
+      .tbl {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .tr {
+        display: grid;
+        grid-template-columns:
+          44px minmax(220px, 1.2fr) 172px minmax(240px, 2.4fr)
+          156px 156px;
+        border-bottom: 1px solid var(--border);
+      }
+      .tr:last-child {
+        border-bottom: 0;
+      }
+      .td {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        padding: 9px 12px;
+        border-right: 1px solid var(--hairline);
+      }
+      .td:last-child {
+        border-right: 0;
+      }
+      .head {
+        background: #fafbfd;
+      }
+      .head .td {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--muted-foreground);
+        padding-block: 8px;
+      }
+      .head svg {
+        width: 14px;
+        height: 14px;
+        flex: none;
+        opacity: 0.8;
+      }
+      .row {
+        cursor: pointer;
+      }
+      .row:hover {
+        background: #f8fafc;
+      }
+      .row.off .td:not(.c) {
+        opacity: 0.45;
+      }
+      .c {
+        justify-content: center;
+        padding-inline: 0;
+      }
+      input[type="checkbox"] {
+        width: 17px;
+        height: 17px;
+        accent-color: var(--primary);
+        cursor: pointer;
+        margin: 0;
+      }
+      input[type="checkbox"]:disabled {
+        cursor: default;
+        opacity: 0.5;
+      }
+      .fav {
+        width: 20px;
+        height: 20px;
+        border-radius: 5px;
+        display: grid;
+        place-items: center;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        flex: none;
+      }
+      .site {
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .open-link {
+        margin-left: auto;
+        color: var(--muted-foreground);
+        font-size: 12px;
+        text-decoration: none;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 1px 6px;
+        background: #fff;
+        display: none;
+        white-space: nowrap;
+      }
+      .row:hover .open-link {
+        display: block;
+      }
+      .why {
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .row.open .why {
+        white-space: normal;
+      }
+      .row.open .td {
+        align-items: flex-start;
+      }
+      .tag {
+        display: inline-block;
+        font-size: 13px;
+        line-height: 1.5;
+        padding: 0 7px;
+        border-radius: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .t-gris {
+        background: #eef1f5;
+        color: #334155;
+      }
+      .t-bleu {
+        background: #dbeafe;
+        color: #1e3a8a;
+      }
+      .t-ambre {
+        background: #fdecc8;
+        color: #7c4a03;
+      }
+      .t-violet {
+        background: #e9e3fb;
+        color: #4c2a92;
+      }
+      .t-vert {
+        background: #dbf1e1;
+        color: #14532d;
+      }
+      .contact {
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+      .contact svg {
+        width: 15px;
+        height: 15px;
+        flex: none;
+      }
+      .contact.warn {
+        color: var(--warning);
+      }
+      .tools {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 4px 16px;
+        margin: 0 0 12px;
+      }
+      .tools .note {
+        margin: 0;
+      }
+      .count {
+        font-size: 14px;
+        color: var(--muted-foreground);
+        white-space: nowrap;
+      }
+
+      .bar {
+        position: sticky;
+        bottom: 14px;
+        margin-top: 14px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: #fff;
+        border: 1px solid rgb(15 23 42 / 0.15);
+        border-radius: 14px;
+        padding: 12px 12px 12px 16px;
+        box-shadow:
+          0 10px 30px -10px rgb(14 26 43 / 0.3),
+          0 1px 2px rgb(14 26 43 / 0.08);
+      }
+      .bar p {
+        margin: 0;
+        margin-right: auto;
+      }
+      .bar strong {
+        display: block;
+      }
+      .bar span {
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+      .btn {
+        font: inherit;
+        font-weight: 500;
+        height: 40px;
+        padding: 0 16px;
+        border-radius: 8px;
+        border: 0;
+        background: var(--primary);
+        color: #fff;
+        cursor: pointer;
+      }
+      .btn:hover {
+        background: var(--primary-hover);
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .legend {
+        margin-top: 22px;
+        font-size: 13px;
+        color: var(--muted-foreground);
+      }
+
+      /* Téléphone : chaque ligne devient une petite fiche, sans défilement horizontal. */
+      @media (max-width: 900px) {
+        .app {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .side {
+          display: none;
+        }
+        main {
+          padding: 20px 16px 32px;
+        }
+        .head .td:not(.c):not(.s) {
+          display: none;
+        }
+        .head {
+          grid-template-columns: 40px 1fr;
+        }
+        .row {
+          grid-template-columns: 40px minmax(0, 1fr) minmax(0, 1fr);
+          grid-template-areas: "c site site" "c why why" "c type req" "c contact contact";
+          padding: 8px 12px 10px 0;
+          row-gap: 6px;
+        }
+        .row .td {
+          border: 0;
+          padding: 0;
+        }
+        .row .c {
+          grid-area: c;
+          align-items: flex-start;
+          padding-top: 2px;
+        }
+        .row .s {
+          grid-area: site;
+        }
+        .row .w {
+          grid-area: why;
+        }
+        .row .w .why {
+          white-space: normal;
+        }
+        .row .ty {
+          grid-area: type;
+        }
+        .row .rq {
+          grid-area: req;
+        }
+        .row .ct {
+          grid-area: contact;
+        }
+        .open-link {
+          display: block;
+        }
+        .bar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+      }
+
+      /* ===== Ajouts : ce qui se passe après « Préparer les messages » ===== */
+      .states {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        margin: 0 0 22px;
+        padding: 8px;
+        border: 1px dashed #c7d2e0;
+        border-radius: 12px;
+        background: #fff;
+        font-size: 13px;
+      }
+      .states b {
+        color: var(--muted-foreground);
+        font-weight: 500;
+        margin: 0 6px 0 4px;
+      }
+      .states button {
+        font: inherit;
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 99px;
+        padding: 4px 12px;
+        cursor: pointer;
+        color: var(--foreground);
+      }
+      .states button[aria-pressed="true"] {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: #fff;
+      }
+      .side .step {
+        display: inline-grid;
+        place-items: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 99px;
+        border: 1.5px solid currentColor;
+        font-size: 11px;
+        margin-right: 10px;
+        flex: none;
+      }
+      .side .step.ok {
+        background: #4ade80;
+        border-color: #4ade80;
+        color: #052e16;
+      }
+      .side a .lbl {
+        display: flex;
+        align-items: center;
+        margin-right: auto;
+      }
+
+      /* Carte d'avancement : le point de bascule entre Cibles et À approuver. */
+      .prog {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 18px 20px;
+        margin: 0 0 22px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px 24px;
+        align-items: center;
+      }
+      .prog.done {
+        border-color: #bfe3c9;
+        background: linear-gradient(180deg, #f3fbf5, #fff 70%);
+      }
+      .prog h2 {
+        margin: 0;
+        font-size: 19px;
+        letter-spacing: -0.01em;
+      }
+      .prog .sub {
+        margin: 2px 0 0;
+        color: var(--muted-foreground);
+        font-size: 14.5px;
+      }
+      .meter {
+        grid-column: 1 / -1;
+        display: grid;
+        gap: 8px;
+      }
+      .track {
+        height: 8px;
+        border-radius: 99px;
+        background: var(--muted);
+        overflow: hidden;
+        display: flex;
+      }
+      .track i {
+        display: block;
+        height: 100%;
+      }
+      .track .r {
+        background: var(--primary);
+      }
+      .track .w {
+        background: repeating-linear-gradient(-45deg, #c9d7ea 0 6px, #dde6f2 6px 12px);
+        animation: slide 1.2s linear infinite;
+        background-size: 17px 17px;
+      }
+      @keyframes slide {
+        to {
+          background-position: 17px 0;
+        }
+      }
+      .keys {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 18px;
+        font-size: 13.5px;
+        color: var(--muted-foreground);
+      }
+      .keys span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .keys i {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        display: inline-block;
+      }
+      .keys strong {
+        color: var(--foreground);
+        font-weight: 600;
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .btn2 {
+        font: inherit;
+        font-weight: 500;
+        height: 40px;
+        padding: 0 14px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--foreground);
+        cursor: pointer;
+      }
+      .btn2:hover {
+        background: var(--muted);
+      }
+      .next {
+        grid-column: 1 / -1;
+        border-top: 1px solid var(--hairline);
+        padding-top: 12px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 16px;
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+      .next a {
+        color: var(--primary);
+        font-weight: 500;
+        text-decoration: none;
+      }
+      .next a:hover {
+        text-decoration: underline;
+      }
+
+      /* Sections « À décider » / « Retenues ». */
+      .sec {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin: 26px 0 10px;
+      }
+      .sec h2 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: -0.01em;
+      }
+      .sec .pill {
+        font-size: 12.5px;
+        background: var(--muted);
+        color: var(--muted-foreground);
+        border-radius: 99px;
+        padding: 0 8px;
+      }
+      .sec p {
+        margin: 0 0 0 auto;
+        font-size: 13.5px;
+        color: var(--muted-foreground);
+      }
+      .tr.kept {
+        grid-template-columns: minmax(150px, 1fr) 150px 140px minmax(250px, 1.4fr);
+      }
+      .msg {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        font-size: 14px;
+      }
+      .msg .act {
+        margin-left: auto;
+        font-size: 13.5px;
+        font-weight: 500;
+        color: var(--primary);
+        text-decoration: none;
+        white-space: nowrap;
+        background: none;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .msg .act:hover {
+        text-decoration: underline;
+      }
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 99px;
+        background: #64748b;
+        display: inline-block;
+        margin-right: 6px;
+        animation: pulse 1.1s ease-in-out infinite;
+        vertical-align: 1px;
+      }
+      @keyframes pulse {
+        50% {
+          opacity: 0.25;
+        }
+      }
+      .wait {
+        color: var(--muted-foreground);
+      }
+      .explain {
+        font-size: 13px;
+        color: var(--muted-foreground);
+        margin: 8px 2px 0;
+      }
+      .fold {
+        margin-top: 10px;
+        font-size: 14px;
+      }
+      .fold summary {
+        cursor: pointer;
+        color: var(--muted-foreground);
+      }
+      .hidden {
+        display: none !important;
+      }
+      .annot {
+        margin-top: 28px;
+        padding: 14px 16px;
+        border-radius: 12px;
+        background: #fff;
+        border: 1px dashed #c7d2e0;
+        font-size: 13.5px;
+        color: var(--muted-foreground);
+      }
+      .annot strong {
+        color: var(--foreground);
+      }
+      .annot ul {
+        margin: 6px 0 0;
+        padding-left: 18px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .dot,
+        .track .w {
+          animation: none;
+        }
+      }
+      @media (max-width: 900px) {
+        .prog {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .actions {
+          justify-content: stretch;
+        }
+        .actions button {
+          flex: 1;
+        }
+        .tr.kept.head {
+          display: none;
+        }
+        .tr.kept.row {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          grid-template-areas: "site site" "req ct" "msg msg";
+          padding: 10px 12px;
+          row-gap: 6px;
+        }
+        .tr.kept .td {
+          border: 0;
+          padding: 0;
+        }
+        .tr.kept .s {
+          grid-area: site;
+        }
+        .tr.kept .rq {
+          grid-area: req;
+        }
+        .tr.kept .ct {
+          grid-area: ct;
+        }
+        .tr.kept .m {
+          grid-area: msg;
+        }
+        .sec {
+          flex-wrap: wrap;
+        }
+        .sec p {
+          margin: 0;
+          flex-basis: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="side" aria-hidden="true">
+        <div class="logo">backleenks</div>
+        <a>Accueil</a>
+        <a>Campagnes</a>
+        <div class="label">Prospection</div>
+        <a class="on"
+          ><span class="lbl"><span class="step" id="st1">1</span>Cibles</span
+          ><span class="n" id="nb1"></span
+        ></a>
+        <a
+          ><span class="lbl"><span class="step">2</span>À approuver</span
+          ><span class="n" id="nb2"></span
+        ></a>
+        <a
+          ><span class="lbl"><span class="step">3</span>Emails</span></a
+        >
+        <div class="label">Réglages</div>
+        <a>Boîte d'envoi</a>
+        <a>Search Console</a>
+        <a>Notifications</a>
+        <a>Abonnement</a>
+      </aside>
+      <main>
+        <div class="states" role="group" aria-label="État affiché par la maquette">
+          <b>Maquette, état :</b>
+          <button type="button" data-s="1">1. Avant validation</button>
+          <button type="button" data-s="2">2. Une partie retenue</button>
+          <button type="button" data-s="3">3. Toutes retenues, rédaction en cours</button>
+          <button type="button" data-s="4">4. Tous les messages prêts</button>
+        </div>
+
+        <h1>Cibles</h1>
+        <p class="lead" id="lead"></p>
+
+        <!-- Carte d'avancement : n'existe que lorsqu'au moins une cible est retenue. -->
+        <section class="prog" id="prog" aria-live="polite">
+          <div>
+            <h2 id="pTitle"></h2>
+            <p class="sub" id="pSub"></p>
+          </div>
+          <div class="actions">
+            <button class="btn" type="button" id="pGo"></button>
+          </div>
+          <div class="meter">
+            <div class="track" aria-hidden="true">
+              <i class="r" id="barR"></i><i class="w" id="barW"></i>
+            </div>
+            <div class="keys">
+              <span
+                ><i style="background: var(--primary)"></i><strong id="kR"></strong> prêts à
+                relire</span
+              >
+              <span id="kWwrap"
+                ><i style="background: #c9d7ea"></i><strong id="kW"></strong> en rédaction</span
+              >
+              <span id="kDwrap"
+                ><i style="background: #fdecc8"></i><strong id="kD"></strong> écartés par la
+                rédaction</span
+              >
+            </div>
+          </div>
+          <div class="next" id="pNext"></div>
+        </section>
+
+        <!-- À décider : le tableau de la maquette « Cibles », inchangé. -->
+        <div id="decideBlock">
+          <div class="sec" id="decideHead">
+            <h2>À décider</h2>
+            <span class="pill" id="decideN"></span>
+            <p>Décochez ceux que vous ne voulez pas contacter.</p>
+          </div>
+          <div class="tools" id="tools1">
+            <p class="note">
+              La recherche s'est arrêtée avant la fin : 100 sites à contacter pour l'instant. Le
+              détail est sous la liste.
+            </p>
+            <span class="count" id="count"></span>
+          </div>
+          <div class="tbl" id="tbl">
+            <div class="tr head">
+              <div class="td c">
+                <input type="checkbox" id="master" aria-label="Sélectionner tous les sites" />
+              </div>
+              <div class="td s">Site</div>
+              <div class="td">Type de site</div>
+              <div class="td">Pourquoi ce site</div>
+              <div class="td">Demande</div>
+              <div class="td">Contact</div>
+            </div>
+          </div>
+          <div class="bar" role="region" aria-label="Préparer les messages des sites cochés">
+            <p>
+              <strong id="will"></strong>
+              <span>Vous les relirez avant tout envoi.</span>
+            </p>
+            <button class="btn" id="go" type="button"></button>
+          </div>
+        </div>
+
+        <!-- Retenues : chaque site garde sa ligne, avec l'état de son message. -->
+        <div id="keptBlock">
+          <div class="sec">
+            <h2>Retenues</h2>
+            <span class="pill" id="keptN"></span>
+            <p>Les messages s'écrivent dans l'ordre de la liste.</p>
+          </div>
+          <div class="tbl" id="kept">
+            <div class="tr kept head">
+              <div class="td">Site</div>
+              <div class="td">Demande</div>
+              <div class="td">Contact</div>
+              <div class="td">Message</div>
+            </div>
+          </div>
+          <p class="explain">
+            Un clic sur une ligne affiche la raison du ciblage, ou celle de l'écart. Les sites
+            décochés restent dans « À décider » : rien n'est perdu.
+          </p>
+        </div>
+
+        <div class="annot">
+          <strong>Ce que propose cette maquette</strong>
+          <ul>
+            <li>
+              L'écran ne se vide plus : les sites retenus restent visibles dans « Retenues », avec
+              l'état de leur message (en rédaction, à relire, écarté).
+            </li>
+            <li>
+              Une carte d'avancement fait le lien avec « À approuver » : on peut relire les premiers
+              messages sans attendre la fin de la rédaction.
+            </li>
+            <li>
+              Les cibles écartées par la rédaction restent dans la liste, avec leur motif et «
+              Rédiger quand même ».
+            </li>
+            <li>
+              Quand tout est traité, l'écran dit quoi faire ensuite : relire et approuver, ou
+              chercher d'autres cibles (coût annoncé avant de lancer).
+            </li>
+            <li>
+              Dans le menu, « Cibles » montre le nombre de sites encore à décider et une coche quand
+              il n'en reste plus ; « À approuver » montre le nombre de messages prêts.
+            </li>
+          </ul>
+          <p style="margin: 8px 0 0">
+            En état 1, cochez quelques sites puis « Préparer » : la rédaction se déroule sous vos
+            yeux (accélérée). Les noms viennent de votre capture, les raisons sont des exemples.
+          </p>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const MAIL =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>';
+      const FORM =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>';
+      const REQ = {
+        ressources: ["Page ressources", "t-bleu"],
+        mort: ["Lien mort", "t-ambre"],
+        mention: ["Mention sans lien", "t-violet"],
+        jamais: ["Jamais sollicité", "t-vert"],
+      };
+      const CONTACT = {
+        email: [MAIL, "Email vérifié", ""],
+        doute: [MAIL, "Email à vérifier", "warn"],
+        form: [FORM, "Formulaire", ""],
+      };
+      const FAV = ["#dbeafe", "#fdecc8", "#e9e3fb", "#dbf1e1", "#fde2e2", "#e0f2fe"];
+      // [site, type, raison, demande, contact, motif d'écart si la rédaction l'écarte]
+      const ROWS = [
+        [
+          "respoweb.com",
+          "Blog",
+          "Son guide « Créer son site pas à pas » cite déjà six outils comparables au vôtre.",
+          "ressources",
+          "email",
+        ],
+        [
+          "geekhebdo.com",
+          "Média",
+          "Un article de 2024 renvoie vers un outil qui n'existe plus : votre page peut le remplacer.",
+          "mort",
+          "email",
+        ],
+        [
+          "next-generation.dev",
+          "Blog",
+          "Sa page « Ressources » est tenue à jour et liste plusieurs sites sur le même sujet.",
+          "ressources",
+          "form",
+        ],
+        [
+          "drujokweb.fr",
+          "Agence web",
+          "Son comparatif d'outils pour indépendants ne mentionne pas encore de solution comme la vôtre.",
+          "jamais",
+          "email",
+        ],
+        [
+          "mootion.fr",
+          "Agence web",
+          "Parle de votre site dans son billet de septembre, sans faire de lien.",
+          "mention",
+          "email",
+        ],
+        [
+          "noblank.fr",
+          "Blog",
+          "Sa sélection « Nos outils préférés » est complétée chaque trimestre.",
+          "ressources",
+          "doute",
+        ],
+        [
+          "dataglobehub.com",
+          "Média",
+          "Dossier de fond sur votre sujet, avec une rubrique « Pour aller plus loin ».",
+          "ressources",
+          "email",
+        ],
+        [
+          "haskn.com",
+          "Blog",
+          "Deux liens de son tutoriel mènent à des pages introuvables.",
+          "mort",
+          "email",
+        ],
+        [
+          "ia-boostacademy.fr",
+          "Organisme de formation",
+          "Sa page de ressources pour ses élèves cite des outils proches du vôtre.",
+          "ressources",
+          "form",
+        ],
+        [
+          "blog-it.net",
+          "Blog",
+          "Liste « 15 outils à connaître » mise à jour cette année.",
+          "ressources",
+          "email",
+          "Concurrent direct : le site vend le même service que vous.",
+        ],
+        [
+          "toutjavascript.com",
+          "Site communautaire",
+          "Annuaire de ressources tenu par ses membres ; personne ne semble le solliciter.",
+          "jamais",
+          "email",
+        ],
+        [
+          "aubaguevictor.fr",
+          "Site personnel",
+          "Sa page « Mes outils » renvoie vers trois services comparables.",
+          "ressources",
+          "email",
+        ],
+        [
+          "izzoran.com",
+          "Blog",
+          "Cite votre site par son nom dans un comparatif, sans lien.",
+          "mention",
+          "doute",
+        ],
+        [
+          "esokia.com",
+          "Agence web",
+          "Article de conseils avec une liste d'outils recommandés en fin de page.",
+          "ressources",
+          "form",
+        ],
+        [
+          "le-meilleur-site-web.fr",
+          "Blog",
+          "Comparatif très lu sur votre sujet, complété au fil des suggestions de lecteurs.",
+          "ressources",
+          "email",
+        ],
+        [
+          "comment-se-former.fr",
+          "Organisme de formation",
+          "Guide « Par où commencer » qui oriente vers des ressources gratuites.",
+          "jamais",
+          "email",
+          "Ferme à liens : la page ne publie que des articles sponsorisés.",
+        ],
+        [
+          "job-en-poche.fr",
+          "Blog",
+          "Un lien de sa page d'outils mène à un site fermé.",
+          "mort",
+          "email",
+        ],
+        [
+          "seo-coaching.fr",
+          "Site personnel",
+          "Sa boîte à outils cite plusieurs services du même type que le vôtre.",
+          "ressources",
+          "email",
+        ],
+      ];
+
+      // État de chaque site : decide | writing | ready | declined. checked ne sert qu'à « À décider ».
+      const S = ROWS.map(() => ({ st: "decide", checked: true, open: false }));
+      let timer = null;
+
+      const PRESETS = {
+        1: () => S.forEach((s) => Object.assign(s, { st: "decide", checked: true })),
+        2: () =>
+          S.forEach((s, i) => {
+            s.st = i < 5 ? "ready" : i < 11 ? "writing" : "decide";
+            s.checked = i !== 13; // un site décoché reste visible dans « À décider »
+          }),
+        3: () => S.forEach((s, i) => (s.st = i < 9 ? "ready" : i === 9 ? "declined" : "writing")),
+        4: () => S.forEach((s, i) => (s.st = ROWS[i][5] ? "declined" : "ready")),
+      };
+
+      const $ = (id) => document.getElementById(id);
+      const plural = (n, one, many) => (n > 1 ? many : one);
+
+      function siteCell(site, i) {
+        return `<div class="td s">
+            <span class="fav" style="background:${FAV[i % FAV.length]}">${site[0]}</span>
+            <span class="site">${site}</span>
+            <a class="open-link" href="https://${site}" target="_blank" rel="noopener noreferrer">Ouvrir ↗</a>
+          </div>`;
+      }
+      function reqCell(req) {
+        const [l, t] = REQ[req];
+        return `<div class="td rq"><span class="tag ${t}">${l}</span></div>`;
+      }
+      function contactCell(c) {
+        const [icon, l, t] = CONTACT[c];
+        return `<div class="td ct"><span class="td contact ${t}" style="padding:0;border:0">${icon}${l}</span></div>`;
+      }
+      function msgCell(s, i) {
+        const reason = ROWS[i][5];
+        if (s.st === "writing")
+          return `<span class="wait"><span class="dot"></span>Rédaction en cours</span>`;
+        if (s.st === "ready")
+          return `<span class="tag t-bleu">À relire</span><a class="act" href="#">Relire →</a>`;
+        return `<span class="tag t-ambre">Écartée</span><button class="act" type="button" data-anyway="${i}">Rédiger quand même</button>`;
+      }
+
+      function render() {
+        const decide = S.map((s, i) => i).filter((i) => S[i].st === "decide");
+        const kept = S.map((s, i) => i).filter((i) => S[i].st !== "decide");
+        const nR = kept.filter((i) => S[i].st === "ready").length;
+        const nW = kept.filter((i) => S[i].st === "writing").length;
+        const nD = kept.filter((i) => S[i].st === "declined").length;
+        const nC = decide.filter((i) => S[i].checked).length;
+
+        // Menu
+        $("nb1").textContent = decide.length || "";
+        $("nb1").classList.toggle("hidden", !decide.length);
+        $("st1").textContent = !decide.length && kept.length ? "✓" : "1";
+        $("st1").classList.toggle("ok", !decide.length && kept.length > 0);
+        $("nb2").textContent = nR || "";
+        $("nb2").classList.toggle("hidden", !nR);
+
+        // Phrase d'introduction
+        $("lead").textContent = !kept.length
+          ? "Ces sites recevront un message de votre part. Décochez ceux que vous ne voulez pas contacter."
+          : decide.length
+            ? `Il reste ${decide.length} ${plural(decide.length, "site", "sites")} à décider. Ceux que vous avez retenus sont plus bas, avec l'avancement de leur message.`
+            : "Toutes vos cibles sont retenues. Leurs messages s'écrivent ici, puis vous les relisez dans « À approuver ».";
+
+        // Carte d'avancement
+        const prog = $("prog");
+        prog.classList.toggle("hidden", !kept.length);
+        prog.classList.toggle("done", kept.length > 0 && nW === 0);
+        const written = nR + nD;
+        if (nW) {
+          $("pTitle").textContent = `Rédaction des messages : ${written} sur ${kept.length}`;
+          $("pSub").textContent =
+            "Chaque message arrive dans « À approuver » dès qu'il est écrit. Vous pouvez commencer à relire sans attendre, ou quitter la page : la rédaction continue.";
+        } else {
+          $("pTitle").textContent =
+            `${nR} ${plural(nR, "message est prêt", "messages sont prêts")} à relire`;
+          $("pSub").textContent =
+            "Rien n'est parti. Vous relisez, modifiez si besoin, puis approuvez dans « À approuver ».";
+        }
+        const go2 = $("pGo");
+        go2.disabled = nR === 0;
+        go2.textContent =
+          nR === 0
+            ? "Premiers messages dans une minute"
+            : nW
+              ? `Relire les ${nR} ${plural(nR, "message prêt", "messages prêts")}`
+              : "Relire et approuver";
+        $("barR").style.width = `${(nR / Math.max(kept.length, 1)) * 100}%`;
+        $("barW").style.width = `${(nW / Math.max(kept.length, 1)) * 100}%`;
+        $("kR").textContent = nR;
+        $("kW").textContent = nW;
+        $("kWwrap").classList.toggle("hidden", !nW);
+        $("kD").textContent = nD;
+        $("kDwrap").classList.toggle("hidden", !nD);
+
+        const next = [];
+        if (decide.length)
+          next.push(
+            `Encore ${decide.length} ${plural(decide.length, "site", "sites")} à décider. <a href="#decideBlock">Les voir</a>`,
+          );
+        if (nD)
+          next.push(
+            `${nD} ${plural(nD, "site écarté", "sites écartés")} par la rédaction. <a href="#keptBlock">Voir pourquoi</a>`,
+          );
+        if (!decide.length && !nW)
+          next.push(
+            `Besoin de plus de sites ? <a href="#">Chercher d'autres cibles</a> (le coût est annoncé avant de lancer)`,
+          );
+        $("pNext").innerHTML = next.map((t) => `<span>${t}</span>`).join("");
+        $("pNext").classList.toggle("hidden", !next.length);
+
+        // À décider
+        $("decideBlock").classList.toggle("hidden", !decide.length);
+        $("decideHead").classList.toggle("hidden", !kept.length);
+        $("tools1").classList.toggle("hidden", kept.length > 0);
+        $("decideN").textContent = decide.length;
+        const tbl = $("tbl");
+        tbl.querySelectorAll(".row").forEach((r) => r.remove());
+        decide.forEach((i) => {
+          const [site, type, why, req, contact] = ROWS[i];
+          const s = S[i];
+          const row = document.createElement("div");
+          row.className = `tr row${s.checked ? "" : " off"}${s.open ? " open" : ""}`;
+          row.innerHTML = `
+            <div class="td c"><input type="checkbox" ${s.checked ? "checked" : ""} aria-label="Contacter ${site}" /></div>
+            ${siteCell(site, i)}
+            <div class="td ty"><span class="tag t-gris">${type}</span></div>
+            <div class="td w"><span class="why">${why}</span></div>
+            ${reqCell(req)}${contactCell(contact)}`;
+          row.querySelector("input").addEventListener("change", (e) => {
+            s.checked = e.target.checked;
+            render();
+          });
+          row.addEventListener("click", (e) => {
+            if (e.target.closest("input,a")) return;
+            s.open = !s.open;
+            render();
+          });
+          tbl.appendChild(row);
+        });
+        const master = $("master");
+        master.checked = decide.length > 0 && nC === decide.length;
+        master.indeterminate = nC > 0 && nC < decide.length;
+        $("count").textContent = `${nC} sur ${decide.length} sélectionnés`;
+        $("will").textContent =
+          nC === 0
+            ? "Cochez au moins un site."
+            : nC === 1
+              ? "1 message sera préparé"
+              : `${nC} messages seront préparés`;
+        const go = $("go");
+        go.disabled = nC === 0;
+        go.textContent =
+          nC === 0
+            ? "Préparer les messages"
+            : nC === 1
+              ? "Préparer le message"
+              : `Préparer les ${nC} messages`;
+
+        // Retenues
+        $("keptBlock").classList.toggle("hidden", !kept.length);
+        $("keptN").textContent = kept.length;
+        const kt = $("kept");
+        kt.querySelectorAll(".row").forEach((r) => r.remove());
+        kept.forEach((i) => {
+          const [site, , why, req, contact, reason] = ROWS[i];
+          const s = S[i];
+          const row = document.createElement("div");
+          row.className = `tr kept row${s.open ? " open" : ""}`;
+          const detail = s.open
+            ? `<span class="why" style="display:block;color:var(--muted-foreground);margin-top:4px;white-space:normal">${s.st === "declined" ? reason : why}</span>`
+            : "";
+          row.innerHTML = `
+            ${siteCell(site, i)}${reqCell(req)}${contactCell(contact)}
+            <div class="td m" style="flex-direction:column;align-items:stretch"><div class="msg">${msgCell(s, i)}</div>${detail}</div>`;
+          row.addEventListener("click", (e) => {
+            const anyway = e.target.closest("[data-anyway]");
+            if (anyway) {
+              s.st = "writing";
+              s.forced = true;
+              s.open = false;
+              render();
+              tick();
+              return;
+            }
+            if (e.target.closest("a")) return;
+            s.open = !s.open;
+            render();
+          });
+          kt.appendChild(row);
+        });
+      }
+
+      // Rédaction simulée : un message toutes les 0,7 s (en vrai, quelques minutes pour un lot).
+      function tick() {
+        clearTimeout(timer);
+        const i = S.findIndex((s) => s.st === "writing");
+        if (i < 0) return;
+        timer = setTimeout(() => {
+          // « Rédiger quand même » (forced) donne toujours un message à relire.
+          S[i].st = ROWS[i][5] && !S[i].forced ? "declined" : "ready";
+          render();
+          tick();
+        }, 700);
+      }
+
+      $("go").addEventListener("click", () => {
+        S.forEach((s) => {
+          if (s.st === "decide" && s.checked) s.st = "writing";
+        });
+        S.forEach((s) => (s.open = false));
+        setState(null);
+        render();
+        tick();
+      });
+      $("master").addEventListener("change", (e) => {
+        S.forEach((s) => s.st === "decide" && (s.checked = e.target.checked));
+        render();
+      });
+
+      function setState(n) {
+        document
+          .querySelectorAll(".states button")
+          .forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.s === String(n))));
+      }
+      document.querySelectorAll(".states button").forEach((b) =>
+        b.addEventListener("click", () => {
+          clearTimeout(timer);
+          S.forEach((s) => Object.assign(s, { open: false, forced: false }));
+          PRESETS[b.dataset.s]();
+          setState(b.dataset.s);
+          render();
+        }),
+      );
+      PRESETS[2]();
+      setState(2);
+      render();
+    </script>
+  </body>
+</html>

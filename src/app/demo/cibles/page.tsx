@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { TargetsScreen } from "@/features/targets/targets-screen";
-import type { TargetsView } from "@/features/targets/service";
-import type { TargetCard } from "@/features/targets/types";
+import { targetsLead, type TargetsView } from "@/features/targets/service";
+import type { MessageState, TargetCard } from "@/features/targets/types";
 import { t } from "@/lib/messages";
 
 const SITES = [
@@ -138,19 +138,40 @@ const run = { status: "termine" as const, costUsd: null, stop: null, error: null
 export default async function DemoCiblesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ signature?: string }>;
+  searchParams: Promise<{ signature?: string; etat?: string }>;
 }) {
   if (process.env.NODE_ENV === "production") notFound();
-  const { signature } = await searchParams;
+  const { signature, etat } = await searchParams;
   const signed = signature !== "non";
   async function idle() {
     "use server";
     return { status: "idle" as const };
   }
+  // `?etat=partie|redaction|attente|pret` : les états après « Préparer les messages »
+  // (maquette docs/mockups/cibles-apres-validation.html).
+  const eligible = SITES.map((_, i) => i);
+  const keptIdx = new Set(
+    etat === "partie" ? eligible.slice(0, 4) : etat ? eligible : [eligible[3] ?? 0],
+  );
+  const stateOf = (rank: number, total: number): MessageState => {
+    if (etat === "partie") return rank < 2 ? "a_relire" : "en_redaction";
+    if (etat === "redaction")
+      return rank === 2 ? "refuse" : rank < total / 2 ? "a_relire" : "en_redaction";
+    if (etat === "attente") return rank < total / 2 ? "a_relire" : "a_rediger";
+    if (etat === "pret") return rank === 2 ? "refuse" : "a_relire";
+    return "a_relire";
+  };
   const cards = SITES.map(([d, type, why, kind, verified], i) => ({
     ...card(`c${i}`, d, type, why, kind, verified),
-    alreadyValidated: i === 3,
+    alreadyValidated: keptIdx.has(i),
   }));
+  const keptIds = [...keptIdx];
+  const messages: TargetsView["messages"] = Object.fromEntries(
+    keptIds.map((i, rank) => [
+      `c${i}`,
+      { itemId: `item${i}`, state: stateOf(rank, keptIds.length) },
+    ]),
+  );
   const view: TargetsView = {
     auditId: "demo",
     siteId: "demo",
@@ -163,6 +184,8 @@ export default async function DemoCiblesPage({
     qualification: { ...run, preview: null },
     findings: { ...run, preview: null, count: 0 },
     cards,
+    messages,
+    drafting: Object.values(messages).some((m) => m.state === "en_redaction"),
     contactless: [],
     noContact: LOST.map(([d, type, why, path], i) =>
       card(`l${i}`, d, type, why, "aucun", false, path),
@@ -192,7 +215,7 @@ export default async function DemoCiblesPage({
   return (
     <div className="flex">
       <main className="mx-auto min-w-0 max-w-[96rem] flex-1 px-4 py-8 sm:px-6">
-        <PageHeader title={t.targets.title} description={t.targets.description} />
+        <PageHeader title={t.targets.title} description={targetsLead(view)} />
         <TargetsScreen
           view={view}
           auditId="demo"
@@ -203,6 +226,8 @@ export default async function DemoCiblesPage({
             saveSettings: idle,
             validate: idle,
             readMore: idle,
+            draftMissing: idle,
+            draftAnyway: idle,
           }}
         />
       </main>
