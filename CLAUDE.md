@@ -140,13 +140,13 @@ Réponse de la cible demandant de l'argent : trois options présentées à l'uti
 
 ### 4.6 Pricing
 
-**Décision de Jonathan (16/11/2026)** : trois offres payantes, **19,90 € / 39,90 € / 99,90 € TTC par mois**, plus un accès gratuit sans carte (audit réduit, aperçu de cibles, aucun envoi). Source de vérité : table `plans` (`starter`, `pro`, `business`). **Les trois tactiques sont incluses dans toutes les offres** (c'est la base : la grille de tarifs ne les mentionne pas).
+**Décision de Jonathan (16/11/2026, prix confirmés le 20/11/2026)** : trois offres payantes, **29,90 € / 49,90 € / 199,90 € TTC par mois** (Starter, Pro, Scale ; l'offre `business` s'affiche « Scale »), plus un accès gratuit sans carte (audit réduit, aperçu de cibles, aucun envoi). Source de vérité : table `plans` (`starter`, `pro`, `business`). **Les trois tactiques sont incluses dans toutes les offres** (c'est la base : la grille de tarifs ne les mentionne pas).
 
-Répartition des accès [HYPOTHÈSE proposée, à confirmer] :
+Répartition des accès (celle affichée sur le site, lue dans `plans`) :
 
-- **Starter 19,90 €** : 1 site, 1 audit complet par mois, 100 envois par mois, 1 boîte.
-- **Pro 39,90 €** (recommandé) : 3 sites, 3 audits, 300 envois, 2 boîtes, réponses prêtes à insérer.
-- **Business 99,90 €** : 10 sites, 10 audits, 1 000 envois, 5 boîtes, tout Pro.
+- **Starter 29,90 €** : 1 site, 1 campagne par mois, 100 emails par mois, 1 boîte.
+- **Pro 49,90 €** (recommandé) : 3 sites, 3 campagnes, 300 emails, 2 boîtes, vérification des liens.
+- **Scale 199,90 €** : 20 sites, 20 campagnes, 1 000 emails, 10 boîtes, domaine d'envoi dédié, tout Pro.
 
 **Bêta (décision de Jonathan, 17/11/2026)** : tant que `BETA_MODE` est actif, l'envoi réel est ouvert à tout inscrit sans abonnement, plafonné comme Starter (100 envois par mois). À refermer à l'ouverture du paiement.
 
