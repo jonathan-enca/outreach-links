@@ -1387,10 +1387,10 @@ export const fr = {
     },
   },
   targets: {
-    title: "Vos cibles",
+    title: "Cibles",
     reviewSteps: "Voir le détail de l'analyse",
     description:
-      "La liste courte, classée : pour chaque site, la demande à faire et pourquoi. Rien n'est envoyé avant que vous ayez relu et approuvé les messages.",
+      "Ces sites recevront un message de votre part. Décochez ceux que vous ne voulez pas contacter.",
     back: "Retour à l'analyse",
     notReady: {
       title: "Vos cibles arrivent",
@@ -1400,7 +1400,6 @@ export const fr = {
         "L'analyse est terminée, mais la lecture des autres sites trouvés continue. Vos cibles s'afficheront ici une fois qu'elle sera finie.",
       cta: "Voir l'analyse",
     },
-    toPlan: (n: number) => `Voir les messages rédigés (${n})`,
     messages: {
       unauthenticated: "Connectez-vous pour continuer.",
       notFound: "Audit introuvable.",
@@ -1543,7 +1542,6 @@ export const fr = {
       stopped: (n: number) =>
         `La recherche s'est arrêtée avant la fin : ${n} ${n > 1 ? "sites" : "site"} à contacter pour l'instant. Le détail est sous la liste.`,
       newBadge: "Nouveau",
-      newFilter: "Nouveaux",
     },
     more: {
       /** Ce que fait le bouton, dit en clair (il reprend la lecture pour une dizaine de minutes). */
@@ -1586,26 +1584,6 @@ export const fr = {
       empty: "Tous les sites trouvés ont déjà été lus.",
       failed: "Impossible de lancer la lecture. Réessayez.",
       started: "La recherche reprend : les nouvelles cibles s'ajouteront à la liste.",
-    },
-    publishers: {
-      label: "Filtrer par type de site",
-      title: "Les types de sites cherchés",
-      all: "Toutes",
-      others: "Autres sites",
-      zero: "aucune cible pour l'instant",
-      suggested: "suggestion",
-      short: "Type de site",
-      emptyTab:
-        "Aucune cible de ce type pour l'instant. Nous l'avons cherché ; rien n'a passé le tri.",
-    },
-    filters: {
-      label: "Filtrer par tactique",
-      rowTitle: "La demande",
-      toutes: "Toutes",
-      inconnus: "Sites à solliciter",
-      ressources: "Liens cassés des concurrents",
-      mentions: "Mentions sans lien",
-      count: "{n} cibles",
     },
     siteTypes: {
       mairie: "Mairie ou collectivité",
@@ -1682,30 +1660,12 @@ export const fr = {
       mention_sans_lien: "Mention sans lien",
     },
     list: {
-      title: "Liste courte",
-      heading: (n: number) => `${n} ${n > 1 ? "sites" : "site"} à contacter`,
-      lead: "Chaque site a sa raison. Ouvrez une ligne pour voir le détail, décochez un site pour l'écarter.",
+      title: "Sites à contacter",
       empty:
         "Vos cibles apparaissent ici quand l'analyse est terminée. Rien n'est contacté à cette étape.",
-      emptyFiltered: "Aucune cible pour cette tactique.",
-      /** Tactique cherchée sans résultat, ou non lancée faute de chance (chantier C, 18/11/2026). */
-      tacticNone: "Cette recherche a été faite : elle n'a trouvé aucune cible pour votre site.",
-      mentionsSkipped: "Cette recherche n'a pas été lancée : {reason}.",
-      deadPagesSkipped:
-        "Les pages disparues de {n} concurrent(s) n'ont pas été cherchées (site trop gros ou d'une autre langue) : {names}.",
-      selectAll: (n: number) => `Tout sélectionner (${n})`,
-      selectNone: (n: number) => `Tout désélectionner (${n})`,
       masterLabel: "Sélectionner tous les sites affichés",
-      tabsLabel: "Cibles à contacter ou déjà validées",
-      tabs: {
-        contacter: (n: number) => `À contacter (${n})`,
-        validees: (n: number) => `Messages rédigés (${n})`,
-      },
-      validatedEmpty: "Aucun message rédigé pour l'instant.",
-      allValidated:
-        "Toutes les cibles ont déjà leur message : retrouvez-les dans « Messages rédigés ».",
-      selected: (n: number) => `${n} ${n > 1 ? "sites retenus" : "site retenu"}`,
-      selectedOf: (total: number) => `sur ${total}`,
+      selectedCount: (n: number, total: number) => `${n} sur ${total} sélectionnés`,
+      allValidated: "Tous ces sites ont déjà leur message. Retrouvez-les dans « À approuver ».",
     },
     /** Sites pertinents sans email ni formulaire (mentions sans lien comprises) : listés, jamais validés. */
     noContact: {
@@ -1724,17 +1684,21 @@ export const fr = {
         `Nous sommes partis ${n > 1 ? `des ${n} sites qui apparaissent` : "des sites qui apparaissent"} avant vous sur Google pour vos recherches. Nous ne les contactons pas : nous avons regardé qui fait des liens vers eux, puis lu ces sites un par un.`,
     },
     validate: {
-      region: "Rédiger les messages des demandes retenues",
+      region: "Préparer les messages des sites cochés",
       button: (n: number) =>
         n === 0
-          ? "Rédiger les messages"
+          ? "Préparer les messages"
           : n === 1
-            ? "Rédiger le message"
-            : `Rédiger les ${n} messages`,
+            ? "Préparer le message"
+            : `Préparer les ${n} messages`,
       busy: "Un instant…",
-      count: (n: number) => `${n} ${n > 1 ? "demandes retenues" : "demande retenue"}`,
-      note: "Rien n'est envoyé maintenant : nous rédigeons les messages, vous les relisez avant tout envoi.",
-      noteShort: "Rien n'est envoyé",
+      willPrepare: (n: number) =>
+        n === 0
+          ? "Aucun message à préparer"
+          : n === 1
+            ? "1 message sera préparé"
+            : `${n} messages seront préparés`,
+      note: "Vous les relirez avant tout envoi.",
       empty: "Cochez au moins un site.",
     },
   },
