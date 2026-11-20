@@ -14,7 +14,7 @@ export function SiteFooter() {
       aria-label={f.label}
       className="surface-night border-t border-border px-4 py-12 sm:px-7"
     >
-      <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-4 gap-y-6 md:grid-cols-[1.4fr_1fr_1fr_1fr] md:gap-10">
         <div>
           <Logo />
           <p className="mt-3 max-w-[34ch] text-sm text-muted-foreground">{f.tagline}</p>

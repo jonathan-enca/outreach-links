@@ -16,7 +16,7 @@ export function homeNavLinks(base = "") {
   ];
 }
 
-/** En-tête collant de la home (68 px). Sur mobile, les liens passent dans un panneau latéral. */
+/** En-tête collant de la home (68 px). Sur mobile, les liens passent dans un panneau latéral ; « Essai gratuit » reste visible. */
 export function SiteHeader({ base = "" }: { base?: string }) {
   const links = homeNavLinks(base);
   return (
@@ -52,7 +52,12 @@ export function SiteHeader({ base = "" }: { base?: string }) {
             <Link href="/inscription">{t.home.nav.cta}</Link>
           </Button>
         </nav>
-        <MobileMenu links={links} signIn={t.home.signIn} cta={t.home.nav.cta} />
+        <div className="flex items-center gap-2 lg:hidden">
+          <Button asChild size="sm" className="font-semibold">
+            <Link href="/inscription">{t.home.nav.mobileCta}</Link>
+          </Button>
+          <MobileMenu links={links} signIn={t.home.signIn} cta={t.home.nav.cta} />
+        </div>
       </div>
     </header>
   );

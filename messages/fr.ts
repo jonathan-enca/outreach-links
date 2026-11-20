@@ -27,6 +27,7 @@ export const fr = {
       openMenu: "Ouvrir le menu",
       closeMenu: "Fermer le menu",
       cta: "Commencer gratuitement",
+      mobileCta: "Essai gratuit",
     },
     hero: {
       pill: "Gratuit : voyez vos sites à contacter avant de payer quoi que ce soit",
@@ -122,6 +123,7 @@ export const fr = {
         "Les meilleurs liens ne sont pas en vente. Ils sont sur des pages qui recommandent déjà des ressources comme les vôtres, sur des pages dont un lien ne mène plus nulle part, ou chez des gens qui parlent déjà de vous.",
       kicker: "Méthode",
       exampleLabel: "Exemple de demande",
+      showSteps: "Voir les {n} étapes",
       frame:
         "Le cadre est le même pour les trois : rien ne part sans votre accord, les envois s'étalent sur la journée, et il n'y a qu'une seule relance.",
       primary: "Commencer gratuitement",
@@ -223,6 +225,7 @@ export const fr = {
       authority: "Autorité du domaine",
       linkedFrom: "Cité par",
       footnote: "Site du fondateur · liens demandés à la main",
+      swipeHint: "Faites glisser pour voir les {n} sites →",
       summary: {
         authority: "Autorité du domaine",
         traffic: "Trafic venu de Google",
@@ -459,6 +462,7 @@ export const fr = {
         },
       ],
       usColumn: "Avec nous",
+      short: { platform: "Plateforme", byHand: "À la main" },
       usValues: [
         "Un abonnement fixe, peu importe le nombre de liens",
         "Gratuits, quand on vous répond",

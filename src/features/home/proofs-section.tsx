@@ -37,12 +37,14 @@ function Sparkline({ values, label }: { values: number[]; label: string }) {
   );
 }
 
-function SiteCard({ site }: { site: ProofSite }) {
+function SiteCard({ site, className = "" }: { site: ProofSite; className?: string }) {
   const p = t.home.proofs;
   const kind = p.kinds[site.kind];
   const label = `${p.authority} ${site.authority.from} ${ARROW} ${site.authority.to}`;
   return (
-    <article className="flex flex-col rounded-card border border-border bg-card p-6 shadow-card">
+    <article
+      className={`flex flex-col rounded-card border border-border bg-card p-6 shadow-card ${className}`}
+    >
       <header className="flex items-center gap-3">
         <span
           aria-hidden
@@ -134,7 +136,7 @@ export function Proofs() {
             </p>
             <h2
               id={headingId}
-              className="mt-6 text-balance text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl"
+              className="mt-6 text-balance text-[32px] font-bold leading-[1.1] tracking-tight sm:text-5xl"
             >
               {p.title}
             </h2>
@@ -151,21 +153,33 @@ export function Proofs() {
           </p>
         ) : null}
 
-        <div className="mt-10 grid gap-8 rounded-card border border-border bg-card p-6 shadow-card sm:grid-cols-3">
+        <div className="mt-10 grid grid-cols-3 gap-2.5 rounded-card border border-border bg-card p-4 shadow-card sm:gap-8 sm:p-6">
           {stats.map((s) => (
             <div key={s.label}>
-              <p className="text-sm font-medium text-muted-foreground">{s.label}</p>
-              <p className="mt-2 text-5xl font-bold tracking-tight text-primary">{s.value}</p>
-              <p className="mt-2 text-sm text-muted-foreground">{s.note}</p>
+              <p className="text-xs font-medium leading-snug text-muted-foreground sm:text-sm">
+                {s.label}
+              </p>
+              <p className="mt-2 text-[26px] font-bold tracking-tight text-primary sm:text-5xl">
+                {s.value}
+              </p>
+              <p className="mt-2 text-xs leading-snug text-muted-foreground sm:text-sm">{s.note}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-6 grid gap-6 md:grid-cols-2">
+        {/* Mobile : les sites se font défiler du doigt. */}
+        <div className="-mx-4 mt-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-2 md:gap-6 md:overflow-visible md:px-0 md:pb-0">
           {PROOF_SITES.map((site) => (
-            <SiteCard key={site.domain} site={site} />
+            <SiteCard
+              key={site.domain}
+              site={site}
+              className="shrink-0 basis-[86%] snap-start md:basis-auto"
+            />
           ))}
         </div>
+        <p className="mt-2 text-[13px] text-muted-foreground md:hidden">
+          {p.swipeHint.replace("{n}", String(PROOF_SITES.length))}
+        </p>
       </div>
     </section>
   );

@@ -22,14 +22,31 @@ export function WhatItIs() {
           </p>
           <h2
             id={headingId}
-            className="mt-6 text-balance text-5xl font-bold leading-[1.05] tracking-tight sm:text-6xl"
+            className="mt-6 text-balance text-[32px] font-bold leading-[1.1] tracking-tight sm:text-6xl sm:leading-[1.05]"
           >
             {s.title}
           </h2>
         </div>
         <div>
-          <p className="text-balance text-2xl font-medium leading-snug sm:text-3xl">{s.intro}</p>
-          <dl className="mt-12 grid gap-x-12 sm:grid-cols-2">
+          <p className="text-balance text-[19px] font-medium leading-snug sm:text-3xl">{s.intro}</p>
+          {/* Mobile : une question par ligne, la première ouverte. */}
+          <div className="mt-6 sm:hidden">
+            {s.items.map((item, i) => (
+              <details key={item.q} open={i === 0} className="group border-t border-border py-3.5">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold text-primary [&::-webkit-details-marker]:hidden">
+                  {item.q}
+                  <span aria-hidden className="text-xl leading-none group-open:hidden">
+                    +
+                  </span>
+                  <span aria-hidden className="hidden text-xl leading-none group-open:inline">
+                    –
+                  </span>
+                </summary>
+                <p className="mt-2 leading-relaxed text-muted-foreground">{item.a}</p>
+              </details>
+            ))}
+          </div>
+          <dl className="mt-12 hidden gap-x-12 sm:grid sm:grid-cols-2">
             {s.items.map((item) => (
               <div key={item.q} className="border-t border-border py-6">
                 <dt className="text-sm font-semibold text-primary">{item.q}</dt>

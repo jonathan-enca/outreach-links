@@ -33,6 +33,13 @@ function rowsOf(p: PublicPlan, r: PricingCopy["rows"]) {
  */
 export function PricingGrid({ plans, copy: s }: { plans: PublicPlan[]; copy: PricingCopy }) {
   const [period, setPeriod] = useState<Period>("month");
+  // Mobile : une offre à la fois, Pro par défaut.
+  const [shown, setShown] = useState(() =>
+    Math.max(
+      0,
+      plans.findIndex((p) => p.key === "pro"),
+    ),
+  );
   const annual = period === "year";
   const groupId = "periode-facturation-home";
   const discountPct = (() => {
@@ -73,15 +80,34 @@ export function PricingGrid({ plans, copy: s }: { plans: PublicPlan[]; copy: Pri
         </div>
       </div>
 
+      <div
+        role="tablist"
+        aria-label={s.label}
+        className="mb-3.5 grid grid-cols-3 gap-1 rounded-card bg-muted p-1 lg:hidden"
+      >
+        {plans.map((p, i) => (
+          <button
+            key={p.key}
+            type="button"
+            role="tab"
+            aria-selected={i === shown}
+            onClick={() => setShown(i)}
+            className={`h-10 rounded-[calc(var(--radius)-2px)] text-[15px] font-semibold transition-colors ${i === shown ? "bg-card text-primary shadow-card" : "text-foreground"}`}
+          >
+            {p.name}
+          </button>
+        ))}
+      </div>
+
       <ul className="grid items-stretch gap-5 lg:grid-cols-3">
-        {plans.map((p) => {
+        {plans.map((p, i) => {
           const copy = s.plans[p.key];
           const featured = p.key === "pro";
           const monthlyEquivalent = Math.round(p.priceAnnualEurCents / 12);
           return (
             <li
               key={p.key}
-              className={`flex flex-col rounded-panel border border-border p-6 ${featured ? "surface-night shadow-float" : "bg-card shadow-card"}`}
+              className={`${i === shown ? "flex" : "hidden lg:flex"} flex-col rounded-panel border border-border p-6 ${featured ? "surface-night shadow-float" : "bg-card shadow-card"}`}
             >
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-xl font-bold">{p.name}</h3>

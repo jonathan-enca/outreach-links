@@ -14,8 +14,26 @@ export function Compare() {
     >
       <div className="mx-auto max-w-6xl">
         <SectionHeading id={headingId} label={s.label} title={s.title} intro={s.intro} />
+        {/* Mobile : une carte par question, notre réponse en premier. */}
+        <div className="grid gap-3 sm:hidden">
+          {s.rows.map((r, i) => (
+            <div key={r.label} className="rounded-card border border-border bg-card px-4 py-3.5">
+              <h3 className="text-[15px] font-semibold">{r.label}</h3>
+              <p className="mt-2 rounded-control bg-accent px-2.5 py-2 text-[15px] font-semibold text-primary">
+                <span className="block text-xs">{s.usColumn}</span>
+                {s.usValues[i]}
+              </p>
+              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-2.5 gap-y-1 text-sm text-muted-foreground">
+                <dt className="font-semibold">{s.short.platform}</dt>
+                <dd>{r.values[0]}</dd>
+                <dt className="font-semibold">{s.short.byHand}</dt>
+                <dd>{r.values[1]}</dd>
+              </dl>
+            </div>
+          ))}
+        </div>
         <div
-          className="overflow-x-auto rounded-panel border border-border bg-card"
+          className="hidden overflow-x-auto rounded-panel border border-border bg-card sm:block"
           tabIndex={0}
           role="region"
           aria-label={s.title}
