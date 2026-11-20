@@ -129,6 +129,8 @@ export interface QueueView {
   later: SnoozedItem[];
   /** Un message a déjà été approuvé un jour : une file vide veut alors dire « tout est traité ». */
   handled: boolean;
+  /** Messages déjà approuvés (statut « valide »), pour le bloc de progression. */
+  approved: number;
   /** Cibles validées sans message (plafond de rédaction atteint), et rédaction en cours. */
   missing: number;
   drafting: boolean;
@@ -415,6 +417,7 @@ export async function loadQueue(
     snoozed: later.length,
     later,
     handled: (handled.count ?? 0) > 0,
+    approved: handled.count ?? 0,
     hasMailbox: (boxes.count ?? 0) > 0,
     missing: missingTotal,
     drafting: missingRunning,

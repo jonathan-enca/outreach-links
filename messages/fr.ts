@@ -3083,8 +3083,18 @@ export const fr = {
     noMailbox:
       "Aucune boîte d'envoi n'est connectée : connectez-la pour approuver et envoyer vos emails. Vous pouvez déjà les relire et les modifier.",
     connect: "Connecter une boîte",
-    missing: (n: number) =>
-      `${n} ${n > 1 ? "cibles validées n'ont" : "cible validée n'a"} pas encore de message.`,
+    progress: {
+      title: "Rédaction en cours",
+      idleTitle: "Messages à rédiger",
+      toWrite: (n: number, running: boolean) =>
+        `${n} ${n > 1 ? "messages" : "message"} ${running ? "en cours de rédaction" : "à rédiger"}`,
+      ready: (n: number) => `${n} ${n > 1 ? "messages prêts" : "message prêt"} à approuver`,
+      approved: (n: number) => `${n} approuvé${n > 1 ? "s" : ""}`,
+      runningHelp:
+        "Les messages apparaissent ici au fur et à mesure. Cette page se met à jour toute seule.",
+      idleHelp: "Les cibles que vous avez validées attendent encore leur message.",
+      bar: "Avancement de la rédaction",
+    },
     missingCta: "Rédiger les messages manquants",
     declined: (n: number) =>
       `${n} ${n > 1 ? "cibles écartées" : "cible écartée"} : la rédaction a jugé qu'elles n'avaient pas leur place.`,
@@ -3095,7 +3105,6 @@ export const fr = {
     hintMailbox: "Connectez d'abord une boîte d'envoi pour approuver et envoyer ce message.",
     sending: "Envoi en cours…",
     hintNotReady: "Corrigez d'abord les points signalés en rouge.",
-    drafting: "Rédaction en cours : les nouveaux messages apparaissent ici dans quelques minutes.",
     to: "À :",
     subject: "Objet",
     body: "Message",

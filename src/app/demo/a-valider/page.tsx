@@ -114,6 +114,7 @@ export default async function DemoToValidatePage({
       },
     ],
     handled: etat !== "debut",
+    approved: 0,
     missing: 0,
     drafting: false,
     declined: [],

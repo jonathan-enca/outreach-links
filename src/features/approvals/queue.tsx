@@ -20,6 +20,7 @@ import { Card } from "@/components/ui/card";
 import type { AuditActionState } from "@/features/audits/service";
 import { t } from "@/lib/messages";
 import { cn } from "@/lib/utils";
+import { draftingProgress } from "./drafting-progress";
 import {
   campaignInitial,
   groupByCampaign,
@@ -715,27 +716,53 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
   };
 
   // Pendant une rédaction, l'écran se met à jour seul : les nouveaux messages arrivent sans recharger.
+  // S'arrête dès que la rédaction est finie (view.drafting repasse à faux).
   useEffect(() => {
     if (!view.drafting) return;
-    const id = setInterval(() => router.refresh(), 8000);
+    const id = setInterval(() => router.refresh(), 5000);
     return () => clearInterval(id);
   }, [view.drafting, router]);
 
-  const missingBanner = view.drafting ? (
-    <Card className="p-4 text-sm" role="status">
-      {V.drafting}
-    </Card>
-  ) : view.missing > 0 ? (
-    <Card className="flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
-      <span>{V.missing(view.missing)}</span>
-      <Button
-        type="button"
-        size="sm"
-        disabled={pending}
-        onClick={() => act(() => actions.draftMissing())}
+  // Bloc de progression en haut de l'écran : visible dès qu'une rédaction tourne ou qu'une cible attend.
+  const progress = draftingProgress(view);
+  const missingBanner = progress.visible ? (
+    <Card className="flex flex-col gap-3 p-4 text-sm" aria-labelledby="drafting-progress-title">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="drafting-progress-title" className="font-semibold text-primary">
+          {progress.running ? V.progress.title : V.progress.idleTitle}
+        </h2>
+        {progress.running ? null : (
+          <Button
+            type="button"
+            size="sm"
+            disabled={pending}
+            onClick={() => act(() => actions.draftMissing())}
+          >
+            {pending ? V.busy : V.missingCta}
+          </Button>
+        )}
+      </div>
+      <div
+        role="progressbar"
+        aria-label={V.progress.bar}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={progress.percent}
+        className="h-2 w-full overflow-hidden rounded-full bg-muted"
       >
-        {pending ? V.busy : V.missingCta}
-      </Button>
+        <div
+          className="h-full rounded-full bg-primary transition-[width] duration-500"
+          style={{ width: `${progress.percent}%` }}
+        />
+      </div>
+      <ul className="grid gap-1 tabular-nums sm:grid-cols-3">
+        <li>{V.progress.toWrite(progress.toWrite, progress.running)}</li>
+        <li>{V.progress.ready(progress.ready)}</li>
+        <li>{V.progress.approved(progress.approved)}</li>
+      </ul>
+      <p className="text-muted-foreground">
+        {progress.running ? V.progress.runningHelp : V.progress.idleHelp}
+      </p>
     </Card>
   ) : null;
 
