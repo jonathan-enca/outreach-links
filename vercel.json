@@ -1,7 +1,5 @@
 {
-  "regions": [
-    "cdg1"
-  ],
+  "regions": ["cdg1"],
   "github": {
     "silent": true
   },

@@ -3131,5 +3131,6 @@ Retour de Jonathan : Cibles, À approuver et Emails très lents à s'ouvrir, Acc
 - **`loadQueue`** : 5 allers-retours successifs ramenés à 3 (filtre de site et messages des formulaires lus en parallèle).
 
 ### Dettes et pièges
+
 - Mesure avant/après faite à l'estimation (nombre d'allers-retours × distance), pas chronométrée sur une session connectée.
 - Pistes suivantes si besoin : `loading.tsx` (squelettes) sur les écrans du menu, compteurs du menu par une seule fonction SQL au lieu de recalculer toute la file.

@@ -188,42 +188,46 @@ export async function loadQueue(
 ): Promise<QueueView> {
   // Filtre « un seul site » : seuls les éléments dont le plan est à ce site restent (reportés compris).
   // Lu en même temps que le reste : chaque aller-retour vers la base compte dans le temps d'affichage.
-  const [inSite, drafts, replyDrafts, tasks, boxes, missing, declines, handled] = await Promise.all([
-    siteId ? planIdsOfSite(supabase, siteId) : null,
-    supabase
-      .from("target_drafts")
-      .select(
-        "id, plan_id, plan_item_id, channel, subject, body, hook, targeting_reason, ready, status, lint_issues, review_note, snoozed_until",
-      )
-      .eq("status", "brouillon")
-      .limit(300),
-    supabase
-      .from("reply_drafts")
-      .select("id, inbound_message_id, sent_message_id, subject, body, created_at, snoozed_until")
-      .eq("status", "brouillon")
-      .order("created_at", { ascending: false })
-      .limit(100),
-    supabase
-      .from("manual_tasks")
-      .select("id, plan_id, plan_item_id, form_url")
-      .eq("status", "a_faire")
-      .limit(500),
-    supabase
-      .from("mailboxes")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "verifiee"),
-    missingDrafts(supabase),
-    supabase
-      .from("draft_declines")
-      .select("plan_id, plan_item_id, reason, page_url, created_at, link_plan_items(source_domain)")
-      .eq("declined_by", "utilisateur")
-      .order("created_at", { ascending: false })
-      .limit(200),
-    supabase
-      .from("target_drafts")
-      .select("id", { count: "exact", head: true })
-      .neq("status", "brouillon"),
-  ]);
+  const [inSite, drafts, replyDrafts, tasks, boxes, missing, declines, handled] = await Promise.all(
+    [
+      siteId ? planIdsOfSite(supabase, siteId) : null,
+      supabase
+        .from("target_drafts")
+        .select(
+          "id, plan_id, plan_item_id, channel, subject, body, hook, targeting_reason, ready, status, lint_issues, review_note, snoozed_until",
+        )
+        .eq("status", "brouillon")
+        .limit(300),
+      supabase
+        .from("reply_drafts")
+        .select("id, inbound_message_id, sent_message_id, subject, body, created_at, snoozed_until")
+        .eq("status", "brouillon")
+        .order("created_at", { ascending: false })
+        .limit(100),
+      supabase
+        .from("manual_tasks")
+        .select("id, plan_id, plan_item_id, form_url")
+        .eq("status", "a_faire")
+        .limit(500),
+      supabase
+        .from("mailboxes")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "verifiee"),
+      missingDrafts(supabase),
+      supabase
+        .from("draft_declines")
+        .select(
+          "plan_id, plan_item_id, reason, page_url, created_at, link_plan_items(source_domain)",
+        )
+        .eq("declined_by", "utilisateur")
+        .order("created_at", { ascending: false })
+        .limit(200),
+      supabase
+        .from("target_drafts")
+        .select("id", { count: "exact", head: true })
+        .neq("status", "brouillon"),
+    ],
+  );
   const inScope = (x: { planId: string }) => !inSite || inSite.has(x.planId);
   // Cibles sans message et cibles écartées : comptées pour le site choisi seulement.
   const missingPlans = missing.plans.filter((p) => !inSite || inSite.has(p.planId));
