@@ -42,18 +42,25 @@ function message(planId: string, campaign: string, i: number): PendingMessage {
 export default async function DemoToValidatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ etat?: string }>;
+  searchParams: Promise<{ etat?: string; sites?: string; redaction?: string }>;
 }) {
   if (process.env.NODE_ENV === "production") notFound();
-  const { etat } = await searchParams;
+  // `?sites=1` : un seul site analysé quatre fois (quatre plans, une seule campagne) ;
+  // `?redaction=oui` : une rédaction est en cours.
+  const { etat, sites, redaction } = await searchParams;
+  const one = sites === "1";
+  const writing = redaction === "oui";
   async function idle() {
     "use server";
     return { status: "ok" as const, message: "Démonstration : rien n'est enregistré." };
   }
   const empty = etat === "vide" || etat === "debut";
-  const messages = SITES.flatMap((s) =>
-    Array.from({ length: s.n }, (_, i) => message(s.id, s.label, i + 1)),
-  );
+  const messages = one
+    ? Array.from({ length: SITES[0]!.n }, (_, i) => ({
+        ...message(`a${i % 4}`, SITES[0]!.label, i + 1),
+        campaignId: "a",
+      }))
+    : SITES.flatMap((s) => Array.from({ length: s.n }, (_, i) => message(s.id, s.label, i + 1)));
   const replies: PendingReply[] = [
     {
       kind: "reponse",
@@ -85,7 +92,7 @@ export default async function DemoToValidatePage({
     },
   ];
   const view: QueueView = {
-    campaigns: SITES.map(({ id, label }) => ({ id, label })),
+    campaigns: (one ? SITES.slice(0, 1) : SITES).map(({ id, label }) => ({ id, label })),
     messages: empty ? [] : messages,
     replies: empty ? [] : replies,
     forms: empty ? [] : forms,
@@ -114,9 +121,9 @@ export default async function DemoToValidatePage({
       },
     ],
     handled: etat !== "debut",
-    approved: 0,
-    missing: 0,
-    drafting: false,
+    approved: etat === "debut" ? 0 : 10,
+    missing: empty ? 0 : writing ? 7 : 12,
+    drafting: writing,
     declined: [],
   };
   const actions = Object.fromEntries(

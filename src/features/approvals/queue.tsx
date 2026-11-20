@@ -20,9 +20,10 @@ import { Card } from "@/components/ui/card";
 import type { AuditActionState } from "@/features/audits/service";
 import { t } from "@/lib/messages";
 import { cn } from "@/lib/utils";
-import { draftingProgress } from "./drafting-progress";
+import { messageSteps, writingProgress } from "./drafting-progress";
 import {
   campaignInitial,
+  campaignOf,
   groupByCampaign,
   nextRowId,
   queueRows,
@@ -58,6 +59,19 @@ type Tab = "tout" | Nature | "plus-tard";
 /** Lignes montrées par campagne avant « Afficher les autres ». */
 const PREVIEW = 8;
 const LABEL = "text-xs font-semibold text-muted-foreground";
+/** Clé de l'onglet du navigateur : nombre de messages à écrire au lancement de la rédaction. */
+const WRITE_START = "a-approuver-redaction-depart";
+/** Une étape du bloc « Où en sont vos messages » (trois colonnes, empilées sur téléphone). */
+const STEP =
+  "relative border-b border-border px-5 pt-4 pb-[18px] last:border-b-0 md:border-r md:border-b-0 md:last:border-r-0";
+/** La pointe entre deux étapes : un message passe de l'une à la suivante. */
+const STEP_ARROW =
+  "md:after:absolute md:after:top-1/2 md:after:-right-[7px] md:after:z-[1] md:after:size-3 md:after:-translate-y-1/2 md:after:rotate-45 md:after:border-t md:after:border-r md:after:border-border md:after:content-['']";
+/** L'étape de cet écran : fond teinté (couleur pleine, pour que sa pointe ait exactement la même). */
+const STEP_NOW = "bg-[color-mix(in_srgb,var(--accent)_50%,var(--card))]";
+const STEP_TITLE = "flex items-center gap-[7px] text-[13px] font-medium text-muted-foreground";
+const STEP_VALUE = "mt-0.5 text-3xl leading-tight font-bold tracking-tight tabular-nums";
+const STEP_UNIT = "text-[15px] font-normal tracking-normal text-muted-foreground";
 const NATURE = {
   reponses: { tone: "warning", label: V.row.reply, Icon: Reply },
   messages: { tone: "info", label: V.row.email, Icon: Mail },
@@ -368,6 +382,8 @@ function Reader({
           ? V.hintMailbox
           : null;
   const issues = row.nature === "reponses" ? [] : row.item.issues;
+  // En titre : à qui l'on écrit. La pastille rappelle la campagne.
+  const title = row.nature === "reponses" ? (row.item.to ?? row.campaign) : row.item.domain;
   const nav = "inline-flex size-8 items-center justify-center rounded-control border border-border";
 
   return (
@@ -379,7 +395,7 @@ function Reader({
         </Button>
         <span className="hidden min-w-0 items-center gap-2 font-semibold xl:flex">
           <Avatar label={row.campaign} index={campaignIndex} />
-          <span className="truncate">{row.campaign}</span>
+          <span className="truncate">{title}</span>
         </span>
         <span className="ml-auto shrink-0 text-[13px] text-muted-foreground">
           {V.pane.position(position, total)}
@@ -408,7 +424,7 @@ function Reader({
         <div className="flex flex-wrap items-center gap-2">
           <span className="flex min-w-0 items-center gap-2 font-semibold xl:hidden">
             <Avatar label={row.campaign} index={campaignIndex} />
-            <span className="truncate">{row.campaign}</span>
+            <span className="truncate">{title}</span>
           </span>
           <NatureBadge nature={row.nature} />
         </div>
@@ -519,54 +535,32 @@ function Reader({
                   </Button>
                 </div>
               </>
-            ) : (
-              <Button
-                type="button"
-                className="w-full"
-                disabled={pending || blocked !== null}
-                onClick={() =>
-                  run(
-                    () =>
-                      row.nature === "reponses"
-                        ? actions.approveReply(row.id)
-                        : actions.approveMessages([row.id]),
-                    { advance: true },
-                  )
-                }
-              >
-                <Send aria-hidden />
-                {pending ? V.sending : V.approve}
-              </Button>
-            )}
-            {blocked ? <p className="text-[13px] text-muted-foreground">{blocked}</p> : null}
-            <div
-              className={cn(
-                "grid gap-2",
-                row.nature === "formulaires" ? "grid-cols-2" : "grid-cols-3",
-              )}
-            >
-              <Button type="button" size="sm" variant="outline" onClick={() => setEditing(true)}>
-                {V.edit}
-              </Button>
-              {row.nature === "messages" ? (
-                <Button type="button" size="sm" variant="outline" onClick={() => setRefusing(true)}>
-                  {V.refuse}
-                </Button>
-              ) : null}
-              {row.nature === "reponses" ? (
+            ) : null}
+            {/* Une seule rangée : la décision principale à gauche, les autres à droite. */}
+            <div className="flex flex-wrap items-center gap-2">
+              {row.nature === "formulaires" ? null : (
                 <Button
                   type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={pending}
-                  onClick={() => run(() => actions.rejectReply(row.id), { advance: true })}
+                  className="mr-auto"
+                  disabled={pending || blocked !== null}
+                  onClick={() =>
+                    run(
+                      () =>
+                        row.nature === "reponses"
+                          ? actions.approveReply(row.id)
+                          : actions.approveMessages([row.id]),
+                      { advance: true },
+                    )
+                  }
                 >
-                  {V.noReply}
+                  {pending ? V.sending : V.approve}
                 </Button>
-              ) : null}
+              )}
+              <Button type="button" variant="outline" onClick={() => setEditing(true)}>
+                {V.edit}
+              </Button>
               <Button
                 type="button"
-                size="sm"
                 variant="outline"
                 disabled={pending}
                 title={V.laterHelp}
@@ -574,7 +568,28 @@ function Reader({
               >
                 {V.later}
               </Button>
+              {row.nature === "messages" ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="text-danger"
+                  onClick={() => setRefusing(true)}
+                >
+                  {V.refuse}
+                </Button>
+              ) : null}
+              {row.nature === "reponses" ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={pending}
+                  onClick={() => run(() => actions.rejectReply(row.id), { advance: true })}
+                >
+                  {V.noReply}
+                </Button>
+              ) : null}
             </div>
+            {blocked ? <p className="text-[13px] text-muted-foreground">{blocked}</p> : null}
             {row.nature === "reponses" && row.item.classificationId ? (
               <Link
                 href={`/app/inbox/${row.item.classificationId}`}
@@ -658,7 +673,8 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
   const [pending, start] = useTransition();
 
   const campaignIndex = (id: string) => view.campaigns.findIndex((c) => c.id === id);
-  const inCampaign = (x: { planId: string }) => campaign === "all" || x.planId === campaign;
+  const inCampaign = (x: { planId: string; campaignId?: string }) =>
+    campaign === "all" || campaignOf(x) === campaign;
   const all = queueRows(view).filter(inCampaign);
   const count = (n: Nature) => all.filter((r) => r.nature === n).length;
   const later = view.later.filter(inCampaign);
@@ -669,6 +685,8 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
   const flat = groups.flatMap((g) => g.rows);
   const selection = selectionSummary(flat, picked, view.hasMailbox);
   const selecting = selection.total > 0;
+  const bulkApprove = selection.approveMessageIds.length + selection.approveReplyIds.length;
+  const bulkRefuse = selection.refuseMessageIds.length + selection.refuseReplyIds.length;
   const opened = open ? flat.find((r) => r.id === open) : undefined;
   const current = opened ?? flat[0];
   const at = current ? flat.indexOf(current) : -1;
@@ -723,46 +741,125 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
     return () => clearInterval(id);
   }, [view.drafting, router]);
 
-  // Bloc de progression en haut de l'écran : visible dès qu'une rédaction tourne ou qu'une cible attend.
-  const progress = draftingProgress(view);
-  const missingBanner = progress.visible ? (
-    <Card className="flex flex-col gap-3 p-4 text-sm" aria-labelledby="drafting-progress-title">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="drafting-progress-title" className="font-semibold text-primary">
-          {progress.running ? V.progress.title : V.progress.idleTitle}
-        </h2>
-        {progress.running ? null : (
+  // Rédaction en cours : on retient combien de messages étaient à écrire au lancement, pour dire
+  // « 5 sur 12 écrits ». Gardé pour l'onglet du navigateur : un rechargement ne remet pas à zéro.
+  const [writeStart, setWriteStart] = useState<number | null>(null);
+  useEffect(() => {
+    const id = setTimeout(() => {
+      try {
+        if (view.drafting) {
+          const saved = Number(sessionStorage.getItem(WRITE_START));
+          setWriteStart(saved > 0 ? saved : null);
+        } else {
+          sessionStorage.removeItem(WRITE_START);
+          setWriteStart(null);
+        }
+      } catch {
+        /* stockage indisponible : pas de barre de rédaction, le reste fonctionne */
+      }
+    }, 0);
+    return () => clearTimeout(id);
+  }, [view.drafting]);
+
+  // Où en sont les messages : trois étapes, chacune avec son nombre. Aucune barre commune.
+  const steps = messageSteps(view);
+  const S = V.steps;
+  const writing = steps.running ? writingProgress(writeStart, steps.toWrite) : null;
+  const startWriting = () => {
+    try {
+      sessionStorage.setItem(WRITE_START, String(steps.toWrite));
+    } catch {
+      /* ignoré */
+    }
+    setWriteStart(steps.toWrite);
+    act(() => actions.draftMissing());
+  };
+  const approveParts = [
+    steps.replies > 0 ? S.toApprove.replies(steps.replies) : null,
+    steps.emails > 0 ? S.toApprove.emails(steps.emails) : null,
+    steps.forms > 0 ? S.toApprove.forms(steps.forms) : null,
+  ].filter((x): x is string => x !== null);
+  const approveList =
+    approveParts.length > 1
+      ? `${approveParts.slice(0, -1).join(", ")}${S.toApprove.and}${approveParts.at(-1)}`
+      : (approveParts[0] ?? "");
+  const missingBanner = steps.visible ? (
+    <Card className="grid overflow-hidden md:grid-cols-3" aria-label={S.label} role="region">
+      <div className={cn(STEP, STEP_ARROW, "md:after:bg-card")}>
+        <p className={STEP_TITLE}>
+          <span aria-hidden className="size-2 rounded-full bg-amber-600" />
+          {S.toWrite.title}
+        </p>
+        <p className={STEP_VALUE}>
+          {writing ? writing.written : steps.toWrite}
+          {writing ? (
+            <span className={STEP_UNIT}> {S.toWrite.written(writing.total)}</span>
+          ) : steps.running ? (
+            <span className={STEP_UNIT}> {S.toWrite.remaining}</span>
+          ) : null}
+        </p>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          {steps.running ? S.toWrite.running : steps.toWrite > 0 ? S.toWrite.idle : S.toWrite.none}
+        </p>
+        {writing ? (
+          <div
+            role="progressbar"
+            aria-label={S.toWrite.bar}
+            aria-valuemin={0}
+            aria-valuemax={writing.total}
+            aria-valuenow={writing.written}
+            className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-muted"
+          >
+            <div
+              className="h-full rounded-full bg-amber-600 transition-[width] duration-500"
+              style={{ width: `${writing.percent}%` }}
+            />
+          </div>
+        ) : null}
+        {!steps.running && steps.toWrite > 0 ? (
           <Button
             type="button"
             size="sm"
+            className="mt-3"
             disabled={pending}
-            onClick={() => act(() => actions.draftMissing())}
+            onClick={startWriting}
           >
-            {pending ? V.busy : V.missingCta}
+            {pending ? V.busy : S.toWrite.cta(steps.toWrite)}
           </Button>
-        )}
+        ) : null}
       </div>
-      <div
-        role="progressbar"
-        aria-label={V.progress.bar}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={progress.percent}
-        className="h-2 w-full overflow-hidden rounded-full bg-muted"
-      >
-        <div
-          className="h-full rounded-full bg-primary transition-[width] duration-500"
-          style={{ width: `${progress.percent}%` }}
-        />
+      <div className={cn(STEP, STEP_ARROW, STEP_NOW, "md:after:bg-[inherit]")}>
+        <p className={STEP_TITLE}>
+          <span aria-hidden className="size-2 rounded-full bg-primary" />
+          {S.toApprove.title}
+        </p>
+        <p className={STEP_VALUE}>{steps.toApprove}</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          {approveList ? `${approveList} : ${S.toApprove.below}` : S.toApprove.none}
+        </p>
       </div>
-      <ul className="grid gap-1 tabular-nums sm:grid-cols-3">
-        <li>{V.progress.toWrite(progress.toWrite, progress.running)}</li>
-        <li>{V.progress.ready(progress.ready)}</li>
-        <li>{V.progress.approved(progress.approved)}</li>
-      </ul>
-      <p className="text-muted-foreground">
-        {progress.running ? V.progress.runningHelp : V.progress.idleHelp}
-      </p>
+      <div className={STEP}>
+        <p className={STEP_TITLE}>
+          <span aria-hidden className="size-2 rounded-full bg-success" />
+          {S.approved.title}
+        </p>
+        <p className={STEP_VALUE}>{steps.approved}</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          {steps.approved > 0 ? (
+            <>
+              {S.approved.text}{" "}
+              <Link
+                href="/app/envois"
+                className="whitespace-nowrap text-primary underline underline-offset-4"
+              >
+                {S.approved.link}
+              </Link>
+            </>
+          ) : (
+            S.approved.none
+          )}
+        </p>
+      </div>
     </Card>
   ) : null;
 
@@ -832,7 +929,7 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
     ) : null;
 
   const laterList = (
-    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_28rem]">
+    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_31rem]">
       <Card className="overflow-hidden text-sm">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
           <span className="font-medium">
@@ -857,7 +954,7 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
             >
               <div className="flex min-w-0 flex-1 basis-64 flex-col">
                 <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <Avatar label={x.campaign} index={campaignIndex(x.planId)} />
+                  <Avatar label={x.campaign} index={campaignIndex(campaignOf(x))} />
                   <span className="min-w-0 truncate font-semibold">{x.title}</span>
                   <NatureBadge nature={x.nature} />
                 </span>
@@ -1103,7 +1200,7 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
       {tab === "plus-tard" ? (
         laterList
       ) : (
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_28rem]">
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_31rem]">
           <div className="flex min-w-0 flex-col gap-3">
             {filtered ? (
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-control border border-border bg-muted px-3 py-2 text-sm">
@@ -1120,19 +1217,92 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
                 </button>
               </div>
             ) : null}
-            <Card className="overflow-hidden text-sm">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border px-3.5 py-2.5">
-                <label className="flex cursor-pointer items-center gap-3 font-medium">
+            {/* `overflow-clip` et non `hidden` : l'en-tête reste collé en haut de l'écran quand on descend. */}
+            <Card className="overflow-clip text-sm">
+              <div
+                role={selecting ? "region" : undefined}
+                aria-label={selecting ? V.selected(selection.total) : undefined}
+                className="sticky top-0 z-10 flex flex-wrap items-center gap-x-2 gap-y-2 rounded-t-card border-b border-border bg-card px-3.5 py-2.5"
+              >
+                <label className="mr-auto flex cursor-pointer items-center gap-3 font-medium">
                   <Check3
                     label={V.selectAll(flat.length)}
                     all={flat.length > 0 && selection.total === flat.length}
                     some={selecting}
-                    onChange={(on) => setPicked(on ? new Set(flat.map((r) => r.id)) : new Set())}
+                    onChange={(on) => {
+                      setPicked(on ? new Set(flat.map((r) => r.id)) : new Set());
+                      setRefusing(false);
+                    }}
                   />
                   {selecting ? V.selected(selection.total) : V.selectAll(flat.length)}
                 </label>
-                {tab === "tout" && count("reponses") > 0 ? (
-                  <span className="ml-auto hidden text-[13px] text-muted-foreground sm:inline">
+                {selecting && refusing ? (
+                  <>
+                    <span className="text-[13px]">{V.bulkRefuseConfirm(bulkRefuse)}</span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={pending}
+                      onClick={() => setRefusing(false)}
+                    >
+                      {V.cancel}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={pending}
+                      onClick={() =>
+                        act(
+                          () =>
+                            actions.refuseItems(
+                              selection.refuseMessageIds,
+                              selection.refuseReplyIds,
+                            ),
+                          { clear: true },
+                        )
+                      }
+                    >
+                      {pending ? V.busy : V.confirmRefuse}
+                    </Button>
+                  </>
+                ) : selecting ? (
+                  <>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={pending || bulkApprove === 0}
+                      onClick={() => act(approveSelection, { clear: true })}
+                    >
+                      {pending ? V.sending : V.bulkApprove(bulkApprove)}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={pending}
+                      onClick={() =>
+                        act(() => actions.snooze(selection.laterIds), {
+                          clear: true,
+                          undo: selection.laterIds,
+                        })
+                      }
+                    >
+                      {V.bulkLater(selection.total)}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="text-danger"
+                      disabled={pending || bulkRefuse === 0}
+                      onClick={() => setRefusing(true)}
+                    >
+                      {V.bulkRefuse(bulkRefuse)}
+                    </Button>
+                  </>
+                ) : tab === "tout" && count("reponses") > 0 ? (
+                  <span className="hidden text-[13px] text-muted-foreground sm:inline">
                     {V.repliesFirst}
                   </span>
                 ) : null}
@@ -1217,7 +1387,7 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
               <Reader
                 key={current.id}
                 row={current}
-                campaignIndex={campaignIndex(current.planId)}
+                campaignIndex={campaignIndex(current.campaignId)}
                 position={at + 1}
                 total={flat.length}
                 hasMailbox={view.hasMailbox}
@@ -1236,108 +1406,7 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
         </div>
       )}
 
-      {selecting ? (
-        <div
-          role="region"
-          aria-label={V.selected(selection.total)}
-          className="sticky bottom-18 z-20 flex flex-col gap-2 rounded-card bg-foreground p-3 text-background shadow-float md:bottom-4 md:flex-row md:items-center md:pl-4"
-        >
-          <div className="flex min-w-0 flex-1 flex-col">
-            <span className="font-semibold">{V.selected(selection.total)}</span>
-            <span className="text-[13px] opacity-80 md:truncate">
-              {refusing
-                ? V.bulkRefuseConfirm(
-                    selection.refuseMessageIds.length + selection.refuseReplyIds.length,
-                  )
-                : selection.campaigns.length > 1
-                  ? V.campaign.mixed(selection.campaigns.length)
-                  : (selection.campaigns[0]?.label ?? "")}
-            </span>
-          </div>
-          {refusing ? (
-            <div className="grid grid-cols-2 gap-2 md:flex">
-              <button
-                type="button"
-                className={BAR_GHOST}
-                onClick={() => setRefusing(false)}
-                disabled={pending}
-              >
-                {V.cancel}
-              </button>
-              <button
-                type="button"
-                className={BAR_MAIN}
-                disabled={pending}
-                onClick={() =>
-                  act(
-                    () => actions.refuseItems(selection.refuseMessageIds, selection.refuseReplyIds),
-                    { clear: true },
-                  )
-                }
-              >
-                {pending ? V.busy : V.confirmRefuse}
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2 md:flex md:flex-row-reverse">
-              <button
-                type="button"
-                className={cn(BAR_MAIN, "col-span-2")}
-                disabled={
-                  pending ||
-                  selection.approveMessageIds.length + selection.approveReplyIds.length === 0
-                }
-                onClick={() => act(approveSelection, { clear: true })}
-              >
-                <Send aria-hidden className="size-4" />
-                {pending
-                  ? V.sending
-                  : V.bulkApprove(
-                      selection.approveMessageIds.length + selection.approveReplyIds.length,
-                    )}
-              </button>
-              <button
-                type="button"
-                className={BAR_GHOST}
-                disabled={
-                  pending ||
-                  selection.refuseMessageIds.length + selection.refuseReplyIds.length === 0
-                }
-                onClick={() => setRefusing(true)}
-              >
-                {V.bulkRefuse(selection.refuseMessageIds.length + selection.refuseReplyIds.length)}
-              </button>
-              <button
-                type="button"
-                className={BAR_GHOST}
-                disabled={pending}
-                onClick={() =>
-                  act(() => actions.snooze(selection.laterIds), {
-                    clear: true,
-                    undo: selection.laterIds,
-                  })
-                }
-              >
-                {V.bulkLater(selection.total)}
-              </button>
-              <button
-                type="button"
-                className={cn(BAR_GHOST, "col-span-2 border-transparent")}
-                onClick={() => setPicked(new Set())}
-              >
-                {V.clearSelection}
-              </button>
-            </div>
-          )}
-        </div>
-      ) : null}
-
       {declinedCard}
     </div>
   );
 }
-
-const BAR_BUTTON =
-  "inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-control px-3 text-sm font-medium whitespace-nowrap transition-[background-color,transform,filter] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-accent";
-const BAR_GHOST = `${BAR_BUTTON} border border-background/30 text-background hover:bg-background/20 active:bg-background/25`;
-const BAR_MAIN = `${BAR_BUTTON} bg-sidebar-accent font-semibold text-sidebar hover:brightness-110 active:brightness-95`;

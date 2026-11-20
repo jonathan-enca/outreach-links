@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maquette « À approuver », version 2</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Jetons repris de src/app/globals.css (version en ligne, bleu marine, police Outfit). */
+      :root {
+        --background: #f8fafc;
+        --foreground: #0f172a;
+        --card: #ffffff;
+        --muted: #f1f5f9;
+        --muted-foreground: #526074;
+        --border: #e2e8f0;
+        --primary: #003070;
+        --primary-hover: #00245a;
+        --sidebar: #00245a;
+        --sidebar-foreground: #cfe2f6;
+        --sidebar-label: #9cc3ea;
+        --info: #0369a1;
+        --warning: #92400e;
+        --success: #047857;
+        --danger: #be123c;
+        --highlight: #fde68a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: Outfit, system-ui, sans-serif;
+        font-size: 15px;
+        line-height: 1.5;
+        font-variant-numeric: tabular-nums;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      .app {
+        display: grid;
+        grid-template-columns: 232px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      .side {
+        background: var(--sidebar);
+        color: var(--sidebar-foreground);
+        padding: 20px 12px;
+      }
+      .side .logo {
+        color: #fff;
+        font-weight: 600;
+        font-size: 18px;
+        padding: 0 8px 16px;
+      }
+      .side .label {
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--sidebar-label);
+        padding: 14px 8px 4px;
+      }
+      .side a {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px;
+        border-radius: 8px;
+        font-size: 14.5px;
+      }
+      .side a.on {
+        background: rgb(255 255 255 / 0.14);
+        color: #fff;
+        font-weight: 500;
+      }
+      .side .n {
+        font-size: 12px;
+        background: rgb(255 255 255 / 0.16);
+        border-radius: 99px;
+        padding: 0 7px;
+      }
+      main {
+        padding: 28px 32px 48px;
+        min-width: 0;
+      }
+      h1 {
+        font-size: 28px;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        margin: 0 0 6px;
+      }
+      .lead {
+        color: var(--muted-foreground);
+        margin: 0 0 20px;
+        font-size: 16px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+      }
+      .btn {
+        font: inherit;
+        font-weight: 500;
+        height: 38px;
+        padding: 0 14px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--foreground);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .btn:hover {
+        background: var(--muted);
+      }
+      .btn.primary {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: #fff;
+      }
+      .btn.primary:hover {
+        background: var(--primary-hover);
+      }
+      .btn.sm {
+        height: 32px;
+        padding: 0 11px;
+        font-size: 14px;
+      }
+      .btn.danger {
+        color: var(--danger);
+      }
+      .link {
+        color: var(--primary);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        cursor: pointer;
+      }
+      .compare {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: flex-end;
+        font-size: 13px;
+        color: var(--muted-foreground);
+        margin-bottom: 4px;
+      }
+      .compare button {
+        font: inherit;
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 99px;
+        padding: 2px 12px;
+        cursor: pointer;
+        color: var(--muted-foreground);
+      }
+      .compare button[aria-pressed="true"] {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: #fff;
+      }
+
+      /* Où en sont les messages : trois étapes, chacune avec son nombre. Aucune barre commune. */
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        overflow: hidden;
+      }
+      .step {
+        position: relative;
+        padding: 16px 20px 18px;
+        border-right: 1px solid var(--border);
+      }
+      .step:last-child {
+        border-right: 0;
+      }
+      /* La flèche entre deux étapes : un message passe de l'une à la suivante. */
+      .step:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        right: -7px;
+        width: 12px;
+        height: 12px;
+        background: #fff;
+        border-top: 1px solid var(--border);
+        border-right: 1px solid var(--border);
+        transform: translateY(-50%) rotate(45deg);
+        z-index: 1;
+      }
+      .step.now {
+        background: #f3f8fe;
+      }
+      .step.now:not(:last-child)::after {
+        background: #f3f8fe;
+      }
+      .step .k {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--muted-foreground);
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .step .k i {
+        width: 8px;
+        height: 8px;
+        border-radius: 99px;
+        background: var(--muted-foreground);
+      }
+      .step.todo .k i {
+        background: #d97706;
+      }
+      .step.now .k i {
+        background: var(--primary);
+      }
+      .step.done .k i {
+        background: var(--success);
+      }
+      .step .v {
+        font-size: 30px;
+        font-weight: 700;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        margin-top: 2px;
+      }
+      .step .v small {
+        font-size: 15px;
+        font-weight: 400;
+        color: var(--muted-foreground);
+        letter-spacing: 0;
+      }
+      .step p {
+        margin: 2px 0 0;
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+      .step .act {
+        margin-top: 12px;
+      }
+      .meter {
+        height: 8px;
+        border-radius: 99px;
+        background: var(--muted);
+        overflow: hidden;
+        margin-top: 10px;
+      }
+      .meter i {
+        display: block;
+        height: 100%;
+        border-radius: 99px;
+        background: #d97706;
+        transition: width 0.4s;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 4px;
+        margin: 22px 0 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .tab {
+        font: inherit;
+        font-weight: 500;
+        background: none;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        padding: 10px 14px;
+        margin-bottom: -1px;
+        color: var(--muted-foreground);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .tab[aria-selected="true"] {
+        color: var(--foreground);
+        border-bottom-color: var(--primary);
+      }
+      .tab .n {
+        font-size: 12.5px;
+        background: var(--muted);
+        border-radius: 99px;
+        padding: 0 8px;
+      }
+      .tab[aria-selected="true"] .n {
+        background: #dbeafe;
+        color: #1e3a8a;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-top: 14px;
+        font-size: 14px;
+      }
+      .chips .lbl {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted-foreground);
+        margin-right: 4px;
+      }
+      .chip {
+        font: inherit;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 99px;
+        padding: 4px 12px 4px 5px;
+        cursor: pointer;
+      }
+      .chip.all {
+        padding-left: 12px;
+      }
+      .chip[aria-pressed="true"] {
+        background: var(--foreground);
+        border-color: var(--foreground);
+        color: #fff;
+      }
+      .av {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        display: inline-grid;
+        place-items: center;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #fff;
+        background: var(--primary);
+        flex: none;
+      }
+      .av.b {
+        background: #0f766e;
+      }
+
+      /* La file à gauche, la lecture à droite. */
+      .split {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 31rem);
+        gap: 20px;
+        margin-top: 14px;
+        align-items: start;
+      }
+      .list {
+        overflow: hidden;
+      }
+      .bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border);
+        min-height: 53px;
+      }
+      .bar label {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 500;
+        margin-right: auto;
+        cursor: pointer;
+      }
+      input[type="checkbox"] {
+        width: 17px;
+        height: 17px;
+        accent-color: var(--primary);
+        margin: 0;
+        cursor: pointer;
+        flex: none;
+      }
+      .group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 16px;
+        background: #fafbfd;
+        border-bottom: 1px solid var(--border);
+        font-size: 14px;
+      }
+      .group b {
+        font-weight: 600;
+      }
+      .group span {
+        color: var(--muted-foreground);
+      }
+      .group a {
+        margin-left: auto;
+        font-size: 13.5px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 17px minmax(0, 1fr);
+        gap: 12px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        border-left: 3px solid transparent;
+        cursor: pointer;
+      }
+      .row:last-child {
+        border-bottom: 0;
+      }
+      .row:hover {
+        background: #f8fafc;
+      }
+      .row.on {
+        border-left-color: var(--primary);
+        background: #f3f8fe;
+      }
+      .row .top {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+      .row .top b {
+        font-weight: 600;
+      }
+      .kind {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12.5px;
+        font-weight: 500;
+        border-radius: 5px;
+        padding: 0 7px;
+        background: #dbeafe;
+        color: #1e3a8a;
+      }
+      .kind.form {
+        background: #e9e3fb;
+        color: #4c2a92;
+      }
+      .kind svg {
+        width: 12px;
+        height: 12px;
+      }
+      .row .subj {
+        margin-top: 3px;
+      }
+      .row .hook {
+        font-size: 13.5px;
+        color: var(--muted-foreground);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .row .fix {
+        font-size: 13.5px;
+        color: var(--danger);
+      }
+
+      .pane {
+        position: sticky;
+        top: 16px;
+        overflow: hidden;
+      }
+      .pane-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      .pane-head b {
+        font-weight: 600;
+        margin-right: auto;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .pane-head span {
+        font-size: 13.5px;
+        color: var(--muted-foreground);
+        white-space: nowrap;
+      }
+      .nav {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: #fff;
+        cursor: pointer;
+        font: inherit;
+      }
+      .pane-body {
+        padding: 16px;
+      }
+      .pane-body .to {
+        font-size: 13.5px;
+        color: var(--muted-foreground);
+        margin: 10px 0 8px;
+      }
+      .pane-body h2 {
+        font-size: 16.5px;
+        margin: 0 0 12px;
+      }
+      .msg {
+        background: var(--muted);
+        border-radius: 10px;
+        padding: 14px 16px;
+        font-size: 14.5px;
+      }
+      .msg p {
+        margin: 0 0 10px;
+      }
+      .msg p:last-child {
+        margin-bottom: 0;
+      }
+      .why {
+        margin-top: 14px;
+        font-size: 14px;
+      }
+      .why h3 {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted-foreground);
+        margin: 0 0 5px;
+      }
+      mark {
+        background: var(--highlight);
+        padding: 1px 2px;
+      }
+      .pane-foot {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 12px 16px;
+        border-top: 1px solid var(--border);
+      }
+      .pane-foot .primary {
+        margin-right: auto;
+      }
+      .pane-foot small {
+        flex-basis: 100%;
+        font-size: 13px;
+        color: var(--muted-foreground);
+      }
+      .legend {
+        margin-top: 26px;
+        font-size: 13px;
+        color: var(--muted-foreground);
+        max-width: 80ch;
+      }
+
+      @media (max-width: 1100px) {
+        .split {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .pane {
+          position: static;
+        }
+      }
+      @media (max-width: 900px) {
+        .app {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .side {
+          display: none;
+        }
+        main {
+          padding: 20px 16px 32px;
+        }
+        .flow {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .step {
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+        }
+        .step:last-child {
+          border-bottom: 0;
+        }
+        .step::after {
+          display: none;
+        }
+        .tabs {
+          overflow-x: auto;
+        }
+        .tab {
+          white-space: nowrap;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="side" aria-hidden="true">
+        <div class="logo">Votre outil</div>
+        <a>Accueil</a>
+        <a>Campagnes</a>
+        <div class="label">Prospection</div>
+        <a>Cibles</a>
+        <a class="on">À approuver <span class="n">61</span></a>
+        <a>Emails</a>
+        <div class="label">Réglages</div>
+        <a>Boîte d'envoi</a>
+        <a>Abonnement</a>
+      </aside>
+      <main>
+        <div class="compare">
+          Maquette, à comparer :
+          <button type="button" aria-pressed="true" data-sites="1">Un seul site</button>
+          <button type="button" aria-pressed="false" data-sites="2">Deux sites</button>
+        </div>
+        <h1>À approuver</h1>
+        <p class="lead">
+          Tout ce qui attend votre accord avant de partir. Rien n'est envoyé sans vous.
+        </p>
+
+        <section class="card flow" aria-label="Où en sont vos messages">
+          <div class="step todo">
+            <div class="k"><i></i>À rédiger</div>
+            <div class="v" id="todoN">12</div>
+            <p id="todoText">Cibles choisies dont le message n'est pas encore écrit.</p>
+            <div class="meter" id="todoMeter" hidden><i style="width: 0%"></i></div>
+            <div class="act">
+              <button class="btn primary sm" id="write" type="button">
+                Rédiger les 12 messages
+              </button>
+            </div>
+          </div>
+          <div class="step now">
+            <div class="k"><i></i>À approuver</div>
+            <div class="v">61</div>
+            <p>45 emails et 16 formulaires : la liste ci-dessous.</p>
+          </div>
+          <div class="step done">
+            <div class="k"><i></i>Approuvés</div>
+            <div class="v">10</div>
+            <p>
+              Ils partent de votre boîte, au rythme prévu.
+              <a class="link">Voir dans Emails</a>
+            </p>
+          </div>
+        </section>
+
+        <div class="tabs" role="tablist" aria-label="Filtrer par nature">
+          <button class="tab" role="tab" aria-selected="true" type="button">
+            Tout <span class="n">61</span>
+          </button>
+          <button class="tab" role="tab" aria-selected="false" type="button">
+            Emails à envoyer <span class="n">45</span>
+          </button>
+          <button class="tab" role="tab" aria-selected="false" type="button">
+            Formulaires à remplir <span class="n">16</span>
+          </button>
+        </div>
+
+        <div class="chips" id="chips" hidden>
+          <span class="lbl">Campagne</span>
+          <button class="chip all" type="button" aria-pressed="true">Toutes</button>
+          <button class="chip" type="button" aria-pressed="false">
+            <span class="av">B</span>backleenks.com · France
+          </button>
+          <button class="chip" type="button" aria-pressed="false">
+            <span class="av b">M</span>mega-coloring.com · France
+          </button>
+        </div>
+
+        <div class="split">
+          <div class="card list">
+            <div class="bar" id="bar">
+              <label><input type="checkbox" id="all" /><span id="allText"></span></label>
+              <span id="bulk" hidden>
+                <button class="btn primary sm" type="button" id="bApprove"></button>
+                <button class="btn sm" type="button" id="bLater"></button>
+                <button class="btn sm danger" type="button" id="bRefuse"></button>
+              </span>
+            </div>
+            <div id="rows"></div>
+          </div>
+
+          <aside class="card pane" aria-label="Lecture du message">
+            <div class="pane-head">
+              <span class="av" id="pAv">B</span>
+              <b id="pSite">livementor.com</b>
+              <span id="pPos">1 sur 61</span>
+              <button class="nav" type="button" aria-label="Précédent" id="prev">‹</button>
+              <button class="nav" type="button" aria-label="Suivant" id="next">›</button>
+            </div>
+            <div class="pane-body">
+              <span class="kind" id="pKind">Email</span>
+              <p class="to" id="pTo">À : masterclass@livementor.com</p>
+              <h2 id="pSubject">Votre passage sur le netlinking dans l'article maillage interne</h2>
+              <div class="msg">
+                <p>Bonjour,</p>
+                <p id="pBody">
+                  Votre article sur le maillage interne distingue le maillage interne du netlinking.
+                  Je suis Jonathan, fondateur de backleenks.com, un outil qui aide les sites à
+                  obtenir des backlinks gratuits, sans achat de liens.
+                </p>
+                <p>
+                  Si vous le souhaitez, je vous propose de citer notre page d'accueil dans la partie
+                  de votre article consacrée au netlinking.
+                </p>
+                <p>Seriez-vous d'accord pour ajouter ce lien ?</p>
+                <p><b>Jonathan</b><br />Fondateur de backleenks.com</p>
+              </div>
+              <div class="why">
+                <h3>Pourquoi ce site</h3>
+                <mark id="pHook"
+                  >Le netlinking, ou backlinking, concerne davantage la création et la gestion de
+                  liens externes.</mark
+                >
+              </div>
+            </div>
+            <div class="pane-foot">
+              <button class="btn primary" type="button" id="pApprove">Approuver et envoyer</button>
+              <button class="btn" type="button">Modifier</button>
+              <button class="btn" type="button">Plus tard</button>
+              <button class="btn danger" type="button">Refuser</button>
+              <small>Après chaque décision, le suivant s'ouvre tout seul.</small>
+            </div>
+          </aside>
+        </div>
+
+        <p class="legend">
+          Maquette : les sites et les objets viennent de votre capture, les formulaires et le second
+          site sont des exemples. Ce qui change : plus de « Étape 2 sur 3 » ; la barre unique est
+          remplacée par trois étapes, chacune avec son nombre (le bouton « Rédiger » montre la
+          rédaction en cours, avec une barre qui ne mesure que cela) ; une campagne est un site,
+          donc un seul site ne montre ni filtre ni titre de groupe (le bouton « Deux sites » montre
+          le cas où ils reviennent).
+        </p>
+      </main>
+    </div>
+
+    <script>
+      const MAIL =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>';
+      const FORM =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>';
+      // [site de la campagne, nature, cible, objet, accroche ou point à corriger, à corriger ?]
+      const ROWS = [
+        [
+          "b",
+          "email",
+          "livementor.com",
+          "Votre passage sur le netlinking dans l'article maillage interne",
+          "Le netlinking, ou backlinking, concerne davantage la création et la gestion de liens externes.",
+        ],
+        [
+          "b",
+          "email",
+          "sharethis.com",
+          "Votre liste de vérificateurs de liens dorsaux",
+          "un solide vérificateur de rétroliens peut soutenir vos efforts de création de liens",
+        ],
+        [
+          "b",
+          "email",
+          "hackceleration.com",
+          "Un lien vers backleenks à côté de Majestic",
+          "Majestic si ton vrai sujet, ce sont les liens",
+        ],
+        [
+          "b",
+          "email",
+          "blazehive.io",
+          "Votre renvoi vers vos statistiques sur les backlinks",
+          "Les données sur les backlinks se trouvent sur la page des statistiques sur la création de liens",
+        ],
+        [
+          "b",
+          "email",
+          "codeur.com",
+          "Votre page sur les blogs SEO : un lien vers backleenks.com",
+          "À corriger : promesse, argent ou urgence.",
+          true,
+        ],
+        [
+          "b",
+          "form",
+          "atelier-du-referencement.example",
+          "Message à coller dans leur formulaire",
+          "Ce site n'a pas d'adresse email : à envoyer vous-même.",
+        ],
+        [
+          "m",
+          "email",
+          "maitresse-clara.example",
+          "Vos trouvailles du mois : des coloriages gratuits",
+          "Chaque mois, je partage les sites que j'utilise en classe.",
+        ],
+        [
+          "m",
+          "form",
+          "mediatheque-exemple.example",
+          "Message à coller dans leur formulaire",
+          "Ce site n'a pas d'adresse email : à envoyer vous-même.",
+        ],
+      ];
+      const SITES = {
+        b: ["B", "backleenks.com · France", ""],
+        m: ["M", "mega-coloring.com · France", "b"],
+      };
+      let sites = 1;
+      let current = 0;
+      const picked = new Set();
+      const rowsEl = document.getElementById("rows");
+      const shown = () => ROWS.filter((r) => sites === 2 || r[0] === "b");
+
+      function render() {
+        const list = shown();
+        rowsEl.innerHTML = "";
+        let group = null;
+        list.forEach((r, i) => {
+          const [site, kind, target, subject, hook, fix] = r;
+          // Les titres de campagne n'apparaissent que s'il y a plusieurs sites dans la file.
+          if (sites === 2 && site !== group) {
+            group = site;
+            const n = list.filter((x) => x[0] === site).length;
+            rowsEl.insertAdjacentHTML(
+              "beforeend",
+              `<div class="group"><span class="av ${SITES[site][2]}">${SITES[site][0]}</span><b>${SITES[site][1]}</b><span>${site === "b" ? 57 : 4} à valider</span><a class="link">Ne voir que cette campagne</a></div>`,
+            );
+          }
+          const el = document.createElement("div");
+          el.className = "row" + (i === current ? " on" : "");
+          el.innerHTML = `
+            <input type="checkbox" ${picked.has(target) ? "checked" : ""} aria-label="Sélectionner ${target}" />
+            <div>
+              <div class="top"><span class="kind ${kind === "form" ? "form" : ""}">${kind === "form" ? FORM + "Formulaire" : MAIL + "Email"}</span><b>${target}</b></div>
+              <div class="subj">${subject}</div>
+              <div class="${fix ? "fix" : "hook"}">${hook}</div>
+            </div>`;
+          el.addEventListener("click", (e) => {
+            if (e.target.closest("input")) return;
+            current = i;
+            render();
+          });
+          el.querySelector("input").addEventListener("change", (e) => {
+            if (e.target.checked) picked.add(target);
+            else picked.delete(target);
+            bar();
+          });
+          rowsEl.appendChild(el);
+        });
+        pane(list);
+        bar();
+      }
+
+      function pane(list) {
+        const r = list[Math.min(current, list.length - 1)];
+        const total = 61;
+        document.getElementById("pAv").textContent = SITES[r[0]][0];
+        document.getElementById("pAv").className = "av " + SITES[r[0]][2];
+        document.getElementById("pSite").textContent = r[2];
+        document.getElementById("pPos").textContent = `${current + 1} sur ${total}`;
+        document.getElementById("pKind").innerHTML =
+          r[1] === "form" ? FORM + "Formulaire" : MAIL + "Email";
+        document.getElementById("pKind").className = "kind" + (r[1] === "form" ? " form" : "");
+        document.getElementById("pTo").textContent =
+          r[1] === "form" ? "À coller dans le formulaire de " + r[2] : "À : contact@" + r[2];
+        document.getElementById("pSubject").textContent = r[3];
+        document.getElementById("pHook").textContent = r[5]
+          ? "Passage de la page qui justifie le message."
+          : r[4];
+        document.getElementById("pApprove").textContent =
+          r[1] === "form" ? "Ouvrir le formulaire" : "Approuver et envoyer";
+      }
+
+      function bar() {
+        const n = picked.size;
+        const total = 61;
+        document.getElementById("allText").textContent =
+          n > 0 ? `${n} ${n > 1 ? "sélectionnés" : "sélectionné"}` : `Tout sélectionner (${total})`;
+        document.getElementById("all").checked = n > 0 && n === shown().length;
+        document.getElementById("bulk").hidden = n === 0;
+        document.getElementById("bApprove").textContent = `Approuver et envoyer (${n})`;
+        document.getElementById("bLater").textContent = `Plus tard (${n})`;
+        document.getElementById("bRefuse").textContent = `Refuser (${n})`;
+      }
+
+      document.getElementById("all").addEventListener("change", (e) => {
+        picked.clear();
+        if (e.target.checked) shown().forEach((r) => picked.add(r[2]));
+        render();
+      });
+      document.getElementById("next").addEventListener("click", () => {
+        current = Math.min(current + 1, shown().length - 1);
+        render();
+      });
+      document.getElementById("prev").addEventListener("click", () => {
+        current = Math.max(current - 1, 0);
+        render();
+      });
+      document
+        .querySelectorAll(".tab")
+        .forEach((t) =>
+          t.addEventListener("click", () =>
+            document
+              .querySelectorAll(".tab")
+              .forEach((x) => x.setAttribute("aria-selected", String(x === t))),
+          ),
+        );
+      document.querySelectorAll(".compare button").forEach((b) =>
+        b.addEventListener("click", () => {
+          document
+            .querySelectorAll(".compare button")
+            .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+          sites = Number(b.dataset.sites);
+          current = 0;
+          picked.clear();
+          document.getElementById("chips").hidden = sites === 1;
+          render();
+        }),
+      );
+
+      // « Rédiger » : l'étape passe en « rédaction en cours », avec une barre qui ne mesure que cela.
+      let writing = false;
+      document.getElementById("write").addEventListener("click", (e) => {
+        writing = !writing;
+        document.getElementById("todoMeter").hidden = !writing;
+        document.getElementById("todoMeter").firstElementChild.style.width = writing ? "42%" : "0%";
+        document.getElementById("todoN").innerHTML = writing
+          ? "5 <small>sur 12 écrits</small>"
+          : "12";
+        document.getElementById("todoText").textContent = writing
+          ? "Rédaction en cours. Les messages arrivent dans la liste au fur et à mesure."
+          : "Cibles choisies dont le message n'est pas encore écrit.";
+        e.target.hidden = writing;
+      });
+
+      render();
+    </script>
+  </body>
+</html>
