@@ -128,9 +128,9 @@ export function AppNav({
           mobile: true,
         },
         {
-          // Même page que l'étape « Vos cibles » de la campagne (la route /app/cibles y renvoie).
+          // Même page que l'étape « Vos cibles » de la campagne choisie (sans choix : /app/cibles y renvoie).
           key: "cibles",
-          href: "/app/cibles",
+          href: currentSite === "all" ? "/app/cibles" : `/app/site/${currentSite}/cibles`,
           label: "Cibles",
           icon: CheckSquare,
           active:
@@ -146,6 +146,16 @@ export function AppNav({
     {
       title: "Messagerie",
       items: [
+        {
+          // Les messages à approuver ne sont pas encore sur la page « Vos cibles » : on garde l'accès.
+          key: "a-valider",
+          href: "/app/a-valider",
+          label: "À valider",
+          icon: CheckSquare,
+          active: starts("/app/a-valider"),
+          count: counts.toValidate,
+          mobile: true,
+        },
         {
           key: "envois",
           href: "/app/envois",
