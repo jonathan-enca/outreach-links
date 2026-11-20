@@ -195,27 +195,37 @@ export interface MissingDrafts {
   plans: { planId: string; workspaceId: string; missing: number; status: string | null }[];
   /** Une rédaction tourne en ce moment. */
   running: boolean;
+  /** Cibles qui attendent leur message, avec le domaine du site à qui on écrit (lecture seule). */
+  targets: { planId: string; domain: string }[];
 }
 
 /**
  * Cibles sans message qu'une rédaction peut encore traiter, par plan (pur, testé) : contact trouvé, page
  * lue au tri, ni message écrit ni cible écartée faute d'angle.
  */
-export function countMissing(
-  contacts: readonly { plan_id: string; plan_item_id: string }[],
+export function pendingTargets<T extends { plan_id: string; plan_item_id: string }>(
+  contacts: readonly T[],
   triage: readonly { plan_item_id: string }[],
   drafts: readonly { plan_item_id: string }[],
   refusals: readonly { plan_item_id: string; retry_requested?: boolean }[] = [],
-): Map<string, number> {
+): T[] {
   const draftable = new Set(triage.map((x) => x.plan_item_id));
   // Seul un refus de la personne compte comme traité ; les anciens écartements du tri ou du rédacteur
   // n'existent plus : ces cibles sont rédigées (les refus de la personne sont passés en paramètre).
   const done = new Set(
     [...drafts, ...refusals.filter((d) => !d.retry_requested)].map((d) => d.plan_item_id),
   );
+  return contacts.filter((c) => draftable.has(c.plan_item_id) && !done.has(c.plan_item_id));
+}
+
+export function countMissing(
+  contacts: readonly { plan_id: string; plan_item_id: string }[],
+  triage: readonly { plan_item_id: string }[],
+  drafts: readonly { plan_item_id: string }[],
+  refusals: readonly { plan_item_id: string; retry_requested?: boolean }[] = [],
+): Map<string, number> {
   const out = new Map<string, number>();
-  for (const c of contacts) {
-    if (!draftable.has(c.plan_item_id) || done.has(c.plan_item_id)) continue;
+  for (const c of pendingTargets(contacts, triage, drafts, refusals)) {
     out.set(c.plan_id, (out.get(c.plan_id) ?? 0) + 1);
   }
   return out;
@@ -226,7 +236,7 @@ export async function missingDrafts(supabase: Client): Promise<MissingDrafts> {
   const [contacts, triage, drafts, runs, declines] = await Promise.all([
     supabase
       .from("target_contacts")
-      .select("plan_id, plan_item_id, workspace_id")
+      .select("plan_id, plan_item_id, workspace_id, link_plan_items(source_domain)")
       .in("status", ["email_verifie", "email_a_verifier", "formulaire"])
       .limit(3000),
     supabase
@@ -257,10 +267,20 @@ export async function missingDrafts(supabase: Client): Promise<MissingDrafts> {
     missing: n,
     status: statusOf.get(planId) ?? null,
   }));
+  const targets = pendingTargets(
+    contacts.data ?? [],
+    triage.data ?? [],
+    drafts.data ?? [],
+    declines.data ?? [],
+  ).map((c) => ({
+    planId: c.plan_id,
+    domain: (c.link_plan_items as unknown as { source_domain: string } | null)?.source_domain ?? "",
+  }));
   return {
     total: plans.reduce((s, p) => s + p.missing, 0),
     plans,
     running: (runs.data ?? []).some((r) => r.status === "en_cours"),
+    targets,
   };
 }
 

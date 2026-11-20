@@ -20,7 +20,7 @@ import { Card } from "@/components/ui/card";
 import type { AuditActionState } from "@/features/audits/service";
 import { t } from "@/lib/messages";
 import { cn } from "@/lib/utils";
-import { draftingProgress } from "./drafting-progress";
+import { draftingList, draftingProgress } from "./drafting-progress";
 import {
   campaignInitial,
   groupByCampaign,
@@ -725,6 +725,7 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
 
   // Bloc de progression en haut de l'écran : visible dès qu'une rédaction tourne ou qu'une cible attend.
   const progress = draftingProgress(view);
+  const list = draftingList(view, progress.running);
   const missingBanner = progress.visible ? (
     <Card className="flex flex-col gap-3 p-4 text-sm" aria-labelledby="drafting-progress-title">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -763,6 +764,33 @@ export function ApprovalQueue({ view, actions }: { view: QueueView; actions: Que
       <p className="text-muted-foreground">
         {progress.running ? V.progress.runningHelp : V.progress.idleHelp}
       </p>
+      {list.total > 0 ? (
+        <div className="flex flex-col gap-2 border-t pt-3">
+          <h3 className="font-semibold">{V.progress.listTitle(list.total)}</h3>
+          <ul className="grid gap-1">
+            {list.rows.map((row) => (
+              <li key={row.key} className="flex flex-wrap items-center justify-between gap-2">
+                <span className="min-w-0 break-all">{row.domain}</span>
+                <span
+                  className={cn(
+                    "shrink-0 text-xs font-medium",
+                    row.state === "pret" ? "text-success" : "text-muted-foreground",
+                  )}
+                >
+                  {row.state === "pret"
+                    ? V.progress.rowReady
+                    : row.state === "en_cours"
+                      ? V.progress.rowRunning
+                      : V.progress.rowToWrite}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {list.hidden > 0 ? (
+            <p className="text-muted-foreground">{V.progress.listMore(list.hidden)}</p>
+          ) : null}
+        </div>
+      ) : null}
     </Card>
   ) : null;
 
