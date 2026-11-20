@@ -529,6 +529,8 @@ Ordre : **MQ.1 d'abord** (sans elle, rien n'est mesurable). MQ.2, MQ.4 et MQ.5 p
 
 ### MQ.7 Pilote mesuré
 
+**MQ.7 partiel (19/11/2026) : pistes décidées (`serp`, `content`), lot non construit, rien envoyé. Feu vert écrit de Jonathan attendu pour les brouillons de test et la recherche d'emails. Détail dans `PROGRESS.md`.**
+
 - Lot de 100 messages répartis sur 4 à 5 types de sites et sur les pistes de MQ.4 à MQ.6, validés par Jonathan avant envoi.
 - Suivi des réponses et des liens pendant 30 jours.
 - **Acceptation** : décision écrite (quelles pistes, quels types de sites, quelle profondeur de boule de neige) dans `PROGRESS.md`.

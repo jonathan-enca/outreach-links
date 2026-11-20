@@ -60,6 +60,8 @@
 | MU.4 à MU.11 | **prioritaire NOW**, ordre mis à jour le 17/11 : **MU.4 élargi** (étape 1 avec pays, langue, objectif ; campagne par pays ; robustesse du moteur ; relance par étape ; recherche en parallèle ; remarques 1 à 5) → **MU.7** (liens morts des concurrents d'abord) → contrôle de qualité → MU.6, MU.5, MU.8 à MU.11. **Prompt maître prêt : `docs/master-prompt-essai.md`**                                                                                         |                                                                                                                                     |            |
 | Maître n° 2  | fait le 17/11 (nuit) : lecture adaptative et filtre avant lecture (46 cibles au lieu de 15 sur les mêmes candidats), stock et « Lire d'autres sites », types d'éditeurs déduits du profil et 40 requêtes garanties, onglets par type, test « rien de propre à un thème » ; **runs réels : 40 cibles en 11 min 12 pour 1,08 USD, puis 54 cibles, 72 après un lot « Lire d'autres sites »** ; **non fait** : email de fin (clé Resend refusée), pages ressources (J) | [#110](https://github.com/jonathan-enca/outreach-links/pull/110) à [#117](https://github.com/jonathan-enca/outreach-links/pull/117) | 2026-11-17 |
 | MB.2         | à faire **après MU.11** (le parcours et le moteur changent avant le test de bout en bout)                                                                                                                                                                                                                                                                                                                                                                          |                                                                                                                                     |            |
+| MQ.1 à MQ.6 | fait (fusionnés sur main, voir les sessions MQ en bas de fichier) |
+| MQ.7         | partiel : pistes décidées (serp, content) ; lot non construit, coût de la recherche d'emails à établir, feu vert écrit attendu (PR #215) |
 | M6.2 à M7.3  | à faire                                                                                                                                                                                                                                                                                                                                                                                                                                                            |                                                                                                                                     |            |
 
 ## Décisions prises
@@ -2958,3 +2960,68 @@ pnpm typecheck && pnpm lint
 ```
 
 ### Prochain sous-jalon recommandé : MQ.7 (pilote mesuré) après les premières réponses réelles ; avant, les essais en direct de MQ.3 sur deux sites de thèmes différents (Jonathan lance).
+
+## Session du 19/11 (suite 7) : MQ.7, préparation du pilote (lot non construit, décision en attente)
+
+Sous-jalon `PLAN.md > MQ.7`. Branche `mq.7-pilote-mesure` (depuis `origin/main` à jour, après #214). **0 USD d'API** : aucune requête payante, aucun LLM, aucun envoi, aucun compte saisi. `SNOWBALL_DEEP_ENABLED` reste coupé.
+
+### Prérequis vérifiés (19/11, sur `main`)
+
+- MQ.1 (#206), MQ.4 (#209 puis #211), MQ.5 (#210), MQ.6 (#213) fusionnées. MQ.2 (#207) et MQ.3 (#212) aussi.
+
+### Ce que dit la base réelle (lecture seule, projet `ivjkwhhgtibewqzccvrj`)
+
+- `qualified_targets` : 759 lignes, toutes au niveau 0. Pistes : `content` 371, `serp` 302, `intersection` 60, `mention` 24, `citation` 2. Aucune au niveau 1.
+- Contacts : **3 adresses vérifiées et envoyables**, 9 à vérifier (`email_a_verifier`), 20 `email_invalide`, 16 seulement par formulaire (tâches manuelles), le reste sans contact.
+- `target_drafts` 0, `target_contacts` 0, `batch_items` 0, `sent_messages` 0, `inbound_messages` 0, `links` 0, `site_pages` 0, `site_catalogue` 0.
+
+**Conséquence : un lot de 100 messages envoyables n'existe pas, et ne peut pas être construit sans dépense.** Il faudrait, avant tout brouillon :
+1. une recherche d'emails sur les cibles sans contact (finder payant, à annoncer) ;
+2. des brouillons LLM pour chaque cible retenue (coût par brouillon à mesurer sur 5 cibles avant de lancer le lot) ;
+3. si l'on veut 4 à 5 types de sites et le niveau 1 de la boule de neige, des audits DataForSEO supplémentaires (coût à annoncer, plafonné).
+
+Les 28 cibles avec une adresse ne sont pas un lot : 6 ont un contact vérifié ou à vérifier avec un accroche honnête ; plusieurs accroches sont vides ou hors sujet (ex. `coloriages.ai` cité comme ressource alors qu'il paraît être un concurrent direct ; une cible `bayard-presse.com` de type média ; des accroches au titre de page seul). À trier à la main avant tout brouillon.
+
+### Ce qui n'est pas fait (volontairement)
+
+- **Pas de lot de 100 messages** et donc pas de présentation de lot à Jonathan : la liste courte serait de 3 cibles, ce qui n'est pas un pilote.
+- **Suivi 30 jours** : le tableau par piste, niveau et type de site existe (`src/features/targets/tracking.ts`, MQ.1) mais n'a pas de fenêtre de 30 jours. Ajout reporté : sans envoi, il ne mesurerait rien.
+- **Boule de neige profonde** : pas branchée, interrupteur coupé. Le niveau 1 n'a pas été lancé.
+
+### Décision écrite demandée (acceptation MQ.7), à prendre par Jonathan
+
+Options proposées, en attente de réponse écrite :
+- **Pistes** : **décidé par Jonathan (19/11) : `serp` et `content` uniquement.** `citation`, `mention` et `intersection` hors pilote.
+- **Types de sites** : écoles, blogs, associations, e-commerces, médias (à confirmer avec le volume réel ; `media` et `autre` à exclure par défaut).
+- **Profondeur de boule de neige** : niveau 0 seul pour le pilote ; niveau 1 seulement après relecture de 20 cibles par site.
+- **Taille du pilote** : commencer par un lot de 20 après recherche d'emails et relecture, puis passer à 100 si le taux de contact est bon.
+
+### Prochain sous-jalon recommandé
+
+Décision de Jonathan sur les pistes et le coût des contacts et des brouillons, puis : recherche d'emails sur les cibles `serp` et `content` sans contact (annoncer le coût), brouillons de 5 cibles pour mesurer le coût réel, lot de 20 relu à la main. Ensuite la fenêtre de 30 jours dans `tracking.ts`.
+
+### Coûts pour la suite (`cost_ledger`, 19/11, aucun appel lancé)
+
+- Brouillons : les 27 brouillons mesurés (17-18/11) ont été écrits avec **Opus 5.5 : 0,062 USD en moyenne**. Depuis #201, le rédacteur est **Haiku 5.5** (`DRAFT_MODELS.writer`, `src/features/drafting/limits.ts`), environ 40 fois moins cher selon le code. Estimation : **≈ 0,0015 USD par brouillon** (5 ≈ 0,01 USD ; 100 ≈ 0,15 USD). **Non mesuré encore sur Haiku** : à confirmer sur les 5 premiers brouillons.
+- Angle (`llm.outreach_angle`, Haiku) : 0,0014 USD en moyenne (41 appels).
+- Qualification LLM : 0,005 USD par cible.
+- Recherche d'emails : **aucune ligne dans `cost_ledger`** ; coût à établir avant tout lancement.
+- Rien n'est lancé. Les 5 brouillons de test attendent un feu vert écrit de Jonathan.
+
+### Où entre la Search Console dans une campagne (relu le 19/11, code lu, aucun appel)
+
+- **Flag** : `SEARCH_CONSOLE_ENABLED` vaut `false` par défaut (`src/env.ts`). Sans `true` en production, la connexion n'est pas proposée et rien n'est lu. **À vérifier sur l'environnement de production avant tout lancement live.**
+- **Lecture** : `loadSearchConsoleSnapshot` (`src/features/search-console/load.ts`) lit 90 jours, requêtes et pages, en lecture seule, et stocke le résultat dans `audits.links_state.searchConsole`. Elle ne lève jamais : sans connexion ou en cas de panne, elle donne `null` et la campagne continue.
+- **Attente** : `analysis-run.ts` attend l'état des lieux au plus `LINKS_STATE_WAIT.maxChecks` tours, puis lance la recherche **sans lui** (log « recherche sans lui »).
+- **Utilisation réelle, seule voie branchée** : `contentQueries` (`src/features/collection/content-queries.ts`) prend jusqu'à 4 requêtes Search Console (au moins 10 impressions, hors marque) et en fait des requêtes de contenu, cherchées dans la SERP (piste `content`, rang `contenu_search_console`). Le thème et les publics donnent les autres requêtes de contenu.
+- **Non branché** : `proposeVerifiedSites` (MQ.5, `src/features/proposals/service.ts`) reçoit les requêtes Search Console, mais **aucun appelant** dans `src`. Les thèmes et sites proposés par Claude n'entrent donc pas dans une campagne aujourd'hui.
+- **Pas touché** : la liste principale de requêtes (DataForSEO, `universe.queries`), les concurrents (SERP) et les backlinks. La Search Console n'influence donc qu'une partie des requêtes de contenu, pas l'univers principal.
+
+Conséquence pour un lancement live : une campagne avec Search Console connectée ne se distingue d'une campagne sans elle que par ces 4 requêtes de contenu, et seulement si l'état des lieux est fini avant la recherche.
+
+### Question ouverte : plafond de 4 requêtes Search Console (19/11)
+
+- `CONTENT_QUERY_LIMITS.maxSearchConsoleQueries = 4` (`src/features/collection/content-queries.ts`). Ce plafond a été posé en MQ.4 comme garde-fou de coût, **sans justification écrite** : chaque requête coûte une recherche SERP (environ 0,006 USD, `serpOrganicLive` mesuré).
+- Le filtre « hors marque » et le seuil de 10 impressions sont déjà en place. Le plafond de MQ.5 est de 30 requêtes (`PROPOSAL_LIMITS`), ce qui montre qu'il n'y a pas de principe général derrière le 4.
+- **À décider** : relever le plafond (par exemple 10 requêtes, soit environ 0,06 USD de plus par analyse) ou le garder. Le plafond de 60 recherches SERP de la collecte reste à surveiller.
+- « État des lieux » = la première étape de l'analyse (`etat_des_lieux`, `src/features/analysis/`) : positions, pages, profil de liens du site, contrôle technique, Search Console. Elle tourne en parallèle des concurrents.
