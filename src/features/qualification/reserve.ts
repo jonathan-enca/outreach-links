@@ -40,3 +40,24 @@ export async function countStock(supabase: Client, runId: string): Promise<numbe
     .in("exclusion_reason", [...STOCK_REASONS]);
   return count ?? 0;
 }
+
+/** Un verdict passé d'un site : le domaine et le motif donné par une analyse de ce site. */
+export interface PriorVerdict {
+  domain: string;
+  exclusionReason: string | null;
+}
+
+/**
+ * Sites à reprendre de la réserve d'un site pour une nouvelle analyse (pur). Un site n'est repris que si
+ * TOUS ses verdicts passés sont « hors_budget_lecture » : il n'a jamais été lu, donc jamais relu. Un site lu
+ * une fois (même dans une analyse plus ancienne) ne revient pas dans la réserve.
+ */
+export function carriedUnreadDomains(verdicts: readonly PriorVerdict[]): string[] {
+  const byDomain = new Map<string, { unread: boolean }>();
+  for (const v of verdicts) {
+    const cur = byDomain.get(v.domain) ?? { unread: true };
+    if (v.exclusionReason !== "hors_budget_lecture") cur.unread = false;
+    byDomain.set(v.domain, cur);
+  }
+  return [...byDomain.entries()].filter(([, s]) => s.unread).map(([d]) => d);
+}

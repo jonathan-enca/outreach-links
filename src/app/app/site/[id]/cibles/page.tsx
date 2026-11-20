@@ -8,6 +8,8 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { legacyChainEnabled } from "@/features/audits/chain";
 import { JourneySteps } from "@/features/shell/journey-steps";
+import { loadAnalysisSnapshot } from "@/features/analysis/status";
+import { buildAnalysisView } from "@/features/analysis/view";
 import { loadSiteWithAudit, siteHref, UUID_RE } from "@/features/shell/next-step";
 import {
   readMoreAction,
@@ -37,7 +39,13 @@ async function Targets({ params }: { params: Promise<{ id: string }> }) {
   const auditId = found.audit.id;
   const analysis = found.audit.analysis_status;
   const notReady = analysis === "confirme" || analysis === "en_cours" || analysis === "echoue";
-  if (notReady) {
+  // Analyse « terminée » mais lecture des autres sites trouvés encore en cours : la liste n'est pas finale.
+  let readingPending = false;
+  if (!notReady && analysis === "termine") {
+    const snapshot = await loadAnalysisSnapshot(supabase, auditId);
+    readingPending = snapshot ? buildAnalysisView(snapshot).backgroundPending : false;
+  }
+  if (notReady || readingPending) {
     return (
       <>
         <JourneySteps current="analyse" />
@@ -46,7 +54,11 @@ async function Targets({ params }: { params: Promise<{ id: string }> }) {
           <EmptyState
             icon={Target}
             title={t.targets.notReady.title}
-            body={t.targets.notReady[analysis === "echoue" ? "failed" : "running"]}
+            body={
+              readingPending
+                ? t.targets.notReady.reading
+                : t.targets.notReady[analysis === "echoue" ? "failed" : "running"]
+            }
           />
           <Button asChild>
             <Link href={siteHref.analyse(id)}>{t.targets.notReady.cta}</Link>

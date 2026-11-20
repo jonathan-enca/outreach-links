@@ -919,7 +919,7 @@ export const fr = {
       },
       personas: "Qui aurait une raison de vous citer",
       personasHint:
-        "Les sites que personne ne sollicite et qui servent le même public que vous. Une ligne par profil : qui | où on les trouve | pourquoi ils vous citeraient.",
+        "Les sites à solliciter et qui servent le même public que vous. Une ligne par profil : qui | où on les trouve | pourquoi ils vous citeraient.",
       tone: "Ton",
       messages: {
         noPageSelected: "Cochez au moins une page de votre site à faire citer.",
@@ -1396,6 +1396,8 @@ export const fr = {
       title: "Vos cibles arrivent",
       running: "L'analyse est en cours. Les cibles s'afficheront ici dès qu'elle sera terminée.",
       failed: "L'analyse s'est arrêtée avant la fin. Reprenez-la pour obtenir vos cibles.",
+      reading:
+        "L'analyse est terminée, mais la lecture des autres sites trouvés continue. Vos cibles s'afficheront ici une fois qu'elle sera finie.",
       cta: "Voir l'analyse",
     },
     toPlan: (n: number) => `Voir les messages rédigés (${n})`,
@@ -1600,8 +1602,8 @@ export const fr = {
       label: "Filtrer par tactique",
       rowTitle: "La demande",
       toutes: "Toutes",
-      inconnus: "Sites que personne ne sollicite",
-      ressources: "Pages ressources et liens morts",
+      inconnus: "Sites à solliciter",
+      ressources: "Liens cassés des concurrents",
       mentions: "Mentions sans lien",
       count: "{n} cibles",
     },
@@ -1738,7 +1740,7 @@ export const fr = {
   },
   opportunities: {
     title: "Opportunités de liens",
-    body: "On cherche, à partir de votre écart de liens et de requêtes thématiques, les sites susceptibles de vous citer : mentions de marque, pages ressources, annuaires, sites que personne ne sollicite. Rien n'est contacté à cette étape.",
+    body: "On cherche, à partir de votre écart de liens et de requêtes thématiques, les sites susceptibles de vous citer : mentions de marque, pages ressources, annuaires, sites à solliciter. Rien n'est contacté à cette étape.",
     needsProfile: "Cette étape devient disponible une fois le profil de liens analysé.",
     rationale: {
       ecart_domaines: "Cite déjà plusieurs de vos concurrents mais pas votre site.",

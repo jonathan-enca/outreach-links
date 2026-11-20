@@ -366,7 +366,7 @@ describe("rédaction d'un message", () => {
     expect(wr.prompts[0]).not.toContain("Des dinosaures à colorier");
   });
 
-  it("le tri écarte une cible sans angle : aucun message, le modèle fort n'est pas appelé", async () => {
+  it("le tri ne refuse jamais : une cible sans angle reste rédigée, avec la page la plus proche", async () => {
     const tr = llm<Triage>([
       {
         situation: "aucune",
@@ -378,13 +378,11 @@ describe("rédaction d'un message", () => {
     ]);
     const wr = llm<Written>([written()]);
     const out = await draftItem(item(), CTX, deps(tr, wr));
-    expect(out).toEqual({
-      declined: { reason: "Page d'accueil sans contenu éditorial.", by: "tri", costUsd: 0.001 },
-    });
-    expect(wr.calls()).toBe(0);
+    expect("result" in out).toBe(true);
+    expect(wr.calls()).toBe(1);
   });
 
-  it("le modèle fort rejuge : il peut écarter une cible que le tri avait retenue", async () => {
+  it("le modèle fort ne refuse jamais : un verdict « pas d'angle » sans message relance la rédaction", async () => {
     const tr = llm<Triage>([ANGLE]);
     const wr = llm<Written>([
       written({
@@ -396,12 +394,11 @@ describe("rédaction d'un message", () => {
         objet: null,
         message: null,
       }),
+      written(),
     ]);
     const out = await draftItem(item(), CTX, deps(tr, wr));
-    if (!("declined" in out)) throw new Error("attendu : cible écartée");
-    expect(out.declined.by).toBe("redacteur");
-    expect(out.declined.reason).toContain("document juridique");
-    expect(out.declined.costUsd).toBeCloseTo(0.002);
+    expect("result" in out).toBe(true);
+    expect(wr.calls()).toBe(2);
   });
 
   it("MC.6e : « le catalogue n'a pas la page » n'est jamais un refus : la page la plus proche est proposée", async () => {
@@ -424,15 +421,6 @@ describe("rédaction d'un message", () => {
       deps(llm<Triage>([ANGLE]), llm<Written>([written()])),
     );
     expect("result" in plain && plain.result.reviewNote).toBe(null);
-  });
-
-  it("MC.6e : « rédiger quand même » saute le tri et écrit avec la page la plus proche", async () => {
-    const tr = llm<Triage>([ANGLE]);
-    const wr = llm<Written>([written()]);
-    const out = await draftItem(item({ force: true }), CTX, deps(tr, wr));
-    expect("result" in out).toBe(true);
-    expect(tr.calls()).toBe(0);
-    expect(wr.prompts[0]).toContain("malgré un premier refus automatique");
   });
 
   it("MC.6e : le modèle ne voit que la présélection d'un grand catalogue, texte des pages lues à la demande", async () => {
@@ -545,8 +533,9 @@ describe("rédaction d'un message", () => {
 
   it("une panne d'un modèle donne un motif, jamais une exception", async () => {
     const down = llm<never>([new Error("HTTP 529")]);
+    // Tri en panne : la cible n'est pas bloquée, le rédacteur reçoit les pages les plus proches.
     const a = await draftItem(item(), CTX, deps(down, llm<Written>([written()])));
-    expect("skipped" in a && a.skipped).toMatch(/tri impossible/i);
+    expect("result" in a).toBe(true);
     const b = await draftItem(item(), CTX, deps(llm<Triage>([ANGLE]), down));
     expect("skipped" in b && b.skipped).toMatch(/rédaction impossible/i);
   });
@@ -564,9 +553,8 @@ describe("consignes et schémas", () => {
   it("encadrent le contenu externe, interdisent l'IA et les contreparties, exigent les deux adresses", () => {
     for (const sys of [TRIAGE_SYSTEM, WRITER_SYSTEM]) {
       expect(sys).toContain("donnees_non_fiables");
-      expect(sys).toContain("TOUJOURS rédigée");
-      expect(sys).toContain("document juridique");
-      expect(sys).toContain("JAMAIS un motif de refus");
+      expect(sys).toContain("Il n'existe aucun refus");
+      expect(sys).not.toContain("Ne refuse");
     }
     expect(WRITER_SYSTEM).toContain("l'adresse exacte de SA page");
     expect(WRITER_SYSTEM).toContain("Rien en échange");
@@ -574,16 +562,15 @@ describe("consignes et schémas", () => {
     expect(WRITER_SYSTEM).toContain("a_relire");
   });
 
-  it("MC.6b/MC.6e : les trois cas sont reconnus, un billet ancien n'est plus un refus, seuls cinq cas refusent, le reste est une note", () => {
+  it("MC.6b/MC.6e : les trois cas sont reconnus, un billet ancien n'est plus un refus, aucun refus du rédacteur, le reste est une note", () => {
     for (const sys of [TRIAGE_SYSTEM, WRITER_SYSTEM]) {
       for (const cas of ["lien_mort", "petit_editeur_ressources", "cite_des_comparables"]) {
         expect(sys).toContain(`"${cas}"`);
       }
       expect(sys).toContain("Un billet ancien n'est PAS une raison de refuser");
       expect(sys).not.toMatch(/billet ancien que personne ne met plus à jour/);
-      expect(sys).toContain("Ne refuse");
-      expect(sys).toContain("concurrent direct");
-      expect(sys).toContain("articles écrits pour vendre des liens");
+      expect(sys).toContain("Il n'existe aucun refus");
+      expect(sys).not.toContain("concurrent direct");
       expect(sys).toContain("« lien unique »");
       expect(sys).toContain("« ancre optimisée »");
       // La page à proposer n'est plus forcément un article (un site de thèmes n'a pas d'articles).
@@ -672,9 +659,8 @@ describe("synthèse, service et fonction", () => {
       { ...base, itemId: "1", ready: true, reviewNote: null },
       { ...base, itemId: "2", ready: false, channel: "formulaire" as const, reviewNote: null },
     ];
-    expect(summarize(results, 1, 2, 3)).toEqual({
+    expect(summarize(results, 1, 2)).toEqual({
       drafted: 2,
-      declined: 3,
       skipped: 2,
       notDrafted: 1,
       ready: 1,

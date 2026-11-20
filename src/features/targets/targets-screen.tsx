@@ -19,7 +19,7 @@ import {
   primaryRequest,
   primaryTactic,
 } from "./cards";
-import { AUTO_MAX_MINUTES, newIds, remainingMinutes, roundedMinutes } from "./live";
+import { newIds, remainingMinutes, roundedMinutes } from "./live";
 import { publisherTabs } from "./publishers";
 import {
   FOUNDER_ROLES,
@@ -672,92 +672,36 @@ export function TargetsTable({
 }
 
 /**
- * Pourquoi la lecture automatique s'est arrêtée et combien de sites ne sont pas lus, en une phrase
- * (pur ; `stop` = `qualification_runs.auto_stop`). Null : rien à dire.
- */
-export function autoStopLine(auto: TargetsView["more"]["auto"], stock: number): string | null {
-  const S = M.more.auto.stop;
-  const failed = auto.status === "echoue" || (auto.status === "termine" && auto.stop === "erreur");
-  if (!failed && !(auto.status === "termine" && auto.stop)) return null;
-  if (stock === 0) return failed ? M.more.failedLine : S.allRead;
-  if (failed) return S.erreur(stock);
-  if (auto.stop === "duree") return S.duree(stock, AUTO_MAX_MINUTES);
-  if (auto.stop === "budget") return S.budget(stock);
-  if (auto.stop === "reserve_epuisee") return S.reserve_epuisee(stock);
-  return S.autre(stock);
-}
-
-/**
  * Après la lecture des autres sites (automatique, sans bouton tant qu'elle tourne : voir `LiveBanner`) :
- * ce qui s'est passé, combien de sites ne sont pas lus, et un seul bouton secondaire pour continuer.
+ * ce qui s'est passé et combien de sites restent à lire.
  */
 export function MoreSites({
   funnel,
   more,
-  start,
 }: {
   funnel: NonNullable<TargetsView["funnel"]>;
   more: TargetsView["more"];
-  start: Act;
 }) {
   const R = M.more;
-  const router = useRouter();
-  const [state, setState] = useState<AuditActionState>({ status: "idle" });
-  const [pending, begin] = useTransition();
   const auto = more.auto;
   const running =
     more.status === "demande" || more.status === "en_cours" || auto.status === "en_cours";
   // Le suivi de la recherche en cours est dans `LiveBanner` (bandeau du haut), qui rafraîchit l'écran.
   if (running) return null;
-  if (funnel.stock === 0 && more.status === "aucun" && auto.status === "aucun") return null;
-  const stopLine = autoStopLine(auto, funnel.stock);
+  const doneLine = auto.status === "aucun" && more.status === "termine" && more.added !== null;
+  const failed = more.status === "echoue" && auto.status === "aucun";
+  if (!doneLine && !failed && funnel.stock === 0) return null;
   return (
     <Card className="flex flex-col gap-3 p-4 sm:p-5" data-testid="more-sites">
       <div role="status" className="flex flex-col gap-1.5">
-        {auto.status === "aucun" && more.status === "termine" && more.added !== null ? (
-          <p className="font-medium">{R.done(more.added)}</p>
-        ) : null}
-        {stopLine ? (
-          <p className="font-medium text-pretty" data-testid="auto-stop">
-            {stopLine}
-          </p>
-        ) : null}
-        {more.status === "echoue" && auto.status === "aucun" ? (
-          <p className="font-medium text-pretty">{R.failedLine}</p>
-        ) : null}
-        {!stopLine && funnel.stock > 0 ? (
+        {doneLine ? <p className="font-medium">{R.done(more.added ?? 0)}</p> : null}
+        {failed ? <p className="font-medium text-pretty">{R.failedLine}</p> : null}
+        {funnel.stock > 0 ? (
           <p className="font-medium" data-testid="more-remaining">
             {R.remaining(funnel.stock)}
           </p>
         ) : null}
-        {stopLine && auto.added > 0 ? (
-          <p className="text-sm text-muted-foreground">{R.auto.doneLine(auto.added)}</p>
-        ) : null}
       </div>
-      {funnel.stock > 0 ? (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-          {/* Secondaire : une reprise à la main après un arrêt, jamais l'action principale de l'écran. */}
-          <Button
-            type="button"
-            variant="outline"
-            disabled={pending}
-            aria-describedby="more-sites-hint"
-            className="w-full shrink-0 sm:w-auto"
-            onClick={() =>
-              begin(async () => {
-                setState(await start());
-                router.refresh();
-              })
-            }
-          >
-            {pending ? R.busy : R.button}
-          </Button>
-          <p id="more-sites-hint" className="text-sm text-muted-foreground text-pretty">
-            {R.hint}
-          </p>
-        </div>
-      ) : null}
-      <Message state={state} />
     </Card>
   );
 }
@@ -967,6 +911,7 @@ export function TargetsScreen({
     });
   const [vState, setVState] = useState<AuditActionState>({ status: "idle" });
   const [vPending, startValidate] = useTransition();
+  const router = useRouter();
   const [askSettings, setAskSettings] = useState(false);
   const settingsOk = view.founderRole !== null && view.hasSignature;
   /** Valide les cibles retenues ; avec des réglages saisis, les enregistre d'abord (une seule fois). */
@@ -981,6 +926,8 @@ export function TargetsScreen({
       }
       setVState(await actions.validate(chosen));
       setAskSettings(false);
+      // Les cibles validées passent tout de suite dans « Déjà validées » et dans le lien vers « À approuver ».
+      router.refresh();
     });
   // Les cibles déjà validées sortent de la liste à contacter : elles ont leur onglet.
   const pending = useMemo(() => cards.filter((x) => !x.alreadyValidated), [cards]);
@@ -1343,7 +1290,7 @@ export function TargetsScreen({
               </p>
               {validatedCount > 0 ? (
                 <Button asChild variant="outline" className="hidden shrink-0 sm:inline-flex">
-                  <Link href={`/app/audit/${auditId}/plan`}>{M.toPlan(validatedCount)}</Link>
+                  <Link href="/app/a-valider">{M.toPlan(validatedCount)}</Link>
                 </Button>
               ) : null}
               <Button
@@ -1357,7 +1304,7 @@ export function TargetsScreen({
             </Card>
             {validatedCount > 0 ? (
               <Button asChild variant="outline" className="h-11 w-full sm:hidden">
-                <Link href={`/app/audit/${auditId}/plan`}>{M.toPlan(validatedCount)}</Link>
+                <Link href="/app/a-valider">{M.toPlan(validatedCount)}</Link>
               </Button>
             ) : null}
             {settingsOk && view.founderRole ? (
@@ -1386,9 +1333,7 @@ export function TargetsScreen({
                 onCancel={() => setAskSettings(false)}
               />
             ) : null}
-            {view.funnel ? (
-              <MoreSites funnel={view.funnel} more={view.more} start={actions.readMore} />
-            ) : null}
+            {view.funnel ? <MoreSites funnel={view.funnel} more={view.more} /> : null}
           </>
         )}
       </section>
@@ -1419,18 +1364,6 @@ export function TargetsScreen({
           ) : null}
         </section>
       ) : null}
-
-      <section
-        className="flex max-w-[72ch] flex-col gap-1.5 border-t border-border pt-5"
-        aria-labelledby="origin"
-      >
-        <h2 id="origin" className="font-semibold">
-          {M.origin.title}
-        </h2>
-        <p className="text-muted-foreground text-pretty">
-          {M.origin.body(view.competitors.length)}
-        </p>
-      </section>
     </div>
   );
 }

@@ -107,10 +107,6 @@ describe.skipIf(!live)("essai réel : recherche d'angle et rédaction", () => {
         console.log(
           `MESSAGE (prêt : ${out.result.ready}, ${out.result.costUsd.toFixed(4)} USD)\nAngle : ${out.result.targetingReason}\nPage : ${out.result.proposedUrl}\nObjet : ${out.result.subject}\n\n${out.result.body}\n${out.result.issues.map((x) => `! ${x.message}`).join("\n")}`,
         );
-      } else if ("declined" in out) {
-        console.log(
-          `ÉCARTÉE par ${out.declined.by} (${out.declined.costUsd.toFixed(4)} USD) : ${out.declined.reason}`,
-        );
       } else console.log(`NON TRAITÉE : ${out.skipped}`);
       expect(out).toBeTruthy();
     }

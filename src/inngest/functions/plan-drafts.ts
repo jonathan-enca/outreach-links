@@ -26,7 +26,6 @@ import {
   loadWrittenBodies,
   saveCatalogueUrls,
   saveCataloguePages,
-  saveDecline,
   saveDraft,
   summarize,
 } from "@/features/drafting/run";
@@ -166,7 +165,6 @@ export const planDrafts = inngest.createFunction(
 
     const results: DraftResult[] = [];
     let notDrafted = 0;
-    let declined = 0;
     let spent = 0;
     for (const [i, item] of input.items.entries()) {
       const spentBefore = spent;
@@ -202,23 +200,18 @@ export const planDrafts = inngest.createFunction(
           },
         );
         if ("result" in res) await saveDraft(service, run, res.result);
-        else if ("declined" in res)
-          await saveDecline(service, run, { itemId: item.id, ...res.declined }, item.pageUrl);
         return res;
       });
       if ("result" in out) {
         results.push(out.result);
         spent += out.result.costUsd;
-      } else if ("declined" in out) {
-        declined++;
-        spent += out.declined.costUsd;
       } else {
         notDrafted++;
         spent += out.costUsd;
       }
     }
 
-    const stats = summarize(results, notDrafted, input.skipped, declined);
+    const stats = summarize(results, notDrafted, input.skipped);
     await step.run("finalize", async () =>
       finalizeDrafts(createServiceClient(), run, stats, spent),
     );
