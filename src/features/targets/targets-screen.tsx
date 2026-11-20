@@ -284,8 +284,6 @@ function contactLine(card: TargetCard): string {
 
 const TB = M.table;
 const NONE: ReadonlySet<string> = new Set();
-/** Sites sans contact affichés d'emblée ; le reste derrière un bouton. */
-const LOST_FIRST = 10;
 
 function contactShort(card: TargetCard): string {
   const k = card.contact;
@@ -904,14 +902,6 @@ export function TargetsScreen({
     setRevealed(new Set(hiddenCards.map((x) => x.id)));
     setSelected((prev) => new Set([...prev, ...eligibleIds(hiddenCards)]));
   };
-  // Toutes les lignes sont repliées à l'ouverture : chaque cible s'ouvre au clic.
-  const [open, setOpen] = useState<Set<string>>(() => new Set());
-  const toggleOpen = (id: string) =>
-    setOpen((prev) => {
-      const next = new Set(prev);
-      if (!next.delete(id)) next.add(id);
-      return next;
-    });
   const [vState, setVState] = useState<AuditActionState>({ status: "idle" });
   const [vPending, startValidate] = useTransition();
   const router = useRouter();
@@ -954,12 +944,6 @@ export function TargetsScreen({
       for (const id of eligible) next.delete(id);
       return next;
     });
-  // Sans contact : les mentions sans lien prouvées d'abord, puis les autres sites pertinents.
-  const lost = useMemo(
-    () => [...view.contactless, ...view.noContact],
-    [view.contactless, view.noContact],
-  );
-  const [allLost, setAllLost] = useState(false);
   const c = view.collection;
   const qDone = q.status === "termine";
   const m = M.steps;
@@ -1143,33 +1127,6 @@ export function TargetsScreen({
           </>
         )}
       </section>
-
-      {lost.length > 0 ? (
-        <section className="flex flex-col gap-3" aria-labelledby="no-contact">
-          <h2 id="no-contact" className="font-display text-xl font-semibold text-balance">
-            {M.noContact.title(lost.length)}
-          </h2>
-          <p className="max-w-[76ch] text-muted-foreground text-pretty">{M.noContact.body}</p>
-          <TargetsTable
-            cards={allLost ? lost : lost.slice(0, LOST_FIRST)}
-            open={open}
-            selected={NONE}
-            pageAction
-            onOpen={toggleOpen}
-            onToggle={toggle}
-          />
-          {!allLost && lost.length > LOST_FIRST ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full sm:w-fit"
-              onClick={() => setAllLost(true)}
-            >
-              {M.noContact.more(lost.length - LOST_FIRST)}
-            </Button>
-          ) : null}
-        </section>
-      ) : null}
     </div>
   );
 }
