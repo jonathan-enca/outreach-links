@@ -1388,7 +1388,6 @@ export const fr = {
   },
   targets: {
     title: "Cibles",
-    reviewSteps: "Voir le détail de l'analyse",
     description:
       "Ces sites recevront un message de votre part. Décochez ceux que vous ne voulez pas contacter.",
     back: "Retour à l'analyse",
@@ -1422,10 +1421,9 @@ export const fr = {
       body: "Vos messages partent sous votre prénom. Dites-nous votre lien réel avec le site : nous n'écrivons jamais « fondateur » sans votre accord.",
       firstName: "Votre prénom de signature",
       roleLegend: "Votre rôle",
-      hint: "Modifiable à tout moment, avec « Modifier » sous la liste.",
+      hint: "Modifiable à tout moment dans Réglages > Boîte d'envoi.",
       saveAndValidate: (n: number) =>
         `Enregistrer et rédiger ${n > 1 ? `les ${n} messages` : "le message"}`,
-      recap: "Messages signés {name}, présentés comme {role}.",
       cancel: "Annuler",
       roles: {
         fondateur: "Je suis le fondateur de {site}",
@@ -1435,12 +1433,6 @@ export const fr = {
       current: "Présentation actuelle : {role}.",
       save: "Enregistrer",
       saving: "Enregistrement…",
-      change: "Modifier",
-      shortRoles: {
-        fondateur: "fondateur",
-        equipe: "membre de l'équipe",
-        agence: "agence ou prestataire",
-      },
     },
     steps: {
       collectMissing:
@@ -1538,14 +1530,9 @@ export const fr = {
       reveal: (n: number) =>
         `${n} ${n > 1 ? "nouveaux sites, afficher" : "nouveau site, afficher"}`,
       done: (n: number) => `Recherche terminée : ${n} ${n > 1 ? "sites" : "site"} à contacter.`,
-      /** Arrêtée alors qu'il reste des sites à lire : « terminée » serait faux. Le détail est sous la liste. */
-      stopped: (n: number) =>
-        `La recherche s'est arrêtée avant la fin : ${n} ${n > 1 ? "sites" : "site"} à contacter pour l'instant. Le détail est sous la liste.`,
       newBadge: "Nouveau",
     },
     more: {
-      /** Ce que fait le bouton, dit en clair (il reprend la lecture pour une dizaine de minutes). */
-      remaining: (n: number) => `Il reste ${n} ${n > 1 ? "sites" : "site"} à lire.`,
       hint: "La lecture reprend là où elle s'est arrêtée, pendant une dizaine de minutes. Les cibles trouvées s'ajoutent à votre liste ; s'il reste des sites ensuite, vous pourrez continuer.",
       button: "Continuer la recherche",
       busy: "Lancement…",
