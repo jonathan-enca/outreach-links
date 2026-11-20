@@ -3058,6 +3058,11 @@ export const fr = {
         "Les messages apparaissent ici au fur et à mesure. Cette page se met à jour toute seule.",
       idleHelp: "Les cibles que vous avez validées attendent encore leur message.",
       bar: "Avancement de la rédaction",
+      listTitle: (n: number) => `Cibles de cette rédaction (${n})`,
+      rowRunning: "En cours de rédaction",
+      rowToWrite: "À rédiger",
+      rowReady: "Prêt à approuver",
+      listMore: (n: number) => `et ${n} de plus`,
     },
     missingCta: "Rédiger les messages manquants",
     declined: (n: number) =>

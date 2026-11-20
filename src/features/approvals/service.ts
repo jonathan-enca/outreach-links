@@ -133,6 +133,8 @@ export interface QueueView {
   approved: number;
   /** Cibles validées sans message (plafond de rédaction atteint), et rédaction en cours. */
   missing: number;
+  /** Domaines de ces cibles sans message (site choisi), triés, pour la liste du bloc de progression. */
+  missingDomains: string[];
   drafting: boolean;
   /** Cibles écartées à la rédaction : aucune raison honnête de demander un lien (motif lisible). */
   declined: { itemId: string; domain: string; pageUrl: string | null; reason: string }[];
@@ -206,6 +208,10 @@ export async function loadQueue(
   // Cibles sans message et cibles écartées : comptées pour le site choisi seulement.
   const missingPlans = missing.plans.filter((p) => !inSite || inSite.has(p.planId));
   const missingTotal = missingPlans.reduce((s, p) => s + p.missing, 0);
+  const missingDomains = missing.targets
+    .filter((t) => !inSite || inSite.has(t.planId))
+    .map((t) => t.domain)
+    .sort((a, b) => a.localeCompare(b, "fr"));
   const missingRunning = missingPlans.some((p) => p.status === "en_cours");
   // Les formulaires ne passent pas par l'approbation : ils vont directement dans « Formulaires à remplir ».
   const d = (drafts.data ?? []).filter((x) => x.channel === "email");
@@ -420,6 +426,7 @@ export async function loadQueue(
     approved: handled.count ?? 0,
     hasMailbox: (boxes.count ?? 0) > 0,
     missing: missingTotal,
+    missingDomains,
     drafting: missingRunning,
     declined: (declines.data ?? [])
       .filter((r) => !inSite || inSite.has(r.plan_id))
