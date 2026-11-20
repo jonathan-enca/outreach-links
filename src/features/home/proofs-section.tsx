@@ -81,23 +81,27 @@ function SiteCard({ site }: { site: ProofSite }) {
         ))}
       </dl>
 
-      <p className="mt-3 text-sm font-semibold text-primary">{p.linkedFrom}</p>
-      <ul className="mt-2 flex flex-wrap gap-2">
-        {site.linkedFrom.map((l) => (
-          <li
-            key={l.domain}
-            className="rounded-control border border-border bg-muted px-2.5 py-1 text-xs"
-          >
-            {l.domain} <span className="text-primary">{l.authority}</span>
-          </li>
-        ))}
-      </ul>
+      {site.linkedFrom.length > 0 ? (
+        <>
+          <p className="mt-3 text-sm font-semibold text-primary">{p.linkedFrom}</p>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {site.linkedFrom.map((l) => (
+              <li
+                key={l.domain}
+                className="rounded-control border border-border bg-muted px-2.5 py-1 text-xs"
+              >
+                {l.domain} <span className="text-primary">{l.authority}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
       <p className="mt-auto pt-5 text-xs text-muted-foreground">{p.footnote}</p>
     </article>
   );
 }
 
-/** Preuves : les sites du fondateur, liens demandés à la main (voir proofs.ts : chiffres d'illustration). */
+/** Preuves : les sites du fondateur, liens demandés à la main (voir proofs.ts : chiffres réels). */
 export function Proofs() {
   const p = t.home.proofs;
   const headingId = `${HOME_SECTIONS.proofs}-titre`;
