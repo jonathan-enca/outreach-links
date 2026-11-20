@@ -2597,7 +2597,7 @@ export const fr = {
         linksHint: "vérifiés sur la page",
       },
       steps: {
-        title: "Vos premiers liens",
+        title: "Mise en route",
         progress: (done: number, total: number) => `${done} sur ${total} faits`,
         searchConsole: "Connectez la Search Console",
         searchConsoleDone: "Search Console connectée",
@@ -2627,6 +2627,8 @@ export const fr = {
       todo: {
         title: "À faire maintenant",
         none: "Rien ne vous attend pour l'instant.",
+        targets: (n: number) =>
+          `${n} ${n > 1 ? "cibles attendent" : "cible attend"} votre choix ; les messages sont déjà rédigés`,
         replies: (n: number) =>
           `${n} ${n > 1 ? "réponses attendent" : "réponse attend"} votre décision`,
         drafts: (n: number) => `${n} ${n > 1 ? "messages" : "message"} à valider avant envoi`,
