@@ -1,16 +1,14 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Check, Lock } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { AuditActionState } from "@/features/audits/service";
 import {
-  COUNTERPARTS,
   SIGNATURE_ROLES,
   presentationText,
   signatureLines,
-  type Counterpart,
   type SignatureRole,
 } from "@/features/signature/signature";
 import { t } from "@/lib/messages";
@@ -38,7 +36,7 @@ async function shrinkLogo(file: File): Promise<string | null> {
   }
 }
 
-export interface MessagesFormProps {
+export interface SignatureSectionProps {
   domain: string;
   firstName: string;
   lastName: string;
@@ -47,12 +45,14 @@ export interface MessagesFormProps {
   linkedinUrl: string;
   phone: string;
   logoUrl: string | null;
-  counterparts: Counterpart[];
   save: (prev: AuditActionState, fd: FormData) => Promise<AuditActionState>;
 }
 
-/** « Vos messages » : qui écrit, la signature, et ce qu'on accepte de proposer. L'aperçu suit la saisie. */
-export function MessagesForm(p: MessagesFormProps) {
+/**
+ * La signature du site : prénom, nom, rôle, puis les éléments cochés (site, logo, LinkedIn, téléphone).
+ * L'aperçu montre le message tel que le reçoit un éditeur, et suit la saisie.
+ */
+export function SignatureSection(p: SignatureSectionProps) {
   const [first, setFirst] = useState(p.firstName);
   const [last, setLast] = useState(p.lastName);
   const [role, setRole] = useState<SignatureRole | null>(p.role);
@@ -64,7 +64,6 @@ export function MessagesForm(p: MessagesFormProps) {
   const [logo, setLogo] = useState(Boolean(p.logoUrl));
   const [logoData, setLogoData] = useState("");
   const [logoError, setLogoError] = useState(false);
-  const [given, setGiven] = useState<Counterpart[]>(p.counterparts);
   const [state, action, pending] = useActionState(
     async (prev: AuditActionState, fd: FormData) => {
       const r = await p.save(prev, fd);
@@ -89,7 +88,6 @@ export function MessagesForm(p: MessagesFormProps) {
   });
   // Sans rôle déclaré, l'aperçu ne présume rien.
   const intro = role ? presentationText(role, shownFirst, p.domain) : S.who.noRole(shownFirst);
-  const offered = COUNTERPARTS.filter((c) => given.includes(c)).map((c) => S.counterparts.short[c]);
 
   return (
     <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -298,47 +296,6 @@ export function MessagesForm(p: MessagesFormProps) {
                 </div>
               ) : null}
             </div>
-          </section>
-
-          <section className="flex flex-col gap-3 border-t border-border p-6">
-            <div>
-              <h2 className="text-[17px] font-semibold">{S.counterparts.title}</h2>
-              <p className="text-sm text-muted-foreground">{S.counterparts.body}</p>
-            </div>
-            <div className="flex flex-col">
-              {COUNTERPARTS.map((c) => (
-                <label key={c} className={ROW} htmlFor={`counterpart_${c}`}>
-                  <input
-                    id={`counterpart_${c}`}
-                    name={`counterpart_${c}`}
-                    type="checkbox"
-                    checked={given.includes(c)}
-                    onChange={(e) =>
-                      setGiven((g) => (e.target.checked ? [...g, c] : g.filter((x) => x !== c)))
-                    }
-                    className={BOX}
-                  />
-                  <span className="flex min-w-0 flex-col">
-                    <span className="font-medium">{S.counterparts.items[c].title}</span>
-                    <span className="text-sm text-muted-foreground">
-                      {S.counterparts.items[c].hint}
-                    </span>
-                  </span>
-                </label>
-              ))}
-              <div className="flex min-h-12 items-start gap-3 border-t border-border/70 py-3">
-                <Lock aria-hidden className="mt-0.5 size-[18px] shrink-0 text-muted-foreground" />
-                <span className="flex min-w-0 flex-col">
-                  <span className="font-medium">{S.counterparts.paid}</span>
-                  <span className="text-sm text-muted-foreground">{S.counterparts.paidHint}</span>
-                </span>
-              </div>
-            </div>
-            <p role="status" className="rounded-control bg-muted px-3 py-2.5 text-sm">
-              {offered.length
-                ? S.counterparts.some(offered.join(S.counterparts.or))
-                : S.counterparts.none}
-            </p>
           </section>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border px-6 py-5">

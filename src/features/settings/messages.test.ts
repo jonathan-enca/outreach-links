@@ -35,7 +35,6 @@ describe("réglages « Vos messages » : lecture du formulaire", () => {
         showSite: false,
         linkedinUrl: null,
         phone: null,
-        counterparts: [],
         logo: "remove",
       },
     });
@@ -69,8 +68,6 @@ describe("réglages « Vos messages » : lecture du formulaire", () => {
         phoneNumber: "06  12 34 56 78",
         logo: "on",
         logoData: dataUrl("image/png", PNG),
-        counterpart_lien_retour: "on",
-        counterpart_partage: "on",
       }),
     );
     expect(r.ok && r.value).toMatchObject({
@@ -78,7 +75,6 @@ describe("réglages « Vos messages » : lecture du formulaire", () => {
       showSite: true,
       linkedinUrl: "https://www.linkedin.com/in/jo-martin",
       phone: "06 12 34 56 78",
-      counterparts: ["partage", "lien_retour"],
       logo: { mime: "image/png" },
     });
   });
