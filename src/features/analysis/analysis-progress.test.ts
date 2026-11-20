@@ -79,6 +79,18 @@ describe("AnalysisProgress (rendu serveur)", () => {
     expect(out).not.toContain("Analyse terminée");
     expect(out).not.toContain("Ouverture de vos cibles");
   });
+  it("liste : toutes les cibles déjà prêtes, sans « et N de plus », dans une zone qui défile", () => {
+    const targets = Array.from({ length: 10 }, (_, i) => ({
+      domain: `site-${i + 1}.test`,
+      siteType: null,
+      why: null,
+    }));
+    const out = html({ ...base, status: "en_cours", targets, targetsCount: 10 });
+    for (const t of targets) expect(out).toContain(t.domain);
+    expect(out).not.toContain("autre cible");
+    expect(out).not.toContain("autres cibles");
+    expect(out).toContain("overflow-y-auto");
+  });
   it("état final : lecture finie, « Analyse terminée » avec le nombre réel", () => {
     const out = html({ ...base, status: "termine", targetsCount: 19, background: "termine" });
     expect(out).toContain("Analyse terminée : 19 cibles sont prêtes");

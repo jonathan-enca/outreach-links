@@ -351,7 +351,6 @@ export function AnalysisProgress({
   const failed = snap.status === "echoue";
   // « Fini » pour l'écran : la première liste ET la lecture des autres sites trouvés.
   const finished = snap.status === "termine" && !view.backgroundPending;
-  const hidden = Math.max(0, view.targetsCount - view.targets.length);
   const noTargets = finished && view.targetsCount === 0;
 
   return (
@@ -534,7 +533,7 @@ export function AnalysisProgress({
                 </>
               )
             ) : (
-              <ul className="flex flex-col gap-3">
+              <ul className="flex max-h-96 flex-col gap-3 overflow-y-auto pr-1">
                 {view.targets.map((target) => (
                   <li key={target.domain} className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -554,9 +553,6 @@ export function AnalysisProgress({
                 ))}
               </ul>
             )}
-            {hidden > 0 ? (
-              <p className="text-sm text-muted-foreground">{S.targetsMore(hidden)}</p>
-            ) : null}
           </Card>
         </div>
       </div>

@@ -56,7 +56,7 @@ export interface AnalysisSnapshot {
   steps: StepRow[];
   /** Cibles de la liste courte déjà prêtes (les premières, dans l'ordre du classement). */
   targets: TargetRow[];
-  /** Nombre total de cibles prêtes (le tableau `targets` n'en montre que quelques-unes). */
+  /** Nombre total de cibles prêtes (le tableau `targets` les liste toutes, dans l'ordre d'arrivée). */
   targetsCount: number;
   skipped?: SkippedSearches | null;
   background?: BackgroundStatus | null;
