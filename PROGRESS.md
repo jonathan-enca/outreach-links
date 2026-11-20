@@ -3121,3 +3121,16 @@ Maquette validée par Jonathan le 20/11 : `docs/mockups/cibles-apres-validation.
 - **Fichiers clés** : `src/features/targets/targets-screen.tsx` (`ProgressCard`, `RetainedList`, `SectionHead`), `src/features/targets/cards.ts` (`countStates`), `src/features/targets/service.ts`, `src/components/app-nav.tsx`, démonstration `/demo/cibles?etat=partie|redaction|attente|pret`.
 - **Vérifié** : typage, lint, tests de `src/features/targets` (nouveau `after-validation.test.ts`) ; les quatre états sur ordinateur et téléphone sur la page de démonstration. **Non vérifié** : avec un vrai compte (pas de session en local), dont la coche et le nombre du menu.
 - **Dettes et pièges** : le menu recharge les cibles du site choisi à chaque page (`loadTargets` sans aperçus de coût) ; à surveiller si le menu ralentit.
+
+## Session du 20/11 (suite 7) : pages du tableau de bord plus rapides (fait, sans migration)
+
+Retour de Jonathan : Cibles, À approuver et Emails très lents à s'ouvrir, Accueil et Campagne un peu moins.
+
+- **Cause principale** : les fonctions Vercel tournaient à Washington (`iad1`) et la base Supabase est à Paris (`eu-west-3`). Chaque lecture traversait l'Atlantique (~80 à 100 ms aller-retour) et une page en enchaîne 7 à 10 à la suite (menu + écran). `vercel.json` fixe maintenant `regions: ["cdg1"]` (Paris), à côté de la base. Inngest (`/api/inngest`) tourne aussi à Paris.
+- **Lectures en double supprimées** : `createClient` (serveur) est mis en cache par rendu (React `cache`) ; `selectedSiteId` et la file « À valider » (`loadQueueOnce`) ne sont lus qu'une fois par page alors que le menu et l'écran les demandaient chacun. Hors rendu (actions serveur), `cache` ne garde rien.
+- **`loadQueue`** : 5 allers-retours successifs ramenés à 3 (filtre de site et messages des formulaires lus en parallèle).
+
+### Dettes et pièges
+
+- Mesure avant/après faite à l'estimation (nombre d'allers-retours × distance), pas chronométrée sur une session connectée.
+- Pistes suivantes si besoin : `loading.tsx` (squelettes) sur les écrans du menu, compteurs du menu par une seule fonction SQL au lieu de recalculer toute la file.

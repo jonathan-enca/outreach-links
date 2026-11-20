@@ -16,7 +16,7 @@ import {
   wakeSnoozedAction,
 } from "@/features/approvals/actions";
 import { ApprovalQueue } from "@/features/approvals/queue";
-import { loadQueue } from "@/features/approvals/service";
+import { loadQueueOnce } from "@/features/approvals/service";
 import { selectedSiteId } from "@/features/shell/current-site";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
@@ -32,7 +32,7 @@ async function Queue() {
   const siteId = await selectedSiteId(supabase);
   return (
     <ApprovalQueue
-      view={await loadQueue(supabase, new Date(), siteId)}
+      view={await loadQueueOnce(supabase, siteId)}
       actions={{
         approveMessages: approveMessagesAction,
         editMessage: editMessageAction,

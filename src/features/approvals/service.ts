@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cache } from "react";
 import {
   SIGNATURE_COLUMNS,
   signatureFromSite,
@@ -186,43 +187,48 @@ export async function loadQueue(
   siteId: string | null = null,
 ): Promise<QueueView> {
   // Filtre « un seul site » : seuls les éléments dont le plan est à ce site restent (reportés compris).
-  const inSite = siteId ? await planIdsOfSite(supabase, siteId) : null;
+  // Lu en même temps que le reste : chaque aller-retour vers la base compte dans le temps d'affichage.
+  const [inSite, drafts, replyDrafts, tasks, boxes, missing, declines, handled] = await Promise.all(
+    [
+      siteId ? planIdsOfSite(supabase, siteId) : null,
+      supabase
+        .from("target_drafts")
+        .select(
+          "id, plan_id, plan_item_id, channel, subject, body, hook, targeting_reason, ready, status, lint_issues, review_note, snoozed_until",
+        )
+        .eq("status", "brouillon")
+        .limit(300),
+      supabase
+        .from("reply_drafts")
+        .select("id, inbound_message_id, sent_message_id, subject, body, created_at, snoozed_until")
+        .eq("status", "brouillon")
+        .order("created_at", { ascending: false })
+        .limit(100),
+      supabase
+        .from("manual_tasks")
+        .select("id, plan_id, plan_item_id, form_url")
+        .eq("status", "a_faire")
+        .limit(500),
+      supabase
+        .from("mailboxes")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "verifiee"),
+      missingDrafts(supabase),
+      supabase
+        .from("draft_declines")
+        .select(
+          "plan_id, plan_item_id, reason, page_url, created_at, link_plan_items(source_domain)",
+        )
+        .eq("declined_by", "utilisateur")
+        .order("created_at", { ascending: false })
+        .limit(200),
+      supabase
+        .from("target_drafts")
+        .select("id", { count: "exact", head: true })
+        .neq("status", "brouillon"),
+    ],
+  );
   const inScope = (x: { planId: string }) => !inSite || inSite.has(x.planId);
-  const [drafts, replyDrafts, tasks, boxes, missing, declines, handled] = await Promise.all([
-    supabase
-      .from("target_drafts")
-      .select(
-        "id, plan_id, plan_item_id, channel, subject, body, hook, targeting_reason, ready, status, lint_issues, review_note, snoozed_until",
-      )
-      .eq("status", "brouillon")
-      .limit(300),
-    supabase
-      .from("reply_drafts")
-      .select("id, inbound_message_id, sent_message_id, subject, body, created_at, snoozed_until")
-      .eq("status", "brouillon")
-      .order("created_at", { ascending: false })
-      .limit(100),
-    supabase
-      .from("manual_tasks")
-      .select("id, plan_id, plan_item_id, form_url")
-      .eq("status", "a_faire")
-      .limit(500),
-    supabase
-      .from("mailboxes")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "verifiee"),
-    missingDrafts(supabase),
-    supabase
-      .from("draft_declines")
-      .select("plan_id, plan_item_id, reason, page_url, created_at, link_plan_items(source_domain)")
-      .eq("declined_by", "utilisateur")
-      .order("created_at", { ascending: false })
-      .limit(200),
-    supabase
-      .from("target_drafts")
-      .select("id", { count: "exact", head: true })
-      .neq("status", "brouillon"),
-  ]);
   // Cibles sans message et cibles écartées : comptées pour le site choisi seulement.
   const missingPlans = missing.plans.filter((p) => !inSite || inSite.has(p.planId));
   const missingTotal = missingPlans.reduce((s, p) => s + p.missing, 0);
@@ -235,7 +241,9 @@ export async function loadQueue(
   ];
   const planIds = [...new Set([...d.map((x) => x.plan_id), ...taskRows.map((x) => x.plan_id)])];
   const r = replyDrafts.data ?? [];
-  const [items, contacts, plans, inbound, sent, cls] = await Promise.all([
+  // Message de chaque formulaire à remplir (brouillon ou déjà validé), sans condition de lot.
+  const formItemIds = taskRows.map((x) => x.plan_item_id);
+  const [items, contacts, plans, inbound, sent, cls, formDraftRows] = await Promise.all([
     itemIds.length
       ? supabase.from("link_plan_items").select("id, source_domain, position").in("id", itemIds)
       : { data: [] },
@@ -277,6 +285,12 @@ export async function loadQueue(
             "inbound_message_id",
             r.map((x) => x.inbound_message_id),
           )
+      : { data: [] },
+    formItemIds.length
+      ? supabase
+          .from("target_drafts")
+          .select("id, plan_item_id, body, ready, lint_issues, snoozed_until")
+          .in("plan_item_id", formItemIds)
       : { data: [] },
   ]);
   const itemMap = new Map((items.data ?? []).map((i) => [i.id, i]));
@@ -347,16 +361,7 @@ export async function loadQueue(
       void pos;
       return rest;
     });
-  // Message de chaque formulaire à remplir (brouillon ou déjà validé), sans condition de lot.
-  const formItemIds = taskRows.map((x) => x.plan_item_id);
-  const formDrafts = formItemIds.length
-    ? ((
-        await supabase
-          .from("target_drafts")
-          .select("id, plan_item_id, body, ready, lint_issues, snoozed_until")
-          .in("plan_item_id", formItemIds)
-      ).data ?? [])
-    : [];
+  const formDrafts = formDraftRows.data ?? [];
   const inMap = new Map((inbound.data ?? []).map((i) => [i.id, i.body_excerpt]));
   const toMap = new Map((sent.data ?? []).map((s) => [s.id, s.to_email]));
   const sentPlan = new Map((sent.data ?? []).map((s) => [s.id, s.plan_id]));
@@ -461,6 +466,14 @@ export async function loadQueue(
       })),
   };
 }
+
+/**
+ * La file d'un rendu de page, calculée une seule fois : le menu (compteurs) et l'écran « À valider »
+ * lisent la même (même client grâce à `createClient`, même site choisi).
+ */
+export const loadQueueOnce = cache((supabase: Client, siteId: string | null) =>
+  loadQueue(supabase, new Date(), siteId),
+);
 
 /**
  * Approuve des premiers messages : ils rejoignent un lot validé (le même mécanisme que la validation
