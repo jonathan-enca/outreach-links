@@ -3024,3 +3024,18 @@ Deux retours d'écran de Jonathan, maquettes validées avant le code (`docs/mock
 pnpm vitest run src/features/envois src/features/targets src/components
 pnpm typecheck && pnpm lint
 ```
+
+## Session du 20/11 (suite) : écran Cibles allégé (faite, sans changement de données)
+
+Retour d'écran de Jonathan (20/11) : quatre textes jugés inutiles sous et au-dessus du tableau des cibles sont retirés. Pas une étape de jalon.
+
+- **Phrase d'arrêt** (`LiveBanner`, `src/features/targets/targets-screen.tsx`) : « La recherche s'est arrêtée avant la fin… » n'est plus affichée. Quand la lecture s'est arrêtée avec des sites non lus, le bandeau ne dit rien ; « Recherche terminée » reste affichée seulement quand tout a été lu.
+- **Récapitulatif de signature** (« Messages signés …, présentés comme … Modifier ») : retiré sous le tableau. Le prénom et le rôle se modifient dans Réglages > Boîte d'envoi (la fenêtre « Qui signe vos messages » le dit) ; elle s'ouvre toujours seule au premier envoi si le rôle manque.
+- **Carte « Il reste N sites à lire »** (`MoreSites`) : retirée. La carte ne s'affiche plus que pour une lecture relancée à la main et terminée, ou en erreur. `MoreSites` ne prend plus `funnel`.
+- **Lien « Voir le détail de l'analyse »** : retiré du bas de `src/app/app/site/[id]/cibles/page.tsx`. Le détail reste accessible depuis l'écran Analyse.
+- Libellés retirés de `messages/fr.ts` : `targets.reviewSteps`, `targets.founder.recap`, `targets.founder.change`, `targets.founder.shortRoles`, `targets.live.stopped`, `targets.more.remaining`.
+
+```bash
+pnpm vitest run src/features/targets
+pnpm typecheck && pnpm lint
+```

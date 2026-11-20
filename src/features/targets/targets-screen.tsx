@@ -840,15 +840,9 @@ function TargetList({
 
 /**
  * Après la lecture des autres sites (automatique, sans bouton tant qu'elle tourne : voir `LiveBanner`) :
- * ce qui s'est passé et combien de sites restent à lire.
+ * ce qui s'est passé. Le nombre de sites restant à lire n'est plus affiché (retour de Jonathan, 20/11).
  */
-export function MoreSites({
-  funnel,
-  more,
-}: {
-  funnel: NonNullable<TargetsView["funnel"]>;
-  more: TargetsView["more"];
-}) {
+export function MoreSites({ more }: { more: TargetsView["more"] }) {
   const R = M.more;
   const auto = more.auto;
   const running =
@@ -857,17 +851,12 @@ export function MoreSites({
   if (running) return null;
   const doneLine = auto.status === "aucun" && more.status === "termine" && more.added !== null;
   const failed = more.status === "echoue" && auto.status === "aucun";
-  if (!doneLine && !failed && funnel.stock === 0) return null;
+  if (!doneLine && !failed) return null;
   return (
     <Card className="flex flex-col gap-3 p-4 sm:p-5" data-testid="more-sites">
       <div role="status" className="flex flex-col gap-1.5">
         {doneLine ? <p className="font-medium">{R.done(more.added ?? 0)}</p> : null}
         {failed ? <p className="font-medium text-pretty">{R.failedLine}</p> : null}
-        {funnel.stock > 0 ? (
-          <p className="font-medium" data-testid="more-remaining">
-            {R.remaining(funnel.stock)}
-          </p>
-        ) : null}
       </div>
     </Card>
   );
@@ -911,9 +900,10 @@ export function LiveBanner({
     };
   }, []);
   if (!running && hidden === 0) {
-    return auto.status === "termine" && auto.added > 0 ? (
+    // Arrêtée alors qu'il reste des sites à lire : « terminée » serait faux, on ne dit rien.
+    return auto.status === "termine" && auto.added > 0 && (view.funnel?.stock ?? 0) === 0 ? (
       <p className="text-sm text-muted-foreground" data-testid="live-done">
-        {(view.funnel?.stock ?? 0) > 0 ? L.stopped(view.cards.length) : L.done(view.cards.length)}
+        {L.done(view.cards.length)}
       </p>
     ) : null;
   }
@@ -980,11 +970,11 @@ export function LiveBanner({
             </div>
           ) : null}
         </div>
-      ) : (
+      ) : stock === 0 ? (
         <p role="status" className="flex-1 text-sm">
-          {stock > 0 ? L.stopped(view.cards.length + hidden) : L.done(view.cards.length + hidden)}
+          {L.done(view.cards.length + hidden)}
         </p>
-      )}
+      ) : null}
       {hidden > 0 ? (
         <Button
           type="button"
@@ -1228,20 +1218,6 @@ export function TargetsScreen({
                 </Card>
               </>
             )}
-            {settingsOk && view.founderRole ? (
-              <p className="text-sm text-muted-foreground">
-                {M.founder.recap
-                  .replace("{name}", view.signatureFirstName ?? "")
-                  .replace("{role}", M.founder.shortRoles[view.founderRole])}{" "}
-                <button
-                  type="button"
-                  className="text-foreground underline underline-offset-4"
-                  onClick={() => setAskSettings(true)}
-                >
-                  {M.founder.change}
-                </button>
-              </p>
-            ) : null}
             <Message state={vState} />
             {askSettings ? (
               <MessageSettingsForm
@@ -1254,7 +1230,7 @@ export function TargetsScreen({
                 onCancel={() => setAskSettings(false)}
               />
             ) : null}
-            {view.funnel ? <MoreSites funnel={view.funnel} more={view.more} /> : null}
+            {view.funnel ? <MoreSites more={view.more} /> : null}
           </>
         )}
       </section>
