@@ -2577,6 +2577,7 @@ export const fr = {
         progress: (done: number, total: number) => `${done} sur ${total} faits`,
         searchConsole: "Connectez la Search Console",
         searchConsoleDone: "Search Console connectée",
+        searchConsoleManage: "Gérer",
         searchConsoleHint:
           "Facultatif, fortement conseillé : vos vraies requêtes et pages orientent les cibles. Lecture seule.",
         optional: "Facultatif",

@@ -96,6 +96,11 @@ export async function FirstLinksPanel({ o }: { o: OverviewView }) {
                     <Link href={s.href}>{H.steps.go[s.key]}</Link>
                   )}
                 </Button>
+              ) : s.key === "searchConsole" ? (
+                // Connectée : on gère la connexion (changer de compte, déconnecter) dans les réglages.
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/app/reglages/search-console">{H.steps.searchConsoleManage}</Link>
+                </Button>
               ) : null}
             </li>
           );
