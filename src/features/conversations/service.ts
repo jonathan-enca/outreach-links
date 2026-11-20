@@ -3,7 +3,12 @@ import type { AuditActionState } from "@/features/audits/service";
 import { CATEGORY_LABELS, type Category } from "@/features/classification/types";
 import { t } from "@/lib/messages";
 import type { Database } from "@/lib/supabase/database.types";
-import { loadSendQueue, queuedMessageText, type QueueNote } from "@/features/sending/queue-note";
+import {
+  loadSendQueue,
+  queuedMessageText,
+  type QueueNote,
+  type SendQueue,
+} from "@/features/sending/queue-note";
 import { planIdsOfSite } from "@/features/shell/site-scope";
 import { cleanTag, isArchived, isUnread, threadStatus, type ThreadStatus } from "./status";
 
@@ -266,7 +271,7 @@ export async function loadQueued(
   supabase: Client,
   sentDraftIds: ReadonlySet<string>,
   opts: ConversationsOptions,
-): Promise<{ threads: ConversationView[]; note: QueueNote | null }> {
+): Promise<{ threads: ConversationView[]; note: QueueNote | null; eta: SendQueue["eta"] }> {
   const { data: drafts } = await supabase
     .from("target_drafts")
     .select("id, plan_id, plan_item_id, subject, body, hook, generated_at, edited_at")
@@ -274,7 +279,7 @@ export async function loadQueued(
     .eq("channel", "email")
     .limit(500);
   const waiting = (drafts ?? []).filter((d) => !sentDraftIds.has(d.id));
-  if (waiting.length === 0) return { threads: [], note: null };
+  if (waiting.length === 0) return { threads: [], note: null, eta: new Map() };
   const itemIds = waiting.map((d) => d.plan_item_id);
   const [items, contacts, plans] = await Promise.all([
     supabase.from("link_plan_items").select("id, source_domain").in("id", itemIds),
@@ -331,7 +336,7 @@ export async function loadQueued(
       classificationId: null,
     };
   });
-  return { threads, note };
+  return { threads, note, eta };
 }
 
 /** Le fil appartient-il à la personne ? (lecture par la RLS, avant toute écriture par le serveur). */

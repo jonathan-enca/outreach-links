@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, FileText, Globe, Link2, Mail, MessageSquareText, Tag } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -653,7 +653,46 @@ export function TargetsTable({
   );
 }
 
-/** Écran « Cibles » : une seule liste. Une case en tête (tout cocher), une ligne par site : case et domaine. */
+/** Colonnes du tableau sur écran large : case, site, type de site, raison, demande, contact. */
+const LIST_COLS =
+  "xl:grid-cols-[2.75rem_minmax(12rem,1.5fr)_10rem_minmax(13rem,2.5fr)_9.5rem_9.5rem]";
+/** Une cellule : sur écran large, un filet vertical léger la sépare de la suivante. */
+const CELL =
+  "min-w-0 xl:flex xl:items-center xl:border-r xl:border-border/60 xl:px-3 xl:py-2 xl:last:border-r-0";
+/** Étiquette pastel : la couleur distingue les demandes, le texte dit toujours laquelle. */
+const TAG = "inline-block max-w-full truncate rounded-[5px] px-1.5 text-[13px] leading-normal";
+const REQUEST_TAG = {
+  site_non_sollicite: "bg-success/10 text-success",
+  page_ressources: "bg-info/10 text-info",
+  lien_mort: "bg-warning/15 text-warning",
+  lien_inadapte: "bg-warning/15 text-warning",
+  mention_sans_lien: "bg-primary/10 text-primary",
+} as const;
+/** Teintes de la pastille à l'initiale du site (repère visuel, sans signification). */
+const INITIAL_TINTS = ["bg-info/10", "bg-warning/15", "bg-primary/10", "bg-success/10"] as const;
+
+function HeadCell({
+  icon: Icon,
+  className = "",
+  children,
+}: {
+  icon: typeof Globe;
+  className?: string;
+  children: string;
+}) {
+  return (
+    <div className={`${CELL} items-center gap-2 py-2 ${className}`}>
+      <Icon aria-hidden="true" className="size-3.5 shrink-0 opacity-80" />
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Écran « Cibles » : un tableau simple, une ligne par site (retour de Jonathan, 20/11 : la liste de noms
+ * seuls ne disait rien). Case, site, type de site, raison en une phrase, demande et contact ; un clic sur
+ * la ligne affiche la raison en entier. Sur téléphone, chaque ligne devient une petite fiche.
+ */
 function TargetList({
   cards,
   selected,
@@ -669,41 +708,133 @@ function TargetList({
   master: { checked: boolean; indeterminate: boolean; disabled: boolean; onToggle: () => void };
   onToggle: (id: string) => void;
 }) {
+  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
+  const toggleOpen = (id: string) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
   return (
-    <Card className="overflow-hidden p-0" data-testid="targets-list">
-      <div className="flex items-center gap-3.5 border-b border-border bg-muted px-4 py-3 text-sm">
-        <MasterCheck {...master} label={M.list.masterLabel} />
-        <span className="font-semibold">{TB.site}</span>
-        <span className="ml-auto text-muted-foreground tabular-nums" data-testid="selection-count">
-          {M.list.selectedCount(selectedCount, eligibleCount)}
-        </span>
-      </div>
-      <ul>
-        {cards.map((c) => {
-          const eligible = isEligible(c);
-          return (
-            <li
-              key={c.id}
-              className="border-b border-border last:border-b-0"
-              data-testid="target-row"
-            >
-              <label
-                className={`flex min-h-11 items-center gap-3.5 px-4 py-2.5 text-[15px] ${eligible ? "cursor-pointer hover:bg-muted/60" : "text-muted-foreground"}`}
+    <div className="flex flex-col gap-2">
+      <p
+        className="text-right text-sm text-muted-foreground tabular-nums"
+        data-testid="selection-count"
+      >
+        {M.list.selectedCount(selectedCount, eligibleCount)}
+      </p>
+      <Card className="overflow-hidden p-0" data-testid="targets-list">
+        <div
+          className={`grid grid-cols-[2.75rem_minmax(0,1fr)] border-b border-border bg-muted/60 text-[13px] font-medium text-muted-foreground ${LIST_COLS}`}
+        >
+          <div className="flex items-center justify-center py-2 xl:border-r xl:border-border/60">
+            <MasterCheck {...master} label={M.list.masterLabel} />
+          </div>
+          <HeadCell icon={Globe} className="flex">
+            {TB.site}
+          </HeadCell>
+          <HeadCell icon={Tag} className="hidden">
+            {TB.typeColumn}
+          </HeadCell>
+          <HeadCell icon={MessageSquareText} className="hidden">
+            {TB.why}
+          </HeadCell>
+          <HeadCell icon={Link2} className="hidden">
+            {TB.request}
+          </HeadCell>
+          <HeadCell icon={Mail} className="hidden">
+            {TB.contact}
+          </HeadCell>
+        </div>
+        <ul>
+          {cards.map((c, i) => {
+            const eligible = isEligible(c);
+            const checked = selected.has(c.id);
+            const req = primaryRequest(c);
+            const type = c.publisher ?? (c.siteType ? M.siteTypes[c.siteType] : "");
+            const why = c.why ?? c.hook ?? req.lines[0] ?? "";
+            const isOpen = open.has(c.id);
+            // Site décoché ou impossible à contacter : la ligne s'efface, la case reste nette.
+            const dim = eligible && checked ? "" : "opacity-50";
+            const ContactIcon = c.contact.kind === "formulaire" ? FileText : Mail;
+            return (
+              <li
+                key={c.id}
+                data-testid="target-row"
+                className={`group grid cursor-pointer grid-cols-[2.75rem_minmax(0,1fr)] gap-y-1.5 border-b border-border py-3 pr-3 last:border-b-0 hover:bg-muted/50 xl:gap-y-0 xl:py-0 xl:pr-0 ${LIST_COLS}`}
+                onClick={(e) => {
+                  // Un clic sur la case ou sur un lien garde son propre effet.
+                  if ((e.target as HTMLElement).closest("input,a")) return;
+                  toggleOpen(c.id);
+                }}
               >
-                <input
-                  type="checkbox"
-                  checked={selected.has(c.id)}
-                  disabled={!eligible}
-                  onChange={() => onToggle(c.id)}
-                  className="size-5 shrink-0 accent-primary disabled:opacity-50"
-                />
-                <span className="min-w-0 break-words">{c.domain}</span>
-              </label>
-            </li>
-          );
-        })}
-      </ul>
-    </Card>
+                <div
+                  className={`row-span-3 flex justify-center pt-0.5 xl:row-span-1 xl:border-r xl:border-border/60 xl:pt-0 ${isOpen ? "xl:items-start xl:pt-2.5" : "xl:items-center"}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={!eligible}
+                    onChange={() => onToggle(c.id)}
+                    aria-label={TB.selectSite(c.domain)}
+                    className="size-5 shrink-0 cursor-pointer accent-primary disabled:cursor-default disabled:opacity-50 xl:size-4"
+                  />
+                </div>
+                <div className={`${CELL} relative flex items-center gap-2 xl:order-1 ${dim}`}>
+                  <span
+                    aria-hidden="true"
+                    className={`flex size-5 shrink-0 items-center justify-center rounded-[5px] text-[11px] font-semibold uppercase ${INITIAL_TINTS[i % INITIAL_TINTS.length]}`}
+                  >
+                    {c.domain.charAt(0)}
+                  </span>
+                  <span className="min-w-0 font-medium break-words xl:truncate" title={c.domain}>
+                    {c.domain}
+                  </span>
+                  <a
+                    href={c.pageUrl ?? `https://${c.domain}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={TB.openSiteLabel(c.domain)}
+                    className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-card px-1.5 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring xl:absolute xl:right-2 xl:opacity-0 xl:group-hover:opacity-100 xl:focus-visible:opacity-100"
+                  >
+                    {TB.openSite}
+                    <ExternalLink aria-hidden="true" className="size-3" />
+                  </a>
+                </div>
+                <div
+                  className={`${CELL} xl:order-3 ${isOpen ? "xl:items-start" : ""} ${dim}`}
+                  title={isOpen ? undefined : why}
+                >
+                  <span className={`text-sm ${isOpen ? "" : "xl:truncate"}`}>{why}</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 xl:contents">
+                  <div className={`${CELL} xl:order-2 ${dim}`}>
+                    {type ? (
+                      <span className={`${TAG} bg-muted text-foreground`} title={type}>
+                        {type}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className={`${CELL} xl:order-4 ${dim}`}>
+                    <span className={`${TAG} ${REQUEST_TAG[req.kind]}`}>
+                      {TB.requestTags[req.kind]}
+                    </span>
+                  </div>
+                  <div
+                    className={`${CELL} flex items-center gap-1.5 text-sm xl:order-5 ${dim} ${c.contact.kind === "email" && !c.contact.verified ? "text-warning" : "text-muted-foreground"}`}
+                  >
+                    {c.contact.kind === "aucun" ? null : (
+                      <ContactIcon aria-hidden="true" className="size-3.5 shrink-0" />
+                    )}
+                    <span className="truncate">{contactShort(c)}</span>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
+    </div>
   );
 }
 

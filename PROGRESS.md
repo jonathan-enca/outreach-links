@@ -2986,3 +2986,41 @@ Maquette validée par Jonathan (`docs/mockups/parcours-campagne.html`, publiée 
 pnpm vitest run src/components src/features/shell
 pnpm typecheck && pnpm lint
 ```
+
+## Session du 20/11 (suite) : tableau des cibles et écran « Emails » en boîte aux lettres (faite, sans changement de données)
+
+Deux retours d'écran de Jonathan, maquettes validées avant le code (`docs/mockups/cibles-tableau.html`, `docs/mockups/emails-boite.html`). Pas une étape de jalon.
+
+- **Cibles** (`src/features/targets/targets-screen.tsx`, `TargetList`) : la liste de noms seuls devient un tableau simple, cinq colonnes : Site (bouton « Ouvrir » au survol), Type de site, Pourquoi ce site, Demande, Contact. Un clic sur la ligne affiche la raison en entier. Sur téléphone, chaque ligne devient une fiche. Aucun filtre, aucun onglet, aucune donnée nouvelle : tout vient de `TargetCard`. Le compteur « N sur M sélectionnés » passe au-dessus du tableau.
+- **Envois devient « Emails »** (menu, titre ; la route reste `/app/envois`). `src/features/envois/` :
+  - `service.ts` : `loadEnvois` rend des données structurées (heure de départ en ISO, corps du message, site contacté des emails partis) et les quotas : **dernières 24 heures** (envois comptés sur limite actuelle, rythme de démarrage compris), **7 derniers jours** (total, sans limite), **mois civil** (celui de `loadEntitlements`, comme « Abonnement »). État : `actif`, `pause`, `sans_boite`, `simulation`.
+  - `format.ts` : mise en mots des dates côté serveur (jour, heure, regroupement par jour), testée dans `format.test.ts`.
+  - `envois-view.tsx` : bloc d'état (une phrase, un bouton « Mettre en pause » ou « Reprendre les envois », quatre repères dont deux barres, une seule phrase d'explication), puis deux dossiers « Programmés » et « Envoyés » rangés par jour ; un clic ouvre le message ; « Annuler » sur chaque email programmé.
+  - `loadQueued` (`src/features/conversations/service.ts`) rend aussi les heures de départ (`eta`) ; `COUNTED` est exporté de `queue-note.ts`.
+- **Démonstration** : nouvelle page `/demo/emails` (hors production ; `?etat=pause|sans_boite|simulation`, `?vide=oui`).
+
+### Décisions [auto]
+
+- La limite journalière du moteur est une fenêtre glissante de 24 heures, pas un jour civil : le repère s'appelle « Dernières 24 heures » (la maquette disait « Aujourd'hui »), et le total hebdomadaire « 7 derniers jours ».
+- En pause, aucune heure de départ n'est annoncée (elle ne serait pas tenue) : les emails sont rangés sous « En attente de départ ».
+- Étiquettes du tableau aux couleurs des jetons existants (pas de violet hors palette) : « Mention sans lien » est en bleu marine.
+- L'encadré « Ce que nous ne voyons pas » devient une phrase sous les emails envoyés, et dit « votre boîte mail » (plus « votre Gmail »).
+
+### Dettes et pièges
+
+- La capture de Jonathan montrait « Connectez une boîte d'envoi » alors que des emails étaient programmés. Cause probable, non reproduite : la colonne `mailboxes.sending_paused` manquait en base au moment de la capture (elle y est le 20/11, deux boîtes vérifiées). Le nouvel écran ne dit « aucune boîte » que si aucune boîte **vérifiée** n'existe.
+- `loadSendQueue` lit les envois par ordre croissant avec une limite de 2 000 lignes : au-delà, les envois récents ne seraient plus comptés dans les heures estimées. Les quotas du nouvel écran ne passent pas par cette lecture.
+- `TargetRow` et `TargetsTable` (ancien tableau dépliable) ne sont plus utilisés nulle part : à supprimer.
+- Vérification visuelle faite sur les pages de démonstration (`/demo/cibles`, `/demo/emails`), en large et sur téléphone ; pas sur l'espace connecté avec de vraies données.
+
+### Backlog (hors périmètre)
+
+- La maquette de la home (`messages/fr.ts`, `mockup.bars`) dit encore « Envois ».
+- Quotas par boîte quand plusieurs boîtes sont connectées (aujourd'hui : somme des boîtes vérifiées).
+
+### Commandes
+
+```bash
+pnpm vitest run src/features/envois src/features/targets src/components
+pnpm typecheck && pnpm lint
+```

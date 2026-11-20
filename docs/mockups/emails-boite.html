@@ -1,0 +1,815 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maquette « Emails », format boîte aux lettres</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Jetons repris de src/app/globals.css (version en ligne, bleu marine, police Outfit). */
+      :root {
+        --background: #f8fafc;
+        --foreground: #0f172a;
+        --card: #ffffff;
+        --muted: #f1f5f9;
+        --muted-foreground: #526074;
+        --border: #e2e8f0;
+        --primary: #003070;
+        --primary-hover: #00245a;
+        --sidebar: #00245a;
+        --sidebar-foreground: #cfe2f6;
+        --sidebar-label: #9cc3ea;
+        --info: #0369a1;
+        --warning: #92400e;
+        --success: #047857;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: Outfit, system-ui, sans-serif;
+        font-size: 15px;
+        line-height: 1.5;
+        font-variant-numeric: tabular-nums;
+      }
+      .app {
+        display: grid;
+        grid-template-columns: 232px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      .side {
+        background: var(--sidebar);
+        color: var(--sidebar-foreground);
+        padding: 20px 12px;
+      }
+      .side .logo {
+        color: #fff;
+        font-weight: 600;
+        font-size: 18px;
+        padding: 0 8px 16px;
+      }
+      .side .label {
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--sidebar-label);
+        padding: 14px 8px 4px;
+      }
+      .side a {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px;
+        border-radius: 8px;
+        font-size: 14.5px;
+      }
+      .side a.on {
+        background: rgb(255 255 255 / 0.14);
+        color: #fff;
+        font-weight: 500;
+      }
+      .side .n {
+        font-size: 12px;
+        background: rgb(255 255 255 / 0.16);
+        border-radius: 99px;
+        padding: 0 7px;
+      }
+      main {
+        padding: 28px 32px 48px;
+        min-width: 0;
+      }
+      .wrap {
+        max-width: 60rem;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 30px;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        margin: 0 0 6px;
+      }
+      .lead {
+        color: var(--muted-foreground);
+        margin: 0 0 20px;
+        font-size: 16px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+      }
+      .btn {
+        font: inherit;
+        font-weight: 500;
+        height: 38px;
+        padding: 0 14px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--foreground);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .btn:hover {
+        background: var(--muted);
+      }
+      .btn.primary {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: #fff;
+      }
+      .btn.primary:hover {
+        background: var(--primary-hover);
+      }
+      .btn.sm {
+        height: 32px;
+        padding: 0 11px;
+        font-size: 14px;
+      }
+
+      /* État des envois : une phrase, un bouton, trois repères séparés. */
+      .state-top {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 16px 18px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 99px;
+        background: var(--success);
+        box-shadow: 0 0 0 4px rgb(4 120 87 / 0.14);
+        flex: none;
+      }
+      .paused .dot {
+        background: #d97706;
+        box-shadow: 0 0 0 4px rgb(217 119 6 / 0.16);
+      }
+      .state-top h2 {
+        font-size: 17px;
+        margin: 0;
+      }
+      .state-top p {
+        margin: 0;
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+      .state-top .txt {
+        margin-right: auto;
+        min-width: 0;
+      }
+      .facts {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border-top: 1px solid var(--border);
+      }
+      .fact {
+        padding: 12px 18px;
+        border-right: 1px solid var(--border);
+      }
+      .fact:last-child {
+        border-right: 0;
+      }
+      .fact dt {
+        font-size: 13px;
+        color: var(--muted-foreground);
+      }
+      .fact dd {
+        margin: 0;
+        font-weight: 600;
+      }
+      .fact small {
+        display: block;
+        font-size: 13px;
+        font-weight: 400;
+        color: var(--muted-foreground);
+        line-height: 1.4;
+        margin-top: 2px;
+      }
+      dl {
+        margin: 0;
+      }
+      .link {
+        color: var(--primary);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      /* Les deux dossiers de la boîte. */
+      .tabs {
+        display: flex;
+        gap: 4px;
+        margin: 24px 0 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .tab {
+        font: inherit;
+        font-weight: 500;
+        background: none;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        padding: 10px 14px;
+        margin-bottom: -1px;
+        color: var(--muted-foreground);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .tab[aria-selected="true"] {
+        color: var(--foreground);
+        border-bottom-color: var(--primary);
+      }
+      .tab .n {
+        font-size: 12.5px;
+        background: var(--muted);
+        border-radius: 99px;
+        padding: 0 8px;
+        color: var(--muted-foreground);
+      }
+      .tab[aria-selected="true"] .n {
+        background: #dbeafe;
+        color: #1e3a8a;
+      }
+
+      /* La liste, comme une boîte aux lettres : une ligne par email, regroupée par jour. */
+      .box {
+        margin-top: 14px;
+        overflow: hidden;
+      }
+      .day {
+        background: #fafbfd;
+        border-bottom: 1px solid var(--border);
+        padding: 7px 16px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--muted-foreground);
+      }
+      .mail {
+        border-bottom: 1px solid var(--border);
+      }
+      .mail:last-child {
+        border-bottom: 0;
+      }
+      .line {
+        display: grid;
+        grid-template-columns: 78px 190px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 12px 10px 16px;
+        cursor: pointer;
+      }
+      .line:hover {
+        background: #f8fafc;
+      }
+      .when {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 14px;
+        color: var(--info);
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .sent .when {
+        color: var(--success);
+      }
+      .when svg {
+        width: 14px;
+        height: 14px;
+        flex: none;
+      }
+      .who {
+        min-width: 0;
+      }
+      .who b {
+        display: block;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .who span {
+        display: block;
+        font-size: 13px;
+        color: var(--muted-foreground);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .subj {
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 14.5px;
+      }
+      .subj b {
+        font-weight: 500;
+      }
+      .subj span {
+        color: var(--muted-foreground);
+      }
+      .status {
+        font-size: 13px;
+        color: var(--success);
+        font-weight: 500;
+        padding-right: 6px;
+        white-space: nowrap;
+      }
+      .body {
+        display: none;
+        margin: 0 16px 14px 108px;
+        padding: 14px 16px;
+        background: var(--muted);
+        border-radius: 10px;
+        font-size: 14.5px;
+      }
+      .mail.open .body {
+        display: block;
+      }
+      .mail.open .subj {
+        white-space: normal;
+      }
+      .mail.open .subj span {
+        display: none;
+      }
+      .body .meta {
+        font-size: 13px;
+        color: var(--muted-foreground);
+        margin: 0 0 10px;
+      }
+      .body p {
+        margin: 0 0 10px;
+      }
+      .body p:last-child {
+        margin-bottom: 0;
+      }
+      .foot {
+        font-size: 13.5px;
+        color: var(--muted-foreground);
+        margin: 12px 4px 0;
+      }
+      .empty {
+        padding: 28px 16px;
+        text-align: center;
+        color: var(--muted-foreground);
+      }
+      .toast {
+        margin: 12px 0 0;
+        font-size: 14px;
+        min-height: 21px;
+      }
+      .facts.four {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+      .meter {
+        height: 8px;
+        border-radius: 99px;
+        background: var(--muted);
+        overflow: hidden;
+        margin-top: 8px;
+      }
+      .meter i {
+        display: block;
+        height: 100%;
+        border-radius: 99px;
+        background: var(--primary);
+      }
+      .fact dd span {
+        font-weight: 400;
+        color: var(--muted-foreground);
+      }
+      .why {
+        margin: 0;
+        border-top: 1px solid var(--border);
+        padding: 10px 18px;
+        font-size: 13.5px;
+        color: var(--muted-foreground);
+      }
+      .why b {
+        color: var(--foreground);
+        font-weight: 500;
+      }
+      .compare {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: flex-end;
+        font-size: 13px;
+        color: var(--muted-foreground);
+        margin-bottom: 4px;
+      }
+      .compare button {
+        font: inherit;
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 99px;
+        padding: 2px 12px;
+        cursor: pointer;
+        color: var(--muted-foreground);
+      }
+      .compare button[aria-pressed="true"] {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: #fff;
+      }
+      .more {
+        display: block;
+        margin: 12px auto 0;
+      }
+      .legend {
+        margin-top: 26px;
+        font-size: 13px;
+        color: var(--muted-foreground);
+      }
+      [hidden] {
+        display: none !important;
+      }
+
+      @media (max-width: 900px) {
+        .app {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .side {
+          display: none;
+        }
+        main {
+          padding: 20px 16px 32px;
+        }
+        .state-top {
+          flex-wrap: wrap;
+        }
+        .state-top .btn {
+          width: 100%;
+        }
+        .facts,
+        .facts.four {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .fact {
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+        }
+        .fact:last-child {
+          border-bottom: 0;
+        }
+        .line {
+          grid-template-columns: minmax(0, 1fr) auto;
+          grid-template-areas: "who when" "subj subj" "act act";
+          row-gap: 4px;
+        }
+        .when {
+          grid-area: when;
+        }
+        .who {
+          grid-area: who;
+        }
+        .subj {
+          grid-area: subj;
+          white-space: normal;
+        }
+        .subj span {
+          display: none;
+        }
+        .line > :last-child {
+          grid-area: act;
+          justify-self: start;
+        }
+        .body {
+          margin-left: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="side" aria-hidden="true">
+        <div class="logo">Votre outil</div>
+        <a>Accueil</a>
+        <a>Campagnes</a>
+        <div class="label">Votre campagne</div>
+        <a>Cibles</a>
+        <a>À approuver</a>
+        <a class="on">Emails <span class="n" id="navCount">7</span></a>
+        <div class="label">Réglages</div>
+        <a>Boîte d'envoi</a>
+        <a>Abonnement</a>
+      </aside>
+      <main>
+        <div class="wrap">
+          <div class="compare">
+            Maquette, à comparer :
+            <button type="button" aria-pressed="true" data-v="B">Avec barres</button>
+            <button type="button" aria-pressed="false" data-v="A">Sans barres</button>
+          </div>
+          <h1>Emails</h1>
+          <p class="lead">
+            Les messages que vous avez approuvés : ceux qui vont partir, et ceux qui sont déjà
+            partis.
+          </p>
+
+          <section class="card" id="state" aria-label="État des envois">
+            <div class="state-top">
+              <span class="dot" aria-hidden="true"></span>
+              <div class="txt">
+                <h2 id="stateTitle">Vos emails partent tout seuls</h2>
+                <p id="stateText">
+                  Du lundi au vendredi, entre 9 h et 18 h, depuis votre boîte Gmail.
+                  <a class="link">Changer les horaires</a>
+                </p>
+              </div>
+              <button class="btn" id="pause" type="button">Mettre en pause</button>
+            </div>
+            <div id="facts">
+              <dl class="facts four" id="vB">
+                <div class="fact">
+                  <dt>Prochain départ</dt>
+                  <dd>Lundi 23 novembre, 9 h</dd>
+                </div>
+                <div class="fact">
+                  <dt>Aujourd'hui</dt>
+                  <dd>5 <span>sur 5</span></dd>
+                  <div
+                    class="meter"
+                    role="progressbar"
+                    aria-label="Emails envoyés aujourd'hui"
+                    aria-valuemin="0"
+                    aria-valuemax="5"
+                    aria-valuenow="5"
+                  >
+                    <i style="width: 100%"></i>
+                  </div>
+                </div>
+                <div class="fact">
+                  <dt>Cette semaine</dt>
+                  <dd>25 <span>envoyés</span></dd>
+                </div>
+                <div class="fact">
+                  <dt>Ce mois-ci</dt>
+                  <dd>40 <span>sur 100</span></dd>
+                  <div
+                    class="meter"
+                    role="progressbar"
+                    aria-label="Emails envoyés ce mois-ci"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    aria-valuenow="40"
+                  >
+                    <i style="width: 40%"></i>
+                  </div>
+                </div>
+              </dl>
+              <p class="why" id="whyB">
+                <b>Limite du jour atteinte.</b> 5 emails par jour pour commencer : ce rythme
+                augmente tout seul au fil des semaines, pour que vos messages n'arrivent pas en
+                indésirables.
+              </p>
+              <dl class="facts" id="vA" hidden>
+                <div class="fact">
+                  <dt>Prochain départ</dt>
+                  <dd>Lundi 23 novembre, 9 h</dd>
+                </div>
+                <div class="fact">
+                  <dt>Aujourd'hui</dt>
+                  <dd>5 emails partis sur 5</dd>
+                </div>
+                <div class="fact">
+                  <dt>Rythme actuel</dt>
+                  <dd>
+                    5 emails par jour
+                    <small
+                      >Il augmente tout seul au fil des semaines, pour que vos messages n'arrivent
+                      pas en indésirables.</small
+                    >
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          </section>
+
+          <div class="tabs" role="tablist" aria-label="Emails">
+            <button class="tab" role="tab" aria-selected="true" data-tab="prog" type="button">
+              Programmés <span class="n" id="nProg">7</span>
+            </button>
+            <button class="tab" role="tab" aria-selected="false" data-tab="sent" type="button">
+              Envoyés <span class="n">25</span>
+            </button>
+          </div>
+
+          <div class="card box" id="prog"></div>
+          <div id="sentWrap" hidden>
+            <div class="card box sent" id="sent"></div>
+            <button class="btn sm more" type="button">Afficher les 20 plus anciens</button>
+            <p class="foot">
+              Les réponses arrivent directement dans votre Gmail. Nous n'avons pas accès à votre
+              boîte de réception : nous ne voyons ni les réponses, ni si un message a été lu.
+            </p>
+          </div>
+          <p class="toast" id="toast" role="status"></p>
+
+          <p class="legend">
+            Maquette : les objets viennent de votre capture, le texte des messages et les emails
+            déjà partis sont des exemples. Un clic sur une ligne ouvre le message. Les boutons «
+            Annuler » et « Mettre en pause » fonctionnent pour montrer les deux états.
+          </p>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const CLOCK =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+      const CHECK =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12 5 5 9-10"/></svg>';
+      const TEXT = [
+        "Bonjour,",
+        "J'ai lu votre page avec attention : elle cite déjà plusieurs outils du même type. Je me permets de vous signaler le nôtre, qui pourrait compléter votre liste : https://backleenks.com",
+        "Merci pour votre temps,<br />Jonathan",
+      ];
+      // [jour, heure, site, email, objet]
+      const PROG = [
+        [
+          "Lundi 23 novembre",
+          "9 h 00",
+          "mama-seo.fr",
+          "contact@mama-seo.fr",
+          "Votre comparatif Ahrefs : un outil pour obtenir des backlinks",
+        ],
+        [
+          "Lundi 23 novembre",
+          "9 h 06",
+          "digital.hec.ca",
+          "sylvain.amoros@hec.ca",
+          "Votre article sur le broken link building : une ressource à ajouter",
+        ],
+        [
+          "Lundi 23 novembre",
+          "9 h 12",
+          "fraischeur.com",
+          "contact@fraischeur.com",
+          "Votre rubrique SEO : un outil de netlinking à ajouter ?",
+        ],
+        [
+          "Lundi 23 novembre",
+          "9 h 18",
+          "insidepro360.com",
+          "info@insidepro360.com",
+          "Ajout de backleenks à votre comparatif des outils SEO",
+        ],
+        [
+          "Lundi 23 novembre",
+          "9 h 24",
+          "startups-nation.fr",
+          "contact@startups-nation.fr",
+          "Mention de backleenks dans votre article sur les outils SEO",
+        ],
+        [
+          "Mardi 24 novembre",
+          "9 h 00",
+          "blog-du-web.example",
+          "bonjour@blog-du-web.example",
+          "Votre liste d'outils pour le référencement : une suggestion",
+        ],
+        [
+          "Mardi 24 novembre",
+          "9 h 06",
+          "atelier-seo.example",
+          "contact@atelier-seo.example",
+          "Un lien de votre page « Ressources » ne fonctionne plus",
+        ],
+      ];
+      const SENT = [
+        [
+          "Aujourd'hui, vendredi 20 novembre",
+          "9 h 27",
+          "le-coin-du-seo.example",
+          "hello@le-coin-du-seo.example",
+          "Votre guide du netlinking : une ressource à ajouter",
+        ],
+        [
+          "Aujourd'hui, vendredi 20 novembre",
+          "9 h 21",
+          "journal-du-freelance.example",
+          "redaction@journal-du-freelance.example",
+          "Votre sélection d'outils pour indépendants",
+        ],
+        [
+          "Aujourd'hui, vendredi 20 novembre",
+          "9 h 15",
+          "agence-pixel.example",
+          "contact@agence-pixel.example",
+          "Un lien cassé dans votre article sur les backlinks",
+        ],
+        [
+          "Aujourd'hui, vendredi 20 novembre",
+          "9 h 08",
+          "marketing-facile.example",
+          "contact@marketing-facile.example",
+          "Votre comparatif des outils SEO gratuits",
+        ],
+        [
+          "Aujourd'hui, vendredi 20 novembre",
+          "9 h 02",
+          "blog-entrepreneur.example",
+          "bonjour@blog-entrepreneur.example",
+          "Votre page « Boîte à outils » : une suggestion",
+        ],
+      ];
+
+      function render(el, rows, sent) {
+        el.innerHTML = "";
+        if (rows.length === 0) {
+          el.innerHTML = '<p class="empty">Aucun email n\'attend son départ.</p>';
+          return;
+        }
+        let day = null;
+        rows.forEach((r) => {
+          const [d, time, site, email, subject] = r;
+          if (d !== day) {
+            day = d;
+            el.insertAdjacentHTML("beforeend", `<div class="day">${d}</div>`);
+          }
+          const m = document.createElement("div");
+          m.className = "mail";
+          m.innerHTML = `
+            <div class="line">
+              <span class="when">${sent ? CHECK : CLOCK}${time}</span>
+              <span class="who"><b>${site}</b><span>${email}</span></span>
+              <span class="subj"><b>${subject}</b> <span>· ${TEXT[1].slice(0, 70)}…</span></span>
+              ${sent ? '<span class="status">Envoyé</span>' : '<button class="btn sm" type="button">Annuler</button>'}
+            </div>
+            <div class="body">
+              <p class="meta">À : ${email} · ${sent ? "Envoyé" : "Départ prévu"} ${d.replace("Aujourd'hui, ", "").toLowerCase()} à ${time}</p>
+              ${TEXT.map((p) => `<p>${p}</p>`).join("")}
+            </div>`;
+          m.querySelector(".line").addEventListener("click", (e) => {
+            if (e.target.closest("button")) return;
+            m.classList.toggle("open");
+          });
+          const cancel = m.querySelector("button");
+          if (cancel)
+            cancel.addEventListener("click", () => {
+              PROG.splice(PROG.indexOf(r), 1);
+              render(el, PROG, false);
+              document.getElementById("nProg").textContent = PROG.length;
+              document.getElementById("navCount").textContent = PROG.length;
+              document.getElementById("toast").textContent =
+                `L'email pour ${site} est annulé. Il est de retour dans « À approuver ».`;
+            });
+          el.appendChild(m);
+        });
+      }
+      render(document.getElementById("prog"), PROG, false);
+      render(document.getElementById("sent"), SENT, true);
+
+      document.querySelectorAll(".tab").forEach((t) =>
+        t.addEventListener("click", () => {
+          document
+            .querySelectorAll(".tab")
+            .forEach((x) => x.setAttribute("aria-selected", String(x === t)));
+          document.getElementById("prog").hidden = t.dataset.tab !== "prog";
+          document.getElementById("sentWrap").hidden = t.dataset.tab !== "sent";
+          document.getElementById("toast").textContent = "";
+        }),
+      );
+
+      document.querySelectorAll(".compare button").forEach((b) =>
+        b.addEventListener("click", () => {
+          document
+            .querySelectorAll(".compare button")
+            .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+          const bars = b.dataset.v === "B";
+          document.getElementById("vB").hidden = !bars;
+          document.getElementById("whyB").hidden = !bars;
+          document.getElementById("vA").hidden = bars;
+        }),
+      );
+
+      let paused = false;
+      const ACTIVE_TEXT = document.getElementById("stateText").innerHTML;
+      document.getElementById("pause").addEventListener("click", (e) => {
+        paused = !paused;
+        document.getElementById("state").classList.toggle("paused", paused);
+        document.getElementById("stateTitle").textContent = paused
+          ? "Envois en pause"
+          : "Vos emails partent tout seuls";
+        document.getElementById("stateText").innerHTML = paused
+          ? "Rien ne part tant que vous n'avez pas repris. Rien n'est annulé : vos emails programmés attendent."
+          : ACTIVE_TEXT;
+        document.getElementById("facts").hidden = paused;
+        e.target.textContent = paused ? "Reprendre les envois" : "Mettre en pause";
+        e.target.classList.toggle("primary", paused);
+      });
+    </script>
+  </body>
+</html>

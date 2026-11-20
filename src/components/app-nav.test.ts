@@ -18,15 +18,17 @@ describe("menu du parcours (maquette du 20/11)", () => {
     expect(html).toContain("Prospection");
     expect(html).not.toContain("Messagerie");
   });
-  it("trois étapes numérotées : Cibles, À approuver, Envois", () => {
+  // L'étape 3 s'appelle « Emails » depuis le retour de Jonathan du 20/11 (ancien nom : « Envois »).
+  it("trois étapes numérotées : Cibles, À approuver, Emails", () => {
     const labels = [...html.matchAll(/<span class="flex-1 truncate">([^<]+)<\/span>/g)].map(
       (m) => m[1],
     );
-    expect(labels.filter((l) => ["Cibles", "À approuver", "Envois"].includes(l))).toEqual([
+    expect(labels.filter((l) => ["Cibles", "À approuver", "Emails"].includes(l))).toEqual([
       "Cibles",
       "À approuver",
-      "Envois",
+      "Emails",
     ]);
+    expect(labels).not.toContain("Envois");
     expect(html).not.toContain("Mails envoyés");
     expect(html).not.toContain("À valider");
   });

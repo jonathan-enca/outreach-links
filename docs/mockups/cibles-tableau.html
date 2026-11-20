@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maquette « Cibles », tableau</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Jetons repris de src/app/globals.css (version en ligne, bleu marine, police Outfit). */
+      :root {
+        --background: #f8fafc;
+        --foreground: #0f172a;
+        --card: #ffffff;
+        --muted: #f1f5f9;
+        --muted-foreground: #526074;
+        --border: #e2e8f0;
+        --hairline: #edf1f6;
+        --primary: #003070;
+        --primary-hover: #00245a;
+        --sidebar: #00245a;
+        --sidebar-foreground: #cfe2f6;
+        --sidebar-label: #9cc3ea;
+        --warning: #92400e;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: Outfit, system-ui, sans-serif;
+        font-size: 15px;
+        line-height: 1.5;
+        font-variant-numeric: tabular-nums;
+      }
+      .app {
+        display: grid;
+        grid-template-columns: 232px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      .side {
+        background: var(--sidebar);
+        color: var(--sidebar-foreground);
+        padding: 20px 12px;
+      }
+      .side .logo {
+        color: #fff;
+        font-weight: 600;
+        font-size: 18px;
+        padding: 0 8px 16px;
+      }
+      .side .label {
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--sidebar-label);
+        padding: 14px 8px 4px;
+      }
+      .side a {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px;
+        border-radius: 8px;
+        color: inherit;
+        text-decoration: none;
+        font-size: 14.5px;
+      }
+      .side a.on {
+        background: rgb(255 255 255 / 0.14);
+        color: #fff;
+        font-weight: 500;
+      }
+      .side .n {
+        font-size: 12px;
+        background: rgb(255 255 255 / 0.16);
+        border-radius: 99px;
+        padding: 0 7px;
+      }
+      main {
+        padding: 28px 32px 40px;
+        min-width: 0;
+      }
+      h1 {
+        font-size: 30px;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        margin: 0 0 6px;
+      }
+      .lead {
+        color: var(--muted-foreground);
+        margin: 0 0 18px;
+        font-size: 16px;
+      }
+      .note {
+        color: var(--muted-foreground);
+        font-size: 14px;
+        margin: 0 0 12px;
+      }
+
+      /* Le tableau, façon base Notion : en-têtes discrets avec icône, filets fins, étiquettes pastel. */
+      .tbl {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .tr {
+        display: grid;
+        grid-template-columns:
+          44px minmax(220px, 1.2fr) 172px minmax(240px, 2.4fr)
+          156px 156px;
+        border-bottom: 1px solid var(--border);
+      }
+      .tr:last-child {
+        border-bottom: 0;
+      }
+      .td {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        padding: 9px 12px;
+        border-right: 1px solid var(--hairline);
+      }
+      .td:last-child {
+        border-right: 0;
+      }
+      .head {
+        background: #fafbfd;
+      }
+      .head .td {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--muted-foreground);
+        padding-block: 8px;
+      }
+      .head svg {
+        width: 14px;
+        height: 14px;
+        flex: none;
+        opacity: 0.8;
+      }
+      .row {
+        cursor: pointer;
+      }
+      .row:hover {
+        background: #f8fafc;
+      }
+      .row.off .td:not(.c) {
+        opacity: 0.45;
+      }
+      .c {
+        justify-content: center;
+        padding-inline: 0;
+      }
+      input[type="checkbox"] {
+        width: 17px;
+        height: 17px;
+        accent-color: var(--primary);
+        cursor: pointer;
+        margin: 0;
+      }
+      input[type="checkbox"]:disabled {
+        cursor: default;
+        opacity: 0.5;
+      }
+      .fav {
+        width: 20px;
+        height: 20px;
+        border-radius: 5px;
+        display: grid;
+        place-items: center;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        flex: none;
+      }
+      .site {
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .open-link {
+        margin-left: auto;
+        color: var(--muted-foreground);
+        font-size: 12px;
+        text-decoration: none;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 1px 6px;
+        background: #fff;
+        display: none;
+        white-space: nowrap;
+      }
+      .row:hover .open-link {
+        display: block;
+      }
+      .why {
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .row.open .why {
+        white-space: normal;
+      }
+      .row.open .td {
+        align-items: flex-start;
+      }
+      .tag {
+        display: inline-block;
+        font-size: 13px;
+        line-height: 1.5;
+        padding: 0 7px;
+        border-radius: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .t-gris {
+        background: #eef1f5;
+        color: #334155;
+      }
+      .t-bleu {
+        background: #dbeafe;
+        color: #1e3a8a;
+      }
+      .t-ambre {
+        background: #fdecc8;
+        color: #7c4a03;
+      }
+      .t-violet {
+        background: #e9e3fb;
+        color: #4c2a92;
+      }
+      .t-vert {
+        background: #dbf1e1;
+        color: #14532d;
+      }
+      .contact {
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+      .contact svg {
+        width: 15px;
+        height: 15px;
+        flex: none;
+      }
+      .contact.warn {
+        color: var(--warning);
+      }
+      .tools {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 4px 16px;
+        margin: 0 0 12px;
+      }
+      .tools .note {
+        margin: 0;
+      }
+      .count {
+        font-size: 14px;
+        color: var(--muted-foreground);
+        white-space: nowrap;
+      }
+
+      .bar {
+        position: sticky;
+        bottom: 14px;
+        margin-top: 14px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: #fff;
+        border: 1px solid rgb(15 23 42 / 0.15);
+        border-radius: 14px;
+        padding: 12px 12px 12px 16px;
+        box-shadow:
+          0 10px 30px -10px rgb(14 26 43 / 0.3),
+          0 1px 2px rgb(14 26 43 / 0.08);
+      }
+      .bar p {
+        margin: 0;
+        margin-right: auto;
+      }
+      .bar strong {
+        display: block;
+      }
+      .bar span {
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+      .btn {
+        font: inherit;
+        font-weight: 500;
+        height: 40px;
+        padding: 0 16px;
+        border-radius: 8px;
+        border: 0;
+        background: var(--primary);
+        color: #fff;
+        cursor: pointer;
+      }
+      .btn:hover {
+        background: var(--primary-hover);
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .legend {
+        margin-top: 22px;
+        font-size: 13px;
+        color: var(--muted-foreground);
+      }
+
+      /* Téléphone : chaque ligne devient une petite fiche, sans défilement horizontal. */
+      @media (max-width: 900px) {
+        .app {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .side {
+          display: none;
+        }
+        main {
+          padding: 20px 16px 32px;
+        }
+        .head .td:not(.c):not(.s) {
+          display: none;
+        }
+        .head {
+          grid-template-columns: 40px 1fr;
+        }
+        .row {
+          grid-template-columns: 40px minmax(0, 1fr) minmax(0, 1fr);
+          grid-template-areas: "c site site" "c why why" "c type req" "c contact contact";
+          padding: 8px 12px 10px 0;
+          row-gap: 6px;
+        }
+        .row .td {
+          border: 0;
+          padding: 0;
+        }
+        .row .c {
+          grid-area: c;
+          align-items: flex-start;
+          padding-top: 2px;
+        }
+        .row .s {
+          grid-area: site;
+        }
+        .row .w {
+          grid-area: why;
+        }
+        .row .w .why {
+          white-space: normal;
+        }
+        .row .ty {
+          grid-area: type;
+        }
+        .row .rq {
+          grid-area: req;
+        }
+        .row .ct {
+          grid-area: contact;
+        }
+        .open-link {
+          display: block;
+        }
+        .bar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="side" aria-hidden="true">
+        <div class="logo">Votre outil</div>
+        <a>Accueil</a>
+        <a>Campagnes</a>
+        <div class="label">Votre campagne</div>
+        <a class="on">Cibles <span class="n">18</span></a>
+        <a>À approuver</a>
+        <a>Emails</a>
+        <div class="label">Réglages</div>
+        <a>Boîte d'envoi</a>
+        <a>Abonnement</a>
+      </aside>
+      <main>
+        <h1>Cibles</h1>
+        <p class="lead">
+          Ces sites recevront un message de votre part. Décochez ceux que vous ne voulez pas
+          contacter.
+        </p>
+        <div class="tools">
+          <p class="note">
+            La recherche s'est arrêtée avant la fin : 100 sites à contacter pour l'instant. Le
+            détail est sous la liste.
+          </p>
+          <span class="count" id="count"></span>
+        </div>
+
+        <div class="tbl" id="tbl">
+          <div class="tr head">
+            <div class="td c">
+              <input type="checkbox" id="master" aria-label="Sélectionner tous les sites" />
+            </div>
+            <div class="td s">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+              </svg>
+              Site
+            </div>
+            <div class="td">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 7h18M3 12h18M3 17h10" />
+              </svg>
+              Type de site
+            </div>
+            <div class="td">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 5h16v11H9l-5 4z" />
+              </svg>
+              Pourquoi ce site
+            </div>
+            <div class="td">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
+                <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+              </svg>
+              Demande
+            </div>
+            <div class="td">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="m3 7 9 6 9-6" />
+              </svg>
+              Contact
+            </div>
+          </div>
+        </div>
+
+        <div class="bar" role="region" aria-label="Préparer les messages des sites cochés">
+          <p>
+            <strong id="will"></strong>
+            <span>Vous les relirez avant tout envoi.</span>
+          </p>
+          <button class="btn" id="go" type="button"></button>
+        </div>
+
+        <p class="legend">
+          Maquette : les noms viennent de votre capture, les types et les raisons sont des exemples.
+          Un clic sur une ligne affiche la raison en entier. Le reste de l'écran (détail de la
+          recherche, sous la liste) ne change pas.
+        </p>
+      </main>
+    </div>
+
+    <script>
+      const MAIL =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>';
+      const FORM =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>';
+      const REQ = {
+        ressources: ["Page ressources", "t-bleu"],
+        mort: ["Lien mort", "t-ambre"],
+        mention: ["Mention sans lien", "t-violet"],
+        jamais: ["Jamais sollicité", "t-vert"],
+      };
+      const CONTACT = {
+        email: [MAIL, "Email vérifié", ""],
+        doute: [MAIL, "Email à vérifier", "warn"],
+        form: [FORM, "Formulaire", ""],
+      };
+      const FAV = ["#dbeafe", "#fdecc8", "#e9e3fb", "#dbf1e1", "#fde2e2", "#e0f2fe"];
+      // [site, type, raison, demande, contact]
+      const ROWS = [
+        [
+          "respoweb.com",
+          "Blog",
+          "Son guide « Créer son site pas à pas » cite déjà six outils comparables au vôtre.",
+          "ressources",
+          "email",
+        ],
+        [
+          "geekhebdo.com",
+          "Média",
+          "Un article de 2024 renvoie vers un outil qui n'existe plus : votre page peut le remplacer.",
+          "mort",
+          "email",
+        ],
+        [
+          "next-generation.dev",
+          "Blog",
+          "Sa page « Ressources » est tenue à jour et liste plusieurs sites sur le même sujet.",
+          "ressources",
+          "form",
+        ],
+        [
+          "drujokweb.fr",
+          "Agence web",
+          "Son comparatif d'outils pour indépendants ne mentionne pas encore de solution comme la vôtre.",
+          "jamais",
+          "email",
+        ],
+        [
+          "mootion.fr",
+          "Agence web",
+          "Parle de votre site dans son billet de septembre, sans faire de lien.",
+          "mention",
+          "email",
+        ],
+        [
+          "noblank.fr",
+          "Blog",
+          "Sa sélection « Nos outils préférés » est complétée chaque trimestre.",
+          "ressources",
+          "doute",
+        ],
+        [
+          "dataglobehub.com",
+          "Média",
+          "Dossier de fond sur votre sujet, avec une rubrique « Pour aller plus loin ».",
+          "ressources",
+          "email",
+        ],
+        [
+          "haskn.com",
+          "Blog",
+          "Deux liens de son tutoriel mènent à des pages introuvables.",
+          "mort",
+          "email",
+        ],
+        [
+          "ia-boostacademy.fr",
+          "Organisme de formation",
+          "Sa page de ressources pour ses élèves cite des outils proches du vôtre.",
+          "ressources",
+          "form",
+        ],
+        [
+          "blog-it.net",
+          "Blog",
+          "Liste « 15 outils à connaître » mise à jour cette année.",
+          "ressources",
+          "email",
+        ],
+        [
+          "toutjavascript.com",
+          "Site communautaire",
+          "Annuaire de ressources tenu par ses membres ; personne ne semble le solliciter.",
+          "jamais",
+          "email",
+        ],
+        [
+          "aubaguevictor.fr",
+          "Site personnel",
+          "Sa page « Mes outils » renvoie vers trois services comparables.",
+          "ressources",
+          "email",
+        ],
+        [
+          "izzoran.com",
+          "Blog",
+          "Cite votre site par son nom dans un comparatif, sans lien.",
+          "mention",
+          "doute",
+        ],
+        [
+          "esokia.com",
+          "Agence web",
+          "Article de conseils avec une liste d'outils recommandés en fin de page.",
+          "ressources",
+          "form",
+        ],
+        [
+          "le-meilleur-site-web.fr",
+          "Blog",
+          "Comparatif très lu sur votre sujet, complété au fil des suggestions de lecteurs.",
+          "ressources",
+          "email",
+        ],
+        [
+          "comment-se-former.fr",
+          "Organisme de formation",
+          "Guide « Par où commencer » qui oriente vers des ressources gratuites.",
+          "jamais",
+          "email",
+        ],
+        [
+          "job-en-poche.fr",
+          "Blog",
+          "Un lien de sa page d'outils mène à un site fermé.",
+          "mort",
+          "email",
+        ],
+        [
+          "seo-coaching.fr",
+          "Site personnel",
+          "Sa boîte à outils cite plusieurs services du même type que le vôtre.",
+          "ressources",
+          "email",
+        ],
+      ];
+
+      const tbl = document.getElementById("tbl");
+      ROWS.forEach(([site, type, why, req, contact], i) => {
+        const [reqLabel, reqTone] = REQ[req];
+        const [icon, cLabel, cTone] = CONTACT[contact];
+        const row = document.createElement("div");
+        row.className = "tr row";
+        row.innerHTML = `
+          <div class="td c"><input type="checkbox" checked aria-label="Contacter ${site}" /></div>
+          <div class="td s">
+            <span class="fav" style="background:${FAV[i % FAV.length]}">${site[0]}</span>
+            <span class="site">${site}</span>
+            <a class="open-link" href="https://${site}" target="_blank" rel="noopener noreferrer">Ouvrir ↗</a>
+          </div>
+          <div class="td ty"><span class="tag t-gris">${type}</span></div>
+          <div class="td w"><span class="why">${why}</span></div>
+          <div class="td rq"><span class="tag ${reqTone}">${reqLabel}</span></div>
+          <div class="td ct"><span class="td contact ${cTone}" style="padding:0;border:0">${icon}${cLabel}</span></div>`;
+        row.addEventListener("click", (e) => {
+          if (e.target.closest("input,a")) return;
+          row.classList.toggle("open");
+        });
+        tbl.appendChild(row);
+      });
+
+      const boxes = [...tbl.querySelectorAll(".row input")];
+      const master = document.getElementById("master");
+      function refresh() {
+        const n = boxes.filter((b) => b.checked).length;
+        boxes.forEach((b) => b.closest(".row").classList.toggle("off", !b.checked));
+        master.checked = n === boxes.length;
+        master.indeterminate = n > 0 && n < boxes.length;
+        document.getElementById("count").textContent = `${n} sur ${boxes.length} sélectionnés`;
+        document.getElementById("will").textContent =
+          n === 0
+            ? "Cochez au moins un site."
+            : n === 1
+              ? "1 message sera préparé"
+              : `${n} messages seront préparés`;
+        const go = document.getElementById("go");
+        go.disabled = n === 0;
+        go.textContent =
+          n === 0
+            ? "Préparer les messages"
+            : n === 1
+              ? "Préparer le message"
+              : `Préparer les ${n} messages`;
+      }
+      boxes.forEach((b) => b.addEventListener("change", refresh));
+      master.addEventListener("change", () => {
+        boxes.forEach((b) => (b.checked = master.checked));
+        refresh();
+      });
+      refresh();
+    </script>
+  </body>
+</html>
