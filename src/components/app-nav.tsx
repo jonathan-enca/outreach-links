@@ -42,6 +42,8 @@ interface Item {
   mobileOnly?: boolean;
   /** Libellé court pour la barre basse (la place est comptée). */
   short?: string;
+  /** Numéro de l'étape de la campagne (1, 2, 3) : affiché dans une pastille. */
+  step?: number;
 }
 
 /**
@@ -96,8 +98,8 @@ export function AppNav({
   }
   const starts = (p: string) => pathname === p || pathname.startsWith(`${p}/`);
 
-  // Menu simplifié (maquette du 19/11/2026) : Campagnes, Envois, Réglages. « À valider » reste à côté
-  // des campagnes tant que la validation n'est pas une étape de la campagne. Réponses et Liens
+  // Menu du parcours (maquette « Parcours de campagne », 20/11/2026) : Campagnes, puis les trois étapes
+  // numérotées de la campagne (1 Cibles, 2 À approuver, 3 Envois), puis Réglages. Réponses et Liens
   // obtenus ne sont plus dans le menu (pages toujours accessibles par leur adresse).
   const groups: { title: string | null; items: Item[] }[] = [
     {
@@ -110,12 +112,8 @@ export function AppNav({
           icon: LayoutDashboard,
           active: pathname === "/app",
         },
-      ],
-    },
-    {
-      title: n.groups.prospecting,
-      items: [
         {
+          // La liste des campagnes : ce n'est pas une étape, donc pas de numéro.
           key: "campagnes",
           href: "/app/campagnes",
           label: n.campaigns,
@@ -127,40 +125,39 @@ export function AppNav({
             /\/(analyse|etat-des-lieux)$/.test(pathname),
           mobile: true,
         },
+      ],
+    },
+    {
+      title: n.groups.prospecting,
+      items: [
         {
-          // Même page que l'étape « Vos cibles » de la campagne choisie (sans choix : /app/cibles y renvoie).
+          // Étape 1 : même page que « Vos cibles » de la campagne choisie (sans choix : /app/cibles y renvoie).
           key: "cibles",
           href: currentSite === "all" ? "/app/cibles" : `/app/site/${currentSite}/cibles`,
           label: "Cibles",
           icon: CheckSquare,
-          active:
-            starts("/app/cibles") ||
-            starts("/app/a-valider") ||
-            starts("/app/taches") ||
-            /\/cibles$/.test(pathname),
-          count: counts.toValidate,
+          step: 1,
+          active: starts("/app/cibles") || starts("/app/taches") || /\/cibles$/.test(pathname),
           mobile: true,
         },
-      ],
-    },
-    {
-      title: "Messagerie",
-      items: [
         {
-          // Les messages à approuver ne sont pas encore sur la page « Vos cibles » : on garde l'accès.
+          // Étape 2 : les messages rédigés, à relire et approuver avant tout envoi.
           key: "a-valider",
           href: "/app/a-valider",
-          label: "À valider",
+          label: "À approuver",
           icon: CheckSquare,
+          step: 2,
           active: starts("/app/a-valider"),
           count: counts.toValidate,
           mobile: true,
         },
         {
+          // Étape 3 : ce qui est programmé et ce qui est parti.
           key: "envois",
           href: "/app/envois",
-          label: "Mails envoyés",
+          label: "Envois",
           icon: Send,
+          step: 3,
           active: starts("/app/envois"),
           mobile: true,
         },
@@ -306,7 +303,7 @@ export function AppNav({
             ) : null}
             {g.items
               .filter((i) => !i.mobileOnly)
-              .map(({ key, href, label, icon: Icon, active, count }) => (
+              .map(({ key, href, label, icon: Icon, active, count, step }) => (
                 <Link
                   key={key}
                   href={href}
@@ -318,7 +315,21 @@ export function AppNav({
                       : "hover:bg-sidebar-hover",
                   )}
                 >
-                  <Icon aria-hidden className="size-4 shrink-0" />
+                  {step ? (
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "grid size-5 shrink-0 place-items-center rounded-full border text-[11px] font-semibold",
+                        active
+                          ? "border-sidebar-accent bg-sidebar-accent text-sidebar"
+                          : "border-sidebar-label",
+                      )}
+                    >
+                      {step}
+                    </span>
+                  ) : (
+                    <Icon aria-hidden className="size-4 shrink-0" />
+                  )}
                   <span className="flex-1 truncate">{label}</span>
                   {count ? (
                     <span className="rounded-full bg-sidebar-accent px-2 text-[11px] font-bold text-sidebar">

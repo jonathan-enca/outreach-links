@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { JourneySteps } from "@/features/shell/journey-steps";
 import { LiveBanner, MoreSites } from "@/features/targets/targets-screen";
 import type { TargetsView } from "@/features/targets/service";
 
@@ -77,7 +76,6 @@ export default async function DemoLotSuivantPage({
   } as unknown as TargetsView;
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6">
-      <JourneySteps current="cibles" links={{ analyse: "/demo/analyse?etat=terminee" }} />
       <LiveBanner view={view} hidden={0} onReveal={idle} />
       <MoreSites funnel={funnel} more={state.more} start={idle} />
     </main>

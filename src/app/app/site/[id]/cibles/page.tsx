@@ -40,7 +40,7 @@ async function Targets({ params }: { params: Promise<{ id: string }> }) {
   if (notReady) {
     return (
       <>
-        <JourneySteps current="cibles" links={{ analyse: siteHref.analyse(id) }} />
+        <JourneySteps current="analyse" />
         <PageHeader title={t.targets.title} description={t.targets.description} />
         <div className="flex flex-col items-center gap-4">
           <EmptyState
@@ -59,7 +59,6 @@ async function Targets({ params }: { params: Promise<{ id: string }> }) {
   if (!view) notFound();
   return (
     <>
-      <JourneySteps current="cibles" links={{ analyse: `${siteHref.analyse(id)}?etapes=1` }} />
       <PageHeader title={t.targets.title} description={t.targets.description} />
       <TargetsScreen
         view={view}
