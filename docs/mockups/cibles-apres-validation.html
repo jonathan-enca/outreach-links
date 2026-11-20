@@ -483,11 +483,7 @@
         background: var(--primary);
       }
       .track .w {
-        background: repeating-linear-gradient(
-          -45deg,
-          #c9d7ea 0 6px,
-          #dde6f2 6px 12px
-        );
+        background: repeating-linear-gradient(-45deg, #c9d7ea 0 6px, #dde6f2 6px 12px);
         animation: slide 1.2s linear infinite;
         background-size: 17px 17px;
       }
@@ -583,8 +579,7 @@
         color: var(--muted-foreground);
       }
       .tr.kept {
-        grid-template-columns:
-          minmax(150px, 1fr) 150px 140px minmax(250px, 1.4fr);
+        grid-template-columns: minmax(150px, 1fr) 150px 140px minmax(250px, 1.4fr);
       }
       .msg {
         display: flex;
@@ -725,7 +720,9 @@
           ><span class="lbl"><span class="step">2</span>À approuver</span
           ><span class="n" id="nb2"></span
         ></a>
-        <a><span class="lbl"><span class="step">3</span>Emails</span></a>
+        <a
+          ><span class="lbl"><span class="step">3</span>Emails</span></a
+        >
         <div class="label">Réglages</div>
         <a>Boîte d'envoi</a>
         <a>Search Console</a>
@@ -758,9 +755,17 @@
               <i class="r" id="barR"></i><i class="w" id="barW"></i>
             </div>
             <div class="keys">
-              <span><i style="background: var(--primary)"></i><strong id="kR"></strong> prêts à relire</span>
-              <span id="kWwrap"><i style="background: #c9d7ea"></i><strong id="kW"></strong> en rédaction</span>
-              <span id="kDwrap"><i style="background: #fdecc8"></i><strong id="kD"></strong> écartés par la rédaction</span>
+              <span
+                ><i style="background: var(--primary)"></i><strong id="kR"></strong> prêts à
+                relire</span
+              >
+              <span id="kWwrap"
+                ><i style="background: #c9d7ea"></i><strong id="kW"></strong> en rédaction</span
+              >
+              <span id="kDwrap"
+                ><i style="background: #fdecc8"></i><strong id="kD"></strong> écartés par la
+                rédaction</span
+              >
             </div>
           </div>
           <div class="next" id="pNext"></div>
@@ -830,20 +835,20 @@
               l'état de leur message (en rédaction, à relire, écarté).
             </li>
             <li>
-              Une carte d'avancement fait le lien avec « À approuver » : on peut relire les
-              premiers messages sans attendre la fin de la rédaction.
+              Une carte d'avancement fait le lien avec « À approuver » : on peut relire les premiers
+              messages sans attendre la fin de la rédaction.
             </li>
             <li>
-              Les cibles écartées par la rédaction restent dans la liste, avec leur motif et
-              « Rédiger quand même ».
+              Les cibles écartées par la rédaction restent dans la liste, avec leur motif et «
+              Rédiger quand même ».
             </li>
             <li>
               Quand tout est traité, l'écran dit quoi faire ensuite : relire et approuver, ou
               chercher d'autres cibles (coût annoncé avant de lancer).
             </li>
             <li>
-              Dans le menu, « Cibles » montre le nombre de sites encore à décider et une coche
-              quand il n'en reste plus ; « À approuver » montre le nombre de messages prêts.
+              Dans le menu, « Cibles » montre le nombre de sites encore à décider et une coche quand
+              il n'en reste plus ; « À approuver » montre le nombre de messages prêts.
             </li>
           </ul>
           <p style="margin: 8px 0 0">
@@ -873,24 +878,134 @@
       const FAV = ["#dbeafe", "#fdecc8", "#e9e3fb", "#dbf1e1", "#fde2e2", "#e0f2fe"];
       // [site, type, raison, demande, contact, motif d'écart si la rédaction l'écarte]
       const ROWS = [
-        ["respoweb.com", "Blog", "Son guide « Créer son site pas à pas » cite déjà six outils comparables au vôtre.", "ressources", "email"],
-        ["geekhebdo.com", "Média", "Un article de 2024 renvoie vers un outil qui n'existe plus : votre page peut le remplacer.", "mort", "email"],
-        ["next-generation.dev", "Blog", "Sa page « Ressources » est tenue à jour et liste plusieurs sites sur le même sujet.", "ressources", "form"],
-        ["drujokweb.fr", "Agence web", "Son comparatif d'outils pour indépendants ne mentionne pas encore de solution comme la vôtre.", "jamais", "email"],
-        ["mootion.fr", "Agence web", "Parle de votre site dans son billet de septembre, sans faire de lien.", "mention", "email"],
-        ["noblank.fr", "Blog", "Sa sélection « Nos outils préférés » est complétée chaque trimestre.", "ressources", "doute"],
-        ["dataglobehub.com", "Média", "Dossier de fond sur votre sujet, avec une rubrique « Pour aller plus loin ».", "ressources", "email"],
-        ["haskn.com", "Blog", "Deux liens de son tutoriel mènent à des pages introuvables.", "mort", "email"],
-        ["ia-boostacademy.fr", "Organisme de formation", "Sa page de ressources pour ses élèves cite des outils proches du vôtre.", "ressources", "form"],
-        ["blog-it.net", "Blog", "Liste « 15 outils à connaître » mise à jour cette année.", "ressources", "email", "Concurrent direct : le site vend le même service que vous."],
-        ["toutjavascript.com", "Site communautaire", "Annuaire de ressources tenu par ses membres ; personne ne semble le solliciter.", "jamais", "email"],
-        ["aubaguevictor.fr", "Site personnel", "Sa page « Mes outils » renvoie vers trois services comparables.", "ressources", "email"],
-        ["izzoran.com", "Blog", "Cite votre site par son nom dans un comparatif, sans lien.", "mention", "doute"],
-        ["esokia.com", "Agence web", "Article de conseils avec une liste d'outils recommandés en fin de page.", "ressources", "form"],
-        ["le-meilleur-site-web.fr", "Blog", "Comparatif très lu sur votre sujet, complété au fil des suggestions de lecteurs.", "ressources", "email"],
-        ["comment-se-former.fr", "Organisme de formation", "Guide « Par où commencer » qui oriente vers des ressources gratuites.", "jamais", "email", "Ferme à liens : la page ne publie que des articles sponsorisés."],
-        ["job-en-poche.fr", "Blog", "Un lien de sa page d'outils mène à un site fermé.", "mort", "email"],
-        ["seo-coaching.fr", "Site personnel", "Sa boîte à outils cite plusieurs services du même type que le vôtre.", "ressources", "email"],
+        [
+          "respoweb.com",
+          "Blog",
+          "Son guide « Créer son site pas à pas » cite déjà six outils comparables au vôtre.",
+          "ressources",
+          "email",
+        ],
+        [
+          "geekhebdo.com",
+          "Média",
+          "Un article de 2024 renvoie vers un outil qui n'existe plus : votre page peut le remplacer.",
+          "mort",
+          "email",
+        ],
+        [
+          "next-generation.dev",
+          "Blog",
+          "Sa page « Ressources » est tenue à jour et liste plusieurs sites sur le même sujet.",
+          "ressources",
+          "form",
+        ],
+        [
+          "drujokweb.fr",
+          "Agence web",
+          "Son comparatif d'outils pour indépendants ne mentionne pas encore de solution comme la vôtre.",
+          "jamais",
+          "email",
+        ],
+        [
+          "mootion.fr",
+          "Agence web",
+          "Parle de votre site dans son billet de septembre, sans faire de lien.",
+          "mention",
+          "email",
+        ],
+        [
+          "noblank.fr",
+          "Blog",
+          "Sa sélection « Nos outils préférés » est complétée chaque trimestre.",
+          "ressources",
+          "doute",
+        ],
+        [
+          "dataglobehub.com",
+          "Média",
+          "Dossier de fond sur votre sujet, avec une rubrique « Pour aller plus loin ».",
+          "ressources",
+          "email",
+        ],
+        [
+          "haskn.com",
+          "Blog",
+          "Deux liens de son tutoriel mènent à des pages introuvables.",
+          "mort",
+          "email",
+        ],
+        [
+          "ia-boostacademy.fr",
+          "Organisme de formation",
+          "Sa page de ressources pour ses élèves cite des outils proches du vôtre.",
+          "ressources",
+          "form",
+        ],
+        [
+          "blog-it.net",
+          "Blog",
+          "Liste « 15 outils à connaître » mise à jour cette année.",
+          "ressources",
+          "email",
+          "Concurrent direct : le site vend le même service que vous.",
+        ],
+        [
+          "toutjavascript.com",
+          "Site communautaire",
+          "Annuaire de ressources tenu par ses membres ; personne ne semble le solliciter.",
+          "jamais",
+          "email",
+        ],
+        [
+          "aubaguevictor.fr",
+          "Site personnel",
+          "Sa page « Mes outils » renvoie vers trois services comparables.",
+          "ressources",
+          "email",
+        ],
+        [
+          "izzoran.com",
+          "Blog",
+          "Cite votre site par son nom dans un comparatif, sans lien.",
+          "mention",
+          "doute",
+        ],
+        [
+          "esokia.com",
+          "Agence web",
+          "Article de conseils avec une liste d'outils recommandés en fin de page.",
+          "ressources",
+          "form",
+        ],
+        [
+          "le-meilleur-site-web.fr",
+          "Blog",
+          "Comparatif très lu sur votre sujet, complété au fil des suggestions de lecteurs.",
+          "ressources",
+          "email",
+        ],
+        [
+          "comment-se-former.fr",
+          "Organisme de formation",
+          "Guide « Par où commencer » qui oriente vers des ressources gratuites.",
+          "jamais",
+          "email",
+          "Ferme à liens : la page ne publie que des articles sponsorisés.",
+        ],
+        [
+          "job-en-poche.fr",
+          "Blog",
+          "Un lien de sa page d'outils mène à un site fermé.",
+          "mort",
+          "email",
+        ],
+        [
+          "seo-coaching.fr",
+          "Site personnel",
+          "Sa boîte à outils cite plusieurs services du même type que le vôtre.",
+          "ressources",
+          "email",
+        ],
       ];
 
       // État de chaque site : decide | writing | ready | declined. checked ne sert qu'à « À décider ».
@@ -956,8 +1071,7 @@
           ? "Ces sites recevront un message de votre part. Décochez ceux que vous ne voulez pas contacter."
           : decide.length
             ? `Il reste ${decide.length} ${plural(decide.length, "site", "sites")} à décider. Ceux que vous avez retenus sont plus bas, avec l'avancement de leur message.`
-            : "Toutes vos cibles sont retenues. Leurs messages s'écrivent ici, puis vous les relisez dans « À approuver »."
-        ;
+            : "Toutes vos cibles sont retenues. Leurs messages s'écrivent ici, puis vous les relisez dans « À approuver ».";
 
         // Carte d'avancement
         const prog = $("prog");
@@ -969,7 +1083,8 @@
           $("pSub").textContent =
             "Chaque message arrive dans « À approuver » dès qu'il est écrit. Vous pouvez commencer à relire sans attendre, ou quitter la page : la rédaction continue.";
         } else {
-          $("pTitle").textContent = `${nR} ${plural(nR, "message est prêt", "messages sont prêts")} à relire`;
+          $("pTitle").textContent =
+            `${nR} ${plural(nR, "message est prêt", "messages sont prêts")} à relire`;
           $("pSub").textContent =
             "Rien n'est parti. Vous relisez, modifiez si besoin, puis approuvez dans « À approuver ».";
         }
@@ -1047,7 +1162,11 @@
         const go = $("go");
         go.disabled = nC === 0;
         go.textContent =
-          nC === 0 ? "Préparer les messages" : nC === 1 ? "Préparer le message" : `Préparer les ${nC} messages`;
+          nC === 0
+            ? "Préparer les messages"
+            : nC === 1
+              ? "Préparer le message"
+              : `Préparer les ${nC} messages`;
 
         // Retenues
         $("keptBlock").classList.toggle("hidden", !kept.length);
