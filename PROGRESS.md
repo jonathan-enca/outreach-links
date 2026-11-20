@@ -249,6 +249,7 @@
 - Vercel : le projet avait `framework: null` (tout en 404). Corrigé en `nextjs` via l'API le 14/11/2026 ; production redéployée et vérifiée (`/` 200, `/connexion` 200, `/app` redirige vers `/connexion`).
 - Reste : confirmer que `NEXT_PUBLIC_APP_URL` vaut `https://outreach-links.vercel.app` (valeur masquée dans Vercel).
 
+- **Site actif unique (20/11/2026)** : le site choisi dans le menu vit dans le cookie `site`, mais les pages `/app/site/<id>/…` lisent l'adresse. Le menu (`app-nav.tsx`) les garde d'accord : ouvrir une page de campagne choisit son site, et changer de site depuis une telle page ouvre la même page de l'autre site (« Tous les sites » → Campagnes). Helpers dans `features/shell/site-path.ts`. Ne pas le faire dans `proxy.ts` : les préchargements de liens changeraient le site, et le layout n'est pas rerendu entre deux pages. « Emails > Partis » et son total sont filtrés par site ; les quotas restent ceux de la boîte.
 - Next 16 : lire `node_modules/next/dist/docs/` avant d'utiliser une API (voir `AGENTS.md`). `LayoutProps` est généré par `next build`/`dev` : ne pas l'utiliser, le typecheck CI tourne avant le build.
 - Tailwind v4 passe par `@tailwindcss/postcss` (`postcss.config.mjs`). Le chargeur `@tailwindcss/turbopack` livré par create-next-app ne traitait pas `@theme`.
 - `.env.example` est dé-ignoré dans `.gitignore` ; `.env*` reste ignoré sinon.

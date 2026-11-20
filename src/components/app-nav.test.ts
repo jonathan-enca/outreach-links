@@ -3,7 +3,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { AppNav } from "./app-nav";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/app/cibles" }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/app/cibles",
+  useRouter: () => ({ push: () => {} }),
+}));
 
 const html = renderToStaticMarkup(
   createElement(AppNav, {

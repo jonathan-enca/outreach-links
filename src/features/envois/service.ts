@@ -3,6 +3,7 @@ import { betaEnabled } from "@/features/audits/beta";
 import { loadEntitlements } from "@/features/billing/entitlements";
 import { loadQueued, type ConversationsOptions } from "@/features/conversations/service";
 import { COUNTED } from "@/features/sending/queue-note";
+import { planIdsOfSite } from "@/features/shell/site-scope";
 import { effectiveDailyCap } from "@/features/sending/schedule";
 import type { Database } from "@/lib/supabase/database.types";
 import { dayKey } from "./format";
@@ -89,22 +90,31 @@ export async function loadEnvois(
   opts: ConversationsOptions,
 ): Promise<EnvoisView> {
   const now = opts.now;
+  // Site choisi dans le menu : « Partis » et son total ne montrent que ses envois. Les quotas restent
+  // ceux de la boîte (partagée par tous les sites), donc sans filtre.
+  const sitePlans = opts.siteId ? [...(await planIdsOfSite(supabase, opts.siteId))] : null;
+  const ofSite = <Q extends { in: (column: "plan_id", values: string[]) => Q }>(q: Q): Q =>
+    sitePlans ? q.in("plan_id", sitePlans) : q;
   const [sentDrafts, sent, sentCount, boxRows, recent, ws] = await Promise.all([
     supabase.from("sent_messages").select("draft_id").eq("step", "initial"),
-    supabase
-      .from("sent_messages")
-      .select("id, draft_id, to_email, subject, body, sent_at")
-      .eq("step", "initial")
-      .eq("status", "envoye")
-      .eq("dry_run", false)
+    ofSite(
+      supabase
+        .from("sent_messages")
+        .select("id, draft_id, to_email, subject, body, sent_at")
+        .eq("step", "initial")
+        .eq("status", "envoye")
+        .eq("dry_run", false),
+    )
       .order("sent_at", { ascending: false })
       .limit(SENT_LIMIT),
-    supabase
-      .from("sent_messages")
-      .select("id", { count: "exact", head: true })
-      .eq("step", "initial")
-      .eq("status", "envoye")
-      .eq("dry_run", false),
+    ofSite(
+      supabase
+        .from("sent_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("step", "initial")
+        .eq("status", "envoye")
+        .eq("dry_run", false),
+    ),
     loadBoxes(supabase),
     supabase
       .from("sent_messages")
