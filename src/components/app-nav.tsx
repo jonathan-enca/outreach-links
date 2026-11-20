@@ -124,36 +124,32 @@ export function AppNav({
             starts("/app/campagnes") ||
             starts("/app/demarrer") ||
             starts("/app/audit") ||
-            /\/(cibles|analyse|etat-des-lieux)$/.test(pathname),
+            /\/(analyse|etat-des-lieux)$/.test(pathname),
           mobile: true,
         },
         {
+          // Même page que l'étape « Vos cibles » de la campagne (la route /app/cibles y renvoie).
           key: "cibles",
           href: "/app/cibles",
-          label: n.toValidate,
+          label: "Cibles",
           icon: CheckSquare,
-          active: starts("/app/cibles") || starts("/app/a-valider") || starts("/app/taches"),
+          active:
+            starts("/app/cibles") ||
+            starts("/app/a-valider") ||
+            starts("/app/taches") ||
+            /\/cibles$/.test(pathname),
           count: counts.toValidate,
           mobile: true,
         },
       ],
     },
     {
-      title: "Envoi",
+      title: "Messagerie",
       items: [
-        {
-          key: "a-valider",
-          href: "/app/a-valider",
-          label: "À valider",
-          icon: CheckSquare,
-          active: starts("/app/a-valider"),
-          count: counts.toValidate,
-          mobile: true,
-        },
         {
           key: "envois",
           href: "/app/envois",
-          label: "Envois",
+          label: "Mails envoyés",
           icon: Send,
           active: starts("/app/envois"),
           mobile: true,
