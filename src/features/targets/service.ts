@@ -159,6 +159,8 @@ export interface TargetsView {
    * visibles avec le lien de leur page, jamais perdus ni validés.
    */
   noContact: TargetCard[];
+  /** Sites écartés par la personne (« Écarter ») : hors de la liste à décider, et réversibles. */
+  dismissed?: TargetCard[];
   competitors: { domain: string; queries: number; bestRank: number | null }[];
   /** Chantier H : types d'éditeurs cherchés (étiquettes actives du profil). */
   publisherTypes: PublisherType[];
@@ -357,6 +359,7 @@ export async function loadTargets(
   let cards: TargetCard[] = [];
   let contactless: TargetCard[] = [];
   let noContact: TargetCard[] = [];
+  let dismissed: TargetCard[] = [];
   let findingsCount = 0;
   let publisherTypes: PublisherType[] = [];
   let stock = 0;
@@ -425,21 +428,28 @@ export async function loadTargets(
         foundBy.set(c.domain, labels);
       }
     }
-    cards = (short.data ?? []).map((r) => {
-      const card = toCard(r, findings, resources, validated);
-      return {
-        ...card,
-        publisher: assignPublisher(
-          {
-            domain: card.domain,
-            pageTitle: card.pageTitle,
-            siteType: card.siteType,
-            foundBy: foundBy.get(card.domain) ?? [],
-          },
-          publisherTypes,
-        ),
-      };
-    });
+    // Un site écarté par la personne sort de la liste (sauf s'il a déjà été retenu).
+    const isDismissed = (r: QRow) => r.dismissed_at !== null && !validated.has(r.id);
+    dismissed = (short.data ?? [])
+      .filter(isDismissed)
+      .map((r) => toCard(r, findings, resources, validated));
+    cards = (short.data ?? [])
+      .filter((r) => !isDismissed(r))
+      .map((r) => {
+        const card = toCard(r, findings, resources, validated);
+        return {
+          ...card,
+          publisher: assignPublisher(
+            {
+              domain: card.domain,
+              pageTitle: card.pageTitle,
+              siteType: card.siteType,
+              foundBy: foundBy.get(card.domain) ?? [],
+            },
+            publisherTypes,
+          ),
+        };
+      });
     // Mentions sans contact : seulement celles où l'on a PROUVÉ une mention sans lien.
     const withMention = new Set(
       findings.filter((f) => f.kind === "mention_sans_lien").map((f) => f.target_id),
@@ -492,6 +502,7 @@ export async function loadTargets(
     drafting: messages.drafting,
     contactless,
     noContact,
+    dismissed,
     competitors: (comps.data ?? [])
       .filter((c) => c.selected)
       .map((c) => ({ domain: c.domain, queries: c.queries_count, bestRank: c.best_rank })),
@@ -751,4 +762,51 @@ export async function validateRequests(
         M.validatedNoDrafts.replace("{n}", n).replace("{reason}", drafts.message ?? "") + extra,
     };
   return { status: "ok", auditId, message: M.validated.replace("{n}", n) + extra };
+}
+
+/**
+ * « Écarter » (ou « Remettre ») des sites de la liste à décider. Rien n'est supprimé : la date d'écart
+ * suffit à les sortir de la liste, et « Remettre » l'efface. Un site déjà retenu n'est pas touché.
+ * Droits vérifiés avec le client de la personne (RLS) avant d'écrire avec le client de service.
+ */
+export async function dismissTargets(
+  supabase: Client,
+  getServiceClient: () => Client,
+  auditId: string,
+  rawIds: readonly string[],
+  dismiss: boolean,
+): Promise<AuditActionState> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { status: "error", message: M.unauthenticated };
+  const ids = [...new Set(rawIds)].slice(0, 300);
+  if (ids.length === 0) return { status: "error", message: M.nothingSelected };
+  const { data: rows } = await supabase
+    .from("qualified_targets")
+    .select("id")
+    .eq("audit_id", auditId)
+    .in("id", ids);
+  const visible = (rows ?? []).map((r) => r.id);
+  if (visible.length === 0) return { status: "error", message: M.notFound };
+  const { data: briefs } = await supabase
+    .from("plan_item_briefs")
+    .select("target_id")
+    .in("target_id", visible);
+  const kept = new Set((briefs ?? []).flatMap((b) => (b.target_id ? [b.target_id] : [])));
+  const targets = visible.filter((id) => !kept.has(id));
+  if (targets.length === 0) return { status: "error", message: M.notFound };
+  let service: Client;
+  try {
+    service = getServiceClient();
+  } catch {
+    return { status: "error", message: M.unavailable };
+  }
+  const { error } = await service
+    .from("qualified_targets")
+    .update({ dismissed_at: dismiss ? new Date().toISOString() : null })
+    .in("id", targets);
+  if (error) return { status: "error", message: M.unavailable };
+  return {
+    status: "ok",
+    message: dismiss ? M.dismissed(targets.length) : M.restored(targets.length),
+  };
 }

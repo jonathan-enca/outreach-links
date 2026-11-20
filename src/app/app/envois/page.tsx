@@ -25,10 +25,11 @@ async function Envois() {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/connexion");
   const now = new Date();
+  const siteId = await selectedSiteId(supabase);
   const view = await loadEnvois(supabase, {
     now,
     realSending: !env.EMAIL_DRY_RUN && env.OUTREACH_SENDING_ENABLED,
-    siteId: await selectedSiteId(supabase),
+    siteId,
   });
   return (
     <EnvoisScreen
@@ -36,6 +37,8 @@ async function Envois() {
       scheduled={scheduledRows(view.scheduled, view.timezone, now)}
       sent={sentRows(view.sent, view.timezone, now)}
       sentTotal={view.sentTotal}
+      campaigns={view.campaigns}
+      initialCampaign={siteId}
       hours={view.window ? hoursLabel(view.window) : null}
       from={fromLabel(view.provider, view.fromEmail)}
       next={view.nextAt ? nextLabel(view.nextAt, view.timezone) : null}

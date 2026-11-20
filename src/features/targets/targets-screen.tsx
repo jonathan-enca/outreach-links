@@ -1361,6 +1361,8 @@ export function TargetsScreen({
     /** Après validation : relancer la rédaction des messages manquants, ou d'un message refusé. */
     draftMissing?: Act;
     draftAnyway?: (itemId: string) => Promise<AuditActionState>;
+    /** « Écarter » des sites (true) ou les remettre dans « À décider » (false). */
+    dismiss?: (ids: string[], dismiss: boolean) => Promise<AuditActionState>;
   };
 }) {
   // Cibles arrivées pendant la lecture d'arrière-plan : mises de côté jusqu'au clic de l'utilisateur, pour
@@ -1410,6 +1412,16 @@ export function TargetsScreen({
     });
   // Compteur et case maîtresse : ne portent que sur les sites de la liste qui peuvent être cochés.
   const eligible = eligibleIds(pending);
+  // Sites non cochés (cochables ou non) : ceux que « Écarter » sortira de la liste.
+  const unchecked = pending.filter((x) => !selected.has(x.id)).map((x) => x.id);
+  const dismissed = view.dismissed ?? [];
+  const runDismiss = (ids: string[], dismiss: boolean) =>
+    actions.dismiss
+      ? startValidate(async () => {
+          setVState(await actions.dismiss!(ids, dismiss));
+          router.refresh();
+        })
+      : undefined;
   const eligibleSelected = eligible.filter((id) => selected.has(id));
   const allSelected = eligible.length > 0 && eligibleSelected.length === eligible.length;
   const selectAll = () => setSelected((prev) => new Set([...prev, ...eligible]));
@@ -1595,6 +1607,17 @@ export function TargetsScreen({
                     </strong>
                     <span className="block text-sm text-muted-foreground">{M.validate.note}</span>
                   </p>
+                  {actions.dismiss && unchecked.length > 0 ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-11 w-full shrink-0 text-danger sm:h-10 sm:w-auto"
+                      disabled={vPending}
+                      onClick={() => runDismiss(unchecked, true)}
+                    >
+                      {M.validate.dismiss(unchecked.length)}
+                    </Button>
+                  ) : null}
                   <Button
                     type="button"
                     className="h-11 w-full shrink-0 sm:h-10 sm:w-auto"
@@ -1641,6 +1664,36 @@ export function TargetsScreen({
             {view.funnel ? <MoreSites more={view.more} /> : null}
           </>
         )}
+        {dismissed.length > 0 ? (
+          <div className="flex flex-col gap-2.5">
+            <SectionHead
+              id="ecartes"
+              title={A.dismissedTitle}
+              count={dismissed.length}
+              hint={A.dismissedHint}
+            />
+            <Card className="divide-y divide-border p-0">
+              {dismissed.map((x) => (
+                <div key={x.id} className="flex items-center gap-3 px-4 py-2.5">
+                  <span className="min-w-0 flex-1 truncate font-medium">{x.domain}</span>
+                  {actions.dismiss ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={vPending}
+                      aria-label={A.restoreLabel(x.domain)}
+                      onClick={() => runDismiss([x.id], false)}
+                    >
+                      {A.restore}
+                    </Button>
+                  ) : null}
+                </div>
+              ))}
+            </Card>
+            {cards.length === 0 ? <Message state={vState} /> : null}
+          </div>
+        ) : null}
       </section>
     </div>
   );

@@ -1481,6 +1481,9 @@ export const fr = {
         "{n} demandes validées. La rédaction des messages est lancée : vous les relirez dans « À approuver », rien n'est envoyé.",
       validatedNoDrafts: "{n} demandes validées, mais la rédaction n'a pas pu démarrer : {reason}",
       skipped: "{n} ignorées (déjà validées ou sans contact utilisable).",
+      dismissed: (n: number) =>
+        `${n} ${n > 1 ? "sites écartés" : "site écarté"} : ${n > 1 ? "ils ne seront pas contactés" : "il ne sera pas contacté"}.`,
+      restored: (n: number) => `${n} ${n > 1 ? "sites remis" : "site remis"} dans « À décider ».`,
     },
     founder: {
       title: "Qui signe vos messages",
@@ -1762,11 +1765,14 @@ export const fr = {
       nextRefused: (n: number) => `${n} ${n > 1 ? "sites refusés" : "site refusé"} par vous.`,
       nextRefusedLink: "Voir lesquels",
       decideTitle: "À décider",
-      decideHint: "Décochez ceux que vous ne voulez pas contacter.",
+      decideHint: "Décochez ceux que vous ne voulez pas contacter, puis écartez-les.",
       keptTitle: "Retenues",
       keptHint: "Chaque site garde sa ligne, avec l'état de son message.",
-      keptExplain:
-        "Un clic sur une ligne affiche la raison du ciblage. Les sites décochés restent dans « À décider » : rien n'est perdu.",
+      keptExplain: "Un clic sur une ligne affiche la raison du ciblage.",
+      dismissedTitle: "Écartés",
+      dismissedHint: "Ces sites ne seront pas contactés.",
+      restore: "Remettre",
+      restoreLabel: (domain: string) => `Remettre ${domain} dans « À décider »`,
       messageColumn: "Message",
       states: {
         en_redaction: "Rédaction en cours",
@@ -1811,6 +1817,8 @@ export const fr = {
             : `${n} messages seront préparés`,
       note: "Vous les relirez avant tout envoi.",
       empty: "Cochez au moins un site.",
+      dismiss: (n: number) =>
+        n === 1 ? "Écarter le site non coché" : `Écarter les ${n} sites non cochés`,
     },
   },
   opportunities: {
@@ -3006,6 +3014,10 @@ export const fr = {
   /** Écran « Emails » (route /app/envois) : emails programmés, emails partis, état et quotas d'envoi. */
   envois: {
     title: "Emails",
+    campaign: {
+      label: "Campagne",
+      all: "Toutes les campagnes",
+    },
     description:
       "Les messages que vous avez approuvés : ceux qui vont partir, et ceux qui sont déjà partis.",
     stateLabel: "État des envois",
@@ -3365,7 +3377,7 @@ export const fr = {
       refuseTitle: "Si vous refusez",
       refuse: (n: number) =>
         `${n} ${n > 1 ? "messages sont écartés" : "message est écarté"}, rien n'est envoyé. Les cibles rejoignent les cibles écartées.`,
-      refuseNone: "Un formulaire ne se refuse pas ici : rien ne change.",
+      refuseNone: "Rien à refuser dans cette sélection.",
       laterTitle: "Si vous remettez à plus tard",
       later: (n: number) =>
         `${n > 1 ? `Les ${n} éléments quittent la file et reviennent` : "L'élément quitte la file et revient"} demain.`,
@@ -3418,13 +3430,12 @@ export const fr = {
       theirs: "Ce qu'ils ont écrit",
       hook: "S'appuie sur",
       then: "Ensuite",
-      thenEmail:
-        "Le message part de votre boîte, au rythme prévu. Une seule relance, dix jours après, sans réponse.",
+      thenEmail: "Le message part de votre boîte, au rythme prévu.",
       thenForm:
         "Ce site n'a pas d'email. Une fois approuvé, le message vous attend ici, prêt à coller dans son formulaire.",
       todo: "À faire",
       todoForm:
-        "Ce site n'a pas d'adresse email. Copiez le message, ouvrez son formulaire, collez-le, envoyez-le, puis cliquez « C'est fait » : la relance sera prévue dans dix jours.",
+        "Ce site n'a pas d'adresse email. Copiez le message, ouvrez son formulaire, collez-le, envoyez-le, puis cliquez « C'est fait ».",
     },
     messages: {
       unauthenticated: "Connectez-vous pour continuer.",

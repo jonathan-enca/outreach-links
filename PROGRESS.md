@@ -3136,3 +3136,11 @@ Retour de Jonathan : Cibles, À approuver et Emails très lents à s'ouvrir, Acc
 
 - Mesure avant/après faite à l'estimation (nombre d'allers-retours × distance), pas chronométrée sur une session connectée.
 - Pistes suivantes si besoin : `loading.tsx` (squelettes) sur les écrans du menu, compteurs du menu par une seule fonction SQL au lieu de recalculer toute la file.
+
+## Session du 20/11 (suite 8) : refuser des cibles et des formulaires, relance retirée du texte, filtre par campagne sur Emails (fait, une migration)
+
+- **Cibles** : bouton « Écarter les N sites non cochés » dans la barre du bas ; les sites écartés sortent de « À décider » (et du compteur du menu) et vont dans une liste « Écartés » avec « Remettre ». Colonne `qualified_targets.dismissed_at` (migration `2026122000000000_target_dismissed.sql`, **appliquée sur la vraie base**). Code : `dismissTargets` (`targets/service.ts`), `dismissTargetsAction`. Un site déjà retenu n'est jamais écarté.
+- **À approuver** : « Refuser » marche aussi sur les formulaires (seul et en lot) : même effet qu'un email refusé (motif « refusé par vous », brouillon supprimé, « Rédiger quand même » possible). Un formulaire déjà approuvé mais pas fait : sa tâche passe en `ignoree`.
+- **À approuver** : plus de mention de relance (« Une seule relance, dix jours après » et « la relance sera prévue dans dix jours ») : la relance automatique est coupée depuis le 19/11 (`AUTOMATIC_FOLLOW_UP = false`).
+- **Emails** : sélecteur « Campagne » (dès deux campagnes) sur « Programmés » et « Envoyés » ; ouvert sur le site choisi dans le menu. Les jauges (jour, semaine, mois) restent celles de la boîte, toutes campagnes.
+- **Dettes** : les pages publiques (accueil, tarifs, FAQ) parlent encore d'« une seule relance » ; à aligner si la relance ne revient pas.

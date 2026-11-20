@@ -21,6 +21,10 @@ export interface EnvoisScreenProps {
   sent: EnvoiRow[];
   /** Nombre total d'emails partis (la liste peut en montrer moins). */
   sentTotal: number;
+  /** Campagnes présentes dans les listes : un filtre apparaît dès qu'il y en a deux. */
+  campaigns?: { id: string; label: string }[];
+  /** Campagne choisie à l'ouverture (le site choisi dans le menu), sinon toutes. */
+  initialCampaign?: string | null;
   /** Horaires d'envoi déjà mis en mots, et d'où partent les emails. */
   hours: string | null;
   from: string | null;
@@ -249,6 +253,8 @@ export function EnvoisScreen({
   scheduled,
   sent,
   sentTotal,
+  campaigns = [],
+  initialCampaign = null,
   hours,
   from,
   next,
@@ -264,6 +270,12 @@ export function EnvoisScreen({
   const [tab, setTab] = useState<"scheduled" | "sent">("scheduled");
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
   const [allSent, setAllSent] = useState(false);
+  const [campaign, setCampaign] = useState<string>(() =>
+    initialCampaign && campaigns.some((c) => c.id === initialCampaign) ? initialCampaign : "all",
+  );
+  const inCampaign = (r: EnvoiRow) => campaign === "all" || r.campaignId === campaign;
+  const scheduledShown = scheduled.filter(inCampaign);
+  const sentInCampaign = sent.filter(inCampaign);
   function run(task: () => Promise<AuditActionState>) {
     start(async () => {
       const r = await task();
@@ -287,10 +299,12 @@ export function EnvoisScreen({
   const note =
     state === "actif" || state === "pause" ? quotaNote(day, dayLimited, month, warmingUp) : null;
   const f = M.facts;
-  const shownSent = allSent ? sent : sent.slice(0, SENT_FIRST);
+  const shownSent = allSent ? sentInCampaign : sentInCampaign.slice(0, SENT_FIRST);
+  // Total des envoyés : celui du serveur pour toutes les campagnes, sinon ceux chargés de la campagne.
+  const sentCount = campaign === "all" ? sentTotal : sentInCampaign.length;
   const tabs = [
-    { key: "scheduled", label: M.tabs.scheduled, count: scheduled.length },
-    { key: "sent", label: M.tabs.sent, count: sentTotal },
+    { key: "scheduled", label: M.tabs.scheduled, count: scheduledShown.length },
+    { key: "sent", label: M.tabs.sent, count: sentCount },
   ] as const;
 
   return (
@@ -374,6 +388,29 @@ export function EnvoisScreen({
       </Card>
 
       <div className="flex flex-col gap-3.5">
+        {campaigns.length > 1 ? (
+          <label className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2.5">
+            <span className="text-[13px] font-medium text-muted-foreground">
+              {M.campaign.label}
+            </span>
+            <select
+              value={campaign}
+              onChange={(e) => {
+                setCampaign(e.target.value);
+                setAllSent(false);
+                setMessage(null);
+              }}
+              className="h-10 w-full rounded-control border border-border bg-card px-2 text-sm font-medium sm:w-auto"
+            >
+              <option value="all">{M.campaign.all}</option>
+              {campaigns.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <div role="tablist" aria-label={M.tabsLabel} className="flex gap-1 border-b border-border">
           {tabs.map((x) => (
             <button
@@ -405,7 +442,7 @@ export function EnvoisScreen({
 
         {tab === "scheduled" ? (
           <MailList
-            rows={scheduled}
+            rows={scheduledShown}
             sent={false}
             empty={M.emptyScheduled}
             open={open}
@@ -423,7 +460,7 @@ export function EnvoisScreen({
               pending={pending}
               onOpen={toggleOpen}
             />
-            {!allSent && sent.length > SENT_FIRST ? (
+            {!allSent && sentInCampaign.length > SENT_FIRST ? (
               <Button
                 type="button"
                 variant="outline"
@@ -431,10 +468,10 @@ export function EnvoisScreen({
                 className="self-center"
                 onClick={() => setAllSent(true)}
               >
-                {M.older(sent.length - SENT_FIRST)}
+                {M.older(sentInCampaign.length - SENT_FIRST)}
               </Button>
             ) : null}
-            {allSent && sentTotal > sent.length ? (
+            {allSent && campaign === "all" && sentTotal > sent.length ? (
               <p className="text-center text-sm text-muted-foreground">
                 {M.truncated(sent.length)}
               </p>
