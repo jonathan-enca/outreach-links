@@ -193,6 +193,7 @@ export async function loadQueue(
     supabase
       .from("draft_declines")
       .select("plan_id, plan_item_id, reason, page_url, created_at, link_plan_items(source_domain)")
+      .eq("declined_by", "utilisateur")
       .order("created_at", { ascending: false })
       .limit(200),
     supabase

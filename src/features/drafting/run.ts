@@ -3,7 +3,7 @@ import type { Database, Json } from "@/lib/supabase/database.types";
 import type { CataloguePage } from "./catalogue";
 import type { CatalogueEntry } from "./shortlist";
 import { DRAFT_LIMITS } from "./limits";
-import type { DraftBrief, DraftContext, DraftDecline, DraftItem, DraftResult } from "./types";
+import type { DraftBrief, DraftContext, DraftItem, DraftResult } from "./types";
 
 type Client = SupabaseClient<Database>;
 
@@ -46,7 +46,7 @@ export async function loadDraftInput(
   ctx: DraftContext | null;
   siteId: string;
 }> {
-  const [contactsRes, triageRes, itemsRes, siteRes, briefsRes, writtenRes, declinedRes] =
+  const [contactsRes, triageRes, itemsRes, siteRes, briefsRes, writtenRes, refusedRes] =
     await Promise.all([
       service
         .from("target_contacts")
@@ -73,20 +73,18 @@ export async function loadDraftInput(
         .limit(500),
       // Messages déjà écrits : jamais réécrits (un message modifié ou validé par la personne est gardé).
       service.from("target_drafts").select("plan_item_id").eq("plan_id", run.planId).limit(1000),
+      // Refus de la personne seulement : les anciens écartements du tri ou du rédacteur ne comptent plus.
       service
         .from("draft_declines")
         .select("plan_item_id, retry_requested")
         .eq("plan_id", run.planId)
+        .eq("declined_by", "utilisateur")
         .limit(1000),
     ]);
   if (contactsRes.error) throw new Error(`loadDraftInput : ${contactsRes.error.message}`);
-  if (declinedRes.error) throw new Error(`loadDraftInput : ${declinedRes.error.message}`);
-  // Déjà traitées : message écrit, ou cible écartée (sauf si la personne a demandé « rédiger quand même »).
-  const forced = new Set(
-    (declinedRes.data ?? []).filter((d) => d.retry_requested).map((d) => d.plan_item_id),
-  );
+  // Déjà traitées : message écrit, ou refus de la personne (sauf si elle a demandé à réessayer).
   const written = new Set(
-    [...(writtenRes.data ?? []), ...(declinedRes.data ?? []).filter((d) => !d.retry_requested)].map(
+    [...(writtenRes.data ?? []), ...(refusedRes.data ?? []).filter((d) => !d.retry_requested)].map(
       (d) => d.plan_item_id,
     ),
   );
@@ -136,11 +134,10 @@ export async function loadDraftInput(
       pageTitle: tr.page_title,
       hook,
       brief,
-      force: forced.has(it.id) || undefined,
       pos: it.position,
     });
   }
-  all.sort((a, b) => Number(!!b.force) - Number(!!a.force) || a.pos - b.pos);
+  all.sort((a, b) => a.pos - b.pos);
   const items = all.slice(0, DRAFT_LIMITS.maxItems).map((x) => {
     const rest: DraftItem & { pos?: number } = { ...x };
     delete rest.pos;
@@ -266,29 +263,6 @@ export async function saveCataloguePages(
   if (ce) throw new Error(`saveCataloguePages (catalogue) : ${ce.message}`);
 }
 
-/** Garde la décision « pas d'angle » : la cible ne sera pas rejouée, et l'utilisateur voit le motif. */
-export async function saveDecline(
-  service: Client,
-  run: DraftRun,
-  d: DraftDecline,
-  pageUrl: string,
-) {
-  const { error } = await service.from("draft_declines").upsert(
-    {
-      plan_item_id: d.itemId,
-      plan_id: run.planId,
-      workspace_id: run.workspaceId,
-      reason: d.reason.slice(0, 1000),
-      declined_by: d.by,
-      page_url: pageUrl,
-      cost_usd: d.costUsd,
-      retry_requested: false,
-    },
-    { onConflict: "plan_item_id" },
-  );
-  if (error) throw new Error(`saveDecline : ${error.message}`);
-}
-
 /** Messages déjà écrits du plan (pour le contrôle des doublons à la reprise d'un step). */
 export async function loadWrittenBodies(
   service: Client,
@@ -327,9 +301,6 @@ export async function saveDraft(service: Client, run: DraftRun, r: DraftResult) 
     { onConflict: "plan_item_id" },
   );
   if (error) throw new Error(`saveDraft : ${error.message}`);
-  // Une cible écartée puis rédigée « quand même » n'est plus écartée.
-  const { error: de } = await service.from("draft_declines").delete().eq("plan_item_id", r.itemId);
-  if (de) throw new Error(`saveDraft (écartée) : ${de.message}`);
   if (r.channel === "formulaire") {
     // Seule une tâche encore « à faire » reçoit le message : une tâche faite n'est pas touchée.
     const { error: te } = await service
@@ -343,8 +314,6 @@ export async function saveDraft(service: Client, run: DraftRun, r: DraftResult) 
 
 export interface DraftStats {
   drafted: number;
-  /** Cibles écartées : aucune raison honnête de demander un lien. */
-  declined: number;
   skipped: number;
   notDrafted: number;
   ready: number;
@@ -357,11 +326,9 @@ export function summarize(
   results: DraftResult[],
   notDrafted: number,
   skipped: number,
-  declined = 0,
 ): DraftStats {
   return {
     drafted: results.length,
-    declined,
     skipped,
     notDrafted,
     ready: results.filter((r) => r.ready).length,

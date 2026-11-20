@@ -6,7 +6,6 @@ import { lintMessage, maxSimilarity } from "./lint";
 import { movedAway, readableHtml } from "./readable";
 import { shortlistCatalogue, type CatalogueEntry } from "./shortlist";
 import type {
-  DeclinedBy,
   DraftContext,
   DraftItem,
   DraftResult,
@@ -42,8 +41,6 @@ export interface DraftDeps {
 
 export type DraftOutcome =
   | { result: DraftResult }
-  /** Aucune raison honnête de demander un lien : décision gardée, la cible n'est pas rejouée. */
-  | { declined: { reason: string; by: DeclinedBy; costUsd: number } }
   /** Empêchement passager (page illisible, panne) : la cible sera reprise à la prochaine rédaction. */
   | { skipped: string; costUsd: number };
 
@@ -112,30 +109,23 @@ export async function draftItem(
     undefined,
     deps.pageTraffic,
   );
+  // Toute cible validée est écrite : le tri ne sert qu'à choisir les pages. Une panne du tri ne bloque
+  // pas la cible : les pages les plus proches vont alors au rédacteur.
   let triagePassage: string | null = null;
-  let chosenUrls: string[];
-  if (item.force) {
-    // « Rédiger quand même » : pas de tri, les pages les plus proches vont droit au rédacteur.
-    chosenUrls = shortlist.slice(0, DRAFT_LIMITS.candidatePages).map((p) => p.url);
-  } else {
-    let triage;
-    try {
-      triage = await triageTarget(deps.triage, item, ctx, page, shortlist, deps.scope);
-    } catch (e) {
-      return { skipped: `Tri impossible : ${errorText(e)}.`, costUsd: cost };
-    }
+  let chosenUrls: string[] = [];
+  try {
+    const triage = await triageTarget(deps.triage, item, ctx, page, shortlist, deps.scope);
     cost += triage.costUsd;
-    if (triage.verdict === "pas_d_angle") {
-      return { declined: { reason: triage.motif, by: "tri", costUsd: cost } };
-    }
     triagePassage = triage.passage;
     chosenUrls = triage.pages
       .map((u) => findCataloguePage(shortlist, u) ?? findCataloguePage(deps.catalogue, u))
       .filter((p): p is CatalogueEntry => p !== null)
       .map((p) => p.url);
-    // « Le catalogue n'a pas la page » n'est jamais un motif de refus : à défaut, la plus proche.
-    if (chosenUrls.length === 0) chosenUrls = shortlist.map((p) => p.url);
+  } catch {
+    // Tri en panne : repris par les pages les plus proches ci-dessous.
   }
+  // « Le catalogue n'a pas la page » n'est jamais un motif de refus : à défaut, la plus proche.
+  if (chosenUrls.length === 0) chosenUrls = shortlist.map((p) => p.url);
   chosenUrls = [...new Set(chosenUrls)].slice(0, DRAFT_LIMITS.candidatePages);
   let candidates: CataloguePage[];
   try {
@@ -172,9 +162,6 @@ export async function draftItem(
       return { skipped: `Rédaction impossible : ${errorText(e)}.`, costUsd: cost };
     }
     cost += w.costUsd;
-    if (w.verdict === "pas_d_angle") {
-      return { declined: { reason: w.angle, by: "redacteur", costUsd: cost } };
-    }
     const chosen = w.page_proposee ? findCataloguePage(candidates, w.page_proposee) : null;
     const body = (w.message ?? "").trim();
     if (!chosen || !body) {

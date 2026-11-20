@@ -205,12 +205,13 @@ export function countMissing(
   contacts: readonly { plan_id: string; plan_item_id: string }[],
   triage: readonly { plan_item_id: string }[],
   drafts: readonly { plan_item_id: string }[],
-  declines: readonly { plan_item_id: string; retry_requested?: boolean }[] = [],
+  refusals: readonly { plan_item_id: string; retry_requested?: boolean }[] = [],
 ): Map<string, number> {
   const draftable = new Set(triage.map((x) => x.plan_item_id));
-  // Une cible écartée est traitée, sauf si la personne a demandé « rédiger quand même ».
+  // Seul un refus de la personne compte comme traité ; les anciens écartements du tri ou du rédacteur
+  // n'existent plus : ces cibles sont rédigées (les refus de la personne sont passés en paramètre).
   const done = new Set(
-    [...drafts, ...declines.filter((d) => !d.retry_requested)].map((d) => d.plan_item_id),
+    [...drafts, ...refusals.filter((d) => !d.retry_requested)].map((d) => d.plan_item_id),
   );
   const out = new Map<string, number>();
   for (const c of contacts) {
@@ -236,7 +237,11 @@ export async function missingDrafts(supabase: Client): Promise<MissingDrafts> {
       .limit(3000),
     supabase.from("target_drafts").select("plan_item_id").limit(3000),
     supabase.from("draft_runs").select("plan_id, status").limit(500),
-    supabase.from("draft_declines").select("plan_item_id, retry_requested").limit(3000),
+    supabase
+      .from("draft_declines")
+      .select("plan_item_id, retry_requested")
+      .eq("declined_by", "utilisateur")
+      .limit(3000),
   ]);
   const missing = countMissing(
     contacts.data ?? [],

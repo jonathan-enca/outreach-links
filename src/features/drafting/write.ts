@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { LlmClient } from "@/lib/llm/client";
 import { presentationText } from "@/features/signature/signature";
-import { FIVE_REFUSALS, keepNear, SIGNALS } from "@/features/qualification/refusals";
+import { SIGNALS } from "@/features/qualification/refusals";
 import type { CataloguePage } from "./catalogue";
 import type { CatalogueEntry } from "./shortlist";
 import { DRAFT_LIMITS } from "./limits";
@@ -37,10 +37,7 @@ Dans le texte de sa page, les liens vers d'autres sites sont notés [texte](adre
 Un billet ancien n'est PAS une raison de refuser : beaucoup de petits sites gardent leurs pages de ressources des années et répondent quand on leur écrit avec une demande précise.
 D'autres angles honnêtes existent ("autre") : la page cite déjà l'expéditeur sans faire de lien, ou elle donne une information périmée que notre page corrige. Ils sont plus rares : ne les retiens que si la page les montre vraiment.`;
 
-const NO_ANGLE = `Ne refuse (situation "aucune") que dans ces cinq cas :
-${FIVE_REFUSALS}
-Dans tous les autres cas la cible est écrite. ${keepNear("rédigée")}
-Ces points ne sont PAS des refus, mais des signaux à reporter dans "a_relire" (une phrase, pour la personne qui relira le message avant l'envoi) : ${SIGNALS}. "a_relire" vaut null quand rien de tel ne se voit.`;
+const NO_ANGLE = `Il n'existe aucun refus : chaque cible validée est écrite. Si la page ne montre pas de passage idéal, prends la page du site la plus proche, même imparfaite, et signale-le dans "a_relire" (une phrase, pour la personne qui relira le message avant l'envoi) : ${SIGNALS}. "a_relire" vaut null quand rien de tel ne se voit.`;
 
 const PAGE_CHOICE = `La page à proposer est celle qui a sa place à l'endroit relevé. Quand sa page liste des sites ou des ressources du même genre, c'est la page du catalogue qui correspond à ce que cette liste recommande (la rubrique, la page de thème ou l'outil voisin de ce qu'elle cite déjà), pas forcément un article. Quand le point est précis (un lien cassé, un passage), c'est la page qui traite exactement ce point. Si aucune page ne répond exactement, prends la plus proche du sujet et du public de sa page.`;
 
@@ -66,7 +63,7 @@ ${THREE_CASES}
 
 Réponds :
 - "situation" : "lien_mort", "petit_editeur_ressources", "cite_des_comparables", "autre" ou "aucune".
-- "verdict" : "angle" si la cible est écrite (une des quatre premières situations, "autre" pour une cible proche sans cas précis), "pas_d_angle" seulement pour un des cinq refus.
+- "verdict" : toujours "angle" (toute cible validée est écrite ; "autre" pour une cible proche sans cas précis).
 - "motif" : une ou deux phrases. Pour un angle : ce que sa page cite déjà (ou le point précis, ou la proximité) et pourquoi une de nos pages y a sa place. Sinon : lequel des cinq refus.
 - "passage" : pour un angle, la phrase ou le lien précis de sa page que le message citerait, copié mot pour mot, court ; sinon null.
 - "pages" : pour un angle, de 1 à ${DRAFT_LIMITS.candidatePages} adresses de la sélection, la plus proche d'abord, copiées telles quelles, même imparfaites. ${PAGE_CHOICE} Sinon, liste vide.
@@ -75,7 +72,7 @@ ${UNTRUSTED}`;
 
 export const WRITER_SYSTEM = `${SITUATION}
 
-Ton rôle : confirmer que la cible mérite un message, puis écrire ce message comme l'expéditeur l'écrirait lui-même à la main, à une personne. Un premier tri a retenu cette cible : tu ne la refuses que dans un des cinq cas ci-dessous.
+Ton rôle : confirmer que la cible mérite un message, puis écrire ce message comme l'expéditeur l'écrirait lui-même à la main, à une personne. Toute cible validée est écrite : tu ne la refuses jamais.
 
 1. Cherche l'angle. Lis toute la page de la cible : qui la tient, pour qui, ce qu'elle cite déjà. Lis les pages candidates du site de l'expéditeur (fournies en entier) et choisis celle qui a sa place à l'endroit relevé, ou à défaut la plus proche. N'affirme rien sur notre page qu'elle ne contient pas.
 
@@ -99,7 +96,7 @@ ${THREE_CASES}
 
 Réponds :
 - "situation" : "lien_mort", "petit_editeur_ressources", "cite_des_comparables", "autre" ou "aucune".
-- "verdict" : "angle" si le message est écrit (une des quatre premières situations), "pas_d_angle" seulement pour un des cinq refus.
+- "verdict" : toujours "angle" (le message est écrit).
 - "angle" : deux phrases lisibles par l'expéditeur. Ce que la page de la cible cite déjà (ou le point précis, ou la proximité) et pourquoi notre page y a sa place ; ou le refus.
 - "a_relire" : la réserve à relire avant l'envoi (voir plus haut), ou null.
 - "page_proposee" : l'adresse de la page candidate choisie, copiée telle quelle ; null sans angle.
@@ -215,9 +212,7 @@ export function buildWriterPrompt(
   feedback: WriterFeedback = { issues: [], avoid: [] },
 ): string {
   const parts = [
-    item.force
-      ? `La personne qui envoie ce message demande expressément qu'il soit écrit malgré un premier refus automatique : écris-le au mieux avec la page du site la plus proche, et note tes réserves dans "a_relire". Ne réponds "pas_d_angle" que pour un concurrent direct, un document juridique ou une page sans aucun rapport.`
-      : `Confirme la cible, puis écris le message.`,
+    `Confirme la cible, puis écris le message.`,
     wrap({
       langue: ctx.language,
       canal: item.channel === "email" ? "email" : "formulaire_de_contact",

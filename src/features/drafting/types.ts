@@ -41,8 +41,6 @@ export interface DraftItem {
   hook: string;
   /** Demande précise issue des constats de page (MT.5) ; absent pour un plan d'opportunités. */
   brief?: DraftBrief | null;
-  /** « Rédiger quand même » : la personne a demandé un message pour cette cible écartée. */
-  force?: boolean;
 }
 
 /** Page de la cible, relue en entier au moment de rédiger. */
@@ -87,17 +85,6 @@ export interface DraftResult {
   ready: boolean;
   /** Réserve du rédacteur à relire avant d'envoyer (lien unique, ancre optimisée...) : un signal, pas un refus. */
   reviewNote: string | null;
-  costUsd: number;
-}
-
-/** Qui a écarté la cible : le tri (petit modèle), le rédacteur (modèle fort) ou la lecture de sa page. */
-export type DeclinedBy = "tri" | "redacteur" | "lecture";
-
-/** Cible écartée : aucune raison honnête de demander un lien. Décision gardée, jamais rejouée. */
-export interface DraftDecline {
-  itemId: string;
-  reason: string;
-  by: DeclinedBy;
   costUsd: number;
 }
 
