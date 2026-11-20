@@ -2597,7 +2597,7 @@ export const fr = {
         linksHint: "vérifiés sur la page",
       },
       steps: {
-        title: "Vos premiers liens",
+        title: "Mise en route",
         progress: (done: number, total: number) => `${done} sur ${total} faits`,
         searchConsole: "Connectez la Search Console",
         searchConsoleDone: "Search Console connectée",
