@@ -26,12 +26,12 @@ export function Hero() {
           <p className="mb-5 text-sm font-medium text-muted-foreground">{h.audience}</p>
           <h1
             id="hero-titre"
-            className="text-balance text-5xl font-bold leading-[1.03] tracking-tight sm:text-6xl"
+            className="text-balance text-[40px] font-bold leading-[1.05] tracking-tight sm:text-6xl sm:leading-[1.03]"
           >
             <span className="text-primary">{h.titleAccent}</span> {h.titleRest}
           </h1>
-          <p className="mt-7 max-w-[54ch] text-lg text-muted-foreground">{h.lead}</p>
-          <div className="mt-9 flex flex-wrap justify-center gap-3">
+          <p className="mt-7 max-w-[54ch] text-[17px] text-muted-foreground sm:text-lg">{h.lead}</p>
+          <div className="mt-9 grid w-full gap-3 sm:flex sm:w-auto sm:flex-wrap sm:justify-center">
             <Button asChild className="h-12 px-6 text-base">
               <Link href="/inscription">
                 {h.cta.primary}

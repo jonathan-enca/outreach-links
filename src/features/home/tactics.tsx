@@ -5,6 +5,30 @@ import { t } from "@/lib/messages";
 import { HOME_SECTIONS } from "./sections";
 import { SectionHeading } from "./section-heading";
 
+type Step = { title: string; text: string };
+
+/** Déroulé d'une tactique en étapes numérotées. */
+function Steps({ steps, className }: { steps: readonly Step[]; className: string }) {
+  return (
+    <ol className={className}>
+      {steps.map((step, j) => (
+        <li key={step.title} className="flex items-start gap-3">
+          <span
+            aria-hidden
+            className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
+          >
+            {j + 1}
+          </span>
+          <div>
+            <p className="text-[15px] font-semibold leading-snug">{step.title}</p>
+            <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">{step.text}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 /**
  * Tactiques : les trois façons d'obtenir un lien, côte à côte dès le bureau. Chaque colonne donne le
  * principe, le déroulé en étapes, puis un exemple de demande aligné en pied de carte.
@@ -41,24 +65,23 @@ export function Tactics() {
               <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground lg:min-h-[98px]">
                 {item.text}
               </p>
-              <ol className="mt-5 grid gap-3.5 border-t border-border pt-5">
-                {item.steps.map((step, j) => (
-                  <li key={step.title} className="flex items-start gap-3">
-                    <span
-                      aria-hidden
-                      className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
-                    >
-                      {j + 1}
-                    </span>
-                    <div>
-                      <p className="text-[15px] font-semibold leading-snug">{step.title}</p>
-                      <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
-                        {step.text}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
+              {/* Mobile : étapes repliées, l'exemple reste visible. */}
+              <details className="group/steps mt-4 border-t border-border pt-3 sm:hidden">
+                <summary className="cursor-pointer list-none text-[15px] font-semibold text-primary [&::-webkit-details-marker]:hidden">
+                  <span aria-hidden className="group-open/steps:hidden">
+                    ▸{" "}
+                  </span>
+                  <span aria-hidden className="hidden group-open/steps:inline">
+                    ▾{" "}
+                  </span>
+                  {s.showSteps.replace("{n}", String(item.steps.length))}
+                </summary>
+                <Steps steps={item.steps} className="mt-3 grid gap-3.5" />
+              </details>
+              <Steps
+                steps={item.steps}
+                className="mt-5 hidden gap-3.5 border-t border-border pt-5 sm:grid"
+              />
               <div className="mt-auto pt-6">
                 <figure className="rounded-card border border-border bg-muted p-4">
                   <figcaption className="text-sm">
