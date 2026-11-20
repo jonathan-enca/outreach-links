@@ -179,6 +179,7 @@ function Row({ siteId, box }: { siteId: string; box: MailboxView }) {
           </Button>
         </form>
       </div>
+      <p className="text-sm text-muted-foreground">{m.testHint}</p>
       <Status state={unlinkState} />
       <Status state={testState} />
       <Status state={rmState} />

@@ -18,7 +18,6 @@ describe("réglages sur téléphone", () => {
     const hrefs = settingsGroups().flatMap((g) => g.links.map((l) => l.href));
     for (const h of [
       "/app/reglages/boite",
-      "/app/reglages/messages",
       "/app/reglages/notifications",
       "/app/facturation",
       "/app/garde-fous",

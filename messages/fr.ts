@@ -1993,7 +1993,9 @@ export const fr = {
   },
   mailboxes: {
     title: "Boîte d'envoi",
-    body: "Les messages partent de votre propre boîte, uniquement ceux que vous avez approuvés. Le mot de passe est chiffré avant d'être enregistré et n'est jamais affiché ni relu. Ici, rien n'est envoyé à un tiers : le test vérifie seulement la connexion et, si l'envoi réel est activé, vous adresse un message de test à vous-même.",
+    body: "La boîte connectée sert uniquement à envoyer les messages que vous avez approuvés. Pour l'instant, seul Gmail se connecte sans mot de passe, avec Google. Les réponses arrivent directement dans votre boîte habituelle. Les envois sont espacés et plafonnés par heure et par jour, du lundi au vendredi de 9 h à 18 h, pour ne pas ressembler à du spam et protéger la réputation de votre adresse.",
+    testHint:
+      "Le test vérifie seulement la connexion et, si l'envoi réel est activé, vous adresse un message de test à vous-même.",
     emptyTitle: "Aucune boîte connectée",
     email: "Adresse d'envoi",
     fromName: "Nom affiché",
@@ -2595,7 +2597,7 @@ export const fr = {
         linksHint: "vérifiés sur la page",
       },
       steps: {
-        title: "Vos premiers liens",
+        title: "Mise en route",
         progress: (done: number, total: number) => `${done} sur ${total} faits`,
         searchConsole: "Connectez la Search Console",
         searchConsoleDone: "Search Console connectée",
@@ -2625,6 +2627,8 @@ export const fr = {
       todo: {
         title: "À faire maintenant",
         none: "Rien ne vous attend pour l'instant.",
+        targets: (n: number) =>
+          `${n} ${n > 1 ? "cibles attendent" : "cible attend"} votre choix ; les messages sont déjà rédigés`,
         replies: (n: number) =>
           `${n} ${n > 1 ? "réponses attendent" : "réponse attend"} votre décision`,
         drafts: (n: number) => `${n} ${n > 1 ? "messages" : "message"} à valider avant envoi`,
@@ -3247,6 +3251,8 @@ export const fr = {
     },
     choose: (name: string) => `Choisir ${name}`,
     comparison: "Comparer les offres",
+    changePlan: "Changer de plan",
+    hidePlans: "Masquer les offres",
     period: {
       group: "Période de facturation",
       monthly: "Mensuel",

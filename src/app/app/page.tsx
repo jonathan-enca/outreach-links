@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FirstLinksPanel } from "@/features/shell/first-links-panel";
-import { START_HREF } from "@/features/shell/next-step";
+import { START_HREF, siteHref } from "@/features/shell/next-step";
 import { loadOverview } from "@/features/shell/overview";
 import { selectedSiteId } from "@/features/shell/current-site";
 import { t } from "@/lib/messages";
@@ -35,7 +35,7 @@ function Stat({
 }
 
 /**
- * Accueil (maquette validée le 18/11) : quatre compteurs, « Vos premiers liens » (le même fil qu'à
+ * Accueil (maquette validée le 18/11) : quatre compteurs, « Mise en route » (le même fil qu'à
  * l'onboarding, visible dès l'arrivée, sans site compris) et ce qui attend la personne.
  */
 async function Home() {
@@ -43,10 +43,13 @@ async function Home() {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/connexion");
   // Le site choisi dans le menu filtre les compteurs et « À faire maintenant ».
-  const o = await loadOverview(supabase, await selectedSiteId(supabase));
+  const siteId = await selectedSiteId(supabase);
+  const o = await loadOverview(supabase, siteId);
   const pct =
     o.totals.contacted > 0 ? Math.round((o.totals.replies / o.totals.contacted) * 100) : null;
+  const toValidate = o.totals.targets - o.totals.validated;
   const todo = [
+    { n: toValidate, text: H.todo.targets, href: siteId ? siteHref.cibles(siteId) : START_HREF },
     { n: o.pending.replies, text: H.todo.replies, href: "/app/inbox" },
     { n: o.pending.drafts, text: H.todo.drafts, href: "/app/a-valider" },
     { n: o.pending.forms, text: H.todo.forms, href: "/app/taches" },

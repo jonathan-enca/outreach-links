@@ -82,6 +82,7 @@ export function BillingSection({
   const current = overview.plans.find((p) => p.key === overview.plan);
   const isFree = overview.plan === "gratuit";
   const [period, setPeriod] = useState<Period>("month");
+  const [showPlans, setShowPlans] = useState(false);
   const annual = period === "year";
   const groupId = "periode-facturation-dashboard";
   const discountPct = (() => {
@@ -118,6 +119,16 @@ export function BillingSection({
             </p>
           )}
           {testMode ? <p className="text-sm text-muted-foreground">{b.fakeNote}</p> : null}
+          <div className="mt-3">
+            <Button
+              type="button"
+              aria-expanded={showPlans}
+              aria-controls="offres"
+              onClick={() => setShowPlans((v) => !v)}
+            >
+              {showPlans ? b.hidePlans : b.changePlan}
+            </Button>
+          </div>
         </div>
         {overview.hasCustomer ? (
           <div className="flex flex-col gap-2">
@@ -148,122 +159,126 @@ export function BillingSection({
         </div>
       </Card>
 
-      {/* Comparaison des offres */}
-      <section aria-labelledby="offres-titre" className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h3 id="offres-titre" className="font-display text-lg font-semibold">
-            {b.comparison}
-          </h3>
-          <div
-            role="group"
-            aria-labelledby={groupId}
-            className="inline-flex gap-1 rounded-card bg-muted p-1"
-          >
-            <span id={groupId} className="sr-only">
-              {b.period.group}
-            </span>
-            <button
-              type="button"
-              aria-pressed={!annual}
-              onClick={() => setPeriod("month")}
-              className={`h-9 rounded-[calc(var(--radius)-2px)] px-4 text-sm font-medium ${!annual ? "bg-card shadow-card" : "text-muted-foreground"}`}
+      {/* Comparaison des offres : repliée tant que la personne ne demande pas à changer de forfait */}
+      {showPlans ? (
+        <section id="offres" aria-labelledby="offres-titre" className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <h3 id="offres-titre" className="font-display text-lg font-semibold">
+              {b.comparison}
+            </h3>
+            <div
+              role="group"
+              aria-labelledby={groupId}
+              className="inline-flex gap-1 rounded-card bg-muted p-1"
             >
-              {b.period.monthly}
-            </button>
-            <button
-              type="button"
-              aria-pressed={annual}
-              onClick={() => setPeriod("year")}
-              className={`inline-flex h-9 items-center gap-2 rounded-[calc(var(--radius)-2px)] px-4 text-sm font-medium ${annual ? "bg-card shadow-card" : "text-muted-foreground"}`}
-            >
-              {b.period.annual}
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                {b.period.discount.replace("{pct}", String(discountPct))}
+              <span id={groupId} className="sr-only">
+                {b.period.group}
               </span>
-            </button>
+              <button
+                type="button"
+                aria-pressed={!annual}
+                onClick={() => setPeriod("month")}
+                className={`h-9 rounded-[calc(var(--radius)-2px)] px-4 text-sm font-medium ${!annual ? "bg-card shadow-card" : "text-muted-foreground"}`}
+              >
+                {b.period.monthly}
+              </button>
+              <button
+                type="button"
+                aria-pressed={annual}
+                onClick={() => setPeriod("year")}
+                className={`inline-flex h-9 items-center gap-2 rounded-[calc(var(--radius)-2px)] px-4 text-sm font-medium ${annual ? "bg-card shadow-card" : "text-muted-foreground"}`}
+              >
+                {b.period.annual}
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                  {b.period.discount.replace("{pct}", String(discountPct))}
+                </span>
+              </button>
+            </div>
           </div>
-        </div>
-        <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {overview.plans.map((p) => {
-            const isCurrent = p.key === overview.plan;
-            const isFeatured = p.key === "pro";
-            const price = priceFor(p, period);
-            return (
-              <li key={p.key}>
-                <Card
-                  className={`flex h-full flex-col gap-4 p-6 ${isCurrent ? "border-primary ring-1 ring-primary" : ""}`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <h4 className="font-display text-lg font-semibold">{p.name}</h4>
-                    {isCurrent ? (
-                      <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground">
-                        {b.current}
-                      </span>
-                    ) : isFeatured ? (
-                      <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold">
-                        {h.popular}
-                      </span>
-                    ) : null}
-                  </div>
-                  <div>
-                    <p className="text-2xl font-semibold tabular-nums">
-                      {p.price_eur_cents === 0 ? b.free : price.main}
-                      {p.price_eur_cents === 0 ? null : (
-                        <span className="ml-1 text-sm font-normal text-muted-foreground">
-                          {annual ? b.period.perMonthAnnual : b.perMonth}
+          <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {overview.plans.map((p) => {
+              const isCurrent = p.key === overview.plan;
+              const isFeatured = p.key === "pro";
+              const price = priceFor(p, period);
+              return (
+                <li key={p.key}>
+                  <Card
+                    className={`flex h-full flex-col gap-4 p-6 ${isCurrent ? "border-primary ring-1 ring-primary" : ""}`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="font-display text-lg font-semibold">{p.name}</h4>
+                      {isCurrent ? (
+                        <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground">
+                          {b.current}
                         </span>
-                      )}
-                    </p>
-                    <p className="min-h-5 text-sm text-muted-foreground tabular-nums">
-                      {price.billed && p.price_eur_cents !== 0
-                        ? b.period.billedYearly.replace("{amount}", price.billed)
-                        : " "}
-                    </p>
-                  </div>
-                  <dl className="grid gap-2.5 border-t border-border pt-4 text-sm">
-                    {rowsOf(p).map((row) => (
-                      <div key={row.label} className="flex items-center justify-between gap-3">
-                        <dt className="text-muted-foreground">{row.label}</dt>
-                        <dd className="text-right font-semibold tabular-nums">
-                          {"flag" in row ? (
-                            row.flag ? (
-                              <Check aria-hidden className="size-4 text-primary" />
+                      ) : isFeatured ? (
+                        <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold">
+                          {h.popular}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div>
+                      <p className="text-2xl font-semibold tabular-nums">
+                        {p.price_eur_cents === 0 ? b.free : price.main}
+                        {p.price_eur_cents === 0 ? null : (
+                          <span className="ml-1 text-sm font-normal text-muted-foreground">
+                            {annual ? b.period.perMonthAnnual : b.perMonth}
+                          </span>
+                        )}
+                      </p>
+                      <p className="min-h-5 text-sm text-muted-foreground tabular-nums">
+                        {price.billed && p.price_eur_cents !== 0
+                          ? b.period.billedYearly.replace("{amount}", price.billed)
+                          : " "}
+                      </p>
+                    </div>
+                    <dl className="grid gap-2.5 border-t border-border pt-4 text-sm">
+                      {rowsOf(p).map((row) => (
+                        <div key={row.label} className="flex items-center justify-between gap-3">
+                          <dt className="text-muted-foreground">{row.label}</dt>
+                          <dd className="text-right font-semibold tabular-nums">
+                            {"flag" in row ? (
+                              row.flag ? (
+                                <Check aria-hidden className="size-4 text-primary" />
+                              ) : (
+                                <Minus aria-hidden className="size-4 text-muted-foreground" />
+                              )
                             ) : (
-                              <Minus aria-hidden className="size-4 text-muted-foreground" />
-                            )
-                          ) : (
-                            row.value
-                          )}
-                          {"flag" in row ? (
-                            <span className="sr-only">{row.flag ? h.included : h.notIncluded}</span>
-                          ) : null}
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-                  <div className="mt-auto pt-2">
-                    {isCurrent || p.key === "gratuit" ? null : isFree ? (
-                      <form action={checkout}>
-                        <input type="hidden" name="plan" value={p.key} />
-                        <input type="hidden" name="period" value={period} />
-                        <Button type="submit" className="w-full">
-                          {b.choose(p.name)}
-                        </Button>
-                      </form>
-                    ) : overview.hasCustomer ? (
-                      <form action={portal}>
-                        <Button type="submit" variant="outline" className="w-full">
-                          {b.portal}
-                        </Button>
-                      </form>
-                    ) : null}
-                  </div>
-                </Card>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+                              row.value
+                            )}
+                            {"flag" in row ? (
+                              <span className="sr-only">
+                                {row.flag ? h.included : h.notIncluded}
+                              </span>
+                            ) : null}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <div className="mt-auto pt-2">
+                      {isCurrent || p.key === "gratuit" ? null : isFree ? (
+                        <form action={checkout}>
+                          <input type="hidden" name="plan" value={p.key} />
+                          <input type="hidden" name="period" value={period} />
+                          <Button type="submit" className="w-full">
+                            {b.choose(p.name)}
+                          </Button>
+                        </form>
+                      ) : overview.hasCustomer ? (
+                        <form action={portal}>
+                          <Button type="submit" variant="outline" className="w-full">
+                            {b.portal}
+                          </Button>
+                        </form>
+                      ) : null}
+                    </div>
+                  </Card>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }
