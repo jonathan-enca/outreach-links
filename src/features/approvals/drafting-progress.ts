@@ -1,36 +1,59 @@
 import type { QueueView } from "./service";
 
-/** Ce qui se passe pour les messages d'une campagne, en quatre nombres (pur, testé). */
-export interface DraftingProgress {
-  /** Le bloc de progression s'affiche : une rédaction tourne, ou des cibles attendent leur message. */
+/**
+ * Où en sont les messages, en trois étapes distinctes (maquette `docs/mockups/a-approuver-v2.html`,
+ * validée le 20/11) : à rédiger, à approuver, approuvés. Chaque étape a son nombre ; aucune barre ne
+ * les mélange (retour de Jonathan : l'ancienne barre confondait plusieurs choses). Pur, testé.
+ */
+export interface MessageSteps {
+  /** Le bloc s'affiche : une rédaction tourne, ou au moins une étape n'est pas vide. */
   visible: boolean;
   /** Une rédaction est en cours (la page se met à jour toute seule). */
   running: boolean;
-  /** Cibles validées sans message : en cours de rédaction, ou à rédiger si rien ne tourne. */
+  /** Cibles choisies sans message : en cours de rédaction, ou à rédiger si rien ne tourne. */
   toWrite: number;
-  /** Messages écrits, qui attendent l'accord de la personne. */
-  ready: number;
+  /** Ce qui attend l'accord de la personne, par nature. */
+  emails: number;
+  forms: number;
+  replies: number;
+  toApprove: number;
   /** Messages déjà approuvés. */
   approved: number;
-  /** Part des messages déjà écrits (approuvés compris), de 0 à 100. */
-  percent: number;
 }
 
-export function draftingProgress(
-  view: Pick<QueueView, "missing" | "drafting" | "approved"> & { messages: readonly unknown[] },
-): DraftingProgress {
-  const running = view.drafting;
-  const toWrite = view.missing;
-  const ready = view.messages.length;
-  const approved = view.approved;
-  const total = toWrite + ready + approved;
-  const percent = total > 0 ? Math.round(((ready + approved) / total) * 100) : 0;
+export function messageSteps(
+  view: Pick<QueueView, "missing" | "drafting" | "approved"> & {
+    messages: readonly unknown[];
+    forms: readonly unknown[];
+    replies: readonly unknown[];
+  },
+): MessageSteps {
+  const emails = view.messages.length;
+  const forms = view.forms.length;
+  const replies = view.replies.length;
+  const toApprove = emails + forms + replies;
   return {
-    visible: running || toWrite > 0,
-    running,
-    toWrite,
-    ready,
-    approved,
-    percent,
+    visible: view.drafting || view.missing + toApprove + view.approved > 0,
+    running: view.drafting,
+    toWrite: view.missing,
+    emails,
+    forms,
+    replies,
+    toApprove,
+    approved: view.approved,
   };
+}
+
+/**
+ * Avancement d'une rédaction en cours : messages écrits sur le nombre à écrire au départ. `start` est le
+ * nombre de messages à rédiger au lancement, retenu par l'écran ; s'il n'est pas connu (page ouverte en
+ * cours de route) ou n'a plus de sens, on ne montre pas de barre plutôt qu'un chiffre inventé.
+ */
+export function writingProgress(
+  start: number | null,
+  toWrite: number,
+): { written: number; total: number; percent: number } | null {
+  if (start === null || start <= 0 || toWrite > start) return null;
+  const written = start - toWrite;
+  return { written, total: start, percent: Math.round((written / start) * 100) };
 }

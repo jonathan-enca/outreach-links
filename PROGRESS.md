@@ -3049,3 +3049,31 @@ Retour de Jonathan sur la version en ligne : l'écran disait « Aucune boîte d'
 - **Filet** (`src/features/envois/service.ts`, `loadBoxes`) : si la lecture avec la colonne de suspension échoue, l'écran relit sans elle au lieu de conclure qu'aucune boîte n'existe.
 - **Fidélité à la maquette** : repères « Aujourd'hui » (jour civil de la boîte) et « Cette semaine » (depuis lundi), « Prochain départ : Lundi 23 novembre, 9 h », « entre 9 h et 18 h, depuis votre boîte Gmail » (l'adresse si la boîte n'est pas Gmail), « Limite du jour atteinte ». Le moteur compte toujours sur 24 heures glissantes : la phrase de limite s'affiche aussi quand c'est cette limite qui retient le prochain départ (`dayLimited`).
 - **À approuver** : le surtitre « Étape 2 sur 3 » est retiré. Le reste de l'écran (barre de progression, campagnes en double) attend la validation d'une nouvelle maquette par Jonathan.
+
+## Session du 20/11 (suite 3) : « À approuver », trois étapes et une campagne par site (faite, sans changement de données)
+
+Maquette validée par Jonathan avant le code : `docs/mockups/a-approuver-v2.html`.
+
+- **Trois étapes à la place de la barre unique** (`src/features/approvals/drafting-progress.ts`, `queue.tsx`) : « À rédiger », « À approuver », « Approuvés », chacune avec son nombre. L'ancienne barre mélangeait les trois. Une barre n'existe plus que pendant une rédaction, et ne mesure que les messages écrits depuis le lancement (« 5 sur 12 écrits »).
+- **Une campagne = un site** (`service.ts`, `queue-model.ts`) : chaque analyse relancée crée un plan de liens, et l'écran montrait un filtre et un groupe par plan (quatre fois « backleenks.com · France »). Les éléments portent maintenant `campaignId` (le site ; à défaut le plan) et `campaignOf` regroupe dessus. Avec un seul site : ni filtre ni titre de groupe. `planId` reste sur chaque élément pour les actions.
+- **Lecture** : le titre du panneau est le site contacté (la pastille rappelle la campagne) ; les décisions tiennent sur une rangée (« Approuver et envoyer », « Modifier », « Plus tard », « Refuser »).
+- **Actions groupées** : dans l'en-tête de la liste, qui reste collé en haut de l'écran quand on descend (`overflow-clip` sur la carte). La barre sombre du bas est retirée.
+- **Démonstration** `/demo/a-valider` : `?sites=1` (un site analysé quatre fois), `?redaction=oui`.
+
+### Décisions [auto]
+
+- Le nombre de messages à écrire au lancement d'une rédaction n'existe pas côté serveur : l'écran le retient dans l'onglet du navigateur (`sessionStorage`). S'il n'est pas connu (page ouverte en cours de route), l'étape affiche « N encore à écrire », sans barre, plutôt qu'un chiffre inventé.
+- Le bloc des trois étapes s'affiche dès qu'une étape n'est pas vide (avant : seulement s'il restait des messages à rédiger).
+- Formulaires : le bloc existant (copier, ouvrir le formulaire, « C'est fait ») est gardé tel quel au-dessus de la rangée de décisions.
+
+### Dettes et pièges
+
+- « Approuvés » compte tous les brouillons sortis de l'état « brouillon », tous sites confondus (comportement antérieur, inchangé).
+- Vérification visuelle sur la page de démonstration (large, tablette, téléphone), pas dans l'espace connecté.
+
+### Commandes
+
+```bash
+pnpm vitest run src/features/approvals
+pnpm typecheck && pnpm lint
+```

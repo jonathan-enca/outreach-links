@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   campaignInitial,
+  campaignOf,
   groupByCampaign,
   nextRowId,
   queueRows,
@@ -62,6 +63,27 @@ describe("file rangée par campagne", () => {
     expect(groups.map((g) => g.id)).toEqual(["a", "b"]);
     expect(groups[0]!.rows.map((r) => r.id)).toEqual(["r1", "m2", "m3"]);
     expect(groups[1]!.rows.map((r) => r.id)).toEqual(["m1", "f1"]);
+  });
+  it("plusieurs plans d'un même site ne forment qu'une campagne", () => {
+    // Quatre analyses du même site : quatre plans, une seule campagne à l'écran.
+    const sameSite = queueRows({
+      messages: ["p1", "p2", "p3", "p4"].map((planId, i) => ({
+        ...msg(`m${i}`, planId),
+        campaignId: "site-1",
+        campaign: "site-1.fr · France",
+      })),
+      replies: [{ ...reply("r1", "p2"), campaignId: "site-1", campaign: "site-1.fr · France" }],
+      forms: [],
+    });
+    const groups = groupByCampaign(sameSite, [{ id: "site-1", label: "site-1.fr · France" }]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]!.rows).toHaveLength(5);
+    const s = selectionSummary(sameSite, new Set(sameSite.map((r) => r.id)), true);
+    expect(s.campaigns).toEqual([{ id: "site-1", label: "site-1.fr · France", count: 5 }]);
+  });
+  it("sans site connu, la campagne reste le plan", () => {
+    expect(campaignOf({ planId: "p1" })).toBe("p1");
+    expect(campaignOf({ planId: "p1", campaignId: "site-1" })).toBe("site-1");
   });
   it("une ligne dont la campagne est inconnue reste visible", () => {
     const groups = groupByCampaign(rows, []);

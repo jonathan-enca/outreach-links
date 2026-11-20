@@ -3124,19 +3124,35 @@ export const fr = {
     noMailbox:
       "Aucune boîte d'envoi n'est connectée : connectez-la pour approuver et envoyer vos emails. Vous pouvez déjà les relire et les modifier.",
     connect: "Connecter une boîte",
-    progress: {
-      title: "Rédaction en cours",
-      idleTitle: "Messages à rédiger",
-      toWrite: (n: number, running: boolean) =>
-        `${n} ${n > 1 ? "messages" : "message"} ${running ? "en cours de rédaction" : "à rédiger"}`,
-      ready: (n: number) => `${n} ${n > 1 ? "messages prêts" : "message prêt"} à approuver`,
-      approved: (n: number) => `${n} approuvé${n > 1 ? "s" : ""}`,
-      runningHelp:
-        "Les messages apparaissent ici au fur et à mesure. Cette page se met à jour toute seule.",
-      idleHelp: "Les cibles que vous avez validées attendent encore leur message.",
-      bar: "Avancement de la rédaction",
+    /** Les trois étapes d'un message : à rédiger, à approuver, approuvé. Chacune a son nombre. */
+    steps: {
+      label: "Où en sont vos messages",
+      toWrite: {
+        title: "À rédiger",
+        idle: "Cibles choisies dont le message n'est pas encore écrit.",
+        running: "Rédaction en cours. Les messages arrivent dans la liste au fur et à mesure.",
+        none: "Tous vos messages sont écrits.",
+        written: (total: number) => `sur ${total} ${total > 1 ? "écrits" : "écrit"}`,
+        remaining: "encore à écrire",
+        bar: "Avancement de la rédaction",
+        cta: (n: number) => (n > 1 ? `Rédiger les ${n} messages` : "Rédiger le message"),
+      },
+      toApprove: {
+        title: "À approuver",
+        emails: (n: number) => `${n} ${n > 1 ? "emails" : "email"}`,
+        forms: (n: number) => `${n} ${n > 1 ? "formulaires" : "formulaire"}`,
+        replies: (n: number) => `${n} ${n > 1 ? "réponses" : "réponse"}`,
+        and: " et ",
+        below: "la liste ci-dessous.",
+        none: "Rien n'attend votre accord.",
+      },
+      approved: {
+        title: "Approuvés",
+        text: "Ils partent de votre boîte, au rythme prévu.",
+        link: "Voir dans Emails",
+        none: "Aucun message approuvé pour l'instant.",
+      },
     },
-    missingCta: "Rédiger les messages manquants",
     declined: (n: number) =>
       `${n} ${n > 1 ? "cibles écartées" : "cible écartée"} : la rédaction a jugé qu'elles n'avaient pas leur place.`,
     declinedHelp:

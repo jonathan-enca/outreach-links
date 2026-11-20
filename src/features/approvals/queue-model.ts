@@ -3,10 +3,27 @@ import type { PendingForm, PendingMessage, PendingReply, QueueView } from "./ser
 /** Les trois natures de la file, dans l'ordre d'affichage : une réponse d'abord, quelqu'un attend. */
 export type Nature = "reponses" | "messages" | "formulaires";
 
+interface RowBase {
+  id: string;
+  planId: string;
+  /** Campagne de la ligne : le site (voir `campaignOf`). */
+  campaignId: string;
+  campaign: string;
+}
+
 export type QueueRow =
-  | { nature: "reponses"; id: string; planId: string; campaign: string; item: PendingReply }
-  | { nature: "messages"; id: string; planId: string; campaign: string; item: PendingMessage }
-  | { nature: "formulaires"; id: string; planId: string; campaign: string; item: PendingForm };
+  | (RowBase & { nature: "reponses"; item: PendingReply })
+  | (RowBase & { nature: "messages"; item: PendingMessage })
+  | (RowBase & { nature: "formulaires"; item: PendingForm });
+
+/**
+ * Campagne d'un élément : son site quand il est connu, sinon son plan. Plusieurs plans d'un même site
+ * ne forment qu'une campagne à l'écran (retour de Jonathan, 20/11 : la même campagne apparaissait
+ * quatre fois).
+ */
+export function campaignOf(x: { planId: string; campaignId?: string }): string {
+  return x.campaignId ?? x.planId;
+}
 
 export interface CampaignGroup {
   id: string;
@@ -23,6 +40,7 @@ export function queueRows(view: Lists): QueueRow[] {
       nature: "reponses",
       id: item.id,
       planId: item.planId,
+      campaignId: campaignOf(item),
       campaign: item.campaign,
       item,
     })),
@@ -30,6 +48,7 @@ export function queueRows(view: Lists): QueueRow[] {
       nature: "messages",
       id: item.id,
       planId: item.planId,
+      campaignId: campaignOf(item),
       campaign: item.campaign,
       item,
     })),
@@ -37,6 +56,7 @@ export function queueRows(view: Lists): QueueRow[] {
       nature: "formulaires",
       id: item.id,
       planId: item.planId,
+      campaignId: campaignOf(item),
       campaign: item.campaign,
       item,
     })),
@@ -56,10 +76,10 @@ export function groupByCampaign(
     campaigns.map((c) => [c.id, { id: c.id, label: c.label, rows: [] }]),
   );
   for (const r of rows) {
-    let g = groups.get(r.planId);
+    let g = groups.get(r.campaignId);
     if (!g) {
-      g = { id: r.planId, label: r.campaign, rows: [] };
-      groups.set(r.planId, g);
+      g = { id: r.campaignId, label: r.campaign, rows: [] };
+      groups.set(r.campaignId, g);
     }
     g.rows.push(r);
   }
@@ -94,9 +114,9 @@ export function selectionSummary(
   const ready = messages.filter((r) => r.nature === "messages" && r.item.ready);
   const campaigns = new Map<string, { id: string; label: string; count: number }>();
   for (const r of chosen) {
-    const c = campaigns.get(r.planId) ?? { id: r.planId, label: r.campaign, count: 0 };
+    const c = campaigns.get(r.campaignId) ?? { id: r.campaignId, label: r.campaign, count: 0 };
     c.count++;
-    campaigns.set(r.planId, c);
+    campaigns.set(r.campaignId, c);
   }
   return {
     total: chosen.length,

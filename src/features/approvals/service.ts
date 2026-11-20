@@ -47,6 +47,11 @@ export interface PendingMessage {
   kind: "message";
   id: string;
   planId: string;
+  /**
+   * Campagne de l'élément : le site. Plusieurs plans de liens d'un même site forment une seule campagne
+   * (comme sur l'écran « Campagnes »). Absent : le plan lui-même.
+   */
+  campaignId?: string;
   channel: "email" | "formulaire";
   domain: string;
   campaign: string;
@@ -78,6 +83,11 @@ export interface PendingReply {
   theirs: string;
   snoozedUntil: string | null;
   planId: string;
+  /**
+   * Campagne de l'élément : le site. Plusieurs plans de liens d'un même site forment une seule campagne
+   * (comme sur l'écran « Campagnes »). Absent : le plan lui-même.
+   */
+  campaignId?: string;
   campaign: string;
 }
 
@@ -98,6 +108,11 @@ export interface PendingForm {
   issues: LintIssue[];
   snoozedUntil: string | null;
   planId: string;
+  /**
+   * Campagne de l'élément : le site. Plusieurs plans de liens d'un même site forment une seule campagne
+   * (comme sur l'écran « Campagnes »). Absent : le plan lui-même.
+   */
+  campaignId?: string;
 }
 
 /** Un élément remis à plus tard : de quoi le reconnaître, sa campagne et quand il revient. */
@@ -108,6 +123,11 @@ export interface SnoozedItem {
   title: string;
   line: string;
   planId: string;
+  /**
+   * Campagne de l'élément : le site. Plusieurs plans de liens d'un même site forment une seule campagne
+   * (comme sur l'écran « Campagnes »). Absent : le plan lui-même.
+   */
+  campaignId?: string;
   campaign: string;
   until: string;
   /** Moment du retour, en clair (« jeudi 19 novembre vers 14 h 30 »). */
@@ -118,7 +138,7 @@ export interface SnoozedItem {
 const DISPLAY_TIMEZONE = "Europe/Paris";
 
 export interface QueueView {
-  /** Campagnes présentes dans la file (une par plan), pour filtrer et ne rien mélanger. */
+  /** Campagnes présentes dans la file (une par site), pour filtrer et ne rien mélanger. */
   campaigns: { id: string; label: string }[];
   messages: PendingMessage[];
   replies: PendingReply[];
@@ -228,7 +248,7 @@ export async function loadQueue(
     planIds.length
       ? supabase
           .from("link_plans")
-          .select(`id, sites(country, ${SIGNATURE_COLUMNS})`)
+          .select(`id, site_id, sites(country, ${SIGNATURE_COLUMNS})`)
           .in("id", planIds)
       : { data: [] },
     r.length
@@ -263,7 +283,8 @@ export async function loadQueue(
   const contactMap = new Map((contacts.data ?? []).map((c) => [c.plan_item_id, c]));
   const countries = t.sites.countries as Record<string, string>;
   type PlanSite = (SignatureSiteRow & { country: string | null }) | null;
-  const planRows = [...((plans.data ?? []) as unknown as { id: string; sites: PlanSite }[])];
+  type PlanRow = { id: string; site_id: string | null; sites: PlanSite };
+  const planRows = [...((plans.data ?? []) as unknown as PlanRow[])];
   // Les réponses peuvent venir d'un plan qui n'a plus de premier message en attente.
   const otherPlans = [...new Set((sent.data ?? []).map((s) => s.plan_id))].filter(
     (id) => !planRows.some((p) => p.id === id),
@@ -271,10 +292,13 @@ export async function loadQueue(
   if (otherPlans.length) {
     const more = await supabase
       .from("link_plans")
-      .select(`id, sites(country, ${SIGNATURE_COLUMNS})`)
+      .select(`id, site_id, sites(country, ${SIGNATURE_COLUMNS})`)
       .in("id", otherPlans);
-    planRows.push(...((more.data ?? []) as unknown as { id: string; sites: PlanSite }[]));
+    planRows.push(...((more.data ?? []) as unknown as PlanRow[]));
   }
+  // Une campagne est un site : les plans d'un même site (une analyse relancée) n'en font qu'une.
+  const siteOfPlan = new Map(planRows.map((p) => [p.id, p.site_id]));
+  const campaignIdOf = (planId: string) => siteOfPlan.get(planId) ?? planId;
   const campaignMap = new Map(
     planRows.map((p) => {
       const s = p.sites;
@@ -299,6 +323,7 @@ export async function loadQueue(
         kind: "message" as const,
         id: x.id,
         planId: x.plan_id,
+        campaignId: campaignIdOf(x.plan_id),
         channel,
         domain: it.source_domain,
         campaign: campaignMap.get(x.plan_id) ?? "",
@@ -351,6 +376,7 @@ export async function loadQueue(
     theirs: inMap.get(x.inbound_message_id) ?? "",
     snoozedUntil: x.snoozed_until,
     planId: sentPlan.get(x.sent_message_id) ?? "",
+    campaignId: campaignIdOf(sentPlan.get(x.sent_message_id) ?? ""),
     campaign: campaignMap.get(sentPlan.get(x.sent_message_id) ?? "") ?? "",
   }));
   const allForms = formDrafts
@@ -370,6 +396,7 @@ export async function loadQueue(
         issues: (Array.isArray(f.lint_issues) ? f.lint_issues : []) as unknown as LintIssue[],
         snoozedUntil: f.snoozed_until,
         planId: task.plan_id,
+        campaignId: campaignIdOf(task.plan_id),
       };
     })
     .filter((x): x is PendingForm => x !== null);
@@ -385,6 +412,7 @@ export async function loadQueue(
     title,
     line,
     planId: x.planId,
+    campaignId: campaignIdOf(x.planId),
     campaign: x.campaign,
     until: x.snoozedUntil ?? "",
     returns: x.snoozedUntil
@@ -406,7 +434,8 @@ export async function loadQueue(
     .sort((a, b) => a.until.localeCompare(b.until));
   const seen = new Map<string, string>();
   for (const x of [...messages, ...allReplies, ...allForms].filter(inScope))
-    if (x.planId && !seen.has(x.planId)) seen.set(x.planId, campaignMap.get(x.planId) ?? "");
+    if (x.planId && !seen.has(campaignIdOf(x.planId)))
+      seen.set(campaignIdOf(x.planId), campaignMap.get(x.planId) ?? "");
   return {
     campaigns: [...seen]
       .map(([id, label]) => ({ id, label }))
