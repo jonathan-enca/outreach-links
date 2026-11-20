@@ -58,8 +58,26 @@ describe("jetons de la direction artistique", () => {
     },
   );
 
+  it("le survol d'un bouton principal reste lisible, en clair comme en nuit", () => {
+    expect(contrast(light["primary-foreground"], light["primary-hover"])).toBeGreaterThanOrEqual(
+      4.5,
+    );
+    expect(contrast(night["primary-foreground"], night["primary-hover"])).toBeGreaterThanOrEqual(
+      4.5,
+    );
+  });
+
   it("la surface nuit redéfinit tous les jetons sémantiques", () => {
-    for (const key of ["background", "foreground", "card", "muted", "border", "primary", "ring"]) {
+    for (const key of [
+      "background",
+      "foreground",
+      "card",
+      "muted",
+      "border",
+      "primary",
+      "primary-hover",
+      "ring",
+    ]) {
       expect(night[key], key).toBeDefined();
     }
   });

@@ -49,6 +49,8 @@
   --border: #2a4d80;
   --primary: #ffffff;
   --primary-foreground: #003070;
+  /* Survol d'un bouton blanc : bleu très pâle, le texte marine reste lisible. */
+  --primary-hover: #e9f6fe;
   --ring: #5cc8f5;
   --info: #8cc4f5;
   --warning: #f2c26b;
