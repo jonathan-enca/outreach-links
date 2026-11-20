@@ -32,6 +32,9 @@ export async function GET(req: NextRequest) {
   if (searchConsole && !searchConsoleEnabled())
     return new NextResponse("Not found", { status: 404 });
 
+  // Connexion demandée depuis l'étape 1 d'une campagne : on y revient, avec la langue choisie.
+  const fromStart = searchConsole && req.nextUrl.searchParams.get("back") === "demarrer";
+  const lang = req.nextUrl.searchParams.get("lang");
   const nonce = newNonce();
   const state = signState(
     {
@@ -39,6 +42,9 @@ export async function GET(req: NextRequest) {
       userId: auth.user.id,
       nonce,
       purpose: searchConsole ? "search_console" : "gmail",
+      ...(fromStart
+        ? { back: "demarrer" as const, lang: lang === "fr" || lang === "en" ? lang : "auto" }
+        : {}),
     },
     parseKeyRing(env.MAILBOX_ENCRYPTION_KEYS),
   );

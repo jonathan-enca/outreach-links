@@ -8,6 +8,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { siteHref } from "@/features/shell/next-step";
 import { queryDeps, startDeps } from "./deps";
 import {
+  ensureSiteForSearchConsole,
   launchJourney,
   readMarket,
   saveCorrections,
@@ -39,6 +40,14 @@ export async function startSiteAction(formData: FormData): Promise<StartState> {
   const result = await startFromUrl(await createClient(), raw, startDeps, readMarket(formData), {
     profile: false,
   });
+  if (result.status === "ok") revalidatePath("/app", "layout");
+  return result;
+}
+
+/** Étape 1, « Connecter la Search Console » : crée (ou retrouve) la campagne, sans rien lire ni payer. */
+export async function searchConsoleSiteAction(formData: FormData): Promise<StartState> {
+  const raw = typeof formData.get("url") === "string" ? (formData.get("url") as string) : "";
+  const result = await ensureSiteForSearchConsole(await createClient(), raw, readMarket(formData));
   if (result.status === "ok") revalidatePath("/app", "layout");
   return result;
 }

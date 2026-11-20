@@ -114,6 +114,24 @@ describe("autorisation Search Console", () => {
     const old = signState({ siteId: "s1", userId: "u1", nonce: "n" }, ring, 1000);
     expect(readState(old, ring, 2000)?.purpose).toBe("gmail");
   });
+
+  it("le state garde l'écran de retour et la langue du formulaire (étape 1 d'une campagne)", () => {
+    const tok = signState(
+      {
+        siteId: "s1",
+        userId: "u1",
+        nonce: "n",
+        purpose: "search_console",
+        back: "demarrer",
+        lang: "en",
+      },
+      ring,
+      1000,
+    );
+    expect(readState(tok, ring, 2000)).toMatchObject({ back: "demarrer", lang: "en" });
+    const plain = signState({ siteId: "s1", userId: "u1", nonce: "n" }, ring, 1000);
+    expect(readState(plain, ring, 2000)?.back).toBeUndefined();
+  });
 });
 
 const siteRow = { id: "s1", workspace_id: "w1", domain: "exemple.fr" };

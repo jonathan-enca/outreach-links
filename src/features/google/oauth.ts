@@ -31,6 +31,10 @@ export interface OAuthState {
   exp: number;
   /** Ce que l'autorisation sert : la boîte d'envoi (défaut, G1) ou la Search Console (MQ.2). */
   purpose?: "gmail" | "search_console";
+  /** Search Console connectée depuis l'étape 1 d'une campagne : le retour se fait sur cet écran. */
+  back?: "demarrer";
+  /** Langue choisie dans le formulaire de l'étape 1, à remettre au retour. */
+  lang?: "auto" | "fr" | "en";
 }
 
 export const newNonce = () => randomBytes(16).toString("base64url");
@@ -66,7 +70,17 @@ export function readState(
     )
       return null;
     const purpose = s.purpose === "search_console" ? "search_console" : "gmail";
-    return { siteId: s.siteId, userId: s.userId, nonce: s.nonce, exp: s.exp, purpose };
+    const back = s.back === "demarrer" ? { back: s.back } : {};
+    const lang = s.lang === "auto" || s.lang === "fr" || s.lang === "en" ? { lang: s.lang } : {};
+    return {
+      siteId: s.siteId,
+      userId: s.userId,
+      nonce: s.nonce,
+      exp: s.exp,
+      purpose,
+      ...back,
+      ...lang,
+    };
   } catch {
     return null;
   }
