@@ -25,9 +25,9 @@ describe("bas de l'écran « Vos cibles »", () => {
     expect(M.founder.saveAndValidate(1)).toBe("Enregistrer et rédiger le message");
   });
 
-  it("« Tout cocher » et « Tout décocher » disent combien de sites ils touchent", () => {
-    expect(M.list.selectAll(31)).toBe("Tout cocher (31)");
-    expect(M.list.selectNone(31)).toBe("Tout décocher (31)");
+  it("« Tout sélectionner » et « Tout désélectionner » disent combien de sites ils touchent", () => {
+    expect(M.list.selectAll(31)).toBe("Tout sélectionner (31)");
+    expect(M.list.selectNone(31)).toBe("Tout désélectionner (31)");
   });
 
   it("accorde les compteurs", () => {
