@@ -281,7 +281,7 @@ export const fr = {
         },
       ],
       mockup: {
-        bars: ["Démarrer", "Analyse", "Vos cibles", "À valider", "Envois", "Conversations"],
+        bars: ["Démarrer", "Analyse", "Cibles", "À approuver", "Envois", "Conversations"],
         start: {
           fieldLabel: "Adresse de votre site",
           fieldValue: "monsite.example",
@@ -1412,7 +1412,7 @@ export const fr = {
         "Aucune des cibles cochées ne peut être validée (contact manquant ou déjà validée).",
       planError: "Impossible de créer les demandes. Réessayez.",
       validated:
-        "{n} demandes validées. La rédaction des messages est lancée : vous les relirez dans « À valider », rien n'est envoyé.",
+        "{n} demandes validées. La rédaction des messages est lancée : vous les relirez dans « À approuver », rien n'est envoyé.",
       validatedNoDrafts: "{n} demandes validées, mais la rédaction n'a pas pu démarrer : {reason}",
       skipped: "{n} ignorées (déjà validées ou sans contact utilisable).",
     },
@@ -1697,11 +1697,11 @@ export const fr = {
       tabsLabel: "Cibles à contacter ou déjà validées",
       tabs: {
         contacter: (n: number) => `À contacter (${n})`,
-        validees: (n: number) => `Déjà validées (${n})`,
+        validees: (n: number) => `Messages rédigés (${n})`,
       },
-      validatedEmpty: "Aucune cible déjà validée pour l'instant.",
+      validatedEmpty: "Aucun message rédigé pour l'instant.",
       allValidated:
-        "Toutes les cibles ont déjà été validées : retrouvez-les dans « Déjà validées ».",
+        "Toutes les cibles ont déjà leur message : retrouvez-les dans « Messages rédigés ».",
       selected: (n: number) => `${n} ${n > 1 ? "sites retenus" : "site retenu"}`,
       selectedOf: (total: number) => `sur ${total}`,
     },
@@ -1966,7 +1966,7 @@ export const fr = {
       started: "Rédaction lancée.",
       anywayUnknown: "Cette cible n'est plus dans la liste des cibles écartées.",
       anywayStarted:
-        "Rédaction lancée pour cette cible. Le message arrive dans « À valider » dans une minute.",
+        "Rédaction lancée pour cette cible. Le message arrive dans « À approuver » dans une minute.",
       anywayQueued:
         "Une rédaction est en cours : cette cible sera rédigée à la prochaine exécution (« Rédiger les messages manquants »).",
       nothingMissing: "Tous les messages sont déjà rédigés.",
@@ -2841,7 +2841,7 @@ export const fr = {
       save: "Enregistrer",
       saving: "Enregistrement…",
       saveNote:
-        "S'applique aux prochains messages et à ceux déjà dans « À valider ». Les messages déjà envoyés ne changent pas.",
+        "S'applique aux prochains messages et à ceux déjà dans « À approuver ». Les messages déjà envoyés ne changent pas.",
       preview: {
         title: "Ce que reçoit l'éditeur",
         body: "Exemple de message. Les passages entre crochets changent pour chaque site.",
@@ -2930,7 +2930,7 @@ export const fr = {
     title: "Conversations",
     cancel: {
       label: "Annuler l'envoi",
-      done: "Envoi annulé : le message revient dans « À valider ».",
+      done: "Envoi annulé : le message revient dans « À approuver ».",
       alreadySent: "Ce message est déjà parti : il ne peut plus être annulé.",
       notWaiting: "Ce message n'attend plus d'envoi.",
     },
@@ -3074,8 +3074,8 @@ export const fr = {
     },
   },
   toValidate: {
-    eyebrow: "Messagerie",
-    title: "À valider",
+    eyebrow: "Étape 2 sur 3",
+    title: "À approuver",
     description: "Tout ce qui attend votre accord avant de partir. Rien n'est envoyé sans vous.",
     none: "Rien à valider pour l'instant. Les messages apparaissent ici dès que vous validez des cibles.",
     noMailbox:

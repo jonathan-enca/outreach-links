@@ -5,26 +5,29 @@ import { cn } from "@/lib/utils";
 import { JOURNEY_STEPS, type JourneyStep } from "./next-step";
 
 /**
- * Le fil d'étapes commun à tout le parcours (MU.2) : où j'en suis, ce qui reste. Sur mobile, seule
- * l'étape en cours garde son nom (« Étape 4 sur 5 : Analyse ») pour tenir sur une ligne.
+ * La barre de préparation (MU.2) : où j'en suis, ce qui reste avant l'analyse. « Vos cibles » n'y figure
+ * plus : une fois l'analyse finie, les trois étapes de la campagne sont dans le menu (maquette du 20/11).
+ * Sur mobile, seule l'étape en cours garde son nom (« Étape 4 sur 4 : Analyse ») pour tenir sur une ligne.
  */
+const BAR_STEPS = JOURNEY_STEPS.filter((s) => s !== "cibles");
+
 export function JourneySteps({
   current,
   links,
 }: {
-  current: JourneyStep;
+  current: Exclude<JourneyStep, "cibles">;
   /** Étapes dont l'écran existe déjà pour ce site : elles deviennent des liens (jamais l'étape en cours). */
   links?: Partial<Record<JourneyStep, string>>;
 }) {
-  const index = JOURNEY_STEPS.indexOf(current);
+  const index = BAR_STEPS.indexOf(current);
   const j = t.journey;
   return (
     <nav aria-label={j.label} className="mb-6">
       <p className="text-sm font-medium text-primary md:hidden">
-        {j.stepOf(index + 1, JOURNEY_STEPS.length)} : {j.steps[current]}
+        {j.stepOf(index + 1, BAR_STEPS.length)} : {j.steps[current]}
       </p>
       <ol className="mt-2 flex items-center gap-1 md:mt-0 md:gap-2">
-        {JOURNEY_STEPS.map((step, i) => {
+        {BAR_STEPS.map((step, i) => {
           const state = i < index ? "done" : i === index ? "current" : "todo";
           return (
             <li
@@ -82,7 +85,7 @@ export function JourneySteps({
                   inner
                 );
               })()}
-              {i < JOURNEY_STEPS.length - 1 ? (
+              {i < BAR_STEPS.length - 1 ? (
                 <span aria-hidden className="hidden h-px w-6 bg-border md:block" />
               ) : null}
             </li>

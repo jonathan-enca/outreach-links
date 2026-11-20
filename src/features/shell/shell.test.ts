@@ -62,17 +62,18 @@ describe("homeDestination (/app)", () => {
 });
 
 describe("fil d'étapes", () => {
-  it("affiche les cinq étapes et marque l'étape en cours", () => {
+  it("affiche les quatre étapes de préparation (sans « Vos cibles ») et marque l'étape en cours", () => {
     const html = renderToStaticMarkup(createElement(JourneySteps, { current: "analyse" }));
-    for (const label of Object.values(t.journey.steps)) expect(html).toContain(label);
+    for (const label of ["Votre site", "Vérification", "Vous", "Analyse"]) expect(html).toContain(label);
+    expect(html).not.toContain("Vos cibles");
     expect(html).toContain('aria-current="step"');
-    expect(html).toContain("Étape 4 sur 5");
+    expect(html).toContain("Étape 4 sur 4");
     expect(html).not.toContain("<a ");
   });
   it("une étape dont l'écran existe est un lien, jamais l'étape en cours", () => {
     const html = renderToStaticMarkup(
       createElement(JourneySteps, {
-        current: "cibles",
+        current: "vous",
         links: { analyse: "/app/site/s1/analyse?etapes=1", cibles: "/app/site/s1/cibles" },
       }),
     );
