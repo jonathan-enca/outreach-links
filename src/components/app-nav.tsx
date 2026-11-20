@@ -142,6 +142,15 @@ export function AppNav({
       title: "Envoi",
       items: [
         {
+          key: "a-valider",
+          href: "/app/a-valider",
+          label: "À valider",
+          icon: CheckSquare,
+          active: starts("/app/a-valider"),
+          count: counts.toValidate,
+          mobile: true,
+        },
+        {
           key: "envois",
           href: "/app/envois",
           label: "Envois",
