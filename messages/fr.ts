@@ -2893,6 +2893,7 @@ export const fr = {
         title: "Vos emails partent tout seuls",
         text: (hours: string, from: string | null) =>
           `${hours.charAt(0).toUpperCase()}${hours.slice(1)}${from ? `, depuis ${from}` : ""}.`,
+        gmail: "votre boîte Gmail",
         fallback: "Aux horaires de votre boîte d'envoi.",
       },
       pause: {
@@ -2917,8 +2918,8 @@ export const fr = {
       nextNone: "Aucun email en attente",
       nextPaused: "À la reprise des envois",
       nextUnknown: "Heure à venir",
-      day: "Dernières 24 heures",
-      week: "7 derniers jours",
+      day: "Aujourd'hui",
+      week: "Cette semaine",
       weekValue: (n: number) => (n > 1 ? "envoyés" : "envoyé"),
       month: "Ce mois-ci",
       of: (cap: number) => `sur ${cap}`,
@@ -2930,15 +2931,15 @@ export const fr = {
         text: "Il se renouvelle le 1er du mois.",
       },
       dayFull: {
-        lead: "Limite des 24 heures atteinte.",
+        lead: "Limite du jour atteinte.",
         warmup: (cap: number) =>
-          `${cap} ${cap > 1 ? "emails" : "email"} par 24 heures pour commencer : ce rythme augmente tout seul au fil des semaines, pour que vos messages n'arrivent pas en indésirables.`,
+          `${cap} ${cap > 1 ? "emails" : "email"} par jour pour commencer : ce rythme augmente tout seul au fil des semaines, pour que vos messages n'arrivent pas en indésirables.`,
         steady: "Les prochains emails partent dès qu'une place se libère.",
       },
       warmup: {
         lead: "Rythme de démarrage.",
         text: (cap: number) =>
-          `${cap} ${cap > 1 ? "emails" : "email"} par 24 heures pour l'instant : ce rythme augmente tout seul au fil des semaines, pour que vos messages n'arrivent pas en indésirables.`,
+          `${cap} ${cap > 1 ? "emails" : "email"} par jour pour l'instant : ce rythme augmente tout seul au fil des semaines, pour que vos messages n'arrivent pas en indésirables.`,
       },
     },
     tabsLabel: "Emails programmés ou envoyés",
@@ -3117,7 +3118,6 @@ export const fr = {
     },
   },
   toValidate: {
-    eyebrow: "Étape 2 sur 3",
     title: "À approuver",
     description: "Tout ce qui attend votre accord avant de partir. Rien n'est envoyé sans vous.",
     none: "Rien à valider pour l'instant. Les messages apparaissent ici dès que vous validez des cibles.",

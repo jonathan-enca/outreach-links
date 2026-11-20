@@ -3039,3 +3039,13 @@ Retour d'écran de Jonathan (20/11) : quatre textes jugés inutiles sous et au-d
 pnpm vitest run src/features/targets
 pnpm typecheck && pnpm lint
 ```
+
+## Session du 20/11 (suite 2) : corrections de l'écran « Emails » après mise en ligne (faite, une migration)
+
+Retour de Jonathan sur la version en ligne : l'écran disait « Aucune boîte d'envoi connectée », sans horaires ni barres.
+
+- **Cause** : les droits de lecture de `mailboxes` sont donnés **colonne par colonne** (`grant select (…)`), et `sending_paused` n'y figurait pas. Toute lecture qui demandait cette colonne échouait pour la personne connectée : aucune boîte vue. Le bouton « Suspendre » de l'ancien écran n'avait donc jamais été utilisable non plus.
+- **Migration** `2026112000000100_mailbox_sending_paused_grant.sql` (appliquée le 20/11 sur `ivjkwhhgtibewqzccvrj`, lecture vérifiée sous le rôle `authenticated`). **Piège à retenir : toute nouvelle colonne de `mailboxes` lue par l'application doit être ajoutée au `grant select`.**
+- **Filet** (`src/features/envois/service.ts`, `loadBoxes`) : si la lecture avec la colonne de suspension échoue, l'écran relit sans elle au lieu de conclure qu'aucune boîte n'existe.
+- **Fidélité à la maquette** : repères « Aujourd'hui » (jour civil de la boîte) et « Cette semaine » (depuis lundi), « Prochain départ : Lundi 23 novembre, 9 h », « entre 9 h et 18 h, depuis votre boîte Gmail » (l'adresse si la boîte n'est pas Gmail), « Limite du jour atteinte ». Le moteur compte toujours sur 24 heures glissantes : la phrase de limite s'affiche aussi quand c'est cette limite qui retient le prochain départ (`dayLimited`).
+- **À approuver** : le surtitre « Étape 2 sur 3 » est retiré. Le reste de l'écran (barre de progression, campagnes en double) attend la validation d'une nouvelle maquette par Jonathan.

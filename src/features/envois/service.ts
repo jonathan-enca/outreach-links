@@ -3,8 +3,9 @@ import { betaEnabled } from "@/features/audits/beta";
 import { loadEntitlements } from "@/features/billing/entitlements";
 import { loadQueued, type ConversationsOptions } from "@/features/conversations/service";
 import { COUNTED } from "@/features/sending/queue-note";
-import { describeWindow, effectiveDailyCap } from "@/features/sending/schedule";
+import { effectiveDailyCap } from "@/features/sending/schedule";
 import type { Database } from "@/lib/supabase/database.types";
+import { dayKey } from "./format";
 
 type Client = SupabaseClient<Database>;
 
@@ -55,19 +56,25 @@ export interface EnvoisView {
   sent: SentEnvoi[];
   /** Nombre total d'emails partis (la liste n'en charge que `SENT_LIMIT`). */
   sentTotal: number;
-  /** Horaires d'envoi de la boîte, par exemple « du lundi au vendredi, de 9 h à 18 h ». */
-  hours: string | null;
-  /** Adresse de la boîte d'envoi. */
+  /** Horaires d'envoi de la première boîte vérifiée ; `null` sans boîte. */
+  window: { days: number[]; startHour: number; endHour: number } | null;
+  /** Adresse de la boîte d'envoi, et son fournisseur (« google » pour Gmail). */
   fromEmail: string | null;
+  provider: string | null;
   /** Fuseau de la boîte : toutes les heures de l'écran sont dites dans ce fuseau. */
   timezone: string;
   /** Prochain départ prévu (ISO) ; `null` si rien n'attend ou si rien ne peut partir. */
   nextAt: string | null;
-  /** Envois comptés sur les dernières 24 heures et limite actuelle ; `null` sans boîte vérifiée. */
+  /** Envois du jour (jour civil de la boîte) et limite actuelle ; `null` sans boîte vérifiée. */
   day: Quota | null;
-  /** La limite des 24 heures est-elle encore celle du démarrage (elle augmentera seule) ? */
+  /**
+   * La limite journalière retient-elle le prochain départ ? Le moteur compte sur 24 heures glissantes :
+   * elle peut retenir un email alors que le compteur du jour civil n'est pas plein.
+   */
+  dayLimited: boolean;
+  /** La limite journalière est-elle encore celle du démarrage (elle augmentera seule) ? */
   warmingUp: boolean;
-  /** Emails partis sur les 7 derniers jours. */
+  /** Emails partis depuis lundi (semaine civile de la boîte). */
   week: number;
   /** Envois du mois civil et plafond du forfait ; `null` si le forfait n'envoie pas. */
   month: Quota | null;
@@ -75,14 +82,14 @@ export interface EnvoisView {
 
 /**
  * Écran « Emails » : ce qui est programmé (heure prévue, annulation possible), ce qui est parti, l'état
- * des envois et les quotas (24 heures, 7 jours, mois). Lecture avec les droits de la personne (RLS).
+ * des envois et les quotas (jour, semaine, mois). Lecture avec les droits de la personne (RLS).
  */
 export async function loadEnvois(
   supabase: Client,
   opts: ConversationsOptions,
 ): Promise<EnvoisView> {
   const now = opts.now;
-  const [sentDrafts, sent, sentCount, boxes, recent, ws] = await Promise.all([
+  const [sentDrafts, sent, sentCount, boxRows, recent, ws] = await Promise.all([
     supabase.from("sent_messages").select("draft_id").eq("step", "initial"),
     supabase
       .from("sent_messages")
@@ -98,25 +105,20 @@ export async function loadEnvois(
       .eq("step", "initial")
       .eq("status", "envoye")
       .eq("dry_run", false),
-    supabase
-      .from("mailboxes")
-      .select(
-        "id, email, status, sending_paused, daily_cap, timezone, send_window_start, send_window_end, send_days",
-      )
-      .order("created_at"),
+    loadBoxes(supabase),
     supabase
       .from("sent_messages")
       .select("from_email, claimed_at, status")
       .eq("dry_run", false)
       .in("status", COUNTED)
-      .gte("claimed_at", new Date(now.getTime() - 7 * DAY_MS).toISOString()),
+      .gte("claimed_at", new Date(now.getTime() - 8 * DAY_MS).toISOString()),
     supabase.from("workspaces").select("id").limit(1).maybeSingle(),
   ]);
 
   const sentRows = sent.data ?? [];
   const domains = await domainsOfDrafts(supabase, [...new Set(sentRows.map((s) => s.draft_id))]);
 
-  const verified = (boxes.data ?? []).filter((b) => b.status === "verifiee");
+  const verified = boxRows.filter((b) => b.status === "verifiee");
   const first = verified[0] ?? null;
   const firstSends = await firstSendByBox(
     supabase,
@@ -124,7 +126,9 @@ export async function loadEnvois(
   );
   const recentRows = recent.data ?? [];
   const boxEmails = new Set(verified.map((b) => b.email));
-  const dayStart = now.getTime() - DAY_MS;
+  const timezone = first?.timezone ?? DEFAULT_TIMEZONE;
+  const today = dayKey(now, timezone);
+  const monday = mondayKey(now, timezone);
   const caps = verified.map((b) => ({
     cap: effectiveDailyCap(b.daily_cap, firstSends.get(b.email) ?? null, now),
     full: b.daily_cap,
@@ -170,15 +174,16 @@ export async function loadEnvois(
       sentAt: s.sent_at,
     })),
     sentTotal: sentCount.count ?? sentRows.length,
-    hours: first
-      ? describeWindow({
+    window: first
+      ? {
           days: first.send_days,
           startHour: first.send_window_start,
           endHour: first.send_window_end,
-        })
+        }
       : null,
     fromEmail: first?.email ?? null,
-    timezone: first?.timezone ?? DEFAULT_TIMEZONE,
+    provider: first?.provider ?? null,
+    timezone,
     nextAt: scheduled[0]?.at ?? null,
     day:
       verified.length > 0
@@ -187,15 +192,48 @@ export async function loadEnvois(
               (r) =>
                 r.from_email !== null &&
                 boxEmails.has(r.from_email) &&
-                new Date(r.claimed_at).getTime() >= dayStart,
+                dayKey(new Date(r.claimed_at), timezone) === today,
             ).length,
             cap: caps.reduce((n, c) => n + c.cap, 0),
           }
         : null,
+    dayLimited: scheduled[0]
+      ? queued.eta.get(scheduled[0].draftId)?.reason?.kind === "jour"
+      : false,
     warmingUp: caps.some((c) => c.cap < c.full),
-    week: recentRows.filter((r) => r.status === "envoye").length,
+    week: recentRows.filter(
+      (r) => r.status === "envoye" && dayKey(new Date(r.claimed_at), timezone) >= monday,
+    ).length,
     month: ent && ent.sendCap > 0 ? { used: ent.sendUsed, cap: ent.sendCap } : null,
   };
+}
+
+const BOX_COLUMNS =
+  "id, email, provider, status, daily_cap, timezone, send_window_start, send_window_end, send_days";
+
+/**
+ * Boîtes d'envoi de la personne. Les droits de lecture de `mailboxes` sont donnés colonne par colonne :
+ * si la colonne de suspension n'est pas lisible, on relit sans elle plutôt que de conclure qu'aucune
+ * boîte n'existe (c'est ce qui affichait « connectez une boîte » à tort, corrigé le 20/11).
+ */
+async function loadBoxes(supabase: Client) {
+  const full = await supabase
+    .from("mailboxes")
+    .select(`${BOX_COLUMNS}, sending_paused`)
+    .order("created_at");
+  if (!full.error) return full.data ?? [];
+  const basic = await supabase.from("mailboxes").select(BOX_COLUMNS).order("created_at");
+  return (basic.data ?? []).map((b) => ({ ...b, sending_paused: false }));
+}
+
+const ISO_DAY: Record<string, number> = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+
+/** Jour civil du lundi de la semaine en cours, dans le fuseau de la boîte (« 2026-11-16 »). */
+export function mondayKey(now: Date, timezone: string): string {
+  const weekday = new Intl.DateTimeFormat("en-GB", { timeZone: timezone, weekday: "short" }).format(
+    now,
+  );
+  return dayKey(new Date(now.getTime() - ((ISO_DAY[weekday] ?? 1) - 1) * DAY_MS), timezone);
 }
 
 /** Site contacté par chaque brouillon (brouillon → ligne du plan → domaine). */

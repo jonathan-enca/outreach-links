@@ -79,10 +79,11 @@ export default async function DemoEmailsPage({
           scheduled={scheduledRows(scheduled, TZ, now)}
           sent={sentRows(sent, TZ, now)}
           sentTotal={empty ? 0 : 140}
-          hours="du lundi au vendredi, de 9 h à 18 h"
-          fromEmail="camille@atelier-papier.example"
+          hours="du lundi au vendredi, entre 9 h et 18 h"
+          from="votre boîte Gmail"
           next={scheduled[0]?.at ? nextLabel(scheduled[0].at, TZ) : null}
           day={state === "sans_boite" ? null : { used: empty ? 0 : 5, cap: 5 }}
+          dayLimited={false}
           warmingUp
           week={empty ? 0 : 25}
           month={{ used: empty ? 0 : 40, cap: 100 }}

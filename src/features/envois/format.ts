@@ -1,4 +1,5 @@
 import { formatSendTime } from "@/features/sending/queue-note";
+import { describeWindow } from "@/features/sending/schedule";
 import { t } from "@/lib/messages";
 import type { ScheduledEnvoi, SentEnvoi } from "./service";
 
@@ -108,8 +109,18 @@ export function groupByDay(rows: readonly EnvoiRow[]): { day: string; rows: Envo
   return out;
 }
 
-/** « lundi 23 novembre vers 9 h » avec la majuscule, pour le repère « Prochain départ ». */
+/** « Lundi 23 novembre, 9 h » : le repère « Prochain départ » (l'heure ne se coupe pas en fin de ligne). */
 export function nextLabel(iso: string, timezone: string): string {
-  const s = formatSendTime(new Date(iso), timezone, false);
-  return `${s.charAt(0).toUpperCase()}${s.slice(1)}`;
+  const [day = "", time = ""] = formatSendTime(new Date(iso), timezone, true).split(" à ");
+  return `${day.charAt(0).toUpperCase()}${day.slice(1)}, ${time.replaceAll(" ", "\u00a0")}`;
+}
+
+/** « du lundi au vendredi, entre 9 h et 18 h » : les horaires d'envoi tels que l'écran les dit. */
+export function hoursLabel(w: { days: number[]; startHour: number; endHour: number }): string {
+  return describeWindow(w).replace(/, de (\d+) h à (\d+) h$/, ", entre $1 h et $2 h");
+}
+
+/** D'où partent les emails : « votre boîte Gmail », sinon l'adresse de la boîte. */
+export function fromLabel(provider: string | null, email: string | null): string | null {
+  return provider === "google" ? M.states.actif.gmail : email;
 }
