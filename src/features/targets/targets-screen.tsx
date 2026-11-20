@@ -1183,18 +1183,25 @@ export function TargetsScreen({
                 variant="outline"
                 size="sm"
                 className="h-10 flex-1 sm:h-9 sm:flex-none"
-                onClick={() => setSelected(new Set(eligibleIds(cards)))}
+                // Ne touche que les sites affichés (filtre et onglet), jamais toute la liste.
+                onClick={() => setSelected((prev) => new Set([...prev, ...eligibleIds(shown)]))}
               >
-                {M.list.selectAll}
+                {M.list.selectAll(eligibleIds(shown).length)}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 className="h-10 flex-1 sm:h-9 sm:flex-none"
-                onClick={() => setSelected(new Set())}
+                onClick={() =>
+                  setSelected((prev) => {
+                    const next = new Set(prev);
+                    for (const c of shown) next.delete(c.id);
+                    return next;
+                  })
+                }
               >
-                {M.list.selectNone}
+                {M.list.selectNone(shown.length)}
               </Button>
             </div>
             {shown.length === 0 ? (
