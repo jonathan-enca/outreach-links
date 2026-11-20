@@ -5,9 +5,6 @@ import type { AnalysisSnapshot, BackgroundStatus, SkippedSearches, StepRow } fro
 
 type Client = SupabaseClient<Database>;
 
-/** Combien de cibles prêtes l'écran montre pendant l'attente. */
-export const PREVIEW_TARGETS = 6;
-
 const asCounters = (v: unknown): Record<string, number> => {
   const out: Record<string, number> = {};
   if (v && typeof v === "object" && !Array.isArray(v)) {
@@ -56,8 +53,8 @@ export async function loadAnalysisSnapshot(
       .select("domain, site_type, why")
       .eq("audit_id", auditId)
       .eq("status", "liste_courte")
-      .order("rank", { ascending: true, nullsFirst: false })
-      .limit(PREVIEW_TARGETS),
+      // Toutes les cibles validées, dans l'ordre d'arrivée : la plus récente en haut.
+      .order("created_at", { ascending: false }),
     supabase
       .from("qualified_targets")
       .select("id", { count: "exact", head: true })

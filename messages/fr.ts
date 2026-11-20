@@ -3658,7 +3658,6 @@ export const fr = {
         "Elles apparaîtront ici vers la fin, quand un contact aura été trouvé (étape 6).",
       targetsNone: "Aucune cible retenue cette fois.",
       targetsAfterResume: "Elles apparaîtront ici une fois l'analyse reprise.",
-      targetsMore: (n: number) => (n <= 1 ? "+ 1 autre cible" : `+ ${n} autres cibles`),
       /** Fin : « terminée » n'est dit que lorsque la lecture des autres sites trouvés est finie elle aussi. */
       doneTitle: (n: number) =>
         n === 0
