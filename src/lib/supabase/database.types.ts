@@ -1028,6 +1028,7 @@ export type Database = {
       };
       qualified_targets: {
         Row: {
+          dismissed_at: string | null;
           audit_id: string;
           competitors_count: number;
           contact_email: string | null;
@@ -1063,6 +1064,7 @@ export type Database = {
           workspace_id: string;
         };
         Insert: {
+          dismissed_at?: string | null;
           audit_id: string;
           competitors_count?: number;
           contact_email?: string | null;
@@ -1098,6 +1100,7 @@ export type Database = {
           workspace_id: string;
         };
         Update: {
+          dismissed_at?: string | null;
           audit_id?: string;
           competitors_count?: number;
           contact_email?: string | null;

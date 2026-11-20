@@ -568,7 +568,7 @@ function Reader({
               >
                 {V.later}
               </Button>
-              {row.nature === "messages" ? (
+              {row.nature !== "reponses" ? (
                 <Button
                   type="button"
                   variant="outline"

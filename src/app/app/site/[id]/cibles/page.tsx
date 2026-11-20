@@ -13,6 +13,7 @@ import { loadAnalysisSnapshot } from "@/features/analysis/status";
 import { buildAnalysisView } from "@/features/analysis/view";
 import { loadSiteWithAudit, siteHref, UUID_RE } from "@/features/shell/next-step";
 import {
+  dismissTargetsAction,
   readMoreAction,
   saveMessageSettingsAction,
   startCollectionAction,
@@ -84,6 +85,7 @@ async function Targets({ params }: { params: Promise<{ id: string }> }) {
           saveSettings: saveMessageSettingsAction.bind(null, auditId),
           validate: validateRequestsAction.bind(null, auditId),
           readMore: readMoreAction.bind(null, auditId),
+          dismiss: dismissTargetsAction.bind(null, auditId),
           draftMissing: draftMissingAction.bind(null, id),
           draftAnyway: draftAnywayAction,
         }}

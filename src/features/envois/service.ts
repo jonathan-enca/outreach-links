@@ -5,6 +5,7 @@ import { loadQueued, type ConversationsOptions } from "@/features/conversations/
 import { COUNTED } from "@/features/sending/queue-note";
 import { effectiveDailyCap } from "@/features/sending/schedule";
 import type { Database } from "@/lib/supabase/database.types";
+import { t } from "@/lib/messages";
 import { dayKey } from "./format";
 
 type Client = SupabaseClient<Database>;
@@ -24,6 +25,8 @@ export interface ScheduledEnvoi {
   body: string;
   /** Heure de départ probable (ISO) ; `null` si elle ne peut pas être estimée. */
   at: string | null;
+  /** Campagne (le site pour lequel le lien est demandé) ; vide ou absente si inconnue. */
+  campaignId?: string;
 }
 
 export interface SentEnvoi {
@@ -34,6 +37,14 @@ export interface SentEnvoi {
   subject: string;
   body: string;
   sentAt: string | null;
+  /** Campagne (le site pour lequel le lien est demandé) ; vide ou absente si inconnue. */
+  campaignId?: string;
+}
+
+/** Une campagne présente dans les listes, pour filtrer. */
+export interface EnvoiCampaign {
+  id: string;
+  label: string;
 }
 
 /** Une jauge « utilisé sur limite ». */
@@ -56,6 +67,8 @@ export interface EnvoisView {
   sent: SentEnvoi[];
   /** Nombre total d'emails partis (la liste n'en charge que `SENT_LIMIT`). */
   sentTotal: number;
+  /** Campagnes des emails programmés ou partis, pour le filtre de l'écran. */
+  campaigns: EnvoiCampaign[];
   /** Horaires d'envoi de la première boîte vérifiée ; `null` sans boîte. */
   window: { days: number[]; startHour: number; endHour: number } | null;
   /** Adresse de la boîte d'envoi, et son fournisseur (« google » pour Gmail). */
@@ -93,7 +106,7 @@ export async function loadEnvois(
     supabase.from("sent_messages").select("draft_id").eq("step", "initial"),
     supabase
       .from("sent_messages")
-      .select("id, draft_id, to_email, subject, body, sent_at")
+      .select("id, plan_id, draft_id, to_email, subject, body, sent_at")
       .eq("step", "initial")
       .eq("status", "envoye")
       .eq("dry_run", false)
@@ -116,7 +129,10 @@ export async function loadEnvois(
   ]);
 
   const sentRows = sent.data ?? [];
-  const domains = await domainsOfDrafts(supabase, [...new Set(sentRows.map((s) => s.draft_id))]);
+  const [domains, sentPlans] = await Promise.all([
+    domainsOfDrafts(supabase, [...new Set(sentRows.map((s) => s.draft_id))]),
+    campaignsOfPlans(supabase, [...new Set(sentRows.map((s) => s.plan_id))]),
+  ]);
 
   const verified = boxRows.filter((b) => b.status === "verifiee");
   const first = verified[0] ?? null;
@@ -157,10 +173,16 @@ export async function loadEnvois(
         body: th.messages[0]?.text ?? "",
         // En pause, aucune heure n'est annoncée : elle ne serait pas tenue.
         at: state === "actif" ? (queued.eta.get(draftId)?.at.toISOString() ?? null) : null,
+        campaignId: th.campaignId,
       };
     })
     // Dans l'ordre de départ ; ceux dont l'heure n'est pas connue à la fin.
     .sort((a, b) => (a.at ?? "9").localeCompare(b.at ?? "9"));
+
+  // Campagnes, dans l'ordre où elles apparaissent (programmés d'abord), sans doublon.
+  const campaigns = new Map<string, string>();
+  for (const th of queued.threads) if (th.campaignId) campaigns.set(th.campaignId, th.campaign);
+  for (const c of sentPlans.values()) if (!campaigns.has(c.id)) campaigns.set(c.id, c.label);
 
   return {
     state,
@@ -172,7 +194,9 @@ export async function loadEnvois(
       subject: s.subject ?? "",
       body: s.body ?? "",
       sentAt: s.sent_at,
+      campaignId: sentPlans.get(s.plan_id)?.id ?? "",
     })),
+    campaigns: [...campaigns].map(([id, label]) => ({ id, label })),
     sentTotal: sentCount.count ?? sentRows.length,
     window: first
       ? {
@@ -254,6 +278,27 @@ async function domainsOfDrafts(supabase: Client, draftIds: string[]): Promise<Ma
   for (const d of drafts ?? []) {
     const domain = byItem.get(d.plan_item_id);
     if (domain) out.set(d.id, domain);
+  }
+  return out;
+}
+
+/** Campagne (site) de chaque plan, avec le même libellé que « À approuver » (« site.fr · France »). */
+async function campaignsOfPlans(
+  supabase: Client,
+  planIds: string[],
+): Promise<Map<string, EnvoiCampaign>> {
+  const out = new Map<string, EnvoiCampaign>();
+  if (planIds.length === 0) return out;
+  const { data } = await supabase
+    .from("link_plans")
+    .select("id, site_id, sites(domain, country)")
+    .in("id", planIds);
+  const countries = t.sites.countries as Record<string, string>;
+  for (const p of data ?? []) {
+    const s = p.sites as unknown as { domain: string; country: string | null } | null;
+    if (!s) continue;
+    const label = `${s.domain}${s.country ? ` · ${countries[s.country] ?? s.country}` : ""}`;
+    out.set(p.id, { id: p.site_id, label });
   }
   return out;
 }

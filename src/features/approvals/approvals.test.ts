@@ -94,7 +94,7 @@ describe("file rangée par campagne", () => {
     expect(s.total).toBe(4);
     expect(s.approveMessageIds).toEqual(["m1"]);
     expect(s.approveReplyIds).toEqual(["r1"]);
-    expect(s.refuseMessageIds).toEqual(["m1", "m3"]);
+    expect(s.refuseMessageIds).toEqual(["m1", "m3", "f1"]);
     expect(s.notReady).toBe(1);
     expect(s.forms).toBe(1);
     expect(s.laterIds).toHaveLength(4);

@@ -91,7 +91,7 @@ export interface SelectionSummary {
   /** Ce qu'une approbation enverrait vraiment. */
   approveMessageIds: string[];
   approveReplyIds: string[];
-  /** Ce qu'un refus écarterait (un formulaire ne se refuse pas ici). */
+  /** Ce qu'un refus écarterait : emails et formulaires (cible écartée), réponses rejetées. */
   refuseMessageIds: string[];
   refuseReplyIds: string[];
   laterIds: string[];
@@ -122,7 +122,9 @@ export function selectionSummary(
     total: chosen.length,
     approveMessageIds: hasMailbox ? ready.map((r) => r.id) : [],
     approveReplyIds: replies.map((r) => r.id),
-    refuseMessageIds: messages.map((r) => r.id),
+    refuseMessageIds: chosen
+      .filter((r) => r.nature === "messages" || r.nature === "formulaires")
+      .map((r) => r.id),
     refuseReplyIds: replies.map((r) => r.id),
     laterIds: chosen.map((r) => r.id),
     notReady: messages.length - ready.length,

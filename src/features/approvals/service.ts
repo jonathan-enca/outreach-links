@@ -796,8 +796,10 @@ export async function wakeSnoozed(
 }
 
 /**
- * Refuse des premiers messages : la cible est écartée avec le motif « refusé par vous » (elle garde le
- * bouton « Rédiger quand même ») et le brouillon est supprimé. Rien n'est envoyé.
+ * Refuse des premiers messages, emails ou formulaires : la cible est écartée avec le motif « refusé par
+ * vous » (elle garde le bouton « Rédiger quand même ») et le brouillon est supprimé. Rien n'est envoyé.
+ * Un message de formulaire déjà approuvé (mais pas encore marqué fait) ne peut plus être supprimé : sa
+ * tâche est alors classée « ignorée », il quitte la file.
  */
 export async function refuseMessages(
   supabase: Client,
@@ -808,12 +810,12 @@ export async function refuseMessages(
   if (!auth.user) return { status: "error", message: M.unauthenticated };
   const ids = [...new Set(rawIds)].slice(0, 300);
   if (ids.length === 0) return { status: "error", message: M.nothing };
-  const { data: drafts } = await supabase
+  const { data: rows } = await supabase
     .from("target_drafts")
-    .select("id, plan_id, plan_item_id, workspace_id, proposed_url")
-    .in("id", ids)
-    .eq("status", "brouillon");
-  if (!drafts?.length) return { status: "error", message: M.notFound };
+    .select("id, plan_id, plan_item_id, workspace_id, status, channel")
+    .in("id", ids);
+  const drafts = (rows ?? []).filter((x) => x.status === "brouillon" || x.channel === "formulaire");
+  if (drafts.length === 0) return { status: "error", message: M.notFound };
   let service: Client;
   try {
     service = getServiceClient();
@@ -833,14 +835,26 @@ export async function refuseMessages(
     { onConflict: "plan_item_id" },
   );
   if (declineError) return { status: "error", message: M.saveError };
-  const { error } = await service
-    .from("target_drafts")
-    .delete()
-    .in(
-      "id",
-      drafts.map((x) => x.id),
-    )
-    .eq("status", "brouillon");
-  if (error) return { status: "error", message: M.saveError };
+  const unsent = drafts.filter((x) => x.status === "brouillon").map((x) => x.id);
+  if (unsent.length > 0) {
+    const { error } = await service
+      .from("target_drafts")
+      .delete()
+      .in("id", unsent)
+      .eq("status", "brouillon");
+    if (error) return { status: "error", message: M.saveError };
+  }
+  // Formulaire déjà approuvé : le message reste, la tâche sort de la file.
+  const approvedForms = drafts
+    .filter((x) => x.channel === "formulaire" && x.status !== "brouillon")
+    .map((x) => x.plan_item_id);
+  if (approvedForms.length > 0) {
+    const { error } = await service
+      .from("manual_tasks")
+      .update({ status: "ignoree" })
+      .in("plan_item_id", approvedForms)
+      .eq("status", "a_faire");
+    if (error) return { status: "error", message: M.saveError };
+  }
   return { status: "ok", message: M.refused(drafts.length) };
 }

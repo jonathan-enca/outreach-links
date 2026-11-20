@@ -10,7 +10,7 @@ import { startQualification } from "@/features/qualification/service";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { saveMessageSettings, validateRequests } from "./service";
+import { dismissTargets, saveMessageSettings, validateRequests } from "./service";
 
 const M = t.targets.messages;
 const refresh = () => revalidatePath("/app", "layout");
@@ -87,5 +87,16 @@ export async function validateRequestsAction(
   );
   refresh();
   revalidatePath(`/app/audit/${auditId}/plan`);
+  return r;
+}
+
+/** « Écarter » des sites de la liste à décider, ou les y remettre (`dismiss` à false). */
+export async function dismissTargetsAction(
+  auditId: string,
+  ids: string[],
+  dismiss: boolean,
+): Promise<AuditActionState> {
+  const r = await dismissTargets(await createClient(), createServiceClient, auditId, ids, dismiss);
+  refresh();
   return r;
 }

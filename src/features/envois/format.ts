@@ -20,6 +20,8 @@ export interface EnvoiRow {
   body: string;
   /** Phrase de date complète, affichée dans le message ouvert. */
   meta: string;
+  /** Campagne de l'email (pour le filtre) ; vide si inconnue. */
+  campaignId: string;
 }
 
 /** Jour civil d'un instant dans un fuseau, sous une forme qui se compare (« 2026-11-23 »). */
@@ -78,6 +80,7 @@ export function scheduledRows(
       body: s.body,
       // L'heure de départ est une estimation : la phrase dit « vers ».
       meta: at ? M.meta.scheduled(formatSendTime(at, timezone, false)) : M.meta.unknown,
+      campaignId: s.campaignId ?? "",
     };
   });
 }
@@ -94,6 +97,7 @@ export function sentRows(items: readonly SentEnvoi[], timezone: string, now: Dat
       subject: s.subject,
       body: s.body,
       meta: at ? M.meta.sent(formatSendTime(at, timezone, true)) : "",
+      campaignId: s.campaignId ?? "",
     };
   });
 }
