@@ -155,7 +155,7 @@ export function AppNav({
           // Étape 3 : ce qui est programmé et ce qui est parti.
           key: "envois",
           href: "/app/envois",
-          label: "Envois",
+          label: t.envois.title,
           icon: Send,
           step: 3,
           active: starts("/app/envois"),

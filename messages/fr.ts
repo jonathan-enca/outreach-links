@@ -1631,7 +1631,11 @@ export const fr = {
       why: "Pourquoi ce site",
       request: "Demande",
       type: "Type",
+      typeColumn: "Type de site",
       contact: "Contact",
+      selectSite: (domain: string) => `Contacter ${domain}`,
+      openSite: "Ouvrir",
+      openSiteLabel: (domain: string) => `Ouvrir ${domain} dans un nouvel onglet`,
       open: "Voir le détail",
       close: "Replier le détail",
       quote: "Ce que dit sa page",
@@ -2889,6 +2893,92 @@ export const fr = {
     messages: {
       unauthenticated: "Connectez-vous pour continuer.",
       saveError: "Enregistrement impossible. Réessayez.",
+    },
+  },
+  /** Écran « Emails » (route /app/envois) : emails programmés, emails partis, état et quotas d'envoi. */
+  envois: {
+    title: "Emails",
+    description:
+      "Les messages que vous avez approuvés : ceux qui vont partir, et ceux qui sont déjà partis.",
+    stateLabel: "État des envois",
+    states: {
+      actif: {
+        title: "Vos emails partent tout seuls",
+        text: (hours: string, from: string | null) =>
+          `${hours.charAt(0).toUpperCase()}${hours.slice(1)}${from ? `, depuis ${from}` : ""}.`,
+        fallback: "Aux horaires de votre boîte d'envoi.",
+      },
+      pause: {
+        title: "Envois en pause",
+        text: "Rien ne part tant que vous n'avez pas repris. Rien n'est annulé : vos emails programmés attendent.",
+      },
+      sans_boite: {
+        title: "Aucune boîte d'envoi connectée",
+        text: "Connectez votre boîte pour que vos emails approuvés puissent partir.",
+      },
+      simulation: {
+        title: "Mode simulation",
+        text: "Ce serveur n'envoie aucun email réel : les emails approuvés restent en attente.",
+      },
+    },
+    editHours: "Changer les horaires",
+    pause: "Mettre en pause",
+    resume: "Reprendre les envois",
+    connect: "Connecter la boîte d'envoi",
+    facts: {
+      next: "Prochain départ",
+      nextNone: "Aucun email en attente",
+      nextPaused: "À la reprise des envois",
+      nextUnknown: "Heure à venir",
+      day: "Dernières 24 heures",
+      week: "7 derniers jours",
+      weekValue: (n: number) => (n > 1 ? "envoyés" : "envoyé"),
+      month: "Ce mois-ci",
+      of: (cap: number) => `sur ${cap}`,
+      none: "Aucun envoi sur ce forfait",
+    },
+    notes: {
+      monthFull: {
+        lead: "Quota du mois atteint.",
+        text: "Il se renouvelle le 1er du mois.",
+      },
+      dayFull: {
+        lead: "Limite des 24 heures atteinte.",
+        warmup: (cap: number) =>
+          `${cap} ${cap > 1 ? "emails" : "email"} par 24 heures pour commencer : ce rythme augmente tout seul au fil des semaines, pour que vos messages n'arrivent pas en indésirables.`,
+        steady: "Les prochains emails partent dès qu'une place se libère.",
+      },
+      warmup: {
+        lead: "Rythme de démarrage.",
+        text: (cap: number) =>
+          `${cap} ${cap > 1 ? "emails" : "email"} par 24 heures pour l'instant : ce rythme augmente tout seul au fil des semaines, pour que vos messages n'arrivent pas en indésirables.`,
+      },
+    },
+    tabsLabel: "Emails programmés ou envoyés",
+    tabs: { scheduled: "Programmés", sent: "Envoyés" },
+    cancel: "Annuler",
+    cancelLabel: (domain: string) => `Annuler l'email pour ${domain}`,
+    sentBadge: "Envoyé",
+    to: "À :",
+    openMessage: "Afficher le message",
+    closeMessage: "Replier le message",
+    emptyScheduled: "Aucun email n'attend son départ.",
+    emptySent: "Aucun email n'est encore parti.",
+    older: (n: number) => (n > 1 ? `Afficher les ${n} plus anciens` : "Afficher le plus ancien"),
+    truncated: (n: number) => `Seuls les ${n} derniers emails sont affichés.`,
+    replies:
+      "Les réponses arrivent directement dans votre boîte mail. Nous n'y avons pas accès : nous ne voyons ni les réponses, ni si un message a été lu.",
+    actionFailed: "Action impossible.",
+    days: {
+      today: (day: string) => `Aujourd'hui, ${day}`,
+      tomorrow: (day: string) => `Demain, ${day}`,
+      yesterday: (day: string) => `Hier, ${day}`,
+      unknown: "En attente de départ",
+    },
+    meta: {
+      scheduled: (when: string) => `Départ prévu ${when}`,
+      sent: (when: string) => `Envoyé ${when}`,
+      unknown: "Heure de départ pas encore connue",
     },
   },
   conversations: {

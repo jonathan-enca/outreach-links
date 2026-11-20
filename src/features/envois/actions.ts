@@ -34,6 +34,6 @@ export async function setSendingPausedAction(paused: boolean): Promise<AuditActi
   revalidatePath("/app", "layout");
   return {
     status: "ok",
-    message: paused ? "Envois suspendus. Rien n'est annulé." : "Envois repris.",
+    message: paused ? "Envois en pause. Rien n'est annulé." : "Envois repris.",
   };
 }

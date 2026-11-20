@@ -39,7 +39,8 @@ export interface SendQueue {
   eta: Map<string, QueueEta>;
 }
 
-const COUNTED = ["en_cours", "envoye", "simule", "a_reessayer", "echec"];
+/** Statuts d'envoi qui comptent dans les limites de la boîte (heure, 24 heures). */
+export const COUNTED = ["en_cours", "envoye", "simule", "a_reessayer", "echec"];
 
 /**
  * File d'envoi de la personne connectée (RLS) : pour chaque email approuvé pas encore parti, l'heure

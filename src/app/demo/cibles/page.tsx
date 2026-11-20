@@ -191,7 +191,7 @@ export default async function DemoCiblesPage({
   };
   return (
     <div className="flex">
-      <main className="mx-auto min-w-0 max-w-5xl flex-1 px-4 py-8 sm:px-6">
+      <main className="mx-auto min-w-0 max-w-[96rem] flex-1 px-4 py-8 sm:px-6">
         <PageHeader title={t.targets.title} description={t.targets.description} />
         <TargetsScreen
           view={view}

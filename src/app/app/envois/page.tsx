@@ -4,54 +4,39 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { env } from "@/env";
 import { cancelEnvoiAction, setSendingPausedAction } from "@/features/envois/actions";
-import { EnvoisScreen, type EnvoiRow } from "@/features/envois/envois-view";
+import { EnvoisScreen } from "@/features/envois/envois-view";
+import { nextLabel, scheduledRows, sentRows } from "@/features/envois/format";
 import { loadEnvois } from "@/features/envois/service";
 import { selectedSiteId } from "@/features/shell/current-site";
+import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Envois" };
+export const metadata: Metadata = { title: t.envois.title };
 
-const dateLabel = (iso: string | null) =>
-  iso
-    ? new Date(iso).toLocaleString("fr-FR", {
-        timeZone: "Europe/Paris",
-        day: "numeric",
-        month: "long",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "";
-
-/** « Envois » : ce qui est programmé, ce qui est parti, et la suspension. */
+/** « Emails » : l'état des envois et les quotas, ce qui est programmé, ce qui est parti. */
 async function Envois() {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/connexion");
+  const now = new Date();
   const view = await loadEnvois(supabase, {
-    now: new Date(),
+    now,
     realSending: !env.EMAIL_DRY_RUN && env.OUTREACH_SENDING_ENABLED,
     siteId: await selectedSiteId(supabase),
   });
-  const scheduled: EnvoiRow[] = view.scheduled.map((s) => ({
-    id: s.draftId,
-    draftId: s.draftId,
-    primary: s.when,
-    secondary: `${s.email} · ${s.domain}${s.campaign ? ` · ${s.campaign}` : ""}`,
-    subject: s.subject,
-  }));
-  const sent: EnvoiRow[] = view.sent.map((s) => ({
-    id: s.id,
-    primary: s.email,
-    secondary: `Envoyé le ${dateLabel(s.sentAt)}`,
-    subject: s.subject,
-  }));
   return (
     <EnvoisScreen
-      scheduled={scheduled}
-      sent={sent}
-      paused={view.paused}
-      boxes={view.boxes}
-      queueNote={view.queueNote}
+      state={view.state}
+      scheduled={scheduledRows(view.scheduled, view.timezone, now)}
+      sent={sentRows(view.sent, view.timezone, now)}
+      sentTotal={view.sentTotal}
+      hours={view.hours}
+      fromEmail={view.fromEmail}
+      next={view.nextAt ? nextLabel(view.nextAt, view.timezone) : null}
+      day={view.day}
+      warmingUp={view.warmingUp}
+      week={view.week}
+      month={view.month}
       actions={{ cancel: cancelEnvoiAction, setPaused: setSendingPausedAction }}
     />
   );
@@ -60,10 +45,7 @@ async function Envois() {
 export default function Page() {
   return (
     <>
-      <PageHeader
-        title="Envois"
-        description="Les emails programmés, leur heure de départ, ce qui est parti. Vous pouvez annuler ou suspendre à tout moment."
-      />
+      <PageHeader title={t.envois.title} description={t.envois.description} />
       <Suspense>
         <Envois />
       </Suspense>
