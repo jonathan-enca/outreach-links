@@ -8,6 +8,7 @@ import { profileToFields } from "@/features/brand/form";
 import type { BrandProfile } from "@/features/brand/schema";
 import type { SiteRead } from "@/features/brand/read-site";
 import {
+  ensureSiteForSearchConsole,
   getLaunchPreview,
   launchJourney,
   readMarket,
@@ -744,6 +745,53 @@ describe("univers de requêtes au lancement (MT.2b)", () => {
       async () => ({}),
     );
     expect(res.status).toBe("ok");
+  });
+});
+
+describe("étape 1 : campagne créée pour connecter la Search Console", () => {
+  const market = { country: "BE", language: "auto", goal: "mots_cles" } as const;
+
+  it("crée la campagne sans lire le site, avec le pays et l'objectif choisis", async () => {
+    const { user } = setup();
+    const res = await ensureSiteForSearchConsole(
+      user.client,
+      "https://www.Exemple.fr/page",
+      market,
+    );
+    expect(res.status).toBe("ok");
+    expect(user.tables.sites).toHaveLength(1);
+    expect(user.tables.sites![0]).toMatchObject({
+      id: res.siteId,
+      domain: "exemple.fr",
+      country: "BE",
+      language: "fr",
+      goal: "mots_cles",
+    });
+  });
+
+  it("retrouve la campagne du même site et du même pays ; l'analyse la reprend ensuite", async () => {
+    const { user } = setup();
+    const first = await ensureSiteForSearchConsole(user.client, "exemple.fr", market);
+    const again = await ensureSiteForSearchConsole(user.client, "exemple.fr", market);
+    expect(again.siteId).toBe(first.siteId);
+    const { llm } = llmReturning({ theme: "coloriages", language: "fr", queries: ["coloriage"] });
+    const started = await startFromUrl(
+      user.client,
+      "exemple.fr",
+      { readHomepage: vi.fn(async () => PAGE), makeLlm: () => llm },
+      market,
+      { profile: false },
+    );
+    expect(started.siteId).toBe(first.siteId);
+    expect(user.tables.sites).toHaveLength(1);
+    expect(user.tables.sites![0]).toMatchObject({ niche: "coloriages" });
+  });
+
+  it("refuse une adresse qui n'est pas un site public", async () => {
+    const { user } = setup();
+    const res = await ensureSiteForSearchConsole(user.client, "localhost", market);
+    expect(res.status).toBe("error");
+    expect(user.tables.sites).toHaveLength(0);
   });
 });
 

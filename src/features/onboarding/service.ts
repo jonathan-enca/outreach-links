@@ -75,6 +75,56 @@ export function readMarket(formData: FormData): StartMarket {
   };
 }
 
+/**
+ * Étape 1, bouton « Connecter la Search Console » : la connexion vaut pour un site, donc la campagne
+ * (site × pays) est créée tout de suite, sans lecture du site ni appel payant. « Analyser mon site »
+ * la retrouve ensuite et fait la lecture complète (thème, requêtes, profil).
+ */
+export async function ensureSiteForSearchConsole(
+  supabase: Client,
+  rawUrl: string,
+  market: StartMarket = DEFAULT_MARKET,
+): Promise<StartState> {
+  const domain = normalizeDomain(rawUrl);
+  if (!domain) return { status: "error", message: ONBOARDING_MESSAGES.invalidUrl };
+  const userId = await currentUserId(supabase);
+  if (!userId) return { status: "error", message: ONBOARDING_MESSAGES.unauthenticated };
+  const { data: ws } = await supabase
+    .from("workspaces")
+    .select("id")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!ws) return { status: "error", message: ONBOARDING_MESSAGES.noWorkspace };
+  const { data: existing } = await supabase
+    .from("sites")
+    .select("id")
+    .eq("workspace_id", ws.id)
+    .eq("domain", domain)
+    .eq("country", market.country)
+    .maybeSingle();
+  if (existing) return { status: "ok", siteId: existing.id };
+  const { data, error } = await supabase
+    .from("sites")
+    .insert({
+      workspace_id: ws.id,
+      domain,
+      country: market.country,
+      language: market.language === "auto" ? MARKETS[market.country].language : market.language,
+      goal: market.goal,
+    })
+    .select("id")
+    .single();
+  if (error || !data) return { status: "error", message: ONBOARDING_MESSAGES.saveError };
+  await supabase.from("events").insert({
+    workspace_id: ws.id,
+    actor_id: userId,
+    type: "site.created",
+    payload: { site_id: data.id, domain, origin: "onboarding_search_console" },
+  });
+  return { status: "ok", siteId: data.id };
+}
+
 export interface StartDeps {
   /** Lit la page d'accueil du domaine (lecteur sûr : SSRF, robots.txt). null = illisible. */
   readHomepage: (domain: string, language?: string) => Promise<PageRead | null>;

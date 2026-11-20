@@ -844,7 +844,18 @@ export const fr = {
       goalPages: "Faire ranker des pages précises",
       goalPagesBody: "Vous choisissez les pages de votre site à faire citer.",
       addCountry: "Ajouter un pays",
-      campaignNote: "Une campagne = un site pour un pays. Vous pourrez en ajouter une par pays.",
+    },
+    searchConsole: {
+      title: "Connectez la Search Console",
+      badge: "Facultatif, fortement conseillé",
+      body: "Nous lisons les recherches et les pages qui vous amènent déjà des visiteurs : l'analyse part de vos vrais mots-clés, pas de suppositions.",
+      button: "Connecter la Search Console",
+      safe: "Lecture seule : nous n'écrivons rien dans votre compte, et vous pouvez retirer l'accès à tout moment depuis votre compte Google.",
+      needUrl:
+        "Indiquez d'abord l'adresse de votre site : la Search Console se connecte pour ce site.",
+      without: "Vous pouvez aussi lancer l'analyse sans elle.",
+      doneTitle: "Search Console connectée",
+      doneBody: "L'analyse utilisera vos recherches et vos pages réelles.",
     },
     reading: {
       title: "Lecture de votre site",
@@ -858,9 +869,8 @@ export const fr = {
     },
     submit: "Analyser mon site",
     submitting: "Lecture de votre site…",
-    advanced: "Vous préférez tout saisir vous-même ?",
-    advancedLink: "Formulaire complet",
     messages: {
+      emptyUrl: "Indiquez l'adresse de votre site.",
       invalidUrl: "Cette adresse ne ressemble pas à un site public. Exemple : monsite.fr",
       unauthenticated: "Votre session a expiré. Reconnectez-vous.",
       noWorkspace: "Aucun espace de travail trouvé pour ce compte.",

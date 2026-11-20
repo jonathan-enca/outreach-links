@@ -3077,3 +3077,15 @@ Maquette validée par Jonathan avant le code : `docs/mockups/a-approuver-v2.html
 pnpm vitest run src/features/approvals
 pnpm typecheck && pnpm lint
 ```
+
+## Session du 20/11 (suite 4) : étape 1 « Analyser votre site », Search Console dans le formulaire (faite, sans changement de données)
+
+Maquette validée par Jonathan le 20/11 : `docs/mockups/demarrer-campagne.html` (quatre états). L'écran `/app/demarrer` la reprend à l'identique.
+
+- **Search Console proposée dans le formulaire**, juste au-dessus de « Analyser mon site » (facultatif, fortement conseillé). Au retour de Google, l'encadré devient « Search Console connectée » (propriété, compte) ; en cas d'échec, le message de Google suivi de « Vous pouvez aussi lancer l'analyse sans elle. ».
+- **Retirés de cet écran** : le bloc « Mise en route », le lien « Formulaire complet » et la phrase en double « Une campagne = un site pour un pays… ».
+- **Comment ça marche** : la connexion vaut pour un site, donc le clic sur « Connecter » crée (ou retrouve) la campagne site × pays sans rien lire ni payer (`ensureSiteForSearchConsole`), puis part chez Google. Le `state` OAuth porte `back: "demarrer"` et la langue choisie ; le retour se fait sur `/app/demarrer?campagne=…&sc=…&langue=…`, qui remet adresse, pays, langue et objectif. « Analyser mon site » retrouve ensuite cette campagne et fait la lecture complète. Adresse vide : le bouton la demande. Adresse modifiée après connexion : l'encadré revient à « connecter ».
+- **Fichiers clés** : `src/features/onboarding/url-form.tsx`, `src/app/app/demarrer/page.tsx`, `src/features/onboarding/service.ts` (`ensureSiteForSearchConsole`), `src/features/google/oauth.ts` (`back`, `lang`), `src/app/api/google/{start,callback}/route.ts`.
+- **Vérifié** : typage, lint et tests des dossiers touchés ; les trois états de l'encadré et le mobile dans le navigateur, sur une page d'aperçu temporaire (pas de compte de test en local). **Non vérifié** : l'aller-retour réel chez Google (impossible en local) ; à essayer en production avec un vrai compte.
+- **Dettes et pièges** : une campagne créée par « Connecter » puis abandonnée reste dans la liste des sites, sans thème (même forme qu'une campagne quittée à l'étape 2). L'encadré n'apparaît que si `SEARCH_CONSOLE_ENABLED` est ouvert.
+- **Backlog** : « Mise en route » figure encore à l'accueil (`/app`) et à l'étape 2 (`/app/demarrer/[siteId]`), à retirer si Jonathan le confirme ; le libellé « Faire ranker des pages précises » correspond dans le code à l'objectif `mots_cles` (pilotage par mots-clés, pas de choix de pages), laissé tel quel à sa demande.

@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maquette « Analyser votre site », étape 1 d'une campagne</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Jetons repris de src/app/globals.css (version en ligne, bleu marine, police Outfit). */
+      :root {
+        --background: #f8fafc;
+        --foreground: #0f172a;
+        --card: #ffffff;
+        --muted: #f1f5f9;
+        --muted-foreground: #526074;
+        --border: #e2e8f0;
+        --primary: #003070;
+        --primary-hover: #00245a;
+        --accent: #e9f6fe;
+        --sidebar: #00245a;
+        --sidebar-foreground: #cfe2f6;
+        --sidebar-label: #9cc3ea;
+        --success: #047857;
+        --danger: #be123c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: Outfit, system-ui, sans-serif;
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      .app {
+        display: grid;
+        grid-template-columns: 232px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      .side {
+        background: var(--sidebar);
+        color: var(--sidebar-foreground);
+        padding: 20px 12px;
+      }
+      .side .logo {
+        color: #fff;
+        font-weight: 600;
+        font-size: 18px;
+        padding: 0 8px 16px;
+      }
+      .side .label {
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--sidebar-label);
+        padding: 14px 8px 4px;
+      }
+      .side a {
+        display: block;
+        padding: 8px;
+        border-radius: 8px;
+        font-size: 14.5px;
+      }
+      .side a.on {
+        background: rgb(255 255 255 / 0.14);
+        color: #fff;
+        font-weight: 500;
+      }
+      main {
+        padding: 28px 32px 56px;
+        min-width: 0;
+      }
+      .wrap {
+        max-width: 46rem;
+        margin: 0 auto;
+      }
+
+      /* Bandeau de maquette : hors écran réel. */
+      .proto {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 24px;
+        padding: 8px 10px;
+        border: 1px dashed #94a3b8;
+        border-radius: 10px;
+        font-size: 13.5px;
+        color: var(--muted-foreground);
+      }
+      .proto button {
+        font: inherit;
+        font-size: 13.5px;
+        padding: 4px 10px;
+        border-radius: 99px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--foreground);
+        cursor: pointer;
+      }
+      .proto button[aria-pressed="true"] {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: #fff;
+      }
+
+      /* Barre de préparation (inchangée). */
+      .steps {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 24px;
+        padding: 0;
+        list-style: none;
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+      .steps li {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .steps .num {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 99px;
+        background: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .steps .cur {
+        color: var(--foreground);
+        font-weight: 600;
+      }
+      .steps .cur .num {
+        background: rgb(0 48 112 / 0.1);
+        color: var(--primary);
+        box-shadow: 0 0 0 2px var(--primary);
+      }
+      .steps .sep {
+        width: 24px;
+        height: 1px;
+        background: var(--border);
+      }
+      .steps-mobile {
+        display: none;
+        margin: 0 0 16px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--primary);
+      }
+
+      h1 {
+        font-size: 30px;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        margin: 0 0 6px;
+      }
+      .lead {
+        color: var(--muted-foreground);
+        margin: 0 0 24px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      label.lab,
+      legend {
+        font-size: 14px;
+        font-weight: 500;
+        padding: 0;
+      }
+      input[type="text"],
+      select {
+        font: inherit;
+        height: 48px;
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+        padding: 0 14px;
+        color: var(--foreground);
+      }
+      input[type="text"]::placeholder {
+        color: #7b8798;
+      }
+      input[type="text"]:focus-visible,
+      select:focus-visible,
+      button:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+      input[aria-invalid="true"] {
+        border-color: var(--danger);
+      }
+      .two {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .hint {
+        margin: 0;
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+      .err {
+        margin: 0;
+        font-size: 14px;
+        color: var(--danger);
+      }
+      fieldset {
+        border: 0;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .choice {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      .choice:has(:checked) {
+        border-color: var(--primary);
+        background: var(--muted);
+      }
+      .choice input {
+        margin-top: 5px;
+        accent-color: var(--primary);
+      }
+      .choice b {
+        display: block;
+        font-weight: 500;
+      }
+      .choice span {
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+
+      /* Search Console : seule proposition en plus du formulaire. */
+      .sc {
+        border: 1px solid #bfe3fb;
+        background: var(--accent);
+        border-radius: 10px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .sc-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+      .sc h2 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .badge {
+        font-size: 12.5px;
+        padding: 2px 9px;
+        border-radius: 99px;
+        background: #fff;
+        border: 1px solid #bfe3fb;
+        color: var(--primary);
+        font-weight: 500;
+      }
+      .sc p {
+        margin: 0;
+        font-size: 14.5px;
+      }
+      .sc .small {
+        font-size: 13px;
+        color: var(--muted-foreground);
+      }
+      .sc.ok {
+        border-color: #a7dcc6;
+        background: #ecfdf5;
+      }
+      .sc.ok h2 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .tick {
+        display: grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 99px;
+        background: var(--success);
+        color: #fff;
+        font-size: 13px;
+        flex: none;
+      }
+      .btn {
+        font: inherit;
+        font-weight: 500;
+        height: 40px;
+        padding: 0 16px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--foreground);
+        cursor: pointer;
+      }
+      .btn:hover {
+        background: var(--muted);
+      }
+      .btn.primary {
+        height: 48px;
+        padding: 0 24px;
+        background: var(--primary);
+        border-color: var(--primary);
+        color: #fff;
+      }
+      .btn.primary:hover {
+        background: var(--primary-hover);
+      }
+      .btn[disabled] {
+        opacity: 0.6;
+        cursor: default;
+      }
+
+      /* Lecture en direct (inchangée). */
+      .reading {
+        border: 1px solid var(--border);
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 16px;
+      }
+      .reading p {
+        margin: 0;
+      }
+      .reading ul {
+        list-style: none;
+        margin: 12px 0 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .reading li {
+        display: flex;
+        gap: 8px;
+      }
+      .reading li[data-s="wait"] {
+        color: var(--muted-foreground);
+      }
+      .reading i {
+        font-style: normal;
+        width: 18px;
+        flex: none;
+        text-align: center;
+      }
+      .reading li[data-s="ok"] i {
+        color: var(--success);
+      }
+      .spin {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        margin-top: 5px;
+        border: 2px solid #c7d2e0;
+        border-top-color: var(--primary);
+        border-radius: 99px;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .spin {
+          animation: none;
+        }
+      }
+      [hidden] {
+        display: none !important;
+      }
+      @media (max-width: 760px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+        .side {
+          display: none;
+        }
+        main {
+          padding: 20px 16px 40px;
+        }
+        .steps {
+          display: none;
+        }
+        .steps-mobile {
+          display: block;
+        }
+        .two {
+          grid-template-columns: 1fr;
+        }
+        h1 {
+          font-size: 26px;
+        }
+        .card {
+          padding: 18px;
+        }
+        .btn.primary,
+        .sc .btn {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="side" aria-hidden="true">
+        <div class="logo">backleenks</div>
+        <a>Accueil</a>
+        <a class="on">Campagnes</a>
+        <div class="label">Réglages</div>
+        <a>Boîte d'envoi</a>
+        <a>Abonnement</a>
+      </aside>
+      <main>
+        <div class="wrap">
+          <div class="proto" id="proto">
+            Maquette, états :
+            <button type="button" data-v="vide" aria-pressed="true">À l'arrivée</button>
+            <button type="button" data-v="connectee" aria-pressed="false">
+              Search Console connectée
+            </button>
+            <button type="button" data-v="erreur" aria-pressed="false">
+              Site absent de la Search Console
+            </button>
+            <button type="button" data-v="lecture" aria-pressed="false">Lecture en cours</button>
+          </div>
+
+          <p class="steps-mobile">Étape 1 sur 4 : Votre site</p>
+          <ol class="steps" aria-label="Préparation de la campagne">
+            <li class="cur"><span class="num">1</span>Votre site<span class="sep"></span></li>
+            <li><span class="num">2</span>Vérification<span class="sep"></span></li>
+            <li><span class="num">3</span>Vous<span class="sep"></span></li>
+            <li><span class="num">4</span>Analyse</li>
+          </ol>
+
+          <h1>Analyser votre site</h1>
+          <p class="lead">
+            Collez l'adresse de votre site. Nous en déduisons le thème et les recherches à
+            surveiller, puis vous relisez et lancez l'analyse.
+          </p>
+
+          <form class="card" id="form" novalidate>
+            <div class="field">
+              <label class="lab" for="url">Adresse de votre site</label>
+              <input id="url" type="text" inputmode="url" placeholder="monsite.fr" />
+              <p class="err" id="urlErr" role="alert" hidden></p>
+            </div>
+
+            <div class="field">
+              <div class="two">
+                <div class="field">
+                  <label class="lab" for="country">Pays visé</label>
+                  <select id="country">
+                    <option>France</option>
+                    <option>Belgique</option>
+                    <option>Suisse</option>
+                    <option>Canada</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="lab" for="lang">Langue du site</label>
+                  <select id="lang">
+                    <option>Détectée sur votre site</option>
+                    <option>Français</option>
+                    <option>Anglais</option>
+                  </select>
+                </div>
+              </div>
+              <p class="hint">
+                Chaque pays a sa propre campagne : son analyse, ses cibles, son contexte local. Vous
+                pourrez en ajouter une autre pour le même site.
+              </p>
+            </div>
+
+            <fieldset>
+              <legend>Votre objectif</legend>
+              <label class="choice">
+                <input type="radio" name="goal" checked />
+                <div>
+                  <b>Faire ranker le site en général</b>
+                  <span
+                    >Nous visons l'autorité de votre site : la page citée est votre accueil.</span
+                  >
+                </div>
+              </label>
+              <label class="choice">
+                <input type="radio" name="goal" />
+                <div>
+                  <b>Faire ranker des pages précises</b>
+                  <span>Vous choisissez les pages de votre site à faire citer.</span>
+                </div>
+              </label>
+            </fieldset>
+
+            <!-- Search Console : à connecter -->
+            <section class="sc" id="scTodo" aria-labelledby="scT1">
+              <div class="sc-head">
+                <h2 id="scT1">Connectez la Search Console</h2>
+                <span class="badge">Facultatif, fortement conseillé</span>
+              </div>
+              <p>
+                Nous lisons les recherches et les pages qui vous amènent déjà des visiteurs :
+                l'analyse part de vos vrais mots-clés, pas de suppositions.
+              </p>
+              <p class="err" id="scErr" role="alert" hidden>
+                Ce compte Google n'a pas de propriété Search Console pour ce site. Vérifiez le site
+                dans la Search Console, puis recommencez. Vous pouvez aussi lancer l'analyse sans
+                elle.
+              </p>
+              <div>
+                <button class="btn" type="button" id="scBtn">Connecter la Search Console</button>
+              </div>
+              <p class="small">
+                Lecture seule : nous n'écrivons rien dans votre compte, et vous pouvez retirer
+                l'accès à tout moment depuis votre compte Google.
+              </p>
+            </section>
+
+            <!-- Search Console : connectée -->
+            <section class="sc ok" id="scDone" aria-labelledby="scT2" hidden>
+              <h2 id="scT2">
+                <span class="tick" aria-hidden="true">✓</span>Search Console connectée
+              </h2>
+              <p>L'analyse utilisera vos recherches et vos pages réelles.</p>
+              <p class="small" id="scWho"></p>
+            </section>
+
+            <div>
+              <button class="btn primary" type="submit" id="go">Analyser mon site</button>
+            </div>
+
+            <div class="reading" id="reading" role="status" aria-live="polite" hidden>
+              <p><b>Lecture de votre site</b></p>
+              <p class="hint">Environ 30 secondes. Vous pouvez rester sur cette page.</p>
+              <ul>
+                <li data-s="run" id="r1"><i></i><span>Page d'accueil lue</span></li>
+                <li data-s="wait" id="r2">
+                  <i></i><span>Plan du site et pages principales lus</span>
+                </li>
+                <li data-s="wait" id="r3"><i></i><span>Activité et public compris</span></li>
+              </ul>
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      var $ = function (id) {
+        return document.getElementById(id);
+      };
+      var timers = [];
+
+      function mark(li, s) {
+        li.dataset.s = s;
+        li.querySelector("i").innerHTML =
+          s === "ok" ? "✓" : s === "run" ? '<span class="spin"></span>' : "○";
+      }
+
+      function show(v) {
+        timers.forEach(clearTimeout);
+        timers = [];
+        document.querySelectorAll("#proto button").forEach(function (b) {
+          b.setAttribute("aria-pressed", String(b.dataset.v === (v === "vide-keep" ? "vide" : v)));
+        });
+        var connected = v === "connectee" || (v === "lecture" && !$("scDone").hidden);
+        if (v !== "vide" && v !== "vide-keep" && !$("url").value) $("url").value = "monsite.fr";
+        if (v === "vide") $("url").value = "";
+        $("urlErr").hidden = true;
+        $("url").removeAttribute("aria-invalid");
+        $("scTodo").hidden = connected;
+        $("scDone").hidden = !connected;
+        $("scErr").hidden = v !== "erreur";
+        $("scWho").textContent =
+          "Propriété " +
+          ($("url").value || "monsite.fr") +
+          ", compte vous@gmail.com. Lecture seule.";
+        var busy = v === "lecture";
+        $("reading").hidden = !busy;
+        $("go").disabled = busy;
+        $("go").textContent = busy ? "Lecture de votre site…" : "Analyser mon site";
+        $("scBtn").disabled = busy;
+        document.querySelectorAll("#form input, #form select").forEach(function (el) {
+          el.disabled = busy;
+        });
+        if (busy) {
+          mark($("r1"), "run");
+          mark($("r2"), "wait");
+          mark($("r3"), "wait");
+          timers.push(
+            setTimeout(function () {
+              mark($("r1"), "ok");
+              mark($("r2"), "run");
+            }, 1500),
+          );
+          timers.push(
+            setTimeout(function () {
+              mark($("r2"), "ok");
+              mark($("r3"), "ok");
+            }, 4000),
+          );
+        }
+      }
+
+      function needUrl(msg) {
+        if ($("url").value.trim()) return false;
+        $("urlErr").textContent = msg;
+        $("urlErr").hidden = false;
+        $("url").setAttribute("aria-invalid", "true");
+        $("url").focus();
+        return true;
+      }
+
+      document.querySelectorAll("#proto button").forEach(function (b) {
+        b.addEventListener("click", function () {
+          show(b.dataset.v);
+        });
+      });
+      // Dans la maquette, le passage chez Google est simulé : le clic mène à l'état « connectée ».
+      $("scBtn").addEventListener("click", function () {
+        if (
+          needUrl(
+            "Indiquez d'abord l'adresse de votre site : la Search Console se connecte pour ce site.",
+          )
+        )
+          return;
+        show("connectee");
+      });
+      $("form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (needUrl("Indiquez l'adresse de votre site.")) return;
+        show("lecture");
+      });
+      // La connexion vaut pour un site : si l'adresse change, elle est à refaire.
+      $("url").addEventListener("input", function () {
+        if (!$("scDone").hidden) show("vide-keep");
+      });
+      show("vide");
+    </script>
+  </body>
+</html>

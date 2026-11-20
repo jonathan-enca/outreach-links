@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/env";
 import { googleConfig } from "@/features/google/config";
-import { readState } from "@/features/google/oauth";
+import { readState, type OAuthState } from "@/features/google/oauth";
 import { completeGoogleConnect } from "@/features/google/service";
 import { defaultMailboxDeps } from "@/features/mailboxes/service";
 import { parseKeyRing } from "@/features/mailboxes/crypto";
@@ -11,8 +11,14 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 
 /** Retour de la Search Console : son onglet des réglages (une seule page pour connecter ou déconnecter). */
-const backSc = (result: string) =>
-  new URL(`/app/reglages/search-console?sc=${result}`, env.NEXT_PUBLIC_APP_URL);
+const backSc = (result: string, state?: OAuthState) =>
+  state?.back === "demarrer"
+    ? // Connexion faite depuis l'étape 1 d'une campagne : retour sur le formulaire, là où on l'a quitté.
+      new URL(
+        `/app/demarrer?campagne=${state.siteId}&sc=${result}&langue=${state.lang ?? "auto"}`,
+        env.NEXT_PUBLIC_APP_URL,
+      )
+    : new URL(`/app/reglages/search-console?sc=${result}`, env.NEXT_PUBLIC_APP_URL);
 
 const back = (siteId: string | null, result: string, param = "google", anchor = "boite-envoi") => {
   const path = siteId ? `/app/site/${siteId}` : "/app/reglages/boite";
@@ -40,7 +46,7 @@ export async function GET(req: NextRequest) {
   if (req.nextUrl.searchParams.get("error") || !code) {
     return clear(
       NextResponse.redirect(
-        searchConsole ? backSc("refuse") : back(state.siteId, "refuse", param, anchor),
+        searchConsole ? backSc("refuse", state) : back(state.siteId, "refuse", param, anchor),
       ),
     );
   }
@@ -53,7 +59,7 @@ export async function GET(req: NextRequest) {
       getServiceClient: createServiceClient,
     });
     const key = result.ok ? "ok" : result.reason;
-    return clear(NextResponse.redirect(backSc(key)));
+    return clear(NextResponse.redirect(backSc(key, state)));
   }
   const supabase = await createClient();
   const result = await completeGoogleConnect(supabase, state, code, {
