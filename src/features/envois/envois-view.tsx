@@ -21,11 +21,14 @@ export interface EnvoisScreenProps {
   sent: EnvoiRow[];
   /** Nombre total d'emails partis (la liste peut en montrer moins). */
   sentTotal: number;
+  /** Horaires d'envoi déjà mis en mots, et d'où partent les emails. */
   hours: string | null;
-  fromEmail: string | null;
+  from: string | null;
   /** Prochain départ déjà mis en mots, ou `null`. */
   next: string | null;
   day: Quota | null;
+  /** La limite journalière retient le prochain départ (même si le compteur du jour n'est pas plein). */
+  dayLimited: boolean;
   warmingUp: boolean;
   week: number;
   month: Quota | null;
@@ -82,12 +85,13 @@ function Fact({
 /** La phrase sous les repères : une seule, la plus utile (quota du mois, limite du jour, démarrage). */
 function quotaNote(
   day: Quota | null,
+  dayLimited: boolean,
   month: Quota | null,
   warmingUp: boolean,
 ): { lead: string; text: string } | null {
   const n = M.notes;
   if (month && month.used >= month.cap) return n.monthFull;
-  if (day && day.used >= day.cap) {
+  if (day && (dayLimited || day.used >= day.cap)) {
     return {
       lead: n.dayFull.lead,
       text: warmingUp ? n.dayFull.warmup(day.cap) : n.dayFull.steady,
@@ -246,9 +250,10 @@ export function EnvoisScreen({
   sent,
   sentTotal,
   hours,
-  fromEmail,
+  from,
   next,
   day,
+  dayLimited,
   warmingUp,
   week,
   month,
@@ -276,10 +281,11 @@ export function EnvoisScreen({
   const stateText =
     state === "actif"
       ? hours
-        ? M.states.actif.text(hours, fromEmail)
+        ? M.states.actif.text(hours, from)
         : M.states.actif.fallback
       : M.states[state].text;
-  const note = state === "actif" || state === "pause" ? quotaNote(day, month, warmingUp) : null;
+  const note =
+    state === "actif" || state === "pause" ? quotaNote(day, dayLimited, month, warmingUp) : null;
   const f = M.facts;
   const shownSent = allSent ? sent : sent.slice(0, SENT_FIRST);
   const tabs = [

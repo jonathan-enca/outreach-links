@@ -56,9 +56,6 @@ export default function Page() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-primary">
-          {V.eyebrow}
-        </p>
         <h1 className="font-display text-2xl font-bold">{V.title}</h1>
         <p className="max-w-2xl text-muted-foreground">{V.description}</p>
       </div>

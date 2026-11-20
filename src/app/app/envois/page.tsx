@@ -5,7 +5,13 @@ import { PageHeader } from "@/components/page-header";
 import { env } from "@/env";
 import { cancelEnvoiAction, setSendingPausedAction } from "@/features/envois/actions";
 import { EnvoisScreen } from "@/features/envois/envois-view";
-import { nextLabel, scheduledRows, sentRows } from "@/features/envois/format";
+import {
+  fromLabel,
+  hoursLabel,
+  nextLabel,
+  scheduledRows,
+  sentRows,
+} from "@/features/envois/format";
 import { loadEnvois } from "@/features/envois/service";
 import { selectedSiteId } from "@/features/shell/current-site";
 import { t } from "@/lib/messages";
@@ -30,10 +36,11 @@ async function Envois() {
       scheduled={scheduledRows(view.scheduled, view.timezone, now)}
       sent={sentRows(view.sent, view.timezone, now)}
       sentTotal={view.sentTotal}
-      hours={view.hours}
-      fromEmail={view.fromEmail}
+      hours={view.window ? hoursLabel(view.window) : null}
+      from={fromLabel(view.provider, view.fromEmail)}
       next={view.nextAt ? nextLabel(view.nextAt, view.timezone) : null}
       day={view.day}
+      dayLimited={view.dayLimited}
       warmingUp={view.warmingUp}
       week={view.week}
       month={view.month}
