@@ -1396,6 +1396,8 @@ export const fr = {
       title: "Vos cibles arrivent",
       running: "L'analyse est en cours. Les cibles s'afficheront ici dès qu'elle sera terminée.",
       failed: "L'analyse s'est arrêtée avant la fin. Reprenez-la pour obtenir vos cibles.",
+      reading:
+        "L'analyse est terminée, mais la lecture des autres sites trouvés continue. Vos cibles s'afficheront ici une fois qu'elle sera finie.",
       cta: "Voir l'analyse",
     },
     toPlan: (n: number) => `Voir les messages rédigés (${n})`,
