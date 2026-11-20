@@ -67,7 +67,7 @@ describe("adresse d'autorisation", () => {
     const u = new URL(buildAuthUrl(cfg, "st"));
     expect(u.searchParams.get("scope")).toBe(GOOGLE_SCOPES.join(" "));
     expect(u.searchParams.get("access_type")).toBe("offline");
-    expect(u.searchParams.get("prompt")).toBe("consent");
+    expect(u.searchParams.get("prompt")).toBe("select_account consent");
     expect(u.searchParams.get("state")).toBe("st");
   });
   it("exige les deux autorisations", () => {

@@ -1,4 +1,5 @@
-import { Card } from "@/components/ui/card";
+import { FactList } from "@/features/onboarding/journey-stage";
+import { FactRow } from "@/features/onboarding/fact-row";
 import { t } from "@/lib/messages";
 import { profileToFields } from "./form";
 import { PublisherTags } from "./publisher-tags";
@@ -7,54 +8,63 @@ import type { StoredBrandProfile } from "./schema";
 
 const areaClass =
   "w-full rounded-control border border-border bg-card px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+const inputClass =
+  "h-[42px] w-full rounded-control border border-border bg-card px-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
-function Field({
+/** Ligne de texte libre : la valeur en phrase (les lignes jointes par des virgules), le champ dessous. */
+function TextFact({
   name,
   label,
   hint,
   value,
   rows,
+  inline = false,
 }: {
   name: string;
   label: string;
-  hint: string;
+  hint?: string;
   value: string;
   rows: number;
+  /** Plusieurs lignes affichées sur une seule, séparées par des virgules. */
+  inline?: boolean;
 }) {
   const id = `profile_${name}`;
-  const b = t.onboarding.brand;
-  // Lecture d'abord (une fiche tient sur un écran), « Modifier » ouvre la zone de texte. Le champ reste
-  // dans le formulaire fermé : il est envoyé tel quel.
+  const shown = inline
+    ? value
+        .split("\n")
+        .map((x) => x.trim())
+        .filter(Boolean)
+        .join(", ")
+    : value.trim();
   return (
-    <details className="group rounded-control border border-border p-3" data-field={name}>
-      <summary className="flex cursor-pointer list-none items-start justify-between gap-3">
-        <span className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-sm font-medium">{label}</span>
-          <span className="line-clamp-2 whitespace-pre-line text-muted-foreground group-open:hidden">
-            {value.trim() || b.summaryEmpty}
-          </span>
-        </span>
-        <span className="shrink-0 text-sm text-primary underline underline-offset-4 group-open:hidden">
-          {b.edit}
-        </span>
-      </summary>
-      <div className="mt-2 flex flex-col gap-1.5">
-        <label htmlFor={id} className="sr-only">
-          {label}
-        </label>
-        <textarea
-          id={id}
-          name={id}
-          rows={rows}
-          defaultValue={value}
-          className={areaClass}
-          aria-describedby={`${id}-hint`}
-        />
-        <p id={`${id}-hint`} className="text-sm text-muted-foreground">
-          {hint}
-        </p>
-      </div>
-    </details>
+    <FactRow
+      field={name}
+      label={label}
+      value={
+        shown || <span className="text-muted-foreground">{t.onboarding.brand.summaryEmpty}</span>
+      }
+      defaultOpen={!value.trim()}
+      editor={
+        <>
+          <label htmlFor={id} className="sr-only">
+            {label}
+          </label>
+          <textarea
+            id={id}
+            name={id}
+            rows={rows}
+            defaultValue={value}
+            className={areaClass}
+            aria-describedby={hint ? `${id}-hint` : undefined}
+          />
+          {hint ? (
+            <p id={`${id}-hint`} className="text-sm text-muted-foreground">
+              {hint}
+            </p>
+          ) : null}
+        </>
+      }
+    />
   );
 }
 
@@ -76,8 +86,8 @@ function CitedPages({ brand, domain }: { brand: StoredBrandProfile | null; domai
     ...resources.filter((r) => !same(r.url, home)),
   ];
   return (
-    <fieldset className="flex flex-col gap-2 rounded-control border border-border p-3">
-      <legend className="px-1 text-sm font-medium">{b.resources}</legend>
+    <fieldset className="flex flex-col gap-2">
+      <legend className="sr-only">{b.resources}</legend>
       {pages.map((r, i) => {
         const found = searches.get(pageKey(r.url));
         return (
@@ -130,88 +140,160 @@ function CitedPages({ brand, domain }: { brand: StoredBrandProfile | null; domai
   );
 }
 
+/** Les pages cochées au départ (accueil comprise) : pour le résumé de l'étape 2. */
+export function citedCount(brand: StoredBrandProfile | null, domain: string): number {
+  const home = `https://${domain}/`;
+  const same = (a: string, c: string) => a.replace(/\/+$/, "") === c.replace(/\/+$/, "");
+  const resources = brand?.profile.linkable_resources ?? [];
+  const homeEntry = resources.find((r) => same(r.url, home));
+  return (
+    (homeEntry?.selected === false ? 0 : 1) +
+    resources.filter((r) => !same(r.url, home) && r.selected !== false).length
+  );
+}
+
 /**
- * Profil de marque (MT.1) en une étape de relecture : tout est modifiable, une zone de texte par
- * rubrique. Les champs sont envoyés avec le reste du formulaire d'onboarding ; une correction
- * crée une nouvelle version côté serveur.
+ * Étape 2, « Vérification » (maquette du 20/11) : la fiche de ce que nous avons compris, une ligne par
+ * rubrique, « Modifier » pour ouvrir le champ. Les champs fermés partent quand même avec le formulaire ;
+ * une correction crée une nouvelle version du profil côté serveur.
  */
-export function BrandFields({
+export function UnderstoodFacts({
   brand,
   domain,
+  theme,
+  pagesGoal,
 }: {
   brand: StoredBrandProfile | null;
   domain: string;
+  theme: string;
+  /** Objectif « pages précises » (choisi à l'étape 1) : la liste des pages s'ouvre d'elle-même. */
+  pagesGoal: boolean;
 }) {
   const b = t.onboarding.brand;
-  const f = profileToFields(brand?.profile ?? null);
+  const f = t.onboarding.flow;
+  const v = profileToFields(brand?.profile ?? null);
+  const publishers = brand?.profile.publisher_types ?? [];
+  const pages = citedCount(brand, domain);
   return (
-    <Card className="flex flex-col gap-5 p-6">
-      <div>
-        <h2 className="text-xl font-semibold">{b.title}</h2>
-        <p className="mt-1 text-muted-foreground">{brand ? b.body : b.empty}</p>
-        {brand ? (
-          <p className="mt-1 text-sm text-muted-foreground">
-            {brand.source === "llm"
-              ? b.readSummary(brand.pagesRead.length, brand.version)
-              : b.editedSummary(brand.version)}
-          </p>
-        ) : null}
-      </div>
-      <Field name="activity" label={b.activity} hint={b.activityHint} value={f.activity} rows={2} />
-      <Field name="offer" label={b.offer} hint={b.offerHint} value={f.offer} rows={2} />
-      <Field
+    <FactList>
+      <FactRow
+        field="theme"
+        label={f.theme}
+        value={theme || <span className="text-muted-foreground">{b.summaryEmpty}</span>}
+        defaultOpen={!theme}
+        editor={
+          <>
+            <label htmlFor="theme" className="sr-only">
+              {f.theme}
+            </label>
+            <input
+              id="theme"
+              name="theme"
+              required
+              minLength={2}
+              maxLength={60}
+              defaultValue={theme}
+              className={inputClass}
+              aria-describedby="theme-hint"
+            />
+            <p id="theme-hint" className="text-sm text-muted-foreground">
+              {t.onboarding.review.themeHint}
+            </p>
+          </>
+        }
+      />
+      <TextFact name="activity" label={f.activity} value={v.activity} rows={2} />
+      <TextFact name="offer" label={f.offer} value={v.offer} rows={2} />
+      <TextFact
         name="audience"
-        label={b.audience}
-        hint={b.audienceHint}
-        value={f.audience}
+        label={f.audience}
+        hint={f.audienceHint}
+        value={v.audience}
         rows={Math.max(3, brand?.profile.audience.length ?? 3)}
+        inline
       />
-      <Field
-        name="personas"
-        label={b.personas}
-        hint={b.personasHint}
-        value={f.personas}
-        rows={Math.max(6, (brand?.profile.personas.length ?? 0) * 3)}
+      <FactRow
+        field="pages"
+        label={f.pages}
+        value={pagesGoal ? f.pagesPick : pages <= 1 ? f.pagesHome : f.summaryPages(pages)}
+        defaultOpen={pagesGoal}
+        toggle={!pagesGoal}
+        editor={<CitedPages brand={brand} domain={domain} />}
       />
-      {brand && (brand.profile.publisher_types ?? []).length > 0 ? (
-        <PublisherTags
-          key={brand.version}
-          initial={brand.profile.publisher_types ?? []}
-          themeTerms={brand.profile.theme_terms ?? []}
-        />
-      ) : null}
-      <CitedPages brand={brand} domain={domain} />
-      <Field
+      <FactRow
+        field="publishers"
+        label={f.publishers}
+        value={
+          publishers.length > 0 ? (
+            <PublisherTags
+              key={brand?.version ?? 0}
+              initial={publishers}
+              themeTerms={brand?.profile.theme_terms ?? []}
+              inline
+            />
+          ) : (
+            <span className="text-muted-foreground">{b.publishers.none}</span>
+          )
+        }
+        hint={publishers.length > 0 ? f.publishersHint : undefined}
+        defaultOpen={!v.personas.trim()}
+        editor={
+          <>
+            <label htmlFor="profile_personas" className="text-sm font-medium">
+              {b.personas}
+            </label>
+            <textarea
+              id="profile_personas"
+              name="profile_personas"
+              rows={Math.max(6, (brand?.profile.personas.length ?? 0) * 3)}
+              defaultValue={v.personas}
+              className={areaClass}
+              aria-describedby="profile_personas-hint"
+            />
+            <p id="profile_personas-hint" className="text-sm text-muted-foreground">
+              {b.personasHint}
+            </p>
+          </>
+        }
+      />
+    </FactList>
+  );
+}
+
+/** Étape 3, « Vous » : comment s'écrit votre nom et le ton des messages. */
+export function YouFacts({ brand }: { brand: StoredBrandProfile | null }) {
+  const b = t.onboarding.brand;
+  const f = t.onboarding.flow;
+  const v = profileToFields(brand?.profile ?? null);
+  return (
+    <FactList>
+      <TextFact
         name="names"
-        label={b.names}
-        hint={b.namesHint}
-        value={f.names}
+        label={f.name}
+        hint={f.nameHint}
+        value={v.names}
         rows={Math.max(3, brand?.profile.name_variants.length ?? 3)}
+        inline
       />
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="profile_tone" className="text-sm font-medium">
-          {b.tone}
-        </label>
-        <input
-          id="profile_tone"
-          name="profile_tone"
-          defaultValue={f.tone}
-          className="h-10 w-full rounded-control border border-border bg-card px-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        />
-      </div>
-      {brand && brand.pagesRead.length > 0 ? (
-        <details className="text-sm text-muted-foreground">
-          <summary className="cursor-pointer">{b.pagesRead}</summary>
-          <ul className="mt-2 list-disc pl-5">
-            {brand.pagesRead.map((p) => (
-              <li key={p.url} className="break-all">
-                {p.title ? `${p.title} · ` : ""}
-                {p.url}
-              </li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
-    </Card>
+      <FactRow
+        field="tone"
+        label={f.tone}
+        value={v.tone.trim() || <span className="text-muted-foreground">{b.summaryEmpty}</span>}
+        defaultOpen={!v.tone.trim()}
+        editor={
+          <>
+            <label htmlFor="profile_tone" className="sr-only">
+              {f.tone}
+            </label>
+            <input
+              id="profile_tone"
+              name="profile_tone"
+              defaultValue={v.tone}
+              className={inputClass}
+            />
+          </>
+        }
+      />
+    </FactList>
   );
 }

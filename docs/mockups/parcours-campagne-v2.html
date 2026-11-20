@@ -1,0 +1,1557 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maquette « Parcours de campagne en une page », étapes 1 à 4</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Jetons repris de src/app/globals.css (version en ligne, bleu marine, police Outfit). */
+      :root {
+        --background: #f8fafc;
+        --foreground: #0f172a;
+        --card: #ffffff;
+        --muted: #f1f5f9;
+        --muted-foreground: #526074;
+        --border: #e2e8f0;
+        --primary: #003070;
+        --primary-hover: #00245a;
+        --accent: #e9f6fe;
+        --sidebar: #00245a;
+        --sidebar-foreground: #cfe2f6;
+        --sidebar-label: #9cc3ea;
+        --success: #047857;
+        --danger: #be123c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: Outfit, system-ui, sans-serif;
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      .app {
+        display: grid;
+        grid-template-columns: 232px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      .side {
+        background: var(--sidebar);
+        color: var(--sidebar-foreground);
+        padding: 20px 12px;
+      }
+      .side .logo {
+        color: #fff;
+        font-weight: 600;
+        font-size: 18px;
+        padding: 0 8px 16px;
+      }
+      .side .label {
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--sidebar-label);
+        padding: 14px 8px 4px;
+      }
+      .side a {
+        display: block;
+        padding: 8px;
+        border-radius: 8px;
+        font-size: 14.5px;
+      }
+      .side a.on {
+        background: rgb(255 255 255 / 0.14);
+        color: #fff;
+        font-weight: 500;
+      }
+      main {
+        padding: 28px 32px 56px;
+        min-width: 0;
+      }
+      .wrap {
+        max-width: 46rem;
+        margin: 0 auto;
+      }
+
+      /* Bandeau de maquette : hors écran réel. */
+      .proto {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 24px;
+        padding: 8px 10px;
+        border: 1px dashed #94a3b8;
+        border-radius: 10px;
+        font-size: 13.5px;
+        color: var(--muted-foreground);
+      }
+      .proto button {
+        font: inherit;
+        font-size: 13.5px;
+        padding: 4px 10px;
+        border-radius: 99px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--foreground);
+        cursor: pointer;
+      }
+      .proto button[aria-pressed="true"] {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: #fff;
+      }
+
+      /* Barre de préparation (inchangée). */
+      .steps {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 24px;
+        padding: 0;
+        list-style: none;
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+      .steps li {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .steps .num {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 99px;
+        background: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .steps .cur {
+        color: var(--foreground);
+        font-weight: 600;
+      }
+      .steps .cur .num {
+        background: rgb(0 48 112 / 0.1);
+        color: var(--primary);
+        box-shadow: 0 0 0 2px var(--primary);
+      }
+      .steps .sep {
+        width: 24px;
+        height: 1px;
+        background: var(--border);
+      }
+      .steps-mobile {
+        display: none;
+        margin: 0 0 16px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--primary);
+      }
+
+      h1 {
+        font-size: 30px;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        margin: 0 0 6px;
+      }
+      .lead {
+        color: var(--muted-foreground);
+        margin: 0 0 24px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      label.lab,
+      legend {
+        font-size: 14px;
+        font-weight: 500;
+        padding: 0;
+      }
+      input[type="text"],
+      select {
+        font: inherit;
+        height: 48px;
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+        padding: 0 14px;
+        color: var(--foreground);
+      }
+      input[type="text"]::placeholder {
+        color: #7b8798;
+      }
+      input[type="text"]:focus-visible,
+      select:focus-visible,
+      button:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+      input[aria-invalid="true"] {
+        border-color: var(--danger);
+      }
+      .two {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .hint {
+        margin: 0;
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+      .err {
+        margin: 0;
+        font-size: 14px;
+        color: var(--danger);
+      }
+      fieldset {
+        border: 0;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .choice {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      .choice:has(:checked) {
+        border-color: var(--primary);
+        background: var(--muted);
+      }
+      .choice input {
+        margin-top: 5px;
+        accent-color: var(--primary);
+      }
+      .choice b {
+        display: block;
+        font-weight: 500;
+      }
+      .choice span {
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+
+      /* Search Console : seule proposition en plus du formulaire. */
+      .sc {
+        border: 1px solid #bfe3fb;
+        background: var(--accent);
+        border-radius: 10px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .sc-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+      .sc h2 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .badge {
+        font-size: 12.5px;
+        padding: 2px 9px;
+        border-radius: 99px;
+        background: #fff;
+        border: 1px solid #bfe3fb;
+        color: var(--primary);
+        font-weight: 500;
+      }
+      .sc p {
+        margin: 0;
+        font-size: 14.5px;
+      }
+      .sc .small {
+        font-size: 13px;
+        color: var(--muted-foreground);
+      }
+      .sc.ok {
+        border-color: #a7dcc6;
+        background: #ecfdf5;
+      }
+      .sc.ok h2 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .tick {
+        display: grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 99px;
+        background: var(--success);
+        color: #fff;
+        font-size: 13px;
+        flex: none;
+      }
+      .btn {
+        font: inherit;
+        font-weight: 500;
+        height: 40px;
+        padding: 0 16px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--foreground);
+        cursor: pointer;
+      }
+      .btn:hover {
+        background: var(--muted);
+      }
+      .btn.primary {
+        height: 48px;
+        padding: 0 24px;
+        background: var(--primary);
+        border-color: var(--primary);
+        color: #fff;
+      }
+      .btn.primary:hover {
+        background: var(--primary-hover);
+      }
+      .btn[disabled] {
+        opacity: 0.6;
+        cursor: default;
+      }
+
+      /* Lecture en direct (inchangée). */
+      .reading {
+        border: 1px solid var(--border);
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 16px;
+      }
+      .reading p {
+        margin: 0;
+      }
+      .reading ul {
+        list-style: none;
+        margin: 12px 0 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .reading li {
+        display: flex;
+        gap: 8px;
+      }
+      .reading li[data-s="wait"] {
+        color: var(--muted-foreground);
+      }
+      .reading i {
+        font-style: normal;
+        width: 18px;
+        flex: none;
+        text-align: center;
+      }
+      .reading li[data-s="ok"] i {
+        color: var(--success);
+      }
+      .spin {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        margin-top: 5px;
+        border: 2px solid #c7d2e0;
+        border-top-color: var(--primary);
+        border-radius: 99px;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .spin {
+          animation: none;
+        }
+      }
+      [hidden] {
+        display: none !important;
+      }
+      @media (max-width: 760px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+        .side {
+          display: none;
+        }
+        main {
+          padding: 20px 16px 40px;
+        }
+        .steps {
+          display: none;
+        }
+        .steps-mobile {
+          display: block;
+        }
+        .two {
+          grid-template-columns: 1fr;
+        }
+        h1 {
+          font-size: 26px;
+        }
+        .card {
+          padding: 18px;
+        }
+        .btn.primary,
+        .sc .btn {
+          width: 100%;
+        }
+      }
+      /* ---- Parcours en un seul écran (maquette du 20/11) ---- */
+      .steps li.done .num {
+        background: var(--primary);
+        color: #fff;
+      }
+      .steps li.done {
+        cursor: pointer;
+      }
+      .steps-wrap {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: var(--background);
+        padding: 12px 0 4px;
+        margin: -12px 0 12px;
+      }
+      .stages {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .stage {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        scroll-margin-top: 64px;
+      }
+      .stage-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 20px;
+      }
+      .stage-head .num {
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 99px;
+        background: var(--muted);
+        color: var(--muted-foreground);
+        font-size: 13px;
+        font-weight: 600;
+        flex: none;
+      }
+      .stage-head .t {
+        flex: 1;
+        min-width: 0;
+      }
+      .stage-head h2 {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 600;
+      }
+      .stage-head .sum {
+        margin: 2px 0 0;
+        font-size: 14px;
+        color: var(--muted-foreground);
+        overflow-wrap: anywhere;
+      }
+      .stage-head .edit {
+        flex: none;
+        height: 34px;
+        font-size: 14px;
+        padding: 0 12px;
+      }
+      .stage[data-s="todo"] .stage-head h2 {
+        color: var(--muted-foreground);
+        font-weight: 500;
+      }
+      .stage[data-s="todo"] {
+        background: transparent;
+        border-style: dashed;
+      }
+      .stage[data-s="cur"] {
+        border-color: #b8c6dc;
+        box-shadow: 0 10px 30px -22px rgb(0 48 112 / 0.5);
+      }
+      .stage[data-s="cur"] .stage-head .num {
+        background: rgb(0 48 112 / 0.1);
+        color: var(--primary);
+        box-shadow: 0 0 0 2px var(--primary);
+      }
+      .stage[data-s="done"] .stage-head .num {
+        background: var(--primary);
+        color: #fff;
+      }
+      .stage-body {
+        padding: 4px 20px 22px 60px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .stage[data-s="todo"] .stage-body,
+      .stage[data-s="done"] .stage-body {
+        display: none;
+      }
+      .stage[data-s="done"].locked .edit {
+        display: none;
+      }
+      /* Fiche « ce que nous avons compris » : une phrase par bloc, Modifier pour ouvrir. */
+      .facts {
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+      .fact {
+        padding: 14px 16px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .fact:first-child {
+        border-top: 0;
+      }
+      .fact-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .fact-row .k {
+        width: 150px;
+        flex: none;
+        font-size: 14px;
+        color: var(--muted-foreground);
+        padding-top: 1px;
+      }
+      .fact-row .v {
+        flex: 1;
+        min-width: 0;
+      }
+      .fact-row .lnk {
+        flex: none;
+        background: none;
+        border: 0;
+        padding: 0;
+        color: var(--primary);
+        font: inherit;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      .fact textarea,
+      .fact input[type="text"] {
+        font: inherit;
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .fact input[type="text"] {
+        height: 42px;
+      }
+      .fact .editor {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding-left: 162px;
+      }
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .tag {
+        font: inherit;
+        font-size: 14px;
+        padding: 4px 10px;
+        border-radius: 99px;
+        border: 1px solid #bfe3fb;
+        background: var(--accent);
+        color: var(--primary);
+        cursor: pointer;
+      }
+      .tag[aria-pressed="false"] {
+        background: #fff;
+        border-color: var(--border);
+        color: var(--muted-foreground);
+        text-decoration: line-through;
+      }
+      .tag.add {
+        border-style: dashed;
+        background: #fff;
+        color: var(--foreground);
+      }
+      .pages {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .pages label {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        font-size: 15px;
+      }
+      .pages input {
+        margin-top: 5px;
+        accent-color: var(--primary);
+      }
+      .pages small {
+        display: block;
+        color: var(--muted-foreground);
+        font-size: 13px;
+      }
+      .row-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+      }
+      .launch {
+        border: 1px solid var(--border);
+        background: #f8fafc;
+        border-radius: 10px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .launch p {
+        margin: 0;
+      }
+      /* Analyse en direct */
+      .now {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .now b {
+        font-size: 18px;
+        font-weight: 600;
+      }
+      .now span {
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+      .bar {
+        height: 8px;
+        border-radius: 99px;
+        background: var(--muted);
+        overflow: hidden;
+      }
+      .bar i {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: var(--primary);
+        border-radius: 99px;
+        transition: width 0.6s;
+      }
+      .alist {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .alist li {
+        display: flex;
+        gap: 10px;
+      }
+      .alist li > i {
+        font-style: normal;
+        width: 18px;
+        flex: none;
+        text-align: center;
+        color: var(--muted-foreground);
+      }
+      .alist li[data-s="ok"] > i {
+        color: var(--success);
+      }
+      .alist li[data-s="wait"] {
+        color: var(--muted-foreground);
+      }
+      .alist .d {
+        display: block;
+        font-size: 13.5px;
+        color: var(--muted-foreground);
+      }
+      .first {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .first h3 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .tgt {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 14.5px;
+      }
+      .tgt span {
+        color: var(--muted-foreground);
+        font-size: 13.5px;
+        text-align: right;
+      }
+      .ready {
+        border: 1px solid #a7dcc6;
+        background: #ecfdf5;
+        border-radius: 10px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .ready p {
+        margin: 0;
+      }
+      .closable {
+        margin: 0;
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+      .sc.miss {
+        border-color: #f5c27a;
+        background: #fff8eb;
+      }
+      .sc.miss h2 {
+        color: #8a4b00;
+      }
+      /* Notes de maquette : hors écran réel. */
+      .notes {
+        margin-top: 32px;
+        border: 1px dashed #94a3b8;
+        border-radius: 10px;
+        padding: 14px 16px;
+        font-size: 14px;
+        color: #334155;
+      }
+      .notes h2 {
+        margin: 0 0 6px;
+        font-size: 15px;
+      }
+      .notes ul {
+        margin: 0;
+        padding-left: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      @media (max-width: 760px) {
+        .stage-body {
+          padding: 4px 16px 18px;
+        }
+        .fact-row {
+          flex-wrap: wrap;
+        }
+        .fact-row .k {
+          width: 100%;
+        }
+        .fact .editor {
+          padding-left: 0;
+        }
+        .steps-wrap {
+          position: static;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="side" aria-hidden="true">
+        <div class="logo">backleenks</div>
+        <a>Accueil</a>
+        <a class="on">Campagnes</a>
+        <div class="label">Réglages</div>
+        <a>Boîte d'envoi</a>
+        <a>Abonnement</a>
+      </aside>
+      <main>
+        <div class="wrap">
+          <div class="proto" id="proto">
+            Maquette, aller à :
+            <button type="button" data-v="1">1. Votre site</button>
+            <button type="button" data-v="2">2. Vérification</button>
+            <button type="button" data-v="3">3. Vous</button>
+            <button type="button" data-v="4">4. Analyse en cours</button>
+            <button type="button" data-v="5">Analyse terminée</button>
+            <span style="width: 100%"></span>
+            Search Console déjà connectée depuis l'accueil :
+            <button type="button" data-sc="non" aria-pressed="true">Non</button>
+            <button type="button" data-sc="oui" aria-pressed="false">
+              Oui (sites : mega-coloring.com, remove-me.io)
+            </button>
+          </div>
+
+          <div class="steps-wrap">
+            <p class="steps-mobile" id="stepsMobile">Étape 1 sur 4 : Votre site</p>
+            <ol class="steps" id="bar" aria-label="Préparation de la campagne">
+              <li data-n="1"><span class="num">1</span>Votre site<span class="sep"></span></li>
+              <li data-n="2"><span class="num">2</span>Vérification<span class="sep"></span></li>
+              <li data-n="3"><span class="num">3</span>Vous<span class="sep"></span></li>
+              <li data-n="4"><span class="num">4</span>Analyse</li>
+            </ol>
+          </div>
+
+          <h1>Analyser votre site</h1>
+          <p class="lead">
+            Quatre étapes sur cette page. Rien n'est envoyé aux sites sans votre accord.
+          </p>
+
+          <div class="stages">
+            <!-- ÉTAPE 1 -->
+            <section class="stage" id="s1" data-s="cur" aria-labelledby="h1t">
+              <div class="stage-head">
+                <span class="num">1</span>
+                <div class="t">
+                  <h2 id="h1t">Votre site</h2>
+                  <p class="sum" id="sum1" hidden></p>
+                </div>
+                <button class="btn edit" type="button" data-edit="1" hidden>Modifier</button>
+              </div>
+              <form class="stage-body" id="form" novalidate>
+                <div class="field">
+                  <label class="lab" for="url">Adresse de votre site</label>
+                  <input id="url" type="text" inputmode="url" placeholder="monsite.fr" />
+                  <p class="err" id="urlErr" role="alert" hidden></p>
+                </div>
+                <div class="field">
+                  <div class="two">
+                    <div class="field">
+                      <label class="lab" for="country">Pays visé</label>
+                      <select id="country">
+                        <option>France</option>
+                        <option>Belgique</option>
+                        <option>Canada</option>
+                        <option>Suisse</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label class="lab" for="lang">Langue du site</label>
+                      <select id="lang">
+                        <option>Détectée sur votre site</option>
+                        <option>Français</option>
+                        <option>Anglais</option>
+                      </select>
+                    </div>
+                  </div>
+                  <p class="hint">
+                    Chaque pays a sa propre campagne. Vous pourrez en ajouter une autre pour le même
+                    site.
+                  </p>
+                </div>
+                <fieldset>
+                  <legend>Votre objectif</legend>
+                  <label class="choice"
+                    ><input type="radio" name="goal" value="site" checked />
+                    <div>
+                      <b>Faire ranker le site en général</b
+                      ><span
+                        >Nous visons l'autorité de votre site : la page citée est votre
+                        accueil.</span
+                      >
+                    </div></label
+                  >
+                  <label class="choice"
+                    ><input type="radio" name="goal" value="pages" />
+                    <div>
+                      <b>Faire ranker des pages précises</b
+                      ><span>Vous choisissez les pages de votre site à faire citer.</span>
+                    </div></label
+                  >
+                </fieldset>
+                <section class="sc" id="scTodo" aria-labelledby="scT1">
+                  <div class="sc-head">
+                    <h2 id="scT1">Connectez la Search Console</h2>
+                    <span class="badge">Facultatif, fortement conseillé</span>
+                  </div>
+                  <p>
+                    Nous lisons les recherches et les pages qui vous amènent déjà des visiteurs :
+                    l'analyse part de vos vrais mots-clés, pas de suppositions.
+                  </p>
+                  <div>
+                    <button class="btn" type="button" id="scBtn">
+                      Connecter la Search Console
+                    </button>
+                  </div>
+                  <p class="small">Lecture seule : nous n'écrivons rien dans votre compte.</p>
+                </section>
+                <p class="hint" id="scCheck" role="status" hidden>
+                  <span class="spin" style="vertical-align: -2px; margin: 0 6px 0 0"></span>Nous
+                  cherchons ce site dans votre Search Console…
+                </p>
+                <section class="sc ok" id="scDone" hidden>
+                  <h2><span class="tick" aria-hidden="true">✓</span>Search Console connectée</h2>
+                  <p>L'analyse utilisera vos recherches et vos pages réelles.</p>
+                  <p class="small" id="scWho"></p>
+                </section>
+                <section class="sc miss" id="scMiss" hidden aria-labelledby="scT3">
+                  <h2 id="scT3">Ce site n'est pas dans votre Search Console</h2>
+                  <p id="scMissTxt"></p>
+                  <div class="row-actions">
+                    <button class="btn" type="button" id="scOther">
+                      Connecter un autre compte Google
+                    </button>
+                  </div>
+                  <p class="small">Vous pouvez aussi lancer l'analyse sans elle.</p>
+                </section>
+                <div>
+                  <button class="btn primary" type="submit" id="go">Analyser mon site</button>
+                </div>
+                <div class="reading" id="reading" role="status" aria-live="polite" hidden>
+                  <p><b>Lecture de votre site</b></p>
+                  <p class="hint">
+                    Environ 30 secondes. L'étape suivante s'ouvre juste en dessous.
+                  </p>
+                  <ul>
+                    <li data-s="run" id="r1"><i></i><span>Page d'accueil lue</span></li>
+                    <li data-s="wait" id="r2">
+                      <i></i><span>Plan du site et pages principales lus</span>
+                    </li>
+                    <li data-s="wait" id="r3"><i></i><span>Activité et public compris</span></li>
+                  </ul>
+                </div>
+              </form>
+            </section>
+
+            <!-- ÉTAPE 2 -->
+            <section class="stage" id="s2" data-s="todo" aria-labelledby="h2t">
+              <div class="stage-head">
+                <span class="num">2</span>
+                <div class="t">
+                  <h2 id="h2t">Vérification</h2>
+                  <p class="sum" id="sum2" hidden>
+                    Coloriages à imprimer pour enfants · 2 pages à faire citer · 5 types de sites
+                  </p>
+                </div>
+                <button class="btn edit" type="button" data-edit="2" hidden>Modifier</button>
+              </div>
+              <div class="stage-body">
+                <p class="hint" style="font-size: 15px">
+                  Voici ce que nous avons compris de votre site. Corrigez ce qui est faux : c'est ce
+                  qui guide la recherche.
+                </p>
+                <div class="facts">
+                  <div class="fact">
+                    <div class="fact-row">
+                      <span class="k">Thème</span
+                      ><span class="v">Coloriages à imprimer pour enfants</span
+                      ><button class="lnk" type="button" data-open>Modifier</button>
+                    </div>
+                    <div class="editor" hidden>
+                      <input type="text" value="Coloriages à imprimer pour enfants" />
+                      <p class="hint">Quelques mots, sans le nom de votre marque.</p>
+                    </div>
+                  </div>
+                  <div class="fact">
+                    <div class="fact-row">
+                      <span class="k">Activité</span
+                      ><span class="v"
+                        >Un site de coloriages gratuits à imprimer, classés par thème et par
+                        âge.</span
+                      ><button class="lnk" type="button" data-open>Modifier</button>
+                    </div>
+                    <div class="editor" hidden>
+                      <textarea rows="2">
+Un site de coloriages gratuits à imprimer, classés par thème et par âge.</textarea>
+                    </div>
+                  </div>
+                  <div class="fact">
+                    <div class="fact-row">
+                      <span class="k">Ce que vous proposez</span
+                      ><span class="v"
+                        >Plus de 3 000 coloriages, des fiches pour la classe, des coloriages
+                        magiques.</span
+                      ><button class="lnk" type="button" data-open>Modifier</button>
+                    </div>
+                    <div class="editor" hidden>
+                      <textarea rows="2">
+Plus de 3 000 coloriages, des fiches pour la classe, des coloriages magiques.</textarea>
+                    </div>
+                  </div>
+                  <div class="fact">
+                    <div class="fact-row">
+                      <span class="k">Public visé</span
+                      ><span class="v"
+                        >Parents, enseignants de maternelle et de primaire, animateurs</span
+                      ><button class="lnk" type="button" data-open>Modifier</button>
+                    </div>
+                    <div class="editor" hidden>
+                      <textarea rows="3">
+Parents&#10;Enseignants de maternelle et de primaire&#10;Animateurs</textarea>
+                      <p class="hint">Un public par ligne.</p>
+                    </div>
+                  </div>
+                  <div class="fact" id="pagesFact">
+                    <div class="fact-row">
+                      <span class="k">Pages à faire citer</span
+                      ><span class="v" id="pagesSum">Votre page d'accueil</span
+                      ><button class="lnk" type="button" data-open id="pagesBtn">Modifier</button>
+                    </div>
+                    <div class="editor" hidden id="pagesEd">
+                      <ul class="pages">
+                        <li>
+                          <label
+                            ><input type="checkbox" checked />Page d'accueil<small
+                              >Proposée par défaut.</small
+                            ></label
+                          >
+                        </li>
+                        <li>
+                          <label
+                            ><input type="checkbox" />Coloriages de Noël<small
+                              >2 400 recherches par mois, position 7</small
+                            ></label
+                          >
+                        </li>
+                        <li>
+                          <label
+                            ><input type="checkbox" />Coloriages magiques CP<small
+                              >880 recherches par mois, position 12</small
+                            ></label
+                          >
+                        </li>
+                        <li>
+                          <label><input type="checkbox" />Fiches pour la classe</label>
+                        </li>
+                      </ul>
+                      <div>
+                        <button class="btn" type="button">Ajouter une page de votre site</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="fact">
+                    <div class="fact-row">
+                      <span class="k">Qui peut vous citer</span
+                      ><span class="v">
+                        <span class="tags">
+                          <button class="tag" type="button" aria-pressed="true">Enseignants</button>
+                          <button class="tag" type="button" aria-pressed="true">
+                            Blogs de parents
+                          </button>
+                          <button class="tag" type="button" aria-pressed="true">
+                            Médiathèques
+                          </button>
+                          <button class="tag" type="button" aria-pressed="true">
+                            Centres de loisirs
+                          </button>
+                          <button class="tag" type="button" aria-pressed="true">
+                            Associations
+                          </button>
+                          <button class="tag add" type="button">+ Ajouter</button>
+                        </span></span
+                      >
+                    </div>
+                    <p class="hint" style="padding-left: 162px">
+                      Cliquez sur une étiquette pour ne plus chercher ce type de site.
+                    </p>
+                  </div>
+                </div>
+                <div class="row-actions">
+                  <button class="btn primary" type="button" id="ok2">C'est juste, continuer</button>
+                </div>
+              </div>
+            </section>
+
+            <!-- ÉTAPE 3 -->
+            <section class="stage" id="s3" data-s="todo" aria-labelledby="h3t">
+              <div class="stage-head">
+                <span class="num">3</span>
+                <div class="t">
+                  <h2 id="h3t">Vous</h2>
+                  <p class="sum" id="sum3" hidden>Mega Coloring · ton chaleureux</p>
+                </div>
+                <button class="btn edit" type="button" data-edit="3" hidden>Modifier</button>
+              </div>
+              <div class="stage-body">
+                <div class="facts">
+                  <div class="fact">
+                    <div class="fact-row">
+                      <span class="k">Votre nom</span
+                      ><span class="v">Mega Coloring, mega-coloring.com</span
+                      ><button class="lnk" type="button" data-open>Modifier</button>
+                    </div>
+                    <div class="editor" hidden>
+                      <textarea rows="2">Mega Coloring&#10;mega-coloring.com</textarea>
+                      <p class="hint">
+                        Une façon de l'écrire par ligne : elles servent à retrouver les sites qui
+                        parlent de vous sans vous lier.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="fact">
+                    <div class="fact-row">
+                      <span class="k">Ton des messages</span
+                      ><span class="v">
+                        <select style="height: 42px; max-width: 280px">
+                          <option>Chaleureux et simple</option>
+                          <option>Professionnel</option>
+                          <option>Direct et bref</option>
+                        </select>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div class="launch">
+                  <p><b>Prêt à lancer l'analyse</b></p>
+                  <p class="hint">
+                    Environ 15 minutes. Vous pouvez fermer la page : nous vous écrivons dès que vos
+                    cibles sont prêtes.
+                  </p>
+                  <div style="margin-top: 8px">
+                    <button class="btn primary" type="button" id="launch">Lancer l'analyse</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- ÉTAPE 4 -->
+            <section class="stage" id="s4" data-s="todo" aria-labelledby="h4t">
+              <div class="stage-head">
+                <span class="num">4</span>
+                <div class="t"><h2 id="h4t">Analyse</h2></div>
+              </div>
+              <div class="stage-body" role="status" aria-live="polite">
+                <div class="now">
+                  <b id="nowT">Nous repérons vos concurrents sur Google</b
+                  ><span id="nowR">Encore 12 à 15 minutes</span>
+                </div>
+                <div class="bar" aria-hidden="true"><i id="barI"></i></div>
+                <ul class="alist" id="alist"></ul>
+                <div class="first" id="first" hidden>
+                  <h3>Premières cibles prêtes</h3>
+                  <div id="firstList"></div>
+                </div>
+                <p class="closable" id="closable">
+                  Vous pouvez fermer cette page : vous recevrez un email dès que c'est prêt.
+                </p>
+                <div class="ready" id="ready" hidden>
+                  <p><b>Vos cibles sont prêtes : 27 sites à contacter</b></p>
+                  <p class="hint">
+                    544 sites examinés, 96 pages retenues après lecture, 27 cibles avec une demande
+                    prête.
+                  </p>
+                  <div><button class="btn primary" type="button">Voir mes cibles</button></div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <section class="notes" aria-label="Notes de maquette">
+            <h2>Ce qui change par rapport à aujourd'hui</h2>
+            <ul>
+              <li>
+                Search Console : si un compte Google est déjà connecté (depuis l'accueil ou une
+                autre campagne), nous cherchons l'adresse saisie parmi ses sites dès qu'elle est
+                tapée. Trouvée : encadré vert, sans rien à faire. Absente : encadré orange « Ce site
+                n'est pas dans votre Search Console » avec le compte utilisé. Aucun compte connecté
+                : l'encadré bleu actuel.
+              </li>
+              <li>
+                Les 4 étapes sont sur une seule page : une étape finie se replie en une ligne de
+                résumé (avec « Modifier »), la suivante s'ouvre juste en dessous.
+              </li>
+              <li>
+                L'encart « Mise en route » disparaît de tout le parcours (il reste seulement sur
+                l'Accueil).
+              </li>
+              <li>
+                Disparaissent aussi : « Ce que nous vous demanderons plus tard », « Comment nous
+                cherchons vos concurrents » et la carte séparée « Prêt à lancer l'analyse ».
+              </li>
+              <li>
+                L'objectif n'est demandé qu'une fois (étape 1). S'il s'agit de pages précises, le
+                bloc « Pages à faire citer » s'ouvre directement à l'étape 2.
+              </li>
+              <li>
+                Le grand formulaire du profil devient une fiche en phrases, chaque ligne avec «
+                Modifier ».
+              </li>
+              <li>
+                L'étape 3 « Vous » existe enfin : votre nom et le ton, puis le bouton « Lancer
+                l'analyse ».
+              </li>
+              <li>
+                Une fois l'analyse lancée, les étapes 1 à 3 sont verrouillées (plus de « Modifier »)
+                ; l'analyse s'affiche dans l'étape 4 de la même page.
+              </li>
+            </ul>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      var $ = function (id) {
+        return document.getElementById(id);
+      };
+      var timers = [];
+      var NAMES = ["", "Votre site", "Vérification", "Vous", "Analyse"];
+      var ASTEPS = [
+        ["Comprendre votre site", "Votre activité est cernée · 3 pages fortes repérées"],
+        ["Repérer vos concurrents sur Google", "8 vrais concurrents repérés sur Google"],
+        ["Mesurer vos liens actuels", "42 sites font déjà un lien vers vous"],
+        ["Chercher les sites qui peuvent vous citer", "35 recherches faites · 544 sites trouvés"],
+        ["Lire et trier les pages trouvées", "150 pages lues · 96 retenues"],
+        ["Trouver à qui écrire", "61 contacts trouvés"],
+        ["Relire les pages retenues", "38 pages relues"],
+        ["Préparer vos demandes", "27 demandes prêtes"],
+      ];
+      var TARGETS = [
+        ["ecole-maternelle-des-pins.fr", "Blog d'enseignante · cite déjà 4 sites de coloriages"],
+        ["mediatheque-villeneuve.fr", "Page ressources · un lien mort vers un site fermé"],
+        ["papa-raconte.fr", "Blog de parent · article « activités de Noël »"],
+      ];
+
+      // Comptes Google déjà connectés (maquette) : null = aucun.
+      var gAccount = null;
+      var GPROPS = ["mega-coloring.com", "remove-me.io"];
+      var scTimer = null;
+      function bare(u) {
+        return u
+          .trim()
+          .toLowerCase()
+          .replace(/^https?:\/\//, "")
+          .replace(/^www\./, "")
+          .replace(/\/.*$/, "");
+      }
+      function scState(st) {
+        $("scTodo").hidden = st !== "todo";
+        $("scCheck").hidden = st !== "check";
+        $("scDone").hidden = st !== "ok";
+        $("scMiss").hidden = st !== "miss";
+        var d = bare($("url").value) || "monsite.fr";
+        $("scWho").textContent =
+          "Propriété " + d + ", compte " + (gAccount || "vous@gmail.com") + ". Lecture seule.";
+        $("scMissTxt").textContent =
+          "Nous n'avons pas trouvé " +
+          d +
+          " parmi les sites du compte " +
+          gAccount +
+          ". Vérifiez l'adresse, ou ajoutez le site dans la Search Console puis revenez.";
+      }
+      // Dès qu'une adresse est tapée (petite pause), on la cherche dans la Search Console déjà connectée.
+      function checkSc() {
+        clearTimeout(scTimer);
+        var d = bare($("url").value);
+        if (!gAccount) {
+          if ($("scDone").hidden || !d) scState("todo");
+          return;
+        }
+        if (!d || d.indexOf(".") < 0) {
+          scState("todo");
+          return;
+        }
+        scState("check");
+        scTimer = setTimeout(function () {
+          scState(GPROPS.indexOf(d) >= 0 ? "ok" : "miss");
+        }, 900);
+      }
+      $("url").addEventListener("input", function () {
+        clearTimeout(scTimer);
+        scTimer = setTimeout(checkSc, 500);
+      });
+      document.querySelectorAll("#proto [data-sc]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          gAccount = b.dataset.sc === "oui" ? "vous@gmail.com" : null;
+          document.querySelectorAll("#proto [data-sc]").forEach(function (x) {
+            x.setAttribute("aria-pressed", String(x === b));
+          });
+          checkSc();
+        });
+      });
+
+      function mark(li, s) {
+        li.dataset.s = s;
+        li.querySelector("i").innerHTML =
+          s === "ok" ? "✓" : s === "run" ? '<span class="spin"></span>' : "○";
+      }
+      function goalPages() {
+        return document.querySelector('input[name="goal"]:checked').value === "pages";
+      }
+      function domain() {
+        return $("url").value.trim() || "monsite.fr";
+      }
+
+      // cur : étape ouverte (1 à 4) ; 5 = analyse terminée.
+      function render(cur, scroll) {
+        var launched = cur >= 4;
+        for (var n = 1; n <= 4; n++) {
+          var s = $("s" + n);
+          s.dataset.s =
+            n === 4 && cur === 5 ? "cur" : n < cur ? "done" : n === cur ? "cur" : "todo";
+          s.classList.toggle("locked", launched);
+          var sum = $("sum" + n),
+            ed = s.querySelector("[data-edit]");
+          if (sum) sum.hidden = s.dataset.s !== "done";
+          if (ed) ed.hidden = s.dataset.s !== "done" || launched;
+        }
+        $("sum1").textContent =
+          domain() +
+          " · " +
+          $("country").value +
+          " · " +
+          (goalPages() ? "Pages précises" : "Le site en général") +
+          ($("scDone").hidden ? "" : " · Search Console connectée");
+        document.querySelectorAll("#bar li").forEach(function (li) {
+          var n = +li.dataset.n;
+          li.className =
+            n < Math.min(cur, 4) || cur === 5 ? "done" : n === Math.min(cur, 4) ? "cur" : "";
+        });
+        $("stepsMobile").textContent =
+          "Étape " + Math.min(cur, 4) + " sur 4 : " + NAMES[Math.min(cur, 4)];
+        document.querySelectorAll("#proto [data-v]").forEach(function (b) {
+          b.setAttribute("aria-pressed", String(+b.dataset.v === cur));
+        });
+        // Objectif « pages précises » : le bloc des pages s'ouvre de lui-même.
+        $("pagesEd").hidden = !goalPages();
+        $("pagesBtn").hidden = goalPages();
+        $("sum2").textContent =
+          "Coloriages à imprimer pour enfants · " +
+          (goalPages() ? "2 pages à faire citer" : "page d'accueil citée") +
+          " · 5 types de sites";
+        $("pagesSum").textContent = goalPages()
+          ? "Cochez les pages à proposer aux éditeurs"
+          : "Votre page d'accueil";
+        if (scroll)
+          $("s" + Math.min(cur, 4)).scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      function resetReading() {
+        $("reading").hidden = true;
+        $("go").disabled = false;
+        $("go").textContent = "Analyser mon site";
+      }
+
+      function analysis(done) {
+        timers.forEach(clearTimeout);
+        timers = [];
+        var list = $("alist");
+        list.innerHTML = "";
+        ASTEPS.forEach(function (a) {
+          var li = document.createElement("li");
+          li.innerHTML = "<i></i><span>" + a[0] + '<span class="d"></span></span>';
+          list.appendChild(li);
+          mark(li, "wait");
+        });
+        $("firstList").innerHTML = "";
+        $("first").hidden = true;
+        $("ready").hidden = true;
+        $("closable").hidden = false;
+        var items = list.children;
+        function step(i) {
+          if (i > 0) {
+            mark(items[i - 1], "ok");
+            items[i - 1].querySelector(".d").textContent = ASTEPS[i - 1][1];
+          }
+          var pct = Math.round((i / ASTEPS.length) * 100);
+          $("barI").style.width = pct + "%";
+          if (i >= 6) {
+            $("first").hidden = false;
+            TARGETS.slice(0, i - 5).forEach(function (t, k) {
+              if ($("firstList").children[k]) return;
+              var d = document.createElement("div");
+              d.className = "tgt";
+              d.innerHTML = "<b>" + t[0] + "</b><span>" + t[1] + "</span>";
+              $("firstList").appendChild(d);
+            });
+          }
+          if (i === ASTEPS.length) {
+            $("nowT").textContent = "Analyse terminée";
+            $("nowR").textContent = "100 %";
+            $("ready").hidden = false;
+            $("closable").hidden = true;
+            render(5);
+            return;
+          }
+          mark(items[i], "run");
+          $("nowT").textContent =
+            "Nous " +
+            [
+              "lisons votre site",
+              "repérons vos concurrents sur Google",
+              "mesurons vos liens actuels",
+              "cherchons les sites qui peuvent vous citer",
+              "lisons les pages trouvées",
+              "cherchons à qui écrire",
+              "relisons les pages retenues",
+              "préparons vos demandes",
+            ][i];
+          $("nowR").textContent =
+            pct + " % · encore " + Math.max(1, 15 - i * 2) + " minutes environ";
+          if (!done)
+            timers.push(
+              setTimeout(function () {
+                step(i + 1);
+              }, 1600),
+            );
+        }
+        if (done) {
+          for (var i = 0; i <= ASTEPS.length; i++) step(i);
+        } else step(0);
+      }
+
+      function show(v, scroll) {
+        timers.forEach(clearTimeout);
+        timers = [];
+        if (v > 1 && !$("url").value) $("url").value = "mega-coloring.com";
+        resetReading();
+        render(v, scroll);
+        if (v === 4) analysis(false);
+        if (v === 5) analysis(true);
+      }
+
+      document.querySelectorAll("#proto [data-v]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          show(+b.dataset.v, true);
+        });
+      });
+      // Passage chez Google simulé : le compte connecté est celui qui a ce site.
+      $("scBtn").addEventListener("click", function () {
+        if (!bare($("url").value)) {
+          $("urlErr").textContent =
+            "Indiquez d'abord l'adresse de votre site : la Search Console se connecte pour ce site.";
+          $("urlErr").hidden = false;
+          $("url").focus();
+          return;
+        }
+        $("urlErr").hidden = true;
+        gAccount = gAccount || "vous@gmail.com";
+        scState("ok");
+      });
+      $("scOther").addEventListener("click", function () {
+        gAccount = "autre@gmail.com";
+        scState("ok");
+      });
+      $("form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (!$("url").value.trim()) {
+          $("urlErr").textContent = "Indiquez l'adresse de votre site.";
+          $("urlErr").hidden = false;
+          $("url").focus();
+          return;
+        }
+        $("urlErr").hidden = true;
+        $("reading").hidden = false;
+        $("go").disabled = true;
+        $("go").textContent = "Lecture de votre site…";
+        mark($("r1"), "run");
+        mark($("r2"), "wait");
+        mark($("r3"), "wait");
+        timers.push(
+          setTimeout(function () {
+            mark($("r1"), "ok");
+            mark($("r2"), "run");
+          }, 1200),
+        );
+        timers.push(
+          setTimeout(function () {
+            mark($("r2"), "ok");
+            mark($("r3"), "run");
+          }, 2400),
+        );
+        timers.push(
+          setTimeout(function () {
+            mark($("r3"), "ok");
+          }, 3300),
+        );
+        timers.push(
+          setTimeout(function () {
+            show(2, true);
+          }, 4000),
+        );
+      });
+      $("ok2").addEventListener("click", function () {
+        show(3, true);
+      });
+      $("launch").addEventListener("click", function () {
+        show(4, true);
+      });
+      document.querySelectorAll("[data-edit]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          show(+b.dataset.edit, true);
+        });
+      });
+      document.querySelectorAll("#bar li").forEach(function (li) {
+        li.addEventListener("click", function () {
+          if (li.className === "done")
+            $("s" + li.dataset.n).scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      });
+      document.querySelectorAll("[data-open]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var ed = b.closest(".fact").querySelector(".editor");
+          ed.hidden = !ed.hidden;
+          b.textContent = ed.hidden ? "Modifier" : "Fermer";
+        });
+      });
+      document.querySelectorAll(".tag:not(.add)").forEach(function (t) {
+        t.addEventListener("click", function () {
+          t.setAttribute("aria-pressed", String(t.getAttribute("aria-pressed") !== "true"));
+        });
+      });
+      document.querySelectorAll('input[name="goal"]').forEach(function (r) {
+        r.addEventListener("change", function () {
+          render(1);
+        });
+      });
+      show(1);
+    </script>
+  </body>
+</html>

@@ -833,7 +833,7 @@ export const fr = {
     market: {
       country: "Pays visé",
       countryHint:
-        "Chaque pays a sa propre campagne : son analyse, ses cibles, son contexte local. Vous pourrez en ajouter une autre pour le même site.",
+        "Chaque pays a sa propre campagne. Vous pourrez en ajouter une autre pour le même site.",
       language: "Langue du site",
       languageAuto: "Détectée sur votre site",
       languageHint:
@@ -850,16 +850,22 @@ export const fr = {
       badge: "Facultatif, fortement conseillé",
       body: "Nous lisons les recherches et les pages qui vous amènent déjà des visiteurs : l'analyse part de vos vrais mots-clés, pas de suppositions.",
       button: "Connecter la Search Console",
-      safe: "Lecture seule : nous n'écrivons rien dans votre compte, et vous pouvez retirer l'accès à tout moment depuis votre compte Google.",
+      safe: "Lecture seule : nous n'écrivons rien dans votre compte.",
       needUrl:
         "Indiquez d'abord l'adresse de votre site : la Search Console se connecte pour ce site.",
       without: "Vous pouvez aussi lancer l'analyse sans elle.",
       doneTitle: "Search Console connectée",
       doneBody: "L'analyse utilisera vos recherches et vos pages réelles.",
+      /** Compte Google déjà connecté (accueil, autre campagne) : l'adresse saisie y est cherchée. */
+      checking: "Nous cherchons ce site dans votre Search Console…",
+      missTitle: "Ce site n'est pas dans votre Search Console",
+      missBody: (domain: string, email: string) =>
+        `Nous n'avons pas trouvé ${domain} parmi les sites du compte ${email}. Vérifiez l'adresse, ou ajoutez le site dans la Search Console puis revenez.`,
+      other: "Connecter un autre compte Google",
     },
     reading: {
       title: "Lecture de votre site",
-      estimate: "Environ 30 secondes. Vous pouvez rester sur cette page.",
+      estimate: "Environ 30 secondes. L'étape suivante s'ouvre juste en dessous.",
       home: "Page d'accueil lue",
       homeDetail: (language: string, theme: string) =>
         `Langue : ${language === "en" ? "anglais" : "français"}${theme ? ` · thème : ${theme}` : ""}`,
@@ -945,6 +951,52 @@ export const fr = {
         invalid: "Le profil de votre site est incomplet ou trop long. Vérifiez les champs.",
         saveError: "Impossible d'enregistrer le profil de votre site. Réessayez dans un instant.",
       },
+    },
+    /** Parcours en une page (maquette validée le 20/11, `docs/mockups/parcours-campagne-v2.html`). */
+    flow: {
+      lead: "Quatre étapes sur cette page. Rien n'est envoyé aux sites sans votre accord.",
+      edit: "Modifier",
+      close: "Fermer",
+      goal: { autorite_generale: "Le site en général", mots_cles: "Pages précises" },
+      scConnected: "Search Console connectée",
+      verifyIntro:
+        "Voici ce que nous avons compris de votre site. Corrigez ce qui est faux : c'est ce qui guide la recherche.",
+      theme: "Thème",
+      activity: "Activité",
+      offer: "Ce que vous proposez",
+      audience: "Public visé",
+      audienceHint: "Un public par ligne.",
+      pages: "Pages à faire citer",
+      pagesHome: "Votre page d'accueil",
+      pagesPick: "Cochez les pages à proposer aux éditeurs",
+      publishers: "Qui peut vous citer",
+      publishersHint: "Cliquez sur une étiquette pour ne plus chercher ce type de site.",
+      addTag: "+ Ajouter",
+      continue: "C'est juste, continuer",
+      name: "Votre nom",
+      nameHint:
+        "Une façon de l'écrire par ligne : elles servent à retrouver les sites qui parlent de vous sans vous lier.",
+      tone: "Ton des messages",
+      launchTitle: "Prêt à lancer l'analyse",
+      launchWithEmail:
+        "Environ 15 minutes. Vous pouvez fermer la page : nous vous écrivons dès que vos cibles sont prêtes.",
+      launchNoEmail:
+        "Environ 15 minutes. Vous pouvez fermer la page et revenir plus tard : vos cibles seront ici.",
+      summaryHomeOnly: "page d'accueil citée",
+      summaryPages: (n: number) =>
+        n <= 1 ? `${n} page à faire citer` : `${n} pages à faire citer`,
+      summaryTypes: (n: number) => (n <= 1 ? `${n} type de site` : `${n} types de sites`),
+      summaryTone: (tone: string) => `ton ${tone}`,
+      readyTitle: (n: number) =>
+        n === 0
+          ? "Analyse terminée"
+          : n === 1
+            ? "Vos cibles sont prêtes : 1 site à contacter"
+            : `Vos cibles sont prêtes : ${n} sites à contacter`,
+      readyFunnel: (found: number, kept: number, targets: number) =>
+        `${found.toLocaleString("fr-FR")} sites examinés, ${kept.toLocaleString("fr-FR")} pages retenues après lecture, ${targets.toLocaleString("fr-FR")} cibles avec une demande prête.`,
+      readyCta: "Voir mes cibles",
+      done: "Analyse terminée",
     },
     review: {
       pageDescription:
@@ -3627,8 +3679,7 @@ export const fr = {
     screen: {
       intro:
         "Nous cherchons les sites qui peuvent vous citer, et la demande à leur faire. Rien n'est envoyé.",
-      closeWithEmail:
-        "Vous pouvez fermer cette page : vous recevrez un email dès que c'est prêt. Rien n'est envoyé à qui que ce soit.",
+      closeWithEmail: "Vous pouvez fermer cette page : vous recevrez un email dès que c'est prêt.",
       closeNoEmail:
         "Vous pouvez fermer cette page : l'analyse continue sans vous. Retrouvez-la ici à votre retour. Rien n'est envoyé à qui que ce soit.",
       starting: "L'analyse démarre…",

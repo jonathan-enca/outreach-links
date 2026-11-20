@@ -99,7 +99,8 @@ export function buildAuthUrl(
   u.searchParams.set("response_type", "code");
   u.searchParams.set("scope", scopes.join(" "));
   u.searchParams.set("access_type", "offline");
-  u.searchParams.set("prompt", "consent");
+  // « select_account » : Google propose toujours de choisir le compte (« Connecter un autre compte Google »).
+  u.searchParams.set("prompt", "select_account consent");
   u.searchParams.set("include_granted_scopes", "false");
   u.searchParams.set("state", state);
   if (loginHint) u.searchParams.set("login_hint", loginHint);

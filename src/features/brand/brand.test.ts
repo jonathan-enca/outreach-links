@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fakeSupabase } from "@/features/audits/fake-supabase";
 import type { PageRead } from "@/features/triage/page-reader";
 import type { LlmClient } from "@/lib/llm/client";
-import { BrandFields } from "./brand-fields";
+import { UnderstoodFacts } from "./brand-fields";
 import { parseProfileForm, profileToFields, sameProfile } from "./form";
 import {
   BRAND_SYSTEM,
@@ -940,7 +940,9 @@ describe("MC.7 : pages classées par volume et position dans le profil", () => {
       ranked(`${o}/jamais-lue`, 9_000, 10),
     ]);
     const html = renderToStaticMarkup(
-      createElement(BrandFields, {
+      createElement(UnderstoodFacts, {
+        theme: "",
+        pagesGoal: false,
         domain: DOMAIN,
         brand: {
           version: 1,
@@ -956,7 +958,9 @@ describe("MC.7 : pages classées par volume et position dans le profil", () => {
     expect(html.match(/recherches? par mois/g)).toHaveLength(1); // rien d'inventé pour les autres pages
     expect(html).not.toContain("9\u202f000");
     const plain = renderToStaticMarkup(
-      createElement(BrandFields, {
+      createElement(UnderstoodFacts, {
+        theme: "",
+        pagesGoal: false,
         domain: DOMAIN,
         brand: {
           version: 1,
