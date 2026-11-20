@@ -1,284 +1,1035 @@
-<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="claude:viewport-fit-sides" content="cover" />
 <title>Parcours de campagne</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap">
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap"
+/>
 <style>
-/* Mise en page : une fenêtre d'application (menu marine à gauche, écran à droite) posée sur un fond neutre,
+  /* Mise en page : une fenêtre d'application (menu marine à gauche, écran à droite) posée sur un fond neutre,
    avec sous la fenêtre le tableau « aujourd'hui / maquette ». Jetons repris de src/app/globals.css.
    Thème clair seulement, comme l'application. */
-:root {
-  --ground: #e6ebf2;
-  --bg: #f8fafc;
-  --fg: #0f172a;
-  --card: #ffffff;
-  --muted: #f1f5f9;
-  --muted-fg: #526074;
-  --border: #e2e8f0;
-  --primary: #003070;
-  --primary-hover: #00245a;
-  --accent: #e9f6fe;
-  --info: #0369a1;
-  --success: #047857;
-  --highlight: #fde68a;
-  --side: #00245a;
-  --side-fg: #cfe2f6;
-  --side-label: #9cc3ea;
-  --side-accent: #5cc8f5;
-  --side-line: rgb(255 255 255 / 0.14);
-  --note-bg: #fff8e1;
-  --note-border: #d9a520;
-  --note-fg: #5b4300;
-  --font: "Outfit", system-ui, -apple-system, "Segoe UI", sans-serif;
-}
-* { box-sizing: border-box; }
-body {
-  background: var(--ground);
-  color: var(--fg);
-  font-family: var(--font);
-  font-size: 15px;
-  line-height: 1.5;
-  font-variant-numeric: tabular-nums;
-}
-.page {
-  max-width: 1320px;
-  margin: 0 auto;
-  padding-block: 28px 56px;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-h1, h2, h3, p { margin: 0; }
-h1, h2, h3 { letter-spacing: -0.02em; text-wrap: balance; }
-button { font: inherit; color: inherit; cursor: pointer; }
-button:focus-visible, input:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
-.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  :root {
+    --ground: #e6ebf2;
+    --bg: #f8fafc;
+    --fg: #0f172a;
+    --card: #ffffff;
+    --muted: #f1f5f9;
+    --muted-fg: #526074;
+    --border: #e2e8f0;
+    --primary: #003070;
+    --primary-hover: #00245a;
+    --accent: #e9f6fe;
+    --info: #0369a1;
+    --success: #047857;
+    --highlight: #fde68a;
+    --side: #00245a;
+    --side-fg: #cfe2f6;
+    --side-label: #9cc3ea;
+    --side-accent: #5cc8f5;
+    --side-line: rgb(255 255 255 / 0.14);
+    --note-bg: #fff8e1;
+    --note-border: #d9a520;
+    --note-fg: #5b4300;
+    --font: "Outfit", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    background: var(--ground);
+    color: var(--fg);
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+  }
+  .page {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding-block: 28px 56px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  h1,
+  h2,
+  h3,
+  p {
+    margin: 0;
+  }
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  button {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+  button:focus-visible,
+  input:focus-visible {
+    outline: 2px solid var(--info);
+    outline-offset: 2px;
+  }
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
 
-/* En-tête de la page de maquette */
-.intro { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; }
-.intro h1 { font-size: 22px; font-weight: 600; }
-.intro p { color: var(--muted-fg); max-width: 62ch; }
+  /* En-tête de la page de maquette */
+  .intro {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 24px;
+  }
+  .intro h1 {
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .intro p {
+    color: var(--muted-fg);
+    max-width: 62ch;
+  }
 
-/* Fenêtre de l'application */
-.win {
-  display: grid;
-  grid-template-columns: 236px minmax(0, 1fr);
-  height: 800px;
-  border: 1px solid #cbd5e1;
-  border-radius: 14px;
-  overflow: hidden;
-  background: var(--bg);
-  box-shadow: 0 30px 60px -34px rgb(14 26 43 / 0.45);
-}
+  /* Fenêtre de l'application */
+  .win {
+    display: grid;
+    grid-template-columns: 236px minmax(0, 1fr);
+    height: 800px;
+    border: 1px solid #cbd5e1;
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--bg);
+    box-shadow: 0 30px 60px -34px rgb(14 26 43 / 0.45);
+  }
 
-/* Menu */
-.side { background: var(--side); color: var(--side-fg); display: flex; flex-direction: column; min-height: 0; }
-.side-in { flex: 1; overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; }
-.brand { color: #fff; font-size: 18px; font-weight: 600; padding: 2px 8px 12px; }
-.sw { position: relative; margin-bottom: 8px; }
-.sw-btn {
-  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  background: none; border: 1px solid var(--side-line); border-radius: 8px;
-  padding: 9px 12px; color: #fff; font-weight: 600; font-size: 14px; text-align: left;
-}
-.sw-btn:hover { background: rgb(255 255 255 / 0.08); }
-.sw-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.sw-btn svg { width: 16px; height: 16px; flex: none; opacity: 0.7; }
-.sw-menu {
-  position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 5;
-  background: var(--card); color: var(--fg); border: 1px solid var(--border); border-radius: 12px;
-  padding: 6px; box-shadow: 0 12px 30px -12px rgb(14 26 43 / 0.4); display: flex; flex-direction: column; gap: 2px;
-}
-.sw-menu button { background: none; border: 0; border-radius: 8px; padding: 8px 10px; text-align: left; font-size: 14px; display: flex; flex-direction: column; }
-.sw-menu button:hover { background: var(--muted); }
-.sw-menu small { color: var(--muted-fg); font-size: 12px; }
-.sw-menu .cur { font-weight: 600; }
-.grp { padding: 14px 8px 5px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--side-label); }
-.nav {
-  width: 100%; display: flex; align-items: center; gap: 12px; background: none; border: 0; border-radius: 8px;
-  padding: 8px 12px; font-size: 14px; text-align: left; color: var(--side-fg);
-}
-.nav:hover:not(:disabled) { background: rgb(255 255 255 / 0.08); }
-.nav.on { background: rgb(255 255 255 / 0.14); color: #fff; font-weight: 600; }
-.nav svg { width: 16px; height: 16px; flex: none; }
-.nav .lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nav:disabled { cursor: default; opacity: 0.45; }
-/* Les trois étapes : pastille numérotée, fil entre les pastilles, compteur à droite */
-.step .num {
-  position: relative; flex: none; width: 22px; height: 22px; border-radius: 50%;
-  border: 1.5px solid var(--side-label); color: var(--side-fg);
-  display: grid; place-items: center; font-size: 12px; font-weight: 600; margin-left: -3px; margin-right: -3px;
-}
-.step.on .num { background: var(--side-accent); border-color: var(--side-accent); color: var(--side); }
-.step:not(.last) .num::after {
-  content: ""; position: absolute; left: 50%; top: calc(100% + 1.5px); width: 1.5px; height: 15px;
-  background: rgb(255 255 255 / 0.28); transform: translateX(-50%);
-}
-.cnt { flex: none; min-width: 24px; text-align: center; border-radius: 999px; padding: 0 7px; font-size: 11.5px; font-weight: 700; line-height: 19px; background: var(--side-accent); color: var(--side); }
-.cnt.quiet { background: none; color: var(--side-fg); box-shadow: inset 0 0 0 1.5px var(--side-label); }
-.hint { padding: 4px 12px 0; font-size: 12px; color: var(--side-label); }
-.acct { border-top: 1px solid var(--side-line); padding: 12px; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #fff; }
-.acct b { width: 28px; height: 28px; border-radius: 7px; background: var(--primary); display: grid; place-items: center; font-weight: 600; }
-.acct span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Menu */
+  .side {
+    background: var(--side);
+    color: var(--side-fg);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .side-in {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .brand {
+    color: #fff;
+    font-size: 18px;
+    font-weight: 600;
+    padding: 2px 8px 12px;
+  }
+  .sw {
+    position: relative;
+    margin-bottom: 8px;
+  }
+  .sw-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: none;
+    border: 1px solid var(--side-line);
+    border-radius: 8px;
+    padding: 9px 12px;
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    text-align: left;
+  }
+  .sw-btn:hover {
+    background: rgb(255 255 255 / 0.08);
+  }
+  .sw-btn span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .sw-btn svg {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    opacity: 0.7;
+  }
+  .sw-menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 5;
+    background: var(--card);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow: 0 12px 30px -12px rgb(14 26 43 / 0.4);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .sw-menu button {
+    background: none;
+    border: 0;
+    border-radius: 8px;
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+  }
+  .sw-menu button:hover {
+    background: var(--muted);
+  }
+  .sw-menu small {
+    color: var(--muted-fg);
+    font-size: 12px;
+  }
+  .sw-menu .cur {
+    font-weight: 600;
+  }
+  .grp {
+    padding: 14px 8px 5px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--side-label);
+  }
+  .nav {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: none;
+    border: 0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    text-align: left;
+    color: var(--side-fg);
+  }
+  .nav:hover:not(:disabled) {
+    background: rgb(255 255 255 / 0.08);
+  }
+  .nav.on {
+    background: rgb(255 255 255 / 0.14);
+    color: #fff;
+    font-weight: 600;
+  }
+  .nav svg {
+    width: 16px;
+    height: 16px;
+    flex: none;
+  }
+  .nav .lbl {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .nav:disabled {
+    cursor: default;
+    opacity: 0.45;
+  }
+  /* Les trois étapes : pastille numérotée, fil entre les pastilles, compteur à droite */
+  .step .num {
+    position: relative;
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid var(--side-label);
+    color: var(--side-fg);
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: -3px;
+    margin-right: -3px;
+  }
+  .step.on .num {
+    background: var(--side-accent);
+    border-color: var(--side-accent);
+    color: var(--side);
+  }
+  .step:not(.last) .num::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 1.5px);
+    width: 1.5px;
+    height: 15px;
+    background: rgb(255 255 255 / 0.28);
+    transform: translateX(-50%);
+  }
+  .cnt {
+    flex: none;
+    min-width: 24px;
+    text-align: center;
+    border-radius: 999px;
+    padding: 0 7px;
+    font-size: 11.5px;
+    font-weight: 700;
+    line-height: 19px;
+    background: var(--side-accent);
+    color: var(--side);
+  }
+  .cnt.quiet {
+    background: none;
+    color: var(--side-fg);
+    box-shadow: inset 0 0 0 1.5px var(--side-label);
+  }
+  .hint {
+    padding: 4px 12px 0;
+    font-size: 12px;
+    color: var(--side-label);
+  }
+  .acct {
+    border-top: 1px solid var(--side-line);
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+  }
+  .acct b {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: var(--primary);
+    display: grid;
+    place-items: center;
+    font-weight: 600;
+  }
+  .acct span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-/* Écran */
-.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-.scroll { flex: 1; overflow-y: auto; padding: 28px 32px 32px; display: flex; flex-direction: column; gap: 20px; }
-.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--info); }
-.vhead { display: flex; flex-direction: column; gap: 6px; }
-.vhead h1 { font-size: 30px; font-weight: 600; line-height: 1.15; }
-.lead { color: var(--muted-fg); max-width: 68ch; font-size: 16px; }
-.h2 { font-size: 20px; font-weight: 600; }
-.sub { color: var(--muted-fg); font-size: 14px; }
-.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; }
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; padding: 10px 18px;
-  font-weight: 600; font-size: 15px; border: 1px solid var(--border); background: var(--card); color: var(--fg); white-space: nowrap;
-}
-.btn:hover { background: var(--muted); }
-.btn.pri { background: var(--primary); border-color: var(--primary); color: #fff; }
-.btn.pri:hover { background: var(--primary-hover); }
-.btn.sm { padding: 7px 12px; font-size: 14px; }
-.tabs { display: flex; flex-wrap: wrap; gap: 8px; }
-.tab { border: 1px solid var(--border); background: var(--card); border-radius: 8px; padding: 8px 14px; font-weight: 500; font-size: 15px; }
-.tab.on { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600; }
-.badge { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: 12.5px; font-weight: 600; background: var(--accent); color: var(--primary); box-shadow: inset 0 0 0 1px #b9dcf5; white-space: nowrap; }
-.badge.ok { background: #e7f6ef; color: var(--success); box-shadow: inset 0 0 0 1px #b4e0cb; }
-.badge.grey { background: var(--muted); color: var(--muted-fg); box-shadow: inset 0 0 0 1px var(--border); }
-mark { background: linear-gradient(transparent 0.12em, var(--highlight) 0.12em, var(--highlight) 0.92em, transparent 0.92em); color: var(--fg); padding-inline: 0.15em; }
+  /* Écran */
+  .main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+  .scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 32px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--info);
+  }
+  .vhead {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .vhead h1 {
+    font-size: 30px;
+    font-weight: 600;
+    line-height: 1.15;
+  }
+  .lead {
+    color: var(--muted-fg);
+    max-width: 68ch;
+    font-size: 16px;
+  }
+  .h2 {
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .sub {
+    color: var(--muted-fg);
+    font-size: 14px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-weight: 600;
+    font-size: 15px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--fg);
+    white-space: nowrap;
+  }
+  .btn:hover {
+    background: var(--muted);
+  }
+  .btn.pri {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  .btn.pri:hover {
+    background: var(--primary-hover);
+  }
+  .btn.sm {
+    padding: 7px 12px;
+    font-size: 14px;
+  }
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .tab {
+    border: 1px solid var(--border);
+    background: var(--card);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-weight: 500;
+    font-size: 15px;
+  }
+  .tab.on {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    font-weight: 600;
+  }
+  .badge {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    background: var(--accent);
+    color: var(--primary);
+    box-shadow: inset 0 0 0 1px #b9dcf5;
+    white-space: nowrap;
+  }
+  .badge.ok {
+    background: #e7f6ef;
+    color: var(--success);
+    box-shadow: inset 0 0 0 1px #b4e0cb;
+  }
+  .badge.grey {
+    background: var(--muted);
+    color: var(--muted-fg);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  mark {
+    background: linear-gradient(
+      transparent 0.12em,
+      var(--highlight) 0.12em,
+      var(--highlight) 0.92em,
+      transparent 0.92em
+    );
+    color: var(--fg);
+    padding-inline: 0.15em;
+  }
 
-/* Barre d'action collée en bas de l'écran */
-.bar { flex: none; background: var(--card); border-top: 1px solid var(--border); padding: 14px 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px; }
-.bar strong { font-size: 16px; }
-.bar p { color: var(--muted-fg); font-size: 14px; }
-.bar > div { min-width: 0; }
+  /* Barre d'action collée en bas de l'écran */
+  .bar {
+    flex: none;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    padding: 14px 32px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 24px;
+  }
+  .bar strong {
+    font-size: 16px;
+  }
+  .bar p {
+    color: var(--muted-fg);
+    font-size: 14px;
+  }
+  .bar > div {
+    min-width: 0;
+  }
 
-/* Note de maquette : ne fait pas partie de l'écran */
-.note { border: 1.5px dashed var(--note-border); background: var(--note-bg); color: var(--note-fg); border-radius: 10px; padding: 10px 14px; font-size: 14px; max-width: 78ch; }
-.note b { font-weight: 600; }
+  /* Note de maquette : ne fait pas partie de l'écran */
+  .note {
+    border: 1.5px dashed var(--note-border);
+    background: var(--note-bg);
+    color: var(--note-fg);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 14px;
+    max-width: 78ch;
+  }
+  .note b {
+    font-weight: 600;
+  }
 
-/* Étape 1 : table des cibles */
-.table { overflow: hidden; }
-.thead, .trow { display: grid; grid-template-columns: 26px 22px minmax(150px, 1.1fr) minmax(0, 2.5fr) 132px 104px; gap: 14px; align-items: center; padding: 12px 18px; }
-.thead { font-size: 12.5px; font-weight: 600; color: var(--muted-fg); background: var(--muted); border-bottom: 1px solid var(--border); }
-.trow { border-bottom: 1px solid var(--border); }
-.trow input { width: 18px; height: 18px; accent-color: var(--primary); margin: 0; display: block; }
-.rank { color: var(--muted-fg); font-size: 14px; }
-.tsite { min-width: 0; }
-.tsite strong { display: block; font-weight: 600; overflow-wrap: anywhere; }
-.tsite small, .tcontact { color: var(--muted-fg); font-size: 13.5px; }
-.twhy { font-size: 14px; min-width: 0; }
-.trow.off .tsite, .trow.off .twhy { opacity: 0.45; }
-.more { padding: 12px 18px; color: var(--muted-fg); font-size: 14px; }
+  /* Étape 1 : table des cibles */
+  .table {
+    overflow: hidden;
+  }
+  .thead,
+  .trow {
+    display: grid;
+    grid-template-columns: 26px 22px minmax(150px, 1.1fr) minmax(0, 2.5fr) 132px 104px;
+    gap: 14px;
+    align-items: center;
+    padding: 12px 18px;
+  }
+  .thead {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--muted-fg);
+    background: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .trow {
+    border-bottom: 1px solid var(--border);
+  }
+  .trow input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary);
+    margin: 0;
+    display: block;
+  }
+  .rank {
+    color: var(--muted-fg);
+    font-size: 14px;
+  }
+  .tsite {
+    min-width: 0;
+  }
+  .tsite strong {
+    display: block;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .tsite small,
+  .tcontact {
+    color: var(--muted-fg);
+    font-size: 13.5px;
+  }
+  .twhy {
+    font-size: 14px;
+    min-width: 0;
+  }
+  .trow.off .tsite,
+  .trow.off .twhy {
+    opacity: 0.45;
+  }
+  .more {
+    padding: 12px 18px;
+    color: var(--muted-fg);
+    font-size: 14px;
+  }
 
-/* Étape 2 : liste et lecture */
-.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 16px; align-items: start; }
-.dlist { overflow: hidden; }
-.drow { display: block; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--border); padding: 12px 16px; }
-.drow:hover { background: var(--muted); }
-.drow.on { background: var(--accent); box-shadow: inset 3px 0 0 var(--primary); }
-.drow strong { display: block; font-weight: 600; overflow-wrap: anywhere; }
-.drow span { display: block; font-size: 14px; }
-.drow small { display: block; color: var(--muted-fg); font-size: 13px; }
-.read { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
-.read h3 { font-size: 17px; font-weight: 600; }
-.msg { background: var(--muted); border-radius: 10px; padding: 14px 16px; font-size: 14.5px; white-space: pre-line; overflow-wrap: anywhere; }
-.kv { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
-.kv dt { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-fg); }
-.kv dd { margin: 0; overflow-wrap: anywhere; }
-dl { margin: 0; display: flex; flex-direction: column; gap: 12px; }
-.row-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  /* Étape 2 : liste et lecture */
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 16px;
+    align-items: start;
+  }
+  .dlist {
+    overflow: hidden;
+  }
+  .drow {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+  }
+  .drow:hover {
+    background: var(--muted);
+  }
+  .drow.on {
+    background: var(--accent);
+    box-shadow: inset 3px 0 0 var(--primary);
+  }
+  .drow strong {
+    display: block;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .drow span {
+    display: block;
+    font-size: 14px;
+  }
+  .drow small {
+    display: block;
+    color: var(--muted-fg);
+    font-size: 13px;
+  }
+  .read {
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .read h3 {
+    font-size: 17px;
+    font-weight: 600;
+  }
+  .msg {
+    background: var(--muted);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 14.5px;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
+  .kv {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 14px;
+  }
+  .kv dt {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted-fg);
+  }
+  .kv dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  dl {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .row-btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
 
-/* Étape 3 : envois */
-.status { padding: 16px 18px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; }
-.status h3 { font-size: 16px; font-weight: 600; }
-.list { display: flex; flex-direction: column; gap: 8px; }
-.erow { padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; }
-.erow > div { min-width: 0; }
-.erow strong { display: block; font-weight: 600; }
-.erow small { display: block; color: var(--muted-fg); font-size: 13.5px; overflow-wrap: anywhere; }
-.erow span.s { display: block; font-size: 14px; }
+  /* Étape 3 : envois */
+  .status {
+    padding: 16px 18px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 20px;
+  }
+  .status h3 {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .erow {
+    padding: 12px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 16px;
+  }
+  .erow > div {
+    min-width: 0;
+  }
+  .erow strong {
+    display: block;
+    font-weight: 600;
+  }
+  .erow small {
+    display: block;
+    color: var(--muted-fg);
+    font-size: 13.5px;
+    overflow-wrap: anywhere;
+  }
+  .erow span.s {
+    display: block;
+    font-size: 14px;
+  }
 
-/* État vide : ce qui se passe ensuite */
-.empty { padding: 28px 24px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
-.empty h3 { font-size: 20px; font-weight: 600; }
-.empty p { color: var(--muted-fg); max-width: 60ch; }
+  /* État vide : ce qui se passe ensuite */
+  .empty {
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .empty h3 {
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .empty p {
+    color: var(--muted-fg);
+    max-width: 60ch;
+  }
 
-/* Campagnes */
-.camp { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
-.camp-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
-.camp-top h3 { font-size: 18px; font-weight: 600; }
-.pipe { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.cell { text-align: left; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
-.cell:hover { border-color: var(--primary); }
-.cell em { font-style: normal; font-size: 13px; font-weight: 600; color: var(--muted-fg); display: flex; align-items: center; gap: 8px; }
-.cell em i { font-style: normal; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--primary); color: var(--primary); display: grid; place-items: center; font-size: 11.5px; }
-.cell b { font-size: 24px; font-weight: 600; line-height: 1.2; }
-.cell small { color: var(--muted-fg); font-size: 13.5px; }
-.cell.mine em i { background: var(--primary); color: #fff; }
+  /* Campagnes */
+  .camp {
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .camp-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+  }
+  .camp-top h3 {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .pipe {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .cell {
+    text-align: left;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .cell:hover {
+    border-color: var(--primary);
+  }
+  .cell em {
+    font-style: normal;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted-fg);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cell em i {
+    font-style: normal;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1.5px solid var(--primary);
+    color: var(--primary);
+    display: grid;
+    place-items: center;
+    font-size: 11.5px;
+  }
+  .cell b {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .cell small {
+    color: var(--muted-fg);
+    font-size: 13.5px;
+  }
+  .cell.mine em i {
+    background: var(--primary);
+    color: #fff;
+  }
 
-/* Préparation : la barre d'étapes, seulement avant la première analyse */
-.stepper { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 15px; }
-.stepper span { display: inline-flex; align-items: center; gap: 8px; color: var(--muted-fg); }
-.stepper i { font-style: normal; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 600; border: 1.5px solid #b6c2d2; color: var(--muted-fg); }
-.stepper .done i { background: var(--primary); border-color: var(--primary); color: #fff; }
-.stepper .now { color: var(--fg); font-weight: 600; }
-.stepper .now i { border-color: var(--primary); color: var(--primary); }
-.stepper hr { width: 22px; border: 0; border-top: 1.5px solid #c5d0de; margin: 0; }
-.stepper .then { font-size: 13.5px; }
+  /* Préparation : la barre d'étapes, seulement avant la première analyse */
+  .stepper {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    font-size: 15px;
+  }
+  .stepper span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted-fg);
+  }
+  .stepper i {
+    font-style: normal;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1.5px solid #b6c2d2;
+    color: var(--muted-fg);
+  }
+  .stepper .done i {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  .stepper .now {
+    color: var(--fg);
+    font-weight: 600;
+  }
+  .stepper .now i {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .stepper hr {
+    width: 22px;
+    border: 0;
+    border-top: 1.5px solid #c5d0de;
+    margin: 0;
+  }
+  .stepper .then {
+    font-size: 13.5px;
+  }
 
-/* Barre basse du téléphone */
-.mnav { display: none; }
+  /* Barre basse du téléphone */
+  .mnav {
+    display: none;
+  }
 
-/* Tableau « aujourd'hui / maquette » sous la fenêtre */
-.changes { display: flex; flex-direction: column; gap: 12px; }
-.changes h2 { font-size: 18px; font-weight: 600; }
-.cmp { background: var(--card); border: 1px solid #cbd5e1; border-radius: 14px; overflow: hidden; }
-.cmp-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); border-bottom: 1px solid var(--border); }
-.cmp-row:last-child { border-bottom: 0; }
-.cmp-row > div { padding: 11px 18px; min-width: 0; }
-.cmp-row > div + div { border-left: 1px solid var(--border); }
-.cmp-head { background: var(--muted); font-size: 12.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-fg); }
-.legend { display: flex; flex-wrap: wrap; gap: 8px 22px; color: var(--muted-fg); font-size: 14px; }
-.legend span { display: inline-flex; align-items: center; gap: 8px; }
-.legend .cnt { background: var(--primary); color: #fff; }
-.legend .cnt.quiet { background: none; color: var(--primary); box-shadow: inset 0 0 0 1.5px var(--primary); }
+  /* Tableau « aujourd'hui / maquette » sous la fenêtre */
+  .changes {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .changes h2 {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .cmp {
+    background: var(--card);
+    border: 1px solid #cbd5e1;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .cmp-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    border-bottom: 1px solid var(--border);
+  }
+  .cmp-row:last-child {
+    border-bottom: 0;
+  }
+  .cmp-row > div {
+    padding: 11px 18px;
+    min-width: 0;
+  }
+  .cmp-row > div + div {
+    border-left: 1px solid var(--border);
+  }
+  .cmp-head {
+    background: var(--muted);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted-fg);
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    color: var(--muted-fg);
+    font-size: 14px;
+  }
+  .legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .legend .cnt {
+    background: var(--primary);
+    color: #fff;
+  }
+  .legend .cnt.quiet {
+    background: none;
+    color: var(--primary);
+    box-shadow: inset 0 0 0 1.5px var(--primary);
+  }
 
-@media (max-width: 860px) {
-  .win { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; height: 720px; }
-  .side { display: none; }
-  .scroll { padding: 20px 16px 24px; }
-  .bar { padding: 12px 16px; }
-  .bar .btn { width: 100%; }
-  .vhead h1 { font-size: 26px; }
-  .thead { display: none; }
-  .trow { grid-template-columns: 26px minmax(0, 1fr); gap: 6px 12px; align-items: start; padding: 14px 16px; }
-  .trow .rank { display: none; }
-  .trow .twhy, .trow .badge, .trow .tcontact { grid-column: 2; justify-self: start; }
-  .split { grid-template-columns: minmax(0, 1fr); }
-  .pipe { grid-template-columns: minmax(0, 1fr); }
-  .cmp-row { grid-template-columns: minmax(0, 1fr); }
-  .cmp-row > div + div { border-left: 0; border-top: 1px dashed var(--border); }
-  .cmp-head { display: none; }
-  .cmp-row > div::before { display: block; font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-fg); }
-  .cmp-row > div:first-child::before { content: "Aujourd'hui"; }
-  .cmp-row > div:last-child::before { content: "Maquette"; }
-  .mnav { display: flex; background: var(--side); color: var(--side-fg); border-top: 1px solid var(--side-line); }
-  .mnav button { flex: 1; min-width: 0; background: none; border: 0; padding: 8px 2px 9px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; font-weight: 500; color: var(--side-fg); position: relative; }
-  .mnav button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .mnav button.on { color: #fff; font-weight: 600; }
-  .mnav button:disabled { opacity: 0.45; }
-  .mnav svg { width: 20px; height: 20px; }
-  .mnav i { font-style: normal; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--side-label); display: grid; place-items: center; font-size: 11.5px; font-weight: 600; }
-  .mnav .on i { background: var(--side-accent); border-color: var(--side-accent); color: var(--side); }
-  .mnav .cnt { position: absolute; top: 3px; left: calc(50% + 8px); min-width: 18px; padding: 0 5px; font-size: 10px; line-height: 16px; }
-}
+  @media (max-width: 860px) {
+    .win {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr) auto;
+      height: 720px;
+    }
+    .side {
+      display: none;
+    }
+    .scroll {
+      padding: 20px 16px 24px;
+    }
+    .bar {
+      padding: 12px 16px;
+    }
+    .bar .btn {
+      width: 100%;
+    }
+    .vhead h1 {
+      font-size: 26px;
+    }
+    .thead {
+      display: none;
+    }
+    .trow {
+      grid-template-columns: 26px minmax(0, 1fr);
+      gap: 6px 12px;
+      align-items: start;
+      padding: 14px 16px;
+    }
+    .trow .rank {
+      display: none;
+    }
+    .trow .twhy,
+    .trow .badge,
+    .trow .tcontact {
+      grid-column: 2;
+      justify-self: start;
+    }
+    .split {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .pipe {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .cmp-row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .cmp-row > div + div {
+      border-left: 0;
+      border-top: 1px dashed var(--border);
+    }
+    .cmp-head {
+      display: none;
+    }
+    .cmp-row > div::before {
+      display: block;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted-fg);
+    }
+    .cmp-row > div:first-child::before {
+      content: "Aujourd'hui";
+    }
+    .cmp-row > div:last-child::before {
+      content: "Maquette";
+    }
+    .mnav {
+      display: flex;
+      background: var(--side);
+      color: var(--side-fg);
+      border-top: 1px solid var(--side-line);
+    }
+    .mnav button {
+      flex: 1;
+      min-width: 0;
+      background: none;
+      border: 0;
+      padding: 8px 2px 9px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--side-fg);
+      position: relative;
+    }
+    .mnav button span {
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .mnav button.on {
+      color: #fff;
+      font-weight: 600;
+    }
+    .mnav button:disabled {
+      opacity: 0.45;
+    }
+    .mnav svg {
+      width: 20px;
+      height: 20px;
+    }
+    .mnav i {
+      font-style: normal;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1.5px solid var(--side-label);
+      display: grid;
+      place-items: center;
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+    .mnav .on i {
+      background: var(--side-accent);
+      border-color: var(--side-accent);
+      color: var(--side);
+    }
+    .mnav .cnt {
+      position: absolute;
+      top: 3px;
+      left: calc(50% + 8px);
+      min-width: 18px;
+      padding: 0 5px;
+      font-size: 10px;
+      line-height: 16px;
+    }
+  }
 </style>
 
 <div class="page">
   <header class="intro">
     <h1>Parcours de campagne</h1>
-    <p>Maquette cliquable, données de démonstration. Cliquez les étapes du menu, lancez la rédaction à l'étape 1, approuvez à l'étape 2, et changez de site en haut du menu pour voir une campagne en préparation.</p>
+    <p>
+      Maquette cliquable, données de démonstration. Cliquez les étapes du menu, lancez la rédaction
+      à l'étape 1, approuvez à l'étape 2, et changez de site en haut du menu pour voir une campagne
+      en préparation.
+    </p>
   </header>
 
   <div class="win" id="app"></div>
@@ -291,307 +1042,794 @@ dl { margin: 0; display: flex; flex-direction: column; gap: 12px; }
   <section class="changes">
     <h2>Ce qui change par rapport à aujourd'hui</h2>
     <div class="cmp">
-      <div class="cmp-row cmp-head"><div>Aujourd'hui</div><div>Maquette</div></div>
-      <div class="cmp-row"><div>Deux groupes dans le menu, Prospection puis Messagerie.</div><div>Un seul groupe, trois étapes numérotées dans l'ordre : Cibles, À approuver, Envois.</div></div>
-      <div class="cmp-row"><div>« Campagnes » est rangé avec les étapes.</div><div>« Campagnes » est au-dessus, sans numéro : c'est la liste, pas une étape.</div></div>
-      <div class="cmp-row"><div>« Cibles » et « À valider » affichent le même compteur.</div><div>Chaque étape a son compteur, et il dit si c'est à vous d'agir.</div></div>
-      <div class="cmp-row"><div>La barre de cinq étapes reste en haut de l'écran des cibles.</div><div>La barre ne sert qu'à la préparation (quatre étapes). Ensuite, le menu prend le relais.</div></div>
-      <div class="cmp-row"><div>« Déjà validées », « messages rédigés », « À valider » pour les mêmes messages.</div><div>On retient une cible, on approuve un message. Un mot par geste.</div></div>
-      <div class="cmp-row"><div>« Mails envoyés », qui contient aussi les mails programmés.</div><div>« Envois » : programmés et partis.</div></div>
-      <div class="cmp-row"><div>Après une action, il faut retrouver l'écran suivant dans le menu.</div><div>Chaque écran se termine par un bouton vers l'étape suivante.</div></div>
+      <div class="cmp-row cmp-head">
+        <div>Aujourd'hui</div>
+        <div>Maquette</div>
+      </div>
+      <div class="cmp-row">
+        <div>Deux groupes dans le menu, Prospection puis Messagerie.</div>
+        <div>
+          Un seul groupe, trois étapes numérotées dans l'ordre : Cibles, À approuver, Envois.
+        </div>
+      </div>
+      <div class="cmp-row">
+        <div>« Campagnes » est rangé avec les étapes.</div>
+        <div>« Campagnes » est au-dessus, sans numéro : c'est la liste, pas une étape.</div>
+      </div>
+      <div class="cmp-row">
+        <div>« Cibles » et « À valider » affichent le même compteur.</div>
+        <div>Chaque étape a son compteur, et il dit si c'est à vous d'agir.</div>
+      </div>
+      <div class="cmp-row">
+        <div>La barre de cinq étapes reste en haut de l'écran des cibles.</div>
+        <div>
+          La barre ne sert qu'à la préparation (quatre étapes). Ensuite, le menu prend le relais.
+        </div>
+      </div>
+      <div class="cmp-row">
+        <div>« Déjà validées », « messages rédigés », « À valider » pour les mêmes messages.</div>
+        <div>On retient une cible, on approuve un message. Un mot par geste.</div>
+      </div>
+      <div class="cmp-row">
+        <div>« Mails envoyés », qui contient aussi les mails programmés.</div>
+        <div>« Envois » : programmés et partis.</div>
+      </div>
+      <div class="cmp-row">
+        <div>Après une action, il faut retrouver l'écran suivant dans le menu.</div>
+        <div>Chaque écran se termine par un bouton vers l'étape suivante.</div>
+      </div>
     </div>
   </section>
 </div>
 
 <script>
-(function () {
-  var app = document.getElementById("app");
+  (function () {
+    var app = document.getElementById("app");
 
-  var SITES = {
-    a: { domain: "backleenks.com", prep: false, state: "Campagne en cours" },
-    b: { domain: "votre-second-site.fr", prep: true, state: "En préparation" }
-  };
+    var SITES = {
+      a: { domain: "backleenks.com", prep: false, state: "Campagne en cours" },
+      b: { domain: "votre-second-site.fr", prep: true, state: "En préparation" },
+    };
 
-  var TARGETS = [
-    { id: 1, site: "carnet-du-referenceur.fr", type: "blogs thématiques", why: "Comparatif de sept outils pour vérifier ses liens, dont plusieurs du même type que la page proposée.", ask: "Page ressources" },
-    { id: 2, site: "atelier-contenu.fr", type: "webzines seo et marketing", why: "Article de statistiques qui cite déjà une dizaine de ressources pour les blogueurs débutants.", ask: "Page ressources" },
-    { id: 3, site: "le-labo-des-liens.fr", type: "blogs thématiques", why: "La page renvoie vers un guide qui n'existe plus. Notre guide traite le même sujet.", ask: "Lien mort" },
-    { id: 4, site: "boutique-plume.fr", type: "boutiques en ligne", why: "Page « Nos outils préférés » tenue par la fondatrice, mise à jour ce mois-ci.", ask: "Page ressources" },
-    { id: 5, site: "revue-marketing.fr", type: "webzines seo et marketing", why: "Dossier sur le référencement des petites entreprises, avec une liste de lectures à la fin.", ask: "Page ressources" },
-    { id: 6, site: "studio-nord.fr", type: "agences web et seo", why: "Glossaire du référencement dont l'entrée « netlinking » pointe vers une page supprimée.", ask: "Lien mort" }
-  ];
+    var TARGETS = [
+      {
+        id: 1,
+        site: "carnet-du-referenceur.fr",
+        type: "blogs thématiques",
+        why: "Comparatif de sept outils pour vérifier ses liens, dont plusieurs du même type que la page proposée.",
+        ask: "Page ressources",
+      },
+      {
+        id: 2,
+        site: "atelier-contenu.fr",
+        type: "webzines seo et marketing",
+        why: "Article de statistiques qui cite déjà une dizaine de ressources pour les blogueurs débutants.",
+        ask: "Page ressources",
+      },
+      {
+        id: 3,
+        site: "le-labo-des-liens.fr",
+        type: "blogs thématiques",
+        why: "La page renvoie vers un guide qui n'existe plus. Notre guide traite le même sujet.",
+        ask: "Lien mort",
+      },
+      {
+        id: 4,
+        site: "boutique-plume.fr",
+        type: "boutiques en ligne",
+        why: "Page « Nos outils préférés » tenue par la fondatrice, mise à jour ce mois-ci.",
+        ask: "Page ressources",
+      },
+      {
+        id: 5,
+        site: "revue-marketing.fr",
+        type: "webzines seo et marketing",
+        why: "Dossier sur le référencement des petites entreprises, avec une liste de lectures à la fin.",
+        ask: "Page ressources",
+      },
+      {
+        id: 6,
+        site: "studio-nord.fr",
+        type: "agences web et seo",
+        why: "Glossaire du référencement dont l'entrée « netlinking » pointe vers une page supprimée.",
+        ask: "Lien mort",
+      },
+    ];
 
-  var DRAFTS = [
-    { id: 1, site: "carnet-du-referenceur.fr", subject: "Votre comparatif d'outils pour vérifier ses liens", when: "lundi 23 novembre à 9 h 30",
-      why: "Sa page cite déjà <mark>sept outils pour vérifier ses liens</mark>, dont plusieurs du même type que la page proposée.",
-      target: "carnet-du-referenceur.fr/outils-verification-liens", page: "backleenks.com/guide-liens-gratuits",
-      body: "Bonjour,\n\nJe viens de lire votre comparatif des outils pour vérifier ses liens (carnet-du-referenceur.fr/outils-verification-liens). Vous y citez sept outils, dont plusieurs gratuits.\n\nNous avons publié un guide qui explique comment obtenir des liens sans les acheter : backleenks.com/guide-liens-gratuits. Il pourrait compléter votre liste pour les lecteurs qui débutent.\n\nBonne journée,\nJonathan" },
-    { id: 2, site: "le-labo-des-liens.fr", subject: "Un lien cassé dans votre article sur le netlinking", when: "lundi 23 novembre à 9 h 36",
-      why: "Son article renvoie vers <mark>un guide qui n'existe plus</mark> (page introuvable). Notre guide traite le même sujet.",
-      target: "le-labo-des-liens.fr/netlinking-debutant", page: "backleenks.com/guide-liens-gratuits",
-      body: "Bonjour,\n\nEn lisant votre article sur le netlinking pour débutants (le-labo-des-liens.fr/netlinking-debutant), j'ai vu que le lien vers le guide cité au troisième paragraphe mène à une page introuvable.\n\nSi vous cherchez un remplaçant, notre guide couvre le même sujet : backleenks.com/guide-liens-gratuits.\n\nBonne journée,\nJonathan" },
-    { id: 3, site: "boutique-plume.fr", subject: "Votre page « Nos outils préférés »", when: "lundi 23 novembre à 9 h 42",
-      why: "Sa page <mark>« Nos outils préférés »</mark> liste des ressources pour les petites boutiques, mise à jour ce mois-ci.",
-      target: "boutique-plume.fr/nos-outils-preferes", page: "backleenks.com/guide-liens-gratuits",
-      body: "Bonjour,\n\nVotre page « Nos outils préférés » (boutique-plume.fr/nos-outils-preferes) m'a été utile, surtout la partie sur la visibilité d'une petite boutique.\n\nNous avons écrit un guide pour obtenir des liens sans les acheter : backleenks.com/guide-liens-gratuits. Il pourrait y trouver sa place.\n\nBonne journée,\nJonathan" },
-    { id: 4, site: "revue-marketing.fr", subject: "Une lecture en plus pour votre dossier", when: "lundi 23 novembre à 9 h 48",
-      why: "Son dossier se termine par <mark>une liste de lectures pour aller plus loin</mark> sur le référencement des petites entreprises.",
-      target: "revue-marketing.fr/dossier-referencement-pme", page: "backleenks.com/guide-liens-gratuits",
-      body: "Bonjour,\n\nJ'ai lu votre dossier sur le référencement des petites entreprises (revue-marketing.fr/dossier-referencement-pme). La liste de lectures à la fin est bien choisie.\n\nNotre guide sur les liens obtenus sans achat pourrait la compléter : backleenks.com/guide-liens-gratuits.\n\nBonne journée,\nJonathan" }
-  ];
+    var DRAFTS = [
+      {
+        id: 1,
+        site: "carnet-du-referenceur.fr",
+        subject: "Votre comparatif d'outils pour vérifier ses liens",
+        when: "lundi 23 novembre à 9 h 30",
+        why: "Sa page cite déjà <mark>sept outils pour vérifier ses liens</mark>, dont plusieurs du même type que la page proposée.",
+        target: "carnet-du-referenceur.fr/outils-verification-liens",
+        page: "backleenks.com/guide-liens-gratuits",
+        body: "Bonjour,\n\nJe viens de lire votre comparatif des outils pour vérifier ses liens (carnet-du-referenceur.fr/outils-verification-liens). Vous y citez sept outils, dont plusieurs gratuits.\n\nNous avons publié un guide qui explique comment obtenir des liens sans les acheter : backleenks.com/guide-liens-gratuits. Il pourrait compléter votre liste pour les lecteurs qui débutent.\n\nBonne journée,\nJonathan",
+      },
+      {
+        id: 2,
+        site: "le-labo-des-liens.fr",
+        subject: "Un lien cassé dans votre article sur le netlinking",
+        when: "lundi 23 novembre à 9 h 36",
+        why: "Son article renvoie vers <mark>un guide qui n'existe plus</mark> (page introuvable). Notre guide traite le même sujet.",
+        target: "le-labo-des-liens.fr/netlinking-debutant",
+        page: "backleenks.com/guide-liens-gratuits",
+        body: "Bonjour,\n\nEn lisant votre article sur le netlinking pour débutants (le-labo-des-liens.fr/netlinking-debutant), j'ai vu que le lien vers le guide cité au troisième paragraphe mène à une page introuvable.\n\nSi vous cherchez un remplaçant, notre guide couvre le même sujet : backleenks.com/guide-liens-gratuits.\n\nBonne journée,\nJonathan",
+      },
+      {
+        id: 3,
+        site: "boutique-plume.fr",
+        subject: "Votre page « Nos outils préférés »",
+        when: "lundi 23 novembre à 9 h 42",
+        why: "Sa page <mark>« Nos outils préférés »</mark> liste des ressources pour les petites boutiques, mise à jour ce mois-ci.",
+        target: "boutique-plume.fr/nos-outils-preferes",
+        page: "backleenks.com/guide-liens-gratuits",
+        body: "Bonjour,\n\nVotre page « Nos outils préférés » (boutique-plume.fr/nos-outils-preferes) m'a été utile, surtout la partie sur la visibilité d'une petite boutique.\n\nNous avons écrit un guide pour obtenir des liens sans les acheter : backleenks.com/guide-liens-gratuits. Il pourrait y trouver sa place.\n\nBonne journée,\nJonathan",
+      },
+      {
+        id: 4,
+        site: "revue-marketing.fr",
+        subject: "Une lecture en plus pour votre dossier",
+        when: "lundi 23 novembre à 9 h 48",
+        why: "Son dossier se termine par <mark>une liste de lectures pour aller plus loin</mark> sur le référencement des petites entreprises.",
+        target: "revue-marketing.fr/dossier-referencement-pme",
+        page: "backleenks.com/guide-liens-gratuits",
+        body: "Bonjour,\n\nJ'ai lu votre dossier sur le référencement des petites entreprises (revue-marketing.fr/dossier-referencement-pme). La liste de lectures à la fin est bien choisie.\n\nNotre guide sur les liens obtenus sans achat pourrait la compléter : backleenks.com/guide-liens-gratuits.\n\nBonne journée,\nJonathan",
+      },
+    ];
 
-  var SCHEDULED = [
-    { when: "Lundi 23 novembre à 9 h 06", who: "contact@agence-lumen.fr", subject: "Votre glossaire du référencement" },
-    { when: "Lundi 23 novembre à 9 h 12", who: "redaction@le-mag-des-artisans.fr", subject: "Votre sélection de ressources pour artisans" },
-    { when: "Lundi 23 novembre à 9 h 18", who: "bonjour@papier-et-pixels.fr", subject: "Un lien cassé dans votre billet" },
-    { when: "Lundi 23 novembre à 9 h 24", who: "contact@cabinet-orion.fr", subject: "Votre page de liens utiles" }
-  ];
-  var SENT = [
-    { who: "contact@blog-des-independants.fr", when: "Envoyé le 19 novembre à 14 h 32", subject: "Votre liste d'outils pour indépendants" },
-    { who: "hello@maison-verte.fr", when: "Envoyé le 19 novembre à 14 h 26", subject: "Un lien cassé sur votre page ressources" },
-    { who: "contact@ecole-du-web.fr", when: "Envoyé le 19 novembre à 14 h 20", subject: "Une ressource pour vos élèves" }
-  ];
+    var SCHEDULED = [
+      {
+        when: "Lundi 23 novembre à 9 h 06",
+        who: "contact@agence-lumen.fr",
+        subject: "Votre glossaire du référencement",
+      },
+      {
+        when: "Lundi 23 novembre à 9 h 12",
+        who: "redaction@le-mag-des-artisans.fr",
+        subject: "Votre sélection de ressources pour artisans",
+      },
+      {
+        when: "Lundi 23 novembre à 9 h 18",
+        who: "bonjour@papier-et-pixels.fr",
+        subject: "Un lien cassé dans votre billet",
+      },
+      {
+        when: "Lundi 23 novembre à 9 h 24",
+        who: "contact@cabinet-orion.fr",
+        subject: "Votre page de liens utiles",
+      },
+    ];
+    var SENT = [
+      {
+        who: "contact@blog-des-independants.fr",
+        when: "Envoyé le 19 novembre à 14 h 32",
+        subject: "Votre liste d'outils pour indépendants",
+      },
+      {
+        who: "hello@maison-verte.fr",
+        when: "Envoyé le 19 novembre à 14 h 26",
+        subject: "Un lien cassé sur votre page ressources",
+      },
+      {
+        who: "contact@ecole-du-web.fr",
+        when: "Envoyé le 19 novembre à 14 h 20",
+        subject: "Une ressource pour vos élèves",
+      },
+    ];
 
-  var S = {
-    site: "a", view: "cibles", tab: "contact", siteMenu: false,
-    off: {}, total: 68, drafts: 11, scheduled: 4, sent: 24,
-    left: [1, 2, 3, 4], open: 1, justDrafted: 0, justApproved: 0, paused: false, placeholder: ""
-  };
+    var S = {
+      site: "a",
+      view: "cibles",
+      tab: "contact",
+      siteMenu: false,
+      off: {},
+      total: 68,
+      drafts: 11,
+      scheduled: 4,
+      sent: 24,
+      left: [1, 2, 3, 4],
+      open: 1,
+      justDrafted: 0,
+      justApproved: 0,
+      paused: false,
+      placeholder: "",
+    };
 
-  function offCount() { return Object.keys(S.off).length; }
-  function retained() { return Math.max(0, S.total - offCount()); }
-  function plural(n, one, many) { return n + " " + (n > 1 ? many : one); }
+    function offCount() {
+      return Object.keys(S.off).length;
+    }
+    function retained() {
+      return Math.max(0, S.total - offCount());
+    }
+    function plural(n, one, many) {
+      return n + " " + (n > 1 ? many : one);
+    }
 
-  var ICON = {
-    home: '<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>',
-    target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/>',
-    mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
-    search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
-    bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
-    card: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
-    sliders: '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
-    chev: '<path d="m7 15 5 5 5-5M7 9l5-5 5 5"/>'
-  };
-  function icon(name) {
-    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICON[name] + "</svg>";
-  }
+    var ICON = {
+      home: '<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>',
+      target:
+        '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/>',
+      mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+      search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+      bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+      card: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+      sliders:
+        '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
+      chev: '<path d="m7 15 5 5 5-5M7 9l5-5 5 5"/>',
+    };
+    function icon(name) {
+      return (
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        ICON[name] +
+        "</svg>"
+      );
+    }
 
-  var STEPS = [
-    { n: 1, key: "cibles", label: "Cibles", count: function () { return retained(); }, mine: true },
-    { n: 2, key: "approuver", label: "À approuver", count: function () { return S.drafts; }, mine: true },
-    { n: 3, key: "envois", label: "Envois", count: function () { return S.scheduled; }, mine: false }
-  ];
+    var STEPS = [
+      {
+        n: 1,
+        key: "cibles",
+        label: "Cibles",
+        count: function () {
+          return retained();
+        },
+        mine: true,
+      },
+      {
+        n: 2,
+        key: "approuver",
+        label: "À approuver",
+        count: function () {
+          return S.drafts;
+        },
+        mine: true,
+      },
+      {
+        n: 3,
+        key: "envois",
+        label: "Envois",
+        count: function () {
+          return S.scheduled;
+        },
+        mine: false,
+      },
+    ];
 
-  function side() {
-    var prep = SITES[S.site].prep;
-    var h = '<div class="side"><div class="side-in"><div class="brand">backleenks</div>';
-    h += '<div class="sw"><button type="button" class="sw-btn" data-act="sitemenu" aria-expanded="' + S.siteMenu + '"><span>' + SITES[S.site].domain + "</span>" + icon("chev") + "</button>";
-    if (S.siteMenu) {
-      h += '<div class="sw-menu">';
-      Object.keys(SITES).forEach(function (id) {
-        h += '<button type="button" data-site="' + id + '"><span class="' + (id === S.site ? "cur" : "") + '">' + SITES[id].domain + "</span><small>" + SITES[id].state + "</small></button>";
-      });
+    function side() {
+      var prep = SITES[S.site].prep;
+      var h = '<div class="side"><div class="side-in"><div class="brand">backleenks</div>';
+      h +=
+        '<div class="sw"><button type="button" class="sw-btn" data-act="sitemenu" aria-expanded="' +
+        S.siteMenu +
+        '"><span>' +
+        SITES[S.site].domain +
+        "</span>" +
+        icon("chev") +
+        "</button>";
+      if (S.siteMenu) {
+        h += '<div class="sw-menu">';
+        Object.keys(SITES).forEach(function (id) {
+          h +=
+            '<button type="button" data-site="' +
+            id +
+            '"><span class="' +
+            (id === S.site ? "cur" : "") +
+            '">' +
+            SITES[id].domain +
+            "</span><small>" +
+            SITES[id].state +
+            "</small></button>";
+        });
+        h += "</div>";
+      }
       h += "</div>";
+      h += navItem("accueil", "Accueil", "home") + navItem("campagnes", "Campagnes", "target");
+      h += '<div class="grp">Prospection</div>';
+      STEPS.forEach(function (s, i) {
+        var c = prep ? 0 : s.count();
+        h +=
+          '<button type="button" class="nav step' +
+          (i === STEPS.length - 1 ? " last" : "") +
+          (S.view === s.key ? " on" : "") +
+          '" data-go="' +
+          s.key +
+          '"' +
+          (prep ? " disabled" : "") +
+          '><span class="num">' +
+          s.n +
+          '</span><span class="lbl">' +
+          s.label +
+          "</span>" +
+          (c ? '<span class="cnt' + (s.mine ? "" : " quiet") + '">' + c + "</span>" : "") +
+          "</button>";
+      });
+      if (prep) h += '<p class="hint">Disponible après l\'analyse.</p>';
+      h += '<div class="grp">Réglages</div>';
+      h +=
+        navItem("r-boite", "Boîte d'envoi", "mail") +
+        navItem("r-sc", "Search Console", "search") +
+        navItem("r-notif", "Notifications", "bell") +
+        navItem("r-abo", "Abonnement", "card");
+      h += '</div><div class="acct"><b>J</b><span>Votre compte</span></div></div>';
+      return h;
     }
-    h += "</div>";
-    h += navItem("accueil", "Accueil", "home") + navItem("campagnes", "Campagnes", "target");
-    h += '<div class="grp">Prospection</div>';
-    STEPS.forEach(function (s, i) {
-      var c = prep ? 0 : s.count();
-      h += '<button type="button" class="nav step' + (i === STEPS.length - 1 ? " last" : "") + (S.view === s.key ? " on" : "") + '" data-go="' + s.key + '"' + (prep ? " disabled" : "") + '><span class="num">' + s.n + '</span><span class="lbl">' + s.label + "</span>" + (c ? '<span class="cnt' + (s.mine ? "" : " quiet") + '">' + c + "</span>" : "") + "</button>";
-    });
-    if (prep) h += '<p class="hint">Disponible après l\'analyse.</p>';
-    h += '<div class="grp">Réglages</div>';
-    h += navItem("r-boite", "Boîte d'envoi", "mail") + navItem("r-sc", "Search Console", "search") + navItem("r-notif", "Notifications", "bell") + navItem("r-abo", "Abonnement", "card");
-    h += '</div><div class="acct"><b>J</b><span>Votre compte</span></div></div>';
-    return h;
-  }
-  function navItem(key, label, ic) {
-    var on = S.view === key || (key === "campagnes" && S.view === "prep") || (S.view === "autre" && S.placeholder === label);
-    return '<button type="button" class="nav' + (on ? " on" : "") + '" data-go="' + key + '" data-label="' + label + '">' + icon(ic) + '<span class="lbl">' + label + "</span></button>";
-  }
-
-  function mobileNav() {
-    var prep = SITES[S.site].prep;
-    var h = '<nav class="mnav" aria-label="Menu">';
-    h += '<button type="button" class="' + (S.view === "campagnes" || S.view === "prep" ? "on" : "") + '" data-go="campagnes">' + icon("target") + "<span>Campagnes</span></button>";
-    STEPS.forEach(function (s) {
-      var c = prep ? 0 : s.count();
-      h += '<button type="button" class="' + (S.view === s.key ? "on" : "") + '" data-go="' + s.key + '"' + (prep ? " disabled" : "") + "><i>" + s.n + "</i><span>" + s.label + "</span>" + (c && s.mine ? '<b class="cnt">' + c + "</b>" : "") + "</button>";
-    });
-    h += '<button type="button" class="' + (S.view === "autre" ? "on" : "") + '" data-go="r-boite" data-label="Réglages">' + icon("sliders") + "<span>Réglages</span></button>";
-    return h + "</nav>";
-  }
-
-  function head(step, title, lead) {
-    return '<div class="vhead">' + (step ? '<p class="eyebrow">Étape ' + step + " sur 3 · " + SITES[S.site].domain + "</p>" : "") + "<h1>" + title + "</h1>" + (lead ? '<p class="lead">' + lead + "</p>" : "") + "</div>";
-  }
-
-  function viewCibles() {
-    var h = '<div class="scroll">' + head(1, "Cibles", "La liste courte, classée : pour chaque site, la demande à faire et pourquoi. Décochez un site pour l'écarter.");
-    if (S.total === 0) {
-      h += '<div class="card empty"><h3>' + plural(S.justDrafted, "message est", "messages sont") + " en cours de rédaction</h3><p>Ils arrivent à l'étape 2 au fur et à mesure. Rien n'est envoyé : vous relisez et vous approuvez d'abord.</p>" +
-        '<button type="button" class="btn pri" data-go="approuver">Relire les messages, étape 2</button></div>';
-      return h + "</div>";
+    function navItem(key, label, ic) {
+      var on =
+        S.view === key ||
+        (key === "campagnes" && S.view === "prep") ||
+        (S.view === "autre" && S.placeholder === label);
+      return (
+        '<button type="button" class="nav' +
+        (on ? " on" : "") +
+        '" data-go="' +
+        key +
+        '" data-label="' +
+        label +
+        '">' +
+        icon(ic) +
+        '<span class="lbl">' +
+        label +
+        "</span></button>"
+      );
     }
-    h += '<div class="tabs"><button type="button" class="tab' + (S.tab === "contact" ? " on" : "") + '" data-tab="contact">À contacter (' + S.total + ')</button><button type="button" class="tab' + (S.tab === "rediges" ? " on" : "") + '" data-tab="rediges">Messages rédigés (' + S.drafts + ")</button></div>";
-    if (S.tab === "rediges") {
-      h += '<div class="card empty"><h3>' + plural(S.drafts, "message déjà rédigé", "messages déjà rédigés") + "</h3><p>Ces cibles ont leur message. Il vous attend à l'étape 2, où vous le relisez avant de l'approuver.</p>" +
-        '<button type="button" class="btn pri" data-go="approuver">Aller à « À approuver »</button></div>';
-      return h + "</div>";
+
+    function mobileNav() {
+      var prep = SITES[S.site].prep;
+      var h = '<nav class="mnav" aria-label="Menu">';
+      h +=
+        '<button type="button" class="' +
+        (S.view === "campagnes" || S.view === "prep" ? "on" : "") +
+        '" data-go="campagnes">' +
+        icon("target") +
+        "<span>Campagnes</span></button>";
+      STEPS.forEach(function (s) {
+        var c = prep ? 0 : s.count();
+        h +=
+          '<button type="button" class="' +
+          (S.view === s.key ? "on" : "") +
+          '" data-go="' +
+          s.key +
+          '"' +
+          (prep ? " disabled" : "") +
+          "><i>" +
+          s.n +
+          "</i><span>" +
+          s.label +
+          "</span>" +
+          (c && s.mine ? '<b class="cnt">' + c + "</b>" : "") +
+          "</button>";
+      });
+      h +=
+        '<button type="button" class="' +
+        (S.view === "autre" ? "on" : "") +
+        '" data-go="r-boite" data-label="Réglages">' +
+        icon("sliders") +
+        "<span>Réglages</span></button>";
+      return h + "</nav>";
     }
-    h += '<div class="card table"><div class="thead"><span></span><span>#</span><span>Site</span><span>Pourquoi ce site</span><span>Demande</span><span>Contact</span></div>';
-    TARGETS.forEach(function (t, i) {
-      var off = !!S.off[t.id];
-      h += '<div class="trow' + (off ? " off" : "") + '"><label><input type="checkbox" id="cible-' + t.id + '" data-toggle="' + t.id + '"' + (off ? "" : " checked") + '><span class="sr">Retenir ' + t.site + '</span></label><span class="rank">' + (i + 1) + '</span><div class="tsite"><strong>' + t.site + "</strong><small>" + t.type + '</small></div><p class="twhy">' + t.why + '</p><span class="badge">' + t.ask + '</span><span class="tcontact">Email vérifié</span></div>';
-    });
-    h += '<div class="more">et ' + (S.total - TARGETS.length) + " autres sites</div></div></div>";
-    var n = retained();
-    h += '<div class="bar"><div><strong>' + plural(n, "demande retenue", "demandes retenues") + "</strong><p>Rien n'est envoyé maintenant : nous rédigeons, vous relisez à l'étape 2.</p></div>" +
-      '<button type="button" class="btn pri" data-act="rediger">Rédiger ' + (n > 1 ? "les " + n + " messages" : "le message") + "</button></div>";
-    return h;
-  }
 
-  function viewApprouver() {
-    var h = '<div class="scroll">' + head(2, "À approuver", "Relisez, corrigez si besoin, approuvez. Rien ne part sans votre accord.");
-    if (S.drafts === 0) {
-      h += '<div class="card empty"><h3>Tout est approuvé</h3><p>' +
-        (S.justApproved ? plural(S.justApproved, "email vient d'être programmé", "emails viennent d'être programmés") + ". " : "") +
-        "Premier départ lundi 23 novembre à 9 h 06, dix emails par heure au plus, du lundi au vendredi de 9 h à 18 h.</p>" +
-        '<button type="button" class="btn pri" data-go="envois">Voir les envois, étape 3</button></div>';
-      return h + "</div>";
+    function head(step, title, lead) {
+      return (
+        '<div class="vhead">' +
+        (step
+          ? '<p class="eyebrow">Étape ' + step + " sur 3 · " + SITES[S.site].domain + "</p>"
+          : "") +
+        "<h1>" +
+        title +
+        "</h1>" +
+        (lead ? '<p class="lead">' + lead + "</p>" : "") +
+        "</div>"
+      );
     }
-    if (S.justDrafted) h += '<p class="sub">' + plural(S.justDrafted, "message arrive", "messages arrivent") + " de l'étape 1 : la rédaction se termine en arrière-plan.</p>";
-    var rows = DRAFTS.filter(function (d) { return S.left.indexOf(d.id) !== -1; });
-    var cur = rows.filter(function (d) { return d.id === S.open; })[0] || rows[0];
-    h += '<div class="split"><div class="card dlist">';
-    rows.forEach(function (d) {
-      h += '<button type="button" class="drow' + (cur && d.id === cur.id ? " on" : "") + '" data-pick="' + d.id + '"><strong>' + d.site + "</strong><span>" + d.subject + "</span><small>Premier message par email</small></button>";
-    });
-    var rest = S.drafts - rows.length;
-    if (rest > 0) h += '<div class="more">' + (rows.length ? "et " : "") + plural(rest, "autre message", "autres messages") + "</div>";
-    h += "</div>";
-    if (cur) {
-      h += '<div class="card read"><h3>' + cur.subject + '</h3><div class="msg">' + cur.body + "</div><dl>" +
-        '<div class="kv"><dt>Pourquoi ce site</dt><dd>' + cur.why + "</dd></div>" +
-        '<div class="kv"><dt>Page proposée</dt><dd>' + cur.page + ' <span class="badge ok">Adresse vérifiée</span></dd></div>' +
-        '<div class="kv"><dt>Si vous approuvez</dt><dd>Départ prévu ' + cur.when + ".</dd></div></dl>" +
-        '<div class="row-btns"><button type="button" class="btn pri sm" data-act="approve-one" data-id="' + cur.id + '">Approuver</button><button type="button" class="btn sm" data-act="noop">Modifier</button><button type="button" class="btn sm" data-act="noop">Plus tard</button></div></div>';
-    }
-    h += "</div></div>";
-    h += '<div class="bar"><div><strong>' + plural(S.drafts, "message prêt", "messages prêts") + "</strong><p>Une fois approuvés, ils partent à l'heure prévue. Vous pouvez encore annuler à l'étape 3.</p></div>" +
-      '<button type="button" class="btn pri" data-act="approve-all">Approuver ' + (S.drafts > 1 ? "les " + S.drafts + " messages" : "le message") + "</button></div>";
-    return h;
-  }
 
-  function viewEnvois() {
-    var h = '<div class="scroll">' + head(3, "Envois", "Ce qui est programmé, ce qui est parti. Les réponses arrivent dans votre boîte habituelle.");
-    h += '<div class="card status"><div><h3>' + (S.paused ? "Envois suspendus" : "Envois actifs") + '</h3><p class="sub">' + (S.paused ? "Rien ne part tant que les envois sont suspendus. Rien n'est annulé." : "Les emails programmés partent à l'heure prévue.") + '</p></div><button type="button" class="btn sm" data-act="pause">' + (S.paused ? "Reprendre les envois" : "Suspendre les envois") + "</button></div>";
-    h += '<h2 class="h2">Programmés (' + S.scheduled + ')</h2><div class="list">';
-    SCHEDULED.forEach(function (r) {
-      h += '<div class="card erow"><div><strong>' + r.when + "</strong><small>" + r.who + '</small><span class="s">' + r.subject + '</span></div><div class="row-btns"><span class="badge">Programmé</span><button type="button" class="btn sm" data-act="noop">Annuler</button></div></div>';
-    });
-    if (S.scheduled > SCHEDULED.length) h += '<p class="sub">et ' + plural(S.scheduled - SCHEDULED.length, "autre email programmé", "autres emails programmés") + "</p>";
-    h += '</div><h2 class="h2">Envoyés (' + S.sent + ')</h2><div class="list">';
-    SENT.forEach(function (r) {
-      h += '<div class="card erow"><div><strong>' + r.who + "</strong><small>" + r.when + '</small><span class="s">' + r.subject + '</span></div><span class="badge ok">Envoyé</span></div>';
-    });
-    h += '<p class="sub">et ' + (S.sent - SENT.length) + " autres emails envoyés</p></div>";
-    h += '<p class="sub">Et ensuite : une seule relance, dix jours après l\'envoi, arrêtée dès qu\'une réponse arrive.</p>';
-    return h + "</div>";
-  }
-
-  function viewCampagnes() {
-    var h = '<div class="scroll">' + head(0, "Campagnes", "Une campagne par site. Ouvrez une étape pour reprendre là où vous en êtes.");
-    h += '<div class="card camp"><div class="camp-top"><h3>backleenks.com</h3><span class="badge ok">En cours</span></div><div class="pipe">' +
-      cell(1, "cibles", "Cibles", retained(), "à choisir", true) +
-      cell(2, "approuver", "À approuver", S.drafts, S.drafts > 1 ? "messages à relire" : "message à relire", true) +
-      cell(3, "envois", "Envois", S.scheduled, "programmés, " + S.sent + " partis", false) + "</div></div>";
-    h += '<div class="card camp"><div class="camp-top"><h3>votre-second-site.fr</h3><span class="badge grey">En préparation</span></div><p class="sub">Étape 3 sur 4 de la préparation : Vous. Les cibles arrivent après l\'analyse.</p><div><button type="button" class="btn sm" data-site="b">Reprendre la préparation</button></div></div>';
-    h += '<div><button type="button" class="btn" data-act="noop">Nouvelle campagne</button></div>';
-    return h + "</div>";
-  }
-  function cell(n, key, label, value, unit, mine) {
-    return '<button type="button" class="cell' + (mine && value ? " mine" : "") + '" data-site-go="' + key + '"><em><i>' + n + "</i>" + label + "</em><b>" + value + "</b><small>" + unit + "</small></button>";
-  }
-
-  function viewPrep() {
-    var h = '<div class="scroll"><div class="stepper"><span class="done"><i>✓</i>Votre site</span><hr><span class="done"><i>✓</i>Vérification</span><hr><span class="now"><i>3</i>Vous</span><hr><span><i>4</i>Analyse</span><hr><span class="then">puis le menu : 1 Cibles</span></div>';
-    h += head(0, "Vous", "Votre prénom de signature et ce que vous acceptez de proposer en retour.");
-    h += '<div class="card empty"><p>Écran de préparation inchangé, hors de cette maquette.</p></div>';
-    h += '<p class="note"><b>Note de maquette.</b> La barre d\'étapes n\'apparaît que pendant la préparation, et elle s\'arrête à l\'analyse. Dès que les cibles sont trouvées, les trois étapes du menu s\'allument et la barre disparaît.</p>';
-    return h + "</div>";
-  }
-
-  function viewAutre() {
-    return '<div class="scroll">' + head(0, S.placeholder, "") + '<div class="card empty"><p>Écran inchangé, hors de cette maquette.</p></div></div>';
-  }
-
-  function render(resetScroll) {
-    var old = app.querySelector(".scroll");
-    var top = old && !resetScroll ? old.scrollTop : 0;
-    var v = S.view;
-    var body = v === "cibles" ? viewCibles() : v === "approuver" ? viewApprouver() : v === "envois" ? viewEnvois() : v === "campagnes" ? viewCampagnes() : v === "prep" ? viewPrep() : viewAutre();
-    app.innerHTML = side() + '<div class="main">' + body + "</div>" + mobileNav();
-    var now = app.querySelector(".scroll");
-    if (now) now.scrollTop = top;
-  }
-
-  function go(key, label) {
-    if (key === "cibles" || key === "approuver" || key === "envois" || key === "campagnes") {
-      S.view = key;
-    } else {
-      S.view = "autre";
-      S.placeholder = label || "Accueil";
-    }
-    if (key === "cibles") S.tab = "contact";
-    render(true);
-  }
-  function pickSite(id) {
-    S.site = id;
-    S.view = SITES[id].prep ? "prep" : "cibles";
-    render(true);
-  }
-
-  app.addEventListener("click", function (e) {
-    var el = e.target.closest("button");
-    var inSwitcher = e.target.closest(".sw");
-    if (S.siteMenu && !inSwitcher) { S.siteMenu = false; if (!el) { render(false); return; } }
-    if (!el || el.disabled) return;
-    var d = el.dataset;
-    if (d.act === "sitemenu") { S.siteMenu = !S.siteMenu; render(false); return; }
-    if (d.site) { S.siteMenu = false; pickSite(d.site); return; }
-    if (d.siteGo) { S.site = "a"; go(d.siteGo); return; }
-    if (d.go) { go(d.go, d.label); return; }
-    if (d.tab) { S.tab = d.tab; render(true); return; }
-    if (d.pick) { S.open = Number(d.pick); render(false); return; }
-    if (d.act === "rediger") {
+    function viewCibles() {
+      var h =
+        '<div class="scroll">' +
+        head(
+          1,
+          "Cibles",
+          "La liste courte, classée : pour chaque site, la demande à faire et pourquoi. Décochez un site pour l'écarter.",
+        );
+      if (S.total === 0) {
+        h +=
+          '<div class="card empty"><h3>' +
+          plural(S.justDrafted, "message est", "messages sont") +
+          " en cours de rédaction</h3><p>Ils arrivent à l'étape 2 au fur et à mesure. Rien n'est envoyé : vous relisez et vous approuvez d'abord.</p>" +
+          '<button type="button" class="btn pri" data-go="approuver">Relire les messages, étape 2</button></div>';
+        return h + "</div>";
+      }
+      h +=
+        '<div class="tabs"><button type="button" class="tab' +
+        (S.tab === "contact" ? " on" : "") +
+        '" data-tab="contact">À contacter (' +
+        S.total +
+        ')</button><button type="button" class="tab' +
+        (S.tab === "rediges" ? " on" : "") +
+        '" data-tab="rediges">Messages rédigés (' +
+        S.drafts +
+        ")</button></div>";
+      if (S.tab === "rediges") {
+        h +=
+          '<div class="card empty"><h3>' +
+          plural(S.drafts, "message déjà rédigé", "messages déjà rédigés") +
+          "</h3><p>Ces cibles ont leur message. Il vous attend à l'étape 2, où vous le relisez avant de l'approuver.</p>" +
+          '<button type="button" class="btn pri" data-go="approuver">Aller à « À approuver »</button></div>';
+        return h + "</div>";
+      }
+      h +=
+        '<div class="card table"><div class="thead"><span></span><span>#</span><span>Site</span><span>Pourquoi ce site</span><span>Demande</span><span>Contact</span></div>';
+      TARGETS.forEach(function (t, i) {
+        var off = !!S.off[t.id];
+        h +=
+          '<div class="trow' +
+          (off ? " off" : "") +
+          '"><label><input type="checkbox" id="cible-' +
+          t.id +
+          '" data-toggle="' +
+          t.id +
+          '"' +
+          (off ? "" : " checked") +
+          '><span class="sr">Retenir ' +
+          t.site +
+          '</span></label><span class="rank">' +
+          (i + 1) +
+          '</span><div class="tsite"><strong>' +
+          t.site +
+          "</strong><small>" +
+          t.type +
+          '</small></div><p class="twhy">' +
+          t.why +
+          '</p><span class="badge">' +
+          t.ask +
+          '</span><span class="tcontact">Email vérifié</span></div>';
+      });
+      h += '<div class="more">et ' + (S.total - TARGETS.length) + " autres sites</div></div></div>";
       var n = retained();
-      if (!n) return;
-      S.drafts += n; S.justDrafted = n; S.total = 0; S.off = {};
-      render(true); return;
+      h +=
+        '<div class="bar"><div><strong>' +
+        plural(n, "demande retenue", "demandes retenues") +
+        "</strong><p>Rien n'est envoyé maintenant : nous rédigeons, vous relisez à l'étape 2.</p></div>" +
+        '<button type="button" class="btn pri" data-act="rediger">Rédiger ' +
+        (n > 1 ? "les " + n + " messages" : "le message") +
+        "</button></div>";
+      return h;
     }
-    if (d.act === "approve-one") {
-      var id = Number(d.id);
-      S.left = S.left.filter(function (x) { return x !== id; });
-      S.open = S.left[0] || 0;
-      S.drafts -= 1; S.scheduled += 1; S.justApproved = 1;
-      render(false); return;
-    }
-    if (d.act === "approve-all") {
-      S.justApproved = S.drafts; S.scheduled += S.drafts; S.drafts = 0; S.left = []; S.justDrafted = 0;
-      render(true); return;
-    }
-    if (d.act === "pause") { S.paused = !S.paused; render(false); return; }
-    render(false);
-  });
-  app.addEventListener("change", function (e) {
-    var id = e.target.dataset && e.target.dataset.toggle;
-    if (!id) return;
-    if (e.target.checked) delete S.off[id]; else S.off[id] = true;
-    render(false);
-  });
 
-  render(true);
-})();
+    function viewApprouver() {
+      var h =
+        '<div class="scroll">' +
+        head(
+          2,
+          "À approuver",
+          "Relisez, corrigez si besoin, approuvez. Rien ne part sans votre accord.",
+        );
+      if (S.drafts === 0) {
+        h +=
+          '<div class="card empty"><h3>Tout est approuvé</h3><p>' +
+          (S.justApproved
+            ? plural(
+                S.justApproved,
+                "email vient d'être programmé",
+                "emails viennent d'être programmés",
+              ) + ". "
+            : "") +
+          "Premier départ lundi 23 novembre à 9 h 06, dix emails par heure au plus, du lundi au vendredi de 9 h à 18 h.</p>" +
+          '<button type="button" class="btn pri" data-go="envois">Voir les envois, étape 3</button></div>';
+        return h + "</div>";
+      }
+      if (S.justDrafted)
+        h +=
+          '<p class="sub">' +
+          plural(S.justDrafted, "message arrive", "messages arrivent") +
+          " de l'étape 1 : la rédaction se termine en arrière-plan.</p>";
+      var rows = DRAFTS.filter(function (d) {
+        return S.left.indexOf(d.id) !== -1;
+      });
+      var cur =
+        rows.filter(function (d) {
+          return d.id === S.open;
+        })[0] || rows[0];
+      h += '<div class="split"><div class="card dlist">';
+      rows.forEach(function (d) {
+        h +=
+          '<button type="button" class="drow' +
+          (cur && d.id === cur.id ? " on" : "") +
+          '" data-pick="' +
+          d.id +
+          '"><strong>' +
+          d.site +
+          "</strong><span>" +
+          d.subject +
+          "</span><small>Premier message par email</small></button>";
+      });
+      var rest = S.drafts - rows.length;
+      if (rest > 0)
+        h +=
+          '<div class="more">' +
+          (rows.length ? "et " : "") +
+          plural(rest, "autre message", "autres messages") +
+          "</div>";
+      h += "</div>";
+      if (cur) {
+        h +=
+          '<div class="card read"><h3>' +
+          cur.subject +
+          '</h3><div class="msg">' +
+          cur.body +
+          "</div><dl>" +
+          '<div class="kv"><dt>Pourquoi ce site</dt><dd>' +
+          cur.why +
+          "</dd></div>" +
+          '<div class="kv"><dt>Page proposée</dt><dd>' +
+          cur.page +
+          ' <span class="badge ok">Adresse vérifiée</span></dd></div>' +
+          '<div class="kv"><dt>Si vous approuvez</dt><dd>Départ prévu ' +
+          cur.when +
+          ".</dd></div></dl>" +
+          '<div class="row-btns"><button type="button" class="btn pri sm" data-act="approve-one" data-id="' +
+          cur.id +
+          '">Approuver</button><button type="button" class="btn sm" data-act="noop">Modifier</button><button type="button" class="btn sm" data-act="noop">Plus tard</button></div></div>';
+      }
+      h += "</div></div>";
+      h +=
+        '<div class="bar"><div><strong>' +
+        plural(S.drafts, "message prêt", "messages prêts") +
+        "</strong><p>Une fois approuvés, ils partent à l'heure prévue. Vous pouvez encore annuler à l'étape 3.</p></div>" +
+        '<button type="button" class="btn pri" data-act="approve-all">Approuver ' +
+        (S.drafts > 1 ? "les " + S.drafts + " messages" : "le message") +
+        "</button></div>";
+      return h;
+    }
+
+    function viewEnvois() {
+      var h =
+        '<div class="scroll">' +
+        head(
+          3,
+          "Envois",
+          "Ce qui est programmé, ce qui est parti. Les réponses arrivent dans votre boîte habituelle.",
+        );
+      h +=
+        '<div class="card status"><div><h3>' +
+        (S.paused ? "Envois suspendus" : "Envois actifs") +
+        '</h3><p class="sub">' +
+        (S.paused
+          ? "Rien ne part tant que les envois sont suspendus. Rien n'est annulé."
+          : "Les emails programmés partent à l'heure prévue.") +
+        '</p></div><button type="button" class="btn sm" data-act="pause">' +
+        (S.paused ? "Reprendre les envois" : "Suspendre les envois") +
+        "</button></div>";
+      h += '<h2 class="h2">Programmés (' + S.scheduled + ')</h2><div class="list">';
+      SCHEDULED.forEach(function (r) {
+        h +=
+          '<div class="card erow"><div><strong>' +
+          r.when +
+          "</strong><small>" +
+          r.who +
+          '</small><span class="s">' +
+          r.subject +
+          '</span></div><div class="row-btns"><span class="badge">Programmé</span><button type="button" class="btn sm" data-act="noop">Annuler</button></div></div>';
+      });
+      if (S.scheduled > SCHEDULED.length)
+        h +=
+          '<p class="sub">et ' +
+          plural(
+            S.scheduled - SCHEDULED.length,
+            "autre email programmé",
+            "autres emails programmés",
+          ) +
+          "</p>";
+      h += '</div><h2 class="h2">Envoyés (' + S.sent + ')</h2><div class="list">';
+      SENT.forEach(function (r) {
+        h +=
+          '<div class="card erow"><div><strong>' +
+          r.who +
+          "</strong><small>" +
+          r.when +
+          '</small><span class="s">' +
+          r.subject +
+          '</span></div><span class="badge ok">Envoyé</span></div>';
+      });
+      h += '<p class="sub">et ' + (S.sent - SENT.length) + " autres emails envoyés</p></div>";
+      h +=
+        "<p class=\"sub\">Et ensuite : une seule relance, dix jours après l'envoi, arrêtée dès qu'une réponse arrive.</p>";
+      return h + "</div>";
+    }
+
+    function viewCampagnes() {
+      var h =
+        '<div class="scroll">' +
+        head(
+          0,
+          "Campagnes",
+          "Une campagne par site. Ouvrez une étape pour reprendre là où vous en êtes.",
+        );
+      h +=
+        '<div class="card camp"><div class="camp-top"><h3>backleenks.com</h3><span class="badge ok">En cours</span></div><div class="pipe">' +
+        cell(1, "cibles", "Cibles", retained(), "à choisir", true) +
+        cell(
+          2,
+          "approuver",
+          "À approuver",
+          S.drafts,
+          S.drafts > 1 ? "messages à relire" : "message à relire",
+          true,
+        ) +
+        cell(3, "envois", "Envois", S.scheduled, "programmés, " + S.sent + " partis", false) +
+        "</div></div>";
+      h +=
+        '<div class="card camp"><div class="camp-top"><h3>votre-second-site.fr</h3><span class="badge grey">En préparation</span></div><p class="sub">Étape 3 sur 4 de la préparation : Vous. Les cibles arrivent après l\'analyse.</p><div><button type="button" class="btn sm" data-site="b">Reprendre la préparation</button></div></div>';
+      h +=
+        '<div><button type="button" class="btn" data-act="noop">Nouvelle campagne</button></div>';
+      return h + "</div>";
+    }
+    function cell(n, key, label, value, unit, mine) {
+      return (
+        '<button type="button" class="cell' +
+        (mine && value ? " mine" : "") +
+        '" data-site-go="' +
+        key +
+        '"><em><i>' +
+        n +
+        "</i>" +
+        label +
+        "</em><b>" +
+        value +
+        "</b><small>" +
+        unit +
+        "</small></button>"
+      );
+    }
+
+    function viewPrep() {
+      var h =
+        '<div class="scroll"><div class="stepper"><span class="done"><i>✓</i>Votre site</span><hr><span class="done"><i>✓</i>Vérification</span><hr><span class="now"><i>3</i>Vous</span><hr><span><i>4</i>Analyse</span><hr><span class="then">puis le menu : 1 Cibles</span></div>';
+      h += head(
+        0,
+        "Vous",
+        "Votre prénom de signature et ce que vous acceptez de proposer en retour.",
+      );
+      h +=
+        '<div class="card empty"><p>Écran de préparation inchangé, hors de cette maquette.</p></div>';
+      h +=
+        "<p class=\"note\"><b>Note de maquette.</b> La barre d'étapes n'apparaît que pendant la préparation, et elle s'arrête à l'analyse. Dès que les cibles sont trouvées, les trois étapes du menu s'allument et la barre disparaît.</p>";
+      return h + "</div>";
+    }
+
+    function viewAutre() {
+      return (
+        '<div class="scroll">' +
+        head(0, S.placeholder, "") +
+        '<div class="card empty"><p>Écran inchangé, hors de cette maquette.</p></div></div>'
+      );
+    }
+
+    function render(resetScroll) {
+      var old = app.querySelector(".scroll");
+      var top = old && !resetScroll ? old.scrollTop : 0;
+      var v = S.view;
+      var body =
+        v === "cibles"
+          ? viewCibles()
+          : v === "approuver"
+            ? viewApprouver()
+            : v === "envois"
+              ? viewEnvois()
+              : v === "campagnes"
+                ? viewCampagnes()
+                : v === "prep"
+                  ? viewPrep()
+                  : viewAutre();
+      app.innerHTML = side() + '<div class="main">' + body + "</div>" + mobileNav();
+      var now = app.querySelector(".scroll");
+      if (now) now.scrollTop = top;
+    }
+
+    function go(key, label) {
+      if (key === "cibles" || key === "approuver" || key === "envois" || key === "campagnes") {
+        S.view = key;
+      } else {
+        S.view = "autre";
+        S.placeholder = label || "Accueil";
+      }
+      if (key === "cibles") S.tab = "contact";
+      render(true);
+    }
+    function pickSite(id) {
+      S.site = id;
+      S.view = SITES[id].prep ? "prep" : "cibles";
+      render(true);
+    }
+
+    app.addEventListener("click", function (e) {
+      var el = e.target.closest("button");
+      var inSwitcher = e.target.closest(".sw");
+      if (S.siteMenu && !inSwitcher) {
+        S.siteMenu = false;
+        if (!el) {
+          render(false);
+          return;
+        }
+      }
+      if (!el || el.disabled) return;
+      var d = el.dataset;
+      if (d.act === "sitemenu") {
+        S.siteMenu = !S.siteMenu;
+        render(false);
+        return;
+      }
+      if (d.site) {
+        S.siteMenu = false;
+        pickSite(d.site);
+        return;
+      }
+      if (d.siteGo) {
+        S.site = "a";
+        go(d.siteGo);
+        return;
+      }
+      if (d.go) {
+        go(d.go, d.label);
+        return;
+      }
+      if (d.tab) {
+        S.tab = d.tab;
+        render(true);
+        return;
+      }
+      if (d.pick) {
+        S.open = Number(d.pick);
+        render(false);
+        return;
+      }
+      if (d.act === "rediger") {
+        var n = retained();
+        if (!n) return;
+        S.drafts += n;
+        S.justDrafted = n;
+        S.total = 0;
+        S.off = {};
+        render(true);
+        return;
+      }
+      if (d.act === "approve-one") {
+        var id = Number(d.id);
+        S.left = S.left.filter(function (x) {
+          return x !== id;
+        });
+        S.open = S.left[0] || 0;
+        S.drafts -= 1;
+        S.scheduled += 1;
+        S.justApproved = 1;
+        render(false);
+        return;
+      }
+      if (d.act === "approve-all") {
+        S.justApproved = S.drafts;
+        S.scheduled += S.drafts;
+        S.drafts = 0;
+        S.left = [];
+        S.justDrafted = 0;
+        render(true);
+        return;
+      }
+      if (d.act === "pause") {
+        S.paused = !S.paused;
+        render(false);
+        return;
+      }
+      render(false);
+    });
+    app.addEventListener("change", function (e) {
+      var id = e.target.dataset && e.target.dataset.toggle;
+      if (!id) return;
+      if (e.target.checked) delete S.off[id];
+      else S.off[id] = true;
+      render(false);
+    });
+
+    render(true);
+  })();
 </script>

@@ -2969,16 +2969,19 @@ Maquette validée par Jonathan (`docs/mockups/parcours-campagne.html`, publiée 
 - **Tests** : `src/features/shell/shell.test.ts` (quatre étapes), nouveau `src/components/app-nav.test.ts` (un seul groupe, trois étapes, ordre).
 
 ### Pas fait (volontairement)
+
 - Le compteur de « Cibles » dans le menu : la maquette affiche le nombre de cibles à choisir, il faut l'ajouter à `loadOverview`. Pour l'instant, Cibles n'a pas de compteur.
 - Bouton « vers l'étape suivante » à la fin de chaque écran : seul « Voir les messages rédigés » existe sur Cibles.
 - Écran « Campagnes » : la maquette montre les trois étapes par campagne, la liste actuelle ne les montre pas.
 - Vérification visuelle du menu connecté : non faite (l'espace connecté n'est pas accessible depuis le navigateur de test). Vérifié : typecheck, lint, tests touchés, page de démonstration sans la barre « Vos cibles ».
 
 ### Fichiers clés
+
 - `src/components/app-nav.tsx`, `src/features/shell/journey-steps.tsx`, `src/app/app/site/[id]/cibles/page.tsx`, `messages/fr.ts`
 - `src/features/shell/shell.test.ts`, `src/components/app-nav.test.ts`
 
 ### Commandes
+
 ```bash
 pnpm vitest run src/components src/features/shell
 pnpm typecheck && pnpm lint

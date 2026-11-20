@@ -137,10 +137,7 @@ export function AppNav({
           label: "Cibles",
           icon: CheckSquare,
           step: 1,
-          active:
-            starts("/app/cibles") ||
-            starts("/app/taches") ||
-            /\/cibles$/.test(pathname),
+          active: starts("/app/cibles") || starts("/app/taches") || /\/cibles$/.test(pathname),
           mobile: true,
         },
         {
