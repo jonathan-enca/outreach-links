@@ -5,6 +5,8 @@ import { AnalysisProgress } from "@/features/analysis/analysis-progress";
 import { loadAnalysisSnapshot } from "@/features/analysis/status";
 import { siteHref } from "@/features/shell/next-step";
 import { JourneySteps } from "@/features/shell/journey-steps";
+import { JourneyTop, Stage } from "@/features/onboarding/journey-stage";
+import { journeySummaries } from "@/features/onboarding/summary";
 import { PageHeader } from "@/components/page-header";
 import {
   confirmAuditAction,
@@ -56,29 +58,28 @@ export async function AuditContent({
   if (audit.analysis_status !== "aucun") {
     const snapshot = await loadAnalysisSnapshot(supabase, id);
     if (!snapshot) notFound();
+    const summaries = await journeySummaries(supabase, audit.site_id);
+    // Étape 4 du parcours en une page (maquette du 20/11) : les étapes 1 à 3 repliées et verrouillées.
     return (
-      <>
-        <JourneySteps
-          current="analyse"
-          links={
-            audit.analysis_status === "termine"
-              ? { cibles: siteHref.cibles(audit.site_id) }
-              : undefined
-          }
-        />
-        <PageHeader
-          title={`${t.audits.analysisTitle} ${snapshot.domain}`}
-          description={t.analysis.screen.intro}
-        />
-        <AnalysisProgress
-          initial={snapshot}
-          resumeAction={confirmAuditAction.bind(null, audit.id)}
-          restartAction={restartFromStepAction.bind(null, audit.id)}
-          relaunchAction={relaunchStalledAction.bind(null, audit.id)}
-          emailEnabled={ANALYSIS_EMAIL_VERIFIED && Boolean(env.RESEND_API_KEY)}
-          autoOpen={!showSteps}
-        />
-      </>
+      <div className="mx-auto w-full max-w-3xl">
+        <JourneyTop current={4} />
+        <div className="flex flex-col gap-3.5">
+          <Stage n={1} state="done" summary={summaries?.site} />
+          <Stage n={2} state="done" summary={summaries?.verify} />
+          <Stage n={3} state="done" summary={summaries?.you} />
+          <Stage n={4} state="current">
+            <AnalysisProgress
+              initial={snapshot}
+              resumeAction={confirmAuditAction.bind(null, audit.id)}
+              restartAction={restartFromStepAction.bind(null, audit.id)}
+              relaunchAction={relaunchStalledAction.bind(null, audit.id)}
+              emailEnabled={ANALYSIS_EMAIL_VERIFIED && Boolean(env.RESEND_API_KEY)}
+              autoOpen={!showSteps}
+              variant="stage"
+            />
+          </Stage>
+        </div>
+      </div>
     );
   }
   const { data: competitors } = await supabase

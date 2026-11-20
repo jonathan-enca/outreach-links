@@ -190,6 +190,8 @@ export async function startFromUrl(
     // Le profil de marque, lui, est établi s'il manque (site créé avant MT.1).
     if (existing.niche && existing.priority_queries.length > 0) {
       if (opts.profile === false) {
+        // Étape 1 rouverte avec « Modifier » : l'objectif choisi de nouveau est gardé.
+        await supabase.from("sites").update(goalColumns(market.goal)).eq("id", existing.id);
         return { status: "ok", siteId: existing.id, theme: existing.niche, needsProfile: true };
       }
       await ensureBrandProfile(supabase, deps, {

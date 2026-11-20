@@ -1,29 +1,48 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { BrandFields } from "@/features/brand/brand-fields";
+import { UnderstoodFacts, YouFacts, citedCount } from "@/features/brand/brand-fields";
 import { t } from "@/lib/messages";
+import { JourneyTop, Stage, stageAnchor } from "./journey-stage";
 import type { LaunchPreview, LaunchState } from "./service";
 
-const inputClass =
-  "h-10 w-full rounded-control border border-border bg-card px-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
-
-const GOALS = [
-  { value: "autorite_generale", key: "authority" },
-  { value: "mots_cles", key: "keywords" },
-] as const;
+/** Résumé de l'étape 2 une fois validée : thème, pages proposées, types de sites cherchés. */
+function verifySummary(form: HTMLFormElement): string {
+  const f = t.onboarding.flow;
+  const data = new FormData(form);
+  const theme = String(data.get("theme") ?? "").trim();
+  const pages = data.getAll("profile_res_on").length;
+  let types = 0;
+  try {
+    const raw: unknown = JSON.parse(String(data.get("profile_publishers") ?? "[]"));
+    if (Array.isArray(raw))
+      types = raw.filter((x) => (x as { active?: boolean }).active !== false).length;
+  } catch {
+    types = 0;
+  }
+  return [
+    theme,
+    pages <= 1 ? f.summaryHomeOnly : f.summaryPages(pages),
+    types > 0 ? f.summaryTypes(types) : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
 
 /**
- * Écran « ce que nous avons compris + coût total » : thème, objectif et profil modifiables, puis UNE
- * confirmation qui lance tout le parcours. Le coût affiché est renvoyé au serveur, qui refuse de
- * lancer si le coût recalculé le dépasse.
+ * Étapes 2 et 3 du parcours en une page (maquette validée le 20/11, `docs/mockups/parcours-campagne-v2.html`) :
+ * l'étape 1 est repliée en haut ; « C'est juste, continuer » replie la fiche de l'étape 2 et ouvre
+ * l'étape 3, puis « Lancer l'analyse » envoie tout en une fois. Les deux étapes partagent un seul
+ * formulaire : la fiche repliée reste dans la page et part avec lui. Le coût affiché est renvoyé au
+ * serveur, qui refuse de lancer si le coût recalculé le dépasse.
  */
 export function LaunchPanel({
   preview,
   action,
   saveAction,
+  siteSummary,
+  editSiteHref,
   emailEnabled = false,
 }: {
   preview: LaunchPreview;
@@ -32,116 +51,126 @@ export function LaunchPanel({
   action: (prev: LaunchState, formData: FormData) => Promise<LaunchState>;
   /** Utilisée tant qu'aucune recherche n'est connue : enregistre, puis l'écran affiche le coût. */
   saveAction: (prev: LaunchState, formData: FormData) => Promise<LaunchState>;
+  /** Ligne de résumé de l'étape 1 (adresse, pays, objectif, Search Console). */
+  siteSummary: string;
+  /** « Modifier » de l'étape 1 : le formulaire de l'étape 1, rempli. */
+  editSiteHref: string;
 }) {
+  const f = t.onboarding.flow;
   const r = t.onboarding.review;
   const needsInput = preview.queries.length === 0;
   const [state, formAction, pending] = useActionState(needsInput ? saveAction : action, {
     status: "idle",
   });
-  const nothingDeduced = needsInput;
+  const formRef = useRef<HTMLFormElement>(null);
+  const [stage, setStage] = useState<2 | 3>(2);
+  const [summary, setSummary] = useState("");
+  const [stageError, setStageError] = useState<string | null>(null);
+  const moved = useRef(false);
+
+  useEffect(() => {
+    // Pas au premier affichage : l'adresse (#etape-2) s'en charge.
+    if (!moved.current) return;
+    document
+      .getElementById(stageAnchor(stage))
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [stage]);
+
+  const go = (next: 2 | 3) => {
+    moved.current = true;
+    setStage(next);
+  };
+
+  const confirmVerify = () => {
+    const form = formRef.current;
+    if (!form) return;
+    const theme = form.elements.namedItem("theme");
+    if (theme instanceof HTMLInputElement && !theme.checkValidity()) {
+      setStageError(t.onboarding.messages.themeInvalid);
+      return;
+    }
+    setStageError(null);
+    setSummary(verifySummary(form));
+    go(3);
+  };
+
   return (
-    <form action={formAction} className="flex flex-col gap-6">
-      <Card className="flex flex-col gap-5 p-6">
-        <div>
-          <h2 className="text-xl font-semibold">{r.title}</h2>
-          <p className="mt-1 text-muted-foreground">{nothingDeduced ? r.emptyDeduction : r.body}</p>
-        </div>
-        <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-1">
-          <dt className="text-muted-foreground">{r.domain}</dt>
-          <dd className="font-medium">{preview.domain}</dd>
-        </dl>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="theme" className="text-sm font-medium">
-            {r.theme}
-          </label>
-          <input
-            id="theme"
-            name="theme"
-            required
-            defaultValue={preview.theme}
-            className={inputClass}
-            aria-describedby="theme-hint"
-          />
-          <p id="theme-hint" className="text-sm text-muted-foreground">
-            {r.themeHint}
-          </p>
-        </div>
-        <fieldset className="flex flex-col gap-3">
-          <legend className="text-sm font-medium">{r.goal.legend}</legend>
-          {GOALS.map((g) => (
-            <label
-              key={g.value}
-              className="flex cursor-pointer items-start gap-3 rounded-control border border-border p-3 has-[:checked]:border-primary has-[:checked]:bg-muted"
-            >
-              <input
-                type="radio"
-                name="goal"
-                value={g.value}
-                defaultChecked={preview.goal === g.value}
-                className="mt-1"
-              />
-              <span className="flex flex-col gap-0.5">
-                <span className="font-medium">
-                  {r.goal[g.key].label}
-                  {g.key === "authority" ? (
-                    <span className="ml-2 text-sm font-normal text-muted-foreground">
-                      ({r.goal.authority.badge})
-                    </span>
-                  ) : null}
-                </span>
-                <span className="text-sm text-muted-foreground">{r.goal[g.key].body}</span>
-              </span>
-            </label>
-          ))}
-          <p className="text-sm text-muted-foreground">{r.goal.hint}</p>
-        </fieldset>
-        <div className="flex flex-col gap-1">
-          <h3 className="text-sm font-medium">{r.queriesTitle}</h3>
-          <p className="text-sm text-muted-foreground">{r.queriesNote}</p>
-        </div>
-      </Card>
-
-      <BrandFields
-        key={preview.brand?.version ?? 0}
-        brand={preview.brand}
-        domain={preview.domain}
-      />
-
-      {needsInput ? (
-        <div className="flex flex-col gap-2">
-          <Button type="submit" disabled={pending} className="h-12 self-start px-6 text-base">
-            {r.seeCost}
-          </Button>
-          {state.status === "error" && state.message ? (
-            <p role="alert" className="text-sm text-danger">
-              {state.message}
+    <div className="mx-auto w-full max-w-3xl">
+      <JourneyTop current={stage} />
+      <form ref={formRef} action={formAction} noValidate>
+        <div className="flex flex-col gap-3.5">
+          <Stage n={1} state="done" summary={siteSummary} editHref={editSiteHref} />
+          <Stage
+            n={2}
+            state={stage === 2 ? "current" : "done"}
+            summary={
+              summary ||
+              [
+                preview.theme,
+                citedCount(preview.brand, preview.domain) <= 1
+                  ? f.summaryHomeOnly
+                  : f.summaryPages(citedCount(preview.brand, preview.domain)),
+              ]
+                .filter(Boolean)
+                .join(" · ")
+            }
+            onEdit={() => go(2)}
+            keepMounted
+          >
+            <p className="text-[15px] text-muted-foreground">
+              {needsInput ? r.emptyDeduction : f.verifyIntro}
             </p>
-          ) : null}
+            <UnderstoodFacts
+              brand={preview.brand}
+              domain={preview.domain}
+              theme={preview.theme}
+              pagesGoal={preview.goal === "mots_cles"}
+            />
+            <input type="hidden" name="goal" value={preview.goal} />
+            <div className="flex flex-col gap-2">
+              <Button
+                type="button"
+                onClick={confirmVerify}
+                className="h-12 w-full px-6 text-base sm:w-auto sm:self-start"
+              >
+                {f.continue}
+              </Button>
+              {stageError ? (
+                <p role="alert" className="text-sm text-danger">
+                  {stageError}
+                </p>
+              ) : null}
+            </div>
+          </Stage>
+          <Stage n={3} state={stage === 3 ? "current" : "todo"} keepMounted>
+            <YouFacts brand={preview.brand} />
+            <div className="flex flex-col gap-1.5 rounded-[10px] border border-border bg-background p-4">
+              <p className="font-semibold">{f.launchTitle}</p>
+              <p className="text-sm text-muted-foreground">
+                {emailEnabled ? f.launchWithEmail : f.launchNoEmail}
+              </p>
+              {needsInput ? null : (
+                <input type="hidden" name="acceptedUsd" value={preview.totalUsd} />
+              )}
+              <div className="mt-2">
+                <Button
+                  type="submit"
+                  disabled={pending}
+                  className="h-12 w-full px-6 text-base sm:w-auto"
+                >
+                  {needsInput ? r.seeCost : pending ? r.launching : r.launch}
+                </Button>
+              </div>
+              {state.status === "error" && state.message ? (
+                <p role="alert" className="text-sm text-danger">
+                  {state.message}
+                </p>
+              ) : null}
+            </div>
+          </Stage>
+          <Stage n={4} state="todo" />
         </div>
-      ) : (
-        <Card className="flex flex-col gap-3 p-6">
-          <h2 className="text-xl font-semibold">{r.launchCard.title}</h2>
-          <p className="text-muted-foreground">{r.launchCard.body}</p>
-          <p className="text-muted-foreground">
-            {emailEnabled ? r.launchCard.closeWithEmail : r.launchCard.closeNoEmail}
-          </p>
-          <p className="text-sm text-muted-foreground">{r.launchCard.noSend}</p>
-          <input type="hidden" name="acceptedUsd" value={preview.totalUsd} />
-          <Button type="submit" disabled={pending} className="mt-1 h-12 self-start px-6 text-base">
-            {pending ? r.launching : r.launch}
-          </Button>
-          {state.status === "error" && state.message ? (
-            <p role="alert" className="text-sm text-danger">
-              {state.message}
-            </p>
-          ) : null}
-        </Card>
-      )}
-
-      <Card className="p-6">
-        <h2 className="font-medium">{r.later.title}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{r.later.body}</p>
-      </Card>
-    </form>
+      </form>
+    </div>
   );
 }

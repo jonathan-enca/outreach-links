@@ -267,6 +267,7 @@ export function AnalysisProgress({
   relaunchAction,
   emailEnabled,
   autoOpen = true,
+  variant = "page",
 }: {
   initial: AnalysisSnapshot;
   resumeAction: (prev: AuditActionState) => Promise<AuditActionState>;
@@ -277,6 +278,11 @@ export function AnalysisProgress({
   emailEnabled: boolean;
   /** Faux : on revoit les étapes d'une analyse finie, « Vos cibles » ne s'ouvre pas seul. */
   autoOpen?: boolean;
+  /**
+   * « stage » : dans l'étape 4 du parcours en une page (maquette du 20/11), en une colonne, sans
+   * cartes imbriquées ni entonnoir : avancement, étapes, premières cibles, puis l'encadré de fin.
+   */
+  variant?: "page" | "stage";
 }) {
   const router = useRouter();
   const [snap, setSnap] = useState(initial);
@@ -353,6 +359,189 @@ export function AnalysisProgress({
   const finished = snap.status === "termine" && !view.backgroundPending;
   const noTargets = finished && view.targetsCount === 0;
 
+  const failedCard = (
+    <Card className="flex flex-col gap-4 border-danger/40 p-5 sm:p-6" data-block="failed">
+      <div>
+        <h2 role="alert" className="font-display text-xl font-semibold text-balance text-danger">
+          {view.failedStep ? S.failedTitleAt(view.failedStep.position) : S.failedTitle}
+        </h2>
+        <p className="mt-1 text-muted-foreground">{S.failedBody}</p>
+      </div>
+      <dl className="grid gap-3 text-sm sm:grid-cols-2">
+        <div>
+          <dt className="font-medium">{S.failedWorked}</dt>
+          <dd className="mt-1 text-muted-foreground">
+            {view.doneLabels.length ? view.doneLabels.join(", ") : S.failedNothing}
+          </dd>
+        </div>
+        <div>
+          <dt className="font-medium">{S.failedStopped}</dt>
+          <dd className="mt-1 text-muted-foreground">
+            {view.failedStep ? `${view.failedStep.label}. ` : ""}
+            {view.failedStep?.error ?? snap.error ?? S.failedGeneric}
+          </dd>
+        </div>
+      </dl>
+      <form action={resumeForm} className="flex flex-col gap-2">
+        <Button type="submit" disabled={resuming} className="h-12 self-start px-6 text-base">
+          {resuming ? S.resuming : S.resume}
+        </Button>
+        {resumeState.message ? (
+          <p
+            role="status"
+            className={resumeState.status === "error" ? "text-danger" : "text-success"}
+          >
+            {resumeState.message}
+          </p>
+        ) : null}
+      </form>
+    </Card>
+  );
+  const notes = (
+    <>
+      {view.slowStart ? (
+        <Card
+          className="flex flex-col gap-2 border-warning/40 bg-warning/5 p-5"
+          data-block="slow-start"
+        >
+          <h3 className="font-medium">{S.slowStart}</h3>
+          <p className="text-sm text-muted-foreground">{S.slowStartBody}</p>
+          <Button type="button" disabled={restarting} onClick={relaunch} className="self-start">
+            {restarting ? S.restarting : S.slowStartCta}
+          </Button>
+        </Card>
+      ) : null}
+
+      {restartNote?.message ? (
+        <p
+          role="status"
+          className={restartNote.status === "error" ? "text-danger" : "text-success"}
+        >
+          {restartNote.message}
+        </p>
+      ) : null}
+
+      {/* Toujours dans la page (vide hors panne) : son apparition ne décale rien et elle est annoncée. */}
+      <p role="status" className={cn("text-sm text-muted-foreground", !offline && "sr-only")}>
+        {offline ? S.offline : ""}
+      </p>
+    </>
+  );
+  const stepsList = (
+    <ol className="flex flex-col" aria-label={S.stepsLabel}>
+      {view.steps.map((step, i) => (
+        <StepRowView
+          key={step.key}
+          step={step}
+          last={i === view.steps.length - 1}
+          onRestart={restart}
+          busy={restarting}
+        />
+      ))}
+    </ol>
+  );
+
+  if (variant === "stage") {
+    const funnel = view.funnel;
+    return (
+      <div className="flex flex-col gap-5" data-analysis-status={snap.status}>
+        {failed ? (
+          failedCard
+        ) : (
+          <div className="flex flex-col gap-3" data-block={finished ? "done-bar" : "running"}>
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <h3
+                role="status"
+                aria-live="polite"
+                className="font-display text-lg font-semibold text-balance"
+              >
+                {finished ? t.onboarding.flow.done : view.headline}
+              </h3>
+              <p className="text-sm text-muted-foreground tabular-nums">
+                {S.percent(finished ? 100 : view.percent)}
+                {!finished && view.remainingRange && !view.slowStart
+                  ? ` · ${S.remaining(view.remainingRange[0], view.remainingRange[1]).toLowerCase()}`
+                  : null}
+              </p>
+            </div>
+            <div
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={finished ? 100 : view.percent}
+              aria-label={S.progressLabel(finished ? 100 : view.percent)}
+              className="h-2 overflow-hidden rounded-full bg-muted"
+            >
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-700 motion-reduce:transition-none"
+                style={{ width: `${Math.max(finished ? 100 : view.percent, 2)}%` }}
+              />
+            </div>
+          </div>
+        )}
+        {notes}
+        {stepsList}
+        {view.targets.length > 0 ? (
+          <div className="flex flex-col gap-2" data-block="targets">
+            <h3 className="text-[15px] font-semibold">{S.targetsTitle}</h3>
+            <ul className="flex max-h-96 flex-col gap-2 overflow-y-auto">
+              {view.targets.map((target) => (
+                <li
+                  key={target.domain}
+                  className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 rounded-control border border-border px-3 py-2.5 text-[14.5px]"
+                >
+                  <span className="min-w-0 font-semibold break-words">{target.domain}</span>
+                  {target.why ? (
+                    <span className="line-clamp-2 text-right text-[13.5px] text-muted-foreground">
+                      {target.why}
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {finished ? (
+          <div
+            className="flex flex-col gap-2.5 rounded-[10px] border border-[#a7dcc6] bg-[#ecfdf5] p-4"
+            data-block="done"
+          >
+            <p className="font-semibold">{t.onboarding.flow.readyTitle(view.targetsCount)}</p>
+            <p className="text-sm text-muted-foreground">
+              {funnel && funnel.kept !== null && funnel.targets !== null
+                ? t.onboarding.flow.readyFunnel(funnel.found, funnel.kept, funnel.targets)
+                : S.doneBody(view.targetsCount)}
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button asChild className="h-12 px-6 text-base">
+                <Link href={siteHref.cibles(snap.siteId)}>{t.onboarding.flow.readyCta}</Link>
+              </Button>
+              {autoOpen ? (
+                <span className="text-sm text-muted-foreground">{S.redirecting}</span>
+              ) : null}
+            </div>
+          </div>
+        ) : failed ? null : view.backgroundPending ? (
+          <>
+            <p className="text-sm text-muted-foreground" data-continuing>
+              {S.continuingBody(view.targetsCount)}
+            </p>
+            <Button asChild variant="outline" className="self-start">
+              <Link href={siteHref.cibles(snap.siteId)}>
+                {S.continuingCta}
+                <ArrowRight aria-hidden className="size-4" />
+              </Link>
+            </Button>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {emailEnabled ? S.closeWithEmail : S.closeNoEmail}
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6" data-analysis-status={snap.status}>
       {finished ? (
@@ -377,45 +566,7 @@ export function AnalysisProgress({
           </div>
         </Card>
       ) : failed ? (
-        <Card className="flex flex-col gap-4 border-danger/40 p-5 sm:p-6" data-block="failed">
-          <div>
-            <h2
-              role="alert"
-              className="font-display text-xl font-semibold text-balance text-danger"
-            >
-              {view.failedStep ? S.failedTitleAt(view.failedStep.position) : S.failedTitle}
-            </h2>
-            <p className="mt-1 text-muted-foreground">{S.failedBody}</p>
-          </div>
-          <dl className="grid gap-3 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="font-medium">{S.failedWorked}</dt>
-              <dd className="mt-1 text-muted-foreground">
-                {view.doneLabels.length ? view.doneLabels.join(", ") : S.failedNothing}
-              </dd>
-            </div>
-            <div>
-              <dt className="font-medium">{S.failedStopped}</dt>
-              <dd className="mt-1 text-muted-foreground">
-                {view.failedStep ? `${view.failedStep.label}. ` : ""}
-                {view.failedStep?.error ?? snap.error ?? S.failedGeneric}
-              </dd>
-            </div>
-          </dl>
-          <form action={resumeForm} className="flex flex-col gap-2">
-            <Button type="submit" disabled={resuming} className="h-12 self-start px-6 text-base">
-              {resuming ? S.resuming : S.resume}
-            </Button>
-            {resumeState.message ? (
-              <p
-                role="status"
-                className={resumeState.status === "error" ? "text-danger" : "text-success"}
-              >
-                {resumeState.message}
-              </p>
-            ) : null}
-          </form>
-        </Card>
+        failedCard
       ) : (
         <Card className="flex flex-col gap-3 p-5 sm:p-6" data-block="running">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -467,45 +618,10 @@ export function AnalysisProgress({
         </Card>
       )}
 
-      {view.slowStart ? (
-        <Card
-          className="flex flex-col gap-2 border-warning/40 bg-warning/5 p-5"
-          data-block="slow-start"
-        >
-          <h3 className="font-medium">{S.slowStart}</h3>
-          <p className="text-sm text-muted-foreground">{S.slowStartBody}</p>
-          <Button type="button" disabled={restarting} onClick={relaunch} className="self-start">
-            {restarting ? S.restarting : S.slowStartCta}
-          </Button>
-        </Card>
-      ) : null}
-
-      {restartNote?.message ? (
-        <p
-          role="status"
-          className={restartNote.status === "error" ? "text-danger" : "text-success"}
-        >
-          {restartNote.message}
-        </p>
-      ) : null}
-
-      {/* Toujours dans la page (vide hors panne) : son apparition ne décale rien et elle est annoncée. */}
-      <p role="status" className={cn("text-sm text-muted-foreground", !offline && "sr-only")}>
-        {offline ? S.offline : ""}
-      </p>
+      {notes}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <ol className="flex flex-col" aria-label={S.stepsLabel}>
-          {view.steps.map((step, i) => (
-            <StepRowView
-              key={step.key}
-              step={step}
-              last={i === view.steps.length - 1}
-              onRestart={restart}
-              busy={restarting}
-            />
-          ))}
-        </ol>
+        {stepsList}
 
         <div className="flex min-w-0 flex-col gap-6">
           {view.funnel ? (

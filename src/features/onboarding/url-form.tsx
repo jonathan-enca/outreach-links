@@ -1,12 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Check, Circle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { sortedByLabel } from "@/features/sites/market";
 import { siteHref } from "@/features/shell/next-step";
 import { t } from "@/lib/messages";
+import type { SearchConsoleLookup } from "@/features/search-console/actions";
+import { stageAnchor } from "./journey-stage";
 import type { StartState } from "./service";
 
 const inputClass =
@@ -45,6 +47,8 @@ export function UrlForm({
   understandAction,
   searchConsoleSiteAction,
   searchConsole = null,
+  lookupSearchConsole,
+  linkSearchConsole,
   defaultUrl = "",
   defaultCountry = "FR",
   defaultLanguage = "auto",
@@ -56,6 +60,10 @@ export function UrlForm({
   searchConsoleSiteAction: (formData: FormData) => Promise<StartState>;
   /** null : la Search Console n'est pas proposée (réglage fermé). */
   searchConsole?: StartSearchConsole | null;
+  /** L'adresse saisie est-elle dans une Search Console déjà connectée (accueil, autre campagne) ? */
+  lookupSearchConsole?: (url: string) => Promise<SearchConsoleLookup>;
+  /** Relie la campagne créée à cette Search Console. */
+  linkSearchConsole?: (siteId: string) => Promise<boolean>;
   defaultUrl?: string;
   defaultCountry?: string;
   defaultLanguage?: string;
@@ -73,10 +81,43 @@ export function UrlForm({
   const [info, setInfo] = useState<{ theme: string; language: string } | null>(null);
   const [, startTransition] = useTransition();
   const busy = (phase !== "idle" && phase !== "done") || connecting;
-  const connected =
+  // Recherche de l'adresse dans la Search Console déjà connectée : `for` = l'adresse cherchée.
+  const [lookup, setLookup] = useState<{ for: string; result: SearchConsoleLookup | null } | null>(
+    null,
+  );
+  const lookupSeq = useRef(0);
+  const oauthConnected =
     searchConsole?.connected && bareDomain(url) === bareDomain(searchConsole.connected.domain)
       ? searchConsole.connected
       : null;
+  const typed = bareDomain(url);
+  const current = lookup && lookup.for === typed ? lookup.result : null;
+  const checking = Boolean(lookup && lookup.for === typed && lookup.result === null);
+  const found = current?.status === "found" ? current : null;
+  const missing = current?.status === "missing" ? current : null;
+  const connected = oauthConnected
+    ? oauthConnected
+    : found
+      ? { domain: typed, property: found.property, googleEmail: found.email }
+      : null;
+
+  useEffect(() => {
+    if (!searchConsole || !lookupSearchConsole || oauthConnected) return;
+    const domain = bareDomain(url);
+    if (!domain.includes(".") || domain.length < 4) return;
+    const seq = ++lookupSeq.current;
+    const timer = setTimeout(() => {
+      setLookup({ for: domain, result: null });
+      lookupSearchConsole(domain)
+        .then((result) => {
+          if (seq === lookupSeq.current) setLookup({ for: domain, result });
+        })
+        .catch(() => {
+          if (seq === lookupSeq.current) setLookup({ for: domain, result: { status: "none" } });
+        });
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [url, searchConsole, lookupSearchConsole, oauthConnected]);
 
   const connect = (form: HTMLFormElement | null) => {
     if (!form) return;
@@ -127,9 +168,13 @@ export function UrlForm({
       }
       setInfo({ theme: first.theme ?? "", language: first.language ?? "fr" });
       setPhase("pages");
-      if (first.needsProfile) await understandAction(first.siteId);
+      await Promise.all([
+        first.needsProfile ? understandAction(first.siteId) : null,
+        found && linkSearchConsole ? linkSearchConsole(first.siteId).catch(() => false) : null,
+      ]);
       setPhase("done");
-      router.push(siteHref.relecture(first.siteId));
+      // Même mise en page : l'étape 1 se replie et l'étape 2 s'ouvre juste en dessous.
+      router.push(`${siteHref.relecture(first.siteId)}#${stageAnchor(2)}`);
     });
   };
 
@@ -266,6 +311,38 @@ export function UrlForm({
           <p className="text-[13px] text-muted-foreground">
             {t.searchConsole.connectedBy(connected.property, connected.googleEmail)}
           </p>
+        </section>
+      ) : searchConsole && checking ? (
+        <p
+          role="status"
+          data-search-console="checking"
+          className="flex items-center gap-2 text-sm text-muted-foreground"
+        >
+          <Loader2 aria-hidden className="size-4 text-primary motion-safe:animate-spin" />
+          {sc.checking}
+        </p>
+      ) : searchConsole && missing ? (
+        <section
+          aria-labelledby="sc-miss"
+          data-search-console="missing"
+          className="flex flex-col gap-2.5 rounded-[10px] border border-[#f5c27a] bg-[#fff8eb] p-4"
+        >
+          <h2 id="sc-miss" className="font-semibold text-[#8a4b00]">
+            {sc.missTitle}
+          </h2>
+          <p className="text-[14.5px]">{sc.missBody(typed, missing.email)}</p>
+          <div>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              className="h-10 w-full bg-card px-4 sm:w-auto"
+              onClick={(e) => connect(e.currentTarget.form)}
+            >
+              {sc.other}
+            </Button>
+          </div>
+          <p className="text-[13px] text-muted-foreground">{sc.without}</p>
         </section>
       ) : searchConsole ? (
         <section
