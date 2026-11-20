@@ -885,7 +885,8 @@ describe("service : coût annoncé puis lancement", () => {
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     expect(res.preview.plan.intersectionTargets).toEqual(["coloriez.com", "hugolescargot.com"]);
-    expect(res.preview.plan.serp).toHaveLength(10);
+    // 10 requêtes de l'univers + 2 requêtes de contenu du thème (MQ.4, sans Search Console ici).
+    expect(res.preview.plan.serp).toHaveLength(12);
     expect(res.preview.estimate.worstUsd).toBeLessThanOrEqual(0.74 + 1e-9);
     expect(res.preview.remainingUsd).toBe(2);
     expect(log.filter((l) => l.op !== "select")).toEqual([]);

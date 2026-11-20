@@ -24,6 +24,7 @@ export function settingsGroups() {
       title: s.groups.sending,
       links: [
         { href: "/app/reglages/boite", ...s.links.mailbox },
+        { href: "/app/reglages/search-console", ...s.links.searchConsole },
         { href: "/app/reglages/notifications", ...s.links.notifications },
         { href: "/app/garde-fous", ...s.links.safeguards },
       ],

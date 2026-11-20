@@ -54,7 +54,17 @@ export const plannedQuerySchema = z.object({
   /** Coût SERP estimé de cette requête (USD). */
   estUsd: z.number().min(0),
   /** recette en cache, générée à l'instant, secours sans LLM, ou règle fixe. */
-  origin: z.enum(["cache", "llm", "secours", "regle"]),
+  origin: z.enum([
+    "cache",
+    "llm",
+    "secours",
+    "regle",
+    "search_console",
+    // MQ.4 : requêtes de contenu sans lien, une piste propre par origine.
+    "contenu_theme",
+    "contenu_public",
+    "contenu_search_console",
+  ]),
   /** Chantier H : requête GARANTIE d'un type d'éditeur (jamais coupée par l'arrêt de rendement). */
   guaranteed: z.boolean().optional(),
   /** Catégorie générique du type d'éditeur visé (requêtes construites par gabarit). */

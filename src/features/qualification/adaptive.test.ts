@@ -230,6 +230,8 @@ const input = (candidates: QualCandidate[], extra: object = {}) => ({
   budgetUsd: 0.4,
   model: "gpt-4o-mini",
   ...extra,
+  // MQ.3 coupée : ces tests fixent le nombre de pages lues par le tri d'origine.
+  tuning: { prereadEnabled: false, ...(extra as { tuning?: object }).tuning },
 });
 const many = (n: number, source: Parameters<typeof from>[0], prefix: string) =>
   Array.from({ length: n }, (_, i) => cand(`${prefix}-${i}.fr`, { sources: from(source) }));

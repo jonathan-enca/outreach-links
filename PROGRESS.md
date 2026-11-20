@@ -2726,6 +2726,53 @@ pnpm typecheck && pnpm lint
 
 Peut se faire en parallèle de MQ.1 (déjà en PR) : les requêtes Search Console (`links_state.searchConsole.queries`) en sont une source de plus, à côté des requêtes prioritaires de la SERP.
 
+## Session du 19/11 : MQ.4, requêtes de contenu sans lien (SERP), partielle
+
+Sous-jalon `PLAN.md > MQ.4`. Branche `mq.4-requetes-serp` (depuis `main`, après la fusion de MQ.2 en #207). Tests et typecheck verts ; **0 USD d'API** (rien n'est appelé : tout est pur et testé). Aucun envoi d'email. Aucun fichier de la PR #206 (MQ.1) touché.
+
+### Ce qui change
+
+- `src/features/collection/content-queries.ts` (nouveau, pur) : `contentQueries` produit les requêtes de contenu sans lien, avec deux sources :
+  - **thème** (gabarits fixes, sans LLM) : « liste de ressources {thème} », « sites de référence {thème} » (fr ; équivalents en en). Origine `regle`.
+  - **Search Console** : `searchConsoleSeeds` prend au plus 4 requêtes réelles (`audits.links_state.searchConsole.queries`), les plus de clics d'abord, avec au moins 10 impressions, sans requête de marque, sans doublon. Gabarit « liste de ressources {requête} ». Origine `search_console`.
+  - `searchConsoleRowsOf` lit ces lignes dans le JSON de `links_state` ; une ligne abîmée est ignorée, sans erreur.
+  - Toute requête déjà présente dans l'univers est écartée (comparaison normalisée).
+- `src/features/queries/schema.ts` : `origin` accepte désormais `search_console` (ajout seul).
+- `src/features/collection/plan.ts` : `buildCollectionPlan` accepte `contentQueries`. Elles se placent **après** l'univers, sans dépasser le plafond SERP (60), et leurs rangs sont renumérotés. Sans requêtes de contenu, le plan est identique à avant.
+- `src/features/collection/service.ts` : `previewCollection` lit `links_state`, construit les requêtes de contenu et les passe au plan. Le coût annoncé suit automatiquement (même `estimateCost("serpOrganicLive")` que le reste). Le plan est figé à la confirmation, donc la collecte lancée ne change pas.
+- Tests : `content-queries.test.ts` (nouveau, 9 tests) ; `collection.test.ts` : une attente passe de 10 à 12 requêtes SERP (les 2 requêtes de thème s'ajoutent à l'univers de la fixture). Le pire cas reste sous le budget de la phase.
+
+### Décisions prises ici (à valider)
+
+- **Piste propre** : chaque requête garde sa tactique (`ressources`) et son origine (`regle` / `search_console`). C'est ce qui permettra à MQ.1 de mesurer le rendement par source. MQ.1 n'est pas encore fusionnée : le tableau par piste n'existe pas encore.
+- **Coût dans `cost_ledger`** : ces requêtes passent par le même chemin de collecte SERP que les autres (client DataForSEO déjà enregistré), donc rien de nouveau à câbler.
+- **Par public (persona)** : le gabarit « sites de référence {public} » n'est PAS encore fait. Seules les requêtes par thème le sont. À ajouter si le rendement du thème ne suffit pas.
+
+### Ordre des étapes : la recherche attend l'état des lieux (décision de Jonathan, 19/11)
+
+- **Décidé** : l'étape « recherche » attend la fin de `etat_des_lieux` (réussie ou échouée) avant de préparer la collecte, pour que les requêtes Search Console de `links_state` soient toujours prises en compte quand elles existent.
+- **Comment** : `runAnalysis` (`src/features/analysis/orchestrate.ts`) appelle `awaitParallel` juste avant l'étape `recherche`. Dans `src/inngest/functions/analysis-run.ts`, l'attente est une boucle **bornée** : lecture en base de l'état (`linksStateSettled`, `src/features/analysis/links-state-wait.ts`), puis `step.sleep` de 15 s, au plus 24 tours (6 minutes). Chaque tour est un step, donc rejouable. Pas de `waitForEvent` : il aurait pu manquer un événement déjà arrivé.
+- **Au pire** : si l'état des lieux ne finit pas (lancement raté, panne), la recherche part quand même, sans Search Console. Aucune erreur pour la personne. Une ligne d'avertissement est journalisée.
+- **Coût** : aucun appel payant ajouté ; l'attente dure en général le temps de trois appels DataForSEO (moins d'une minute).
+- Le drapeau `SEARCH_CONSOLE_ENABLED` reste faux en production : tant qu'il l'est, la source Search Console est vide.
+- Tests : `analysis.test.ts` (ordre concurrents → attente → recherche ; une attente en échec ne bloque pas), `links-state-wait.test.ts` (fini / en cours / absent).
+
+### Commandes
+
+```bash
+pnpm vitest run src/features/collection src/features/queries
+pnpm typecheck && pnpm lint
+```
+
+### Dettes et pièges
+
+- Les requêtes de contenu se mélangent à l'univers à l'ordre du plan : le **rendement** (`yieldStop`) les traite comme les autres ; à surveiller quand MQ.1 mesurera.
+- Le coût worst-case de la phase SERP augmente de quelques requêtes ; il reste borné par le budget de la phase (`phaseBudgetUsd`).
+
+### Prochain sous-jalon recommandé
+
+MQ.1 (PR #206) en premier, puis MQ.5 (thèmes et sites proposés par Claude, avec vérification). L'attente de `etat_des_lieux` avant la recherche est faite dans cette PR (voir ci-dessus).
+
 ## Session du 19/11 (suite 2) : gabarits d'email Supabase remis à la marque backleenks (faite)
 
 - **Constat** : les gabarits du dépôt (`supabase/email-templates/`) étaient déjà à la marque backleenks, mais les modèles **en ligne** dans Supabase (Authentication > Emails) étaient restés sur « Autolink.ai » (vu sur le mail d'inscription reçu). Cause : le dépôt n'est pas relié au projet ; la mise en ligne est manuelle ou se fait par l'API de gestion.
@@ -2780,3 +2827,134 @@ Sous-jalon `PLAN.md > MQ.5`. Branche `mq.5-sites-proposes`. Aucun envoi d'email.
 - Mesurer le coût réel d'un appel et recaler `reservedUsd`.
 
 ### Prochain sous-jalon recommandé : MQ.4 (requêtes de contenu sans lien, SERP), puis MQ.3 après un premier lot de réponses.
+
+### Reprise et vérification (19/11, après MQ.1 et MQ.5 fusionnées)
+
+- Branche mise à jour sur `main` (fusion sans conflit). Typecheck vert ; `pnpm vitest run src/features/collection src/features/queries src/features/analysis src/features/targets` : 278 verts ; format:check vert ; lint : 0 erreur.
+- **Écart à traiter (non fait ici)** : les requêtes de contenu gardent leur tactique `ressources`, donc `pisteFromTactics` les range dans la piste « citation » et non dans une piste propre « requête de contenu ». Pour un rendement séparé, il faut une piste dédiée : ajouter la valeur à `PISTES` et au `check` SQL de `qualified_targets.piste` (migration additive), puis propager l'origine (`regle` / `search_console`).
+- **Écart à traiter** : le gabarit par public (« sites de référence {public} ») n'est pas fait.
+- **Non vérifiable ici** : le rendement réel par piste dépend d'envois réels (aucun envoi en développement).
+
+## Session du 19/11 (suite 4) : MQ.4, piste propre et public (faite, sans envoi)
+
+Sous-jalon `PLAN.md > MQ.4`. Branche `mq.4-requetes-contenu` (depuis `main` à jour : MQ.1, MQ.5 et MQ.4 fusionnées). **0 USD d'API** dans cette session : rien n'est appelé, tout est testé en pur. Aucun envoi.
+
+### Ce qui change dans le code
+
+- **Piste propre** : nouvelle source de candidat `requete_contenu` (`src/features/collection/types.ts`), placée dans `PISTES` juste après `content`, avant `serp` (`src/features/targets/tracking.ts`, libellé « Requête de contenu sans lien »). `fromSerp` (`normalize.ts`) la donne à tout résultat d'une requête dont l'origine commence par `contenu_`. Avant, ces résultats tombaient dans `serp` : le rendement de la piste ne se mesurait pas à part.
+- **Origines des requêtes** (`src/features/queries/schema.ts`, ajout seul) : `contenu_theme`, `contenu_public`, `contenu_search_console`. Remplacent `regle` / `search_console` pour les requêtes de contenu.
+- **Gabarit par public** (`content-queries.ts`) : « sites de référence {public} {thème} » (fr) / « reference sites {public} {thème} » (en), une requête par public de l'audience du profil (`profile.audience`), au plus `CONTENT_QUERY_LIMITS.maxPublics` = 3, dédoublonnés, sans public vide. Aucune requête sans thème.
+- `src/features/collection/service.ts` passe `profile.audience` à `contentQueries`.
+- **Migration** `supabase/migrations/2026121900000200_piste_requete_contenu.sql` (additive) : la contrainte `qualified_targets_piste_check` accepte `requete_contenu`. Aucune ligne modifiée.
+- Tests : `content-queries.test.ts` (origines renommées ; 4 tests de public ; 3 tests de piste : la source, la priorité dans `pisteOf`, le cas ordinaire inchangé).
+
+### Coût et plafond
+
+- **Par requête, dans `cost_ledger`** : chaque requête SERP passe par le client DataForSEO, qui journalise chaque appel payant (`src/lib/dataforseo/client.ts`, « tout appel payant est journalisé »). Rien de nouveau à câbler.
+- **Plafond** : au plus 2 requêtes de thème + 3 de public + 4 de Search Console = **9 requêtes de contenu**, puis le plafond SERP de la collecte (`COLLECTION_LIMITS.serp.maxQueries`) et le budget de phase. Le coût annoncé suit (même `estimateCost("serpOrganicLive")`).
+
+### Rendement par piste
+
+- Le tableau interne (MQ.1, `src/features/targets/tracking.ts`) groupe déjà par piste : la piste `requete_contenu` y apparaît sans code en plus. Le **rendement réel** (réponses, liens) ne se mesure qu'après des envois réels ; il n'y en a pas en développement.
+
+### Vérifications
+
+- `pnpm vitest run src/features/collection src/features/targets src/features/queries src/features/qualification src/features/snowball src/features/analysis` : 402 verts.
+- `pnpm typecheck` vert ; `pnpm lint` : 0 erreur (9 avertissements déjà présents) ; `pnpm format:check` vert.
+
+### Décisions [auto]
+
+- Les requêtes de contenu ont leur propre file de lecture (`laneOf` renvoie `requete_contenu`, car la source est distincte) : elles ne passent plus par le tour de rôle des publics de la file `serp`. Leur rendement est donc lu à part.
+- `resources.ts` (domaines comparables du thème) ne compte plus les résultats de requêtes de contenu, qui filtrent sur `source === "serp"`. C'est voulu : ces résultats ne décrivent pas les ressources du thème.
+
+### Dettes et pièges
+
+- La migration doit être appliquée à la base avant la fusion du code qui écrit `requete_contenu`, sinon l'insertion échoue sur la contrainte. Ordre : migration, puis code (ou les deux en même temps dans le déploiement).
+- `database.types.ts` n'a pas changé (la colonne est `text`).
+- Coût réel par requête de contenu non mesuré (pas d'appel réel dans cette session).
+
+### Backlog (hors périmètre)
+
+- Plafonner les requêtes de public par audience (aujourd'hui 3, sans rapport au rendement).
+- Mesurer le rendement de chaque piste sur des envois réels (MQ.7).
+
+### Prochain sous-jalon recommandé : MQ.3 (premier passage, lire avant de trier) après un premier lot de réponses ; MQ.6 après MQ.1.
+
+## Session du 19/11 (suite 5) : MQ.3, lecture gratuite avant le tri (faite, poids non recalés)
+
+Sous-jalon `PLAN.md > MQ.3`. Branche `mq.3-lire-avant-trier` (depuis `main` à jour, MQ.1 / MQ.4 / MQ.5 fusionnées). **0 USD d'API** : la lecture est HTTP seul, sans LLM. Aucun envoi.
+
+### Ce qui change dans le code
+
+- **Avant le tri** (`src/features/qualification/funnel.ts`, étape `preread`) : les 150 meilleurs candidats (score provisoire, `QUALIFY_LIMITS.preread.maxCandidates`) sont lus une fois avec le lecteur sûr (robots.txt, délai par hôte, même file que la lecture). Le score provisoire est ensuite recalé, puis les files de lecture sont construites.
+- **Signaux** (`src/features/qualification/prescore.ts`, `prereadBoost`) : page morte / injoignable / robots : × 0,5 ; page vivante écartée par la lecture : × 0,6 ; au moins deux sites cités sur la page : × 1,2 ; ressource comparable citée sur la page : × 1,25. **Aucun candidat n'est écarté** à cette étape ; l'étage 3 et le LLM décident comme avant.
+- **Coupure** : `QUALIFY_LIMITS.preread.enabled` (true par défaut) ou `tuning.prereadEnabled: false`.
+- Tests : `prescore.test.ts` (6 tests). Les tests existants de la lecture adaptative, des ressources et de l'entonnoir (`adaptive`, `resources`, `qualification`) fixent le nombre de pages lues du tri d'origine : ils tournent avec `prereadEnabled: false`, pour que leurs compteurs gardent leur sens. Un test dédié à la lecture avant tri reste à écrire.
+
+### Pas fait : le recalage
+
+- **Les coefficients ne sont pas recalés.** Il n'y a encore ni envoi ni réponse en base (0 envoi, 0 réponse, 0 lien, vérifié le 19/11). Ils sont des hypothèses, à recaler sur les premières réponses réelles de MQ.1.
+- **Critère « deux sites de thèmes différents »** : non mesuré. Il demande des essais en direct, à lancer par Jonathan.
+
+### Migrations (vérifiées et appliquées le 19/11)
+
+- Le projet `outreach-links` (`ivjkwhhgtibewqzccvrj`) n'avait pas les migrations `2026121900000000_target_piste`, `2026121900000100_search_console` ni `2026121900000200_piste_requete_contenu`. Elles ont été appliquées dans cet ordre (succès). Vérifié : `qualified_targets` a `piste` et `niveau`, 759 cibles, aucune sans piste.
+
+### Commandes
+
+```bash
+pnpm vitest run src/features/qualification
+pnpm typecheck && pnpm lint
+```
+
+### Dettes et pièges
+
+- **Lecture en double** : chaque candidat lu avant le tri est relu par la lecture normale (même page, deux requêtes HTTP). Coût : gratuit, mais le temps de lecture augmente d'environ 150 pages. À supprimer en réutilisant le résultat de lecture.
+- Le signal est calculé sur la page d'origine du candidat, pas sur l'accueil du site (pas de secours d'accueil dans l'étape préalable).
+- Les poids sont visibles dans `QUALIFY_LIMITS.preread.weights` : à recaler, pas à modifier à la main sans mesure.
+
+### Prochain
+
+Essais en direct sur deux sites de thèmes différents (Jonathan lance), puis recalage des coefficients sur les premières réponses réelles (MQ.1).
+
+## Session du 19/11 (suite 6) : MQ.6, boule de neige en profondeur (faite, derrière un interrupteur coupé)
+
+Sous-jalon `PLAN.md > MQ.6`. Branche `mq.6-boule-de-neige` (depuis `main`, MQ.3 fusionnée en #212). **0 USD d'API** : rien n'est appelé. Aucun envoi.
+
+### Prérequis vérifiés (19/11, sur la vraie base `ivjkwhhgtibewqzccvrj`)
+
+- MQ.1 fusionnée dans `main` (98bc296) ; migrations `target_piste`, `search_console` et `piste_requete_contenu` appliquées (liste des migrations lue).
+- **Aucune réponse réelle** : `inbound_messages` = 0, `sent_messages` = 0, `reply_classifications` = 0, `links` = 0. Donc rien n'est amplifié.
+
+### Ce qui change dans le code
+
+- `src/features/snowball/deep.ts` (pur) : interrupteur `SNOWBALL_DEEP_ENABLED` (faux par défaut, seul `"true"` l'allume), `DEEP_LIMITS` (niveau max 3, relecture de 20 cibles, rendement minimum 0,25 [HYPOTHÈSE], plafond d'un niveau 0,25 USD), `deepGate` (ordre : interrupteur, réponses réelles, niveau précédent lancé, rendement relu, coût), `reviewSample` (échantillon réparti et déterministe), `yieldOf` (part des cibles jugées bonnes).
+- `src/features/snowball/service.ts` : `loadSeedSources` filtre par niveau (optionnel) ; `persistSnowball` écrit le niveau voulu et range les stats profondes dans `qualification_runs.stats.snowball_levels` ; `runDeepSnowballForAudit` s'arrête **avant toute requête** si l'interrupteur est coupé ; `recordLevelReview` enregistre la relecture dans `stats.snowball_reviews`, qui autorise le niveau suivant.
+- Le niveau 1 (MC.6d) ne change pas : même chemin, même clé `snowball`.
+- Tests : `src/features/snowball/deep.test.ts` (interrupteur, chaque blocage du garde, plage de niveaux, échantillon, rendement, et l'appel désactivé qui échoue si la base ou DataForSEO est touché). `pnpm vitest run src/features/snowball` : 24 tests verts.
+
+### Ce qui n'est pas fait (volontairement)
+
+- **Pas branché à un job Inngest.** `audit-qualify-auto-start` n'appelle toujours que le niveau 1. Le niveau 2 suppose que les pages du niveau 1 soient lues, ce qui arrive dans les lots suivants ; le branchement viendra avec MQ.7.
+- **Pas de mesure réelle** : le rendement par niveau demande une relecture à la main de 20 cibles, et il n'y a aucune réponse à mesurer. Le critère « deux sites de thèmes différents » reste à faire par Jonathan.
+- Pas d'écran ni de commande pour saisir la relecture : `recordLevelReview` existe, son appelant (commande ou écran) n'est pas écrit.
+
+### Décisions [auto]
+
+- Le seuil de rendement (0,25) et le plafond par niveau (0,25 USD, soit le coût pire cas d'un niveau à 6 ressources) sont des hypothèses, à recaler sur MQ.7.
+- Un niveau profond ne réutilise pas `snowball` : `snowball_levels[niveau]` évite d'écraser le niveau 1.
+
+### Vérifications
+
+- `pnpm vitest run src/features/snowball` : 24 tests verts.
+- `pnpm typecheck` : vert. `pnpm lint` : 0 erreur, aucun avertissement dans les fichiers de la boule de neige.
+- `prettier --check` : vert sur les fichiers touchés.
+
+### Commandes
+
+```bash
+pnpm vitest run src/features/snowball
+pnpm typecheck && pnpm lint
+```
+
+### Prochain sous-jalon recommandé : MQ.7 (pilote mesuré) après les premières réponses réelles ; avant, les essais en direct de MQ.3 sur deux sites de thèmes différents (Jonathan lance).

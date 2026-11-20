@@ -519,6 +519,8 @@ Ordre : **MQ.1 d'abord** (sans elle, rien n'est mesurable). MQ.2, MQ.4 et MQ.5 p
 
 ### MQ.6 Boule de neige en profondeur (après MQ.1)
 
+**MQ.6 fait (19/11/2026) : code seulement, derrière `SNOWBALL_DEEP_ENABLED` (coupé) et sans réponse réelle en base. Rien n'est lancé ; le branchement et la mesure viennent avec MQ.7.** Détail dans `PROGRESS.md`.
+
 - Deux ou trois niveaux : niveau 1 = sites cités par les cibles retenues ; niveau 2 = sites cités par les cibles du niveau 1 ; etc.
 - Rendement mesuré à chaque niveau sur un échantillon relu à la main (20 cibles par niveau) ; on continue tant que le rendement tient.
 - Coût annoncé par niveau (environ 0,2 USD) et plafonné.

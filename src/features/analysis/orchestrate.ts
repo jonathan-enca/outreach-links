@@ -47,6 +47,11 @@ export interface Orchestration {
   begin(auditId: string): Promise<AnalysisRun | null>;
   /** Lance l'état des lieux en parallèle. Ne doit jamais faire échouer l'analyse. */
   launchParallel(run: AnalysisRun): Promise<void>;
+  /**
+   * Attend la fin de l'état des lieux avant la recherche (MQ.4 : ses requêtes Search Console y entrent).
+   * Bornée : au pire on continue sans. Ne doit jamais faire échouer l'analyse.
+   */
+  awaitParallel?(run: AnalysisRun): Promise<void>;
   stages: readonly Stage[];
   progressFor(run: AnalysisRun): ProgressSink;
   finalize(run: AnalysisRun): Promise<AnalysisSummary>;
@@ -86,6 +91,13 @@ export async function runAnalysis(
   const progress = o.progressFor(run);
   const stages: Record<string, string> = {};
   for (const stage of o.stages) {
+    if (stage.key === "recherche" && o.awaitParallel) {
+      try {
+        await o.awaitParallel(run);
+      } catch {
+        // Pas d'état des lieux à temps : la recherche part sans ses requêtes Search Console.
+      }
+    }
     const res = await stage.run(run, { runStep, progress });
     stages[stage.key] = res.status;
     if (res.status === "arret") {

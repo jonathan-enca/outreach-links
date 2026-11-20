@@ -42,6 +42,9 @@ const FREE_HOSTING_FARMS = ["web.app", "firebaseapp.com", "pages.dev"];
 const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
 const nb = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
+/** Requête de contenu sans lien (MQ.4) : sa piste propre, `requete_contenu`. */
+export const isContentQuery = (q: Pick<PlannedQuery, "origin">) => q.origin.startsWith("contenu_");
+
 /** Candidats d'une SERP : un par résultat organique accepté. */
 export function fromSerp(
   query: PlannedQuery,
@@ -56,7 +59,12 @@ export function fromSerp(
       domain,
       url: e.url,
       title: e.title,
-      source: query.tactic === "mentions" ? "mention" : "serp",
+      source:
+        query.tactic === "mentions"
+          ? "mention"
+          : isContentQuery(query)
+            ? "requete_contenu"
+            : "serp",
       tactic: query.tactic,
       query: query.q,
       persona: query.persona,

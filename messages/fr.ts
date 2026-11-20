@@ -2554,6 +2554,7 @@ export const fr = {
   shell: {
     nav: {
       home: "Accueil",
+      searchConsole: "Search Console",
       campaigns: "Campagnes",
       toValidate: "À valider",
       conversations: "Conversations",
@@ -2598,6 +2599,11 @@ export const fr = {
       steps: {
         title: "Vos premiers liens",
         progress: (done: number, total: number) => `${done} sur ${total} faits`,
+        searchConsole: "Connectez la Search Console",
+        searchConsoleDone: "Search Console connectée",
+        searchConsoleHint:
+          "Facultatif, fortement conseillé : vos vraies requêtes et pages orientent les cibles. Lecture seule.",
+        optional: "Facultatif",
         campaign: "Créez votre première campagne",
         campaignDone: "Campagne créée",
         campaignHint: "Nous analysons votre site et trouvons les sites à contacter.",
@@ -2607,10 +2613,11 @@ export const fr = {
         mailbox: "Connectez votre boîte d'envoi",
         mailboxDone: "Boîte d'envoi connectée",
         mailboxHint: "Les messages partent de votre adresse, à un rythme régulier.",
-        send: "Envoyez votre premier lot",
-        sendDone: "Premier lot envoyé",
+        send: "Envoyer des emails",
+        sendDone: "Premiers emails envoyés",
         sendHint: "Vous relisez chaque message avant qu'il parte.",
         go: {
+          searchConsole: "Connecter",
           campaign: "Commencer",
           validate: "Voir les cibles",
           mailbox: "Connecter",
@@ -2653,6 +2660,7 @@ export const fr = {
           label: "Boîte d'envoi",
           hint: "Connecter votre boîte, jours et heures d'envoi",
         },
+        searchConsole: { label: "Search Console", hint: "Connecter ou déconnecter vos sites" },
         messages: { label: "Vos messages", hint: "Qui écrit, signature, contreparties" },
         notifications: { label: "Notifications", hint: "Ce que vous recevez par email" },
         safeguards: { label: "Garde-fous d'envoi", hint: "Plafonds, pause, niveau d'autonomie" },
@@ -2701,6 +2709,19 @@ export const fr = {
     conversations: "Voir les conversations",
   },
   settings: {
+    searchConsole: {
+      title: "Search Console",
+      description:
+        "Les requêtes et pages réelles de chaque site, pour orienter les cibles. Facultatif, lecture seule : une connexion par site.",
+      noSite: "Ajoutez d'abord un site pour connecter sa Search Console.",
+      unavailable: "La connexion Search Console n'est pas disponible pour le moment.",
+      connected: (property: string, email: string) => `Propriété ${property}, compte ${email}.`,
+      notConnected:
+        "Pas connectée. L'analyse fonctionne sans, à partir du site et des concurrents.",
+      connect: "Connecter",
+      reconnect: "Changer de compte",
+      disconnect: "Déconnecter",
+    },
     eyebrow: "Réglages",
     messages: {
       unauthenticated: "Connectez-vous pour continuer.",

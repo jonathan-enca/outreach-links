@@ -10,6 +10,10 @@ import { searchConsoleEnabled } from "@/features/search-console/load";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 
+/** Retour de la Search Console : son onglet des réglages (une seule page pour connecter ou déconnecter). */
+const backSc = (result: string) =>
+  new URL(`/app/reglages/search-console?sc=${result}`, env.NEXT_PUBLIC_APP_URL);
+
 const back = (siteId: string | null, result: string, param = "google", anchor = "boite-envoi") => {
   const path = siteId ? `/app/site/${siteId}` : "/app/reglages/boite";
   return new URL(`${path}?${param}=${result}#${anchor}`, env.NEXT_PUBLIC_APP_URL);
@@ -34,7 +38,11 @@ export async function GET(req: NextRequest) {
   const anchor = searchConsole ? "search-console" : "boite-envoi";
   const param = searchConsole ? "sc" : "google";
   if (req.nextUrl.searchParams.get("error") || !code) {
-    return clear(NextResponse.redirect(back(state.siteId, "refuse", param, anchor)));
+    return clear(
+      NextResponse.redirect(
+        searchConsole ? backSc("refuse") : back(state.siteId, "refuse", param, anchor),
+      ),
+    );
   }
   if (searchConsole) {
     if (!searchConsoleEnabled()) return new NextResponse("Not found", { status: 404 });
@@ -45,7 +53,7 @@ export async function GET(req: NextRequest) {
       getServiceClient: createServiceClient,
     });
     const key = result.ok ? "ok" : result.reason;
-    return clear(NextResponse.redirect(back(state.siteId, key, param, anchor)));
+    return clear(NextResponse.redirect(backSc(key)));
   }
   const supabase = await createClient();
   const result = await completeGoogleConnect(supabase, state, code, {
