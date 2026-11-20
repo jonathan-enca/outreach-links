@@ -580,6 +580,37 @@ export function TargetRow({
   );
 }
 
+/** Case maîtresse de l'en-tête : cochée, à moitié cochée (indeterminate) ou vide. */
+function MasterCheck({
+  checked,
+  indeterminate,
+  disabled,
+  label,
+  onToggle,
+}: {
+  checked: boolean;
+  indeterminate: boolean;
+  disabled: boolean;
+  label: string;
+  onToggle: () => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = indeterminate;
+  }, [indeterminate]);
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      checked={checked}
+      disabled={disabled}
+      onChange={onToggle}
+      aria-label={label}
+      className="size-4 accent-primary disabled:opacity-50"
+    />
+  );
+}
+
 /** Le tableau des cibles : en-têtes de colonnes sur écran large seulement, cartes sur téléphone. */
 export function TargetsTable({
   cards,
@@ -587,6 +618,7 @@ export function TargetsTable({
   selected,
   fresh = NONE,
   pageAction = false,
+  master,
   onOpen,
   onToggle,
 }: {
@@ -597,16 +629,22 @@ export function TargetsTable({
   fresh?: ReadonlySet<string>;
   /** Sites sans contact : pas de case, bouton « Ouvrir la page » à la place du contact. */
   pageAction?: boolean;
+  /** Case maîtresse avant le #, qui agit sur les sites affichés. */
+  master?: { checked: boolean; indeterminate: boolean; disabled: boolean; onToggle: () => void };
   onOpen: (id: string) => void;
   onToggle: (id: string) => void;
 }) {
   return (
     <Card className="overflow-hidden p-0" data-testid="targets-table">
       <div
-        aria-hidden="true"
+        aria-hidden={master ? undefined : true}
         className={`hidden gap-x-3 border-b border-border bg-muted px-4 py-2 text-xs font-semibold text-muted-foreground xl:grid ${pageAction ? COLS_PAGE : COLS}`}
       >
-        {pageAction ? null : <span />}
+        {pageAction ? null : master ? (
+          <MasterCheck {...master} label={M.list.masterLabel} />
+        ) : (
+          <span />
+        )}
         <span>#</span>
         <span>{TB.site}</span>
         <span>{TB.why}</span>
@@ -917,10 +955,10 @@ export function TargetsScreen({
     setRevealed(new Set(hiddenCards.map((x) => x.id)));
     setSelected((prev) => new Set([...prev, ...eligibleIds(hiddenCards)]));
   };
-  // La première cible est ouverte d'emblée : on voit tout de suite le niveau de détail disponible.
-  const [open, setOpen] = useState<Set<string>>(
-    () => new Set(view.cards[0] ? [view.cards[0].id] : []),
-  );
+  // Toutes les lignes sont repliées à l'ouverture : chaque cible s'ouvre au clic.
+  const [open, setOpen] = useState<Set<string>>(() => new Set());
+  /** Onglets : cibles à contacter (par défaut) ou déjà validées (sorties de la liste principale). */
+  const [tab, setTab] = useState<"contacter" | "validees">("contacter");
   const toggleOpen = (id: string) =>
     setOpen((prev) => {
       const next = new Set(prev);
@@ -944,24 +982,28 @@ export function TargetsScreen({
       setVState(await actions.validate(chosen));
       setAskSettings(false);
     });
-  const counts = useMemo(() => countByTactic(cards), [cards]);
+  // Les cibles déjà validées sortent de la liste à contacter : elles ont leur onglet.
+  const pending = useMemo(() => cards.filter((x) => !x.alreadyValidated), [cards]);
+  const validatedCards = useMemo(() => cards.filter((x) => x.alreadyValidated), [cards]);
+  const base = tab === "validees" ? validatedCards : pending;
+  const counts = useMemo(() => countByTactic(base), [base]);
   const types = view.publisherTypes;
   const tabs = useMemo(
     () =>
       publisherTabs(
-        cards.map((c) => c.publisher ?? null),
+        base.map((c) => c.publisher ?? null),
         types,
       ),
-    [cards, types],
+    [base, types],
   );
   const shown = useMemo(() => {
-    const byTactic = filterCards(cards, filter).filter((x) => !onlyNew || fresh.has(x.id));
+    const byTactic = filterCards(base, filter).filter((x) => !onlyNew || fresh.has(x.id));
     if (publisher === undefined) return byTactic;
     const known = new Set(types.map((x) => x.label));
     return byTactic.filter((c) =>
       publisher === null ? !c.publisher || !known.has(c.publisher) : c.publisher === publisher,
     );
-  }, [cards, filter, publisher, types, onlyNew, fresh]);
+  }, [base, filter, publisher, types, onlyNew, fresh]);
   const q = view.qualification;
   const f = view.findings;
   const chosen = [...selected].filter((id) => cards.some((c) => c.id === id && isEligible(c)));
@@ -971,8 +1013,19 @@ export function TargetsScreen({
       if (!next.delete(id)) next.add(id);
       return next;
     });
-  const eligibleCount = useMemo(() => eligibleIds(cards).length, [cards]);
-  const validatedCount = cards.filter((x) => x.alreadyValidated).length;
+  // Compteurs de la sélection : ils suivent les filtres (demande, type de site, onglet) affichés.
+  const shownEligible = eligibleIds(shown);
+  const shownSelected = shownEligible.filter((id) => selected.has(id));
+  const allShownSelected =
+    shownEligible.length > 0 && shownSelected.length === shownEligible.length;
+  const selectShown = () => setSelected((prev) => new Set([...prev, ...shownEligible]));
+  const clearShown = () =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const id of shownEligible) next.delete(id);
+      return next;
+    });
+  const validatedCount = validatedCards.length;
   // Sans contact : les mentions sans lien prouvées d'abord, puis les autres sites pertinents.
   const lost = useMemo(
     () => [...view.contactless, ...view.noContact],
@@ -1083,9 +1136,9 @@ export function TargetsScreen({
 
       <section className="flex flex-col gap-4" aria-labelledby="short-list">
         <h2 id="short-list" className="font-display text-2xl font-semibold">
-          {cards.length > 0 ? M.list.heading(cards.length) : M.list.title}
+          {pending.length > 0 ? M.list.heading(pending.length) : M.list.title}
         </h2>
-        {cards.length > 0 ? <p className="text-muted-foreground">{M.list.lead}</p> : null}
+        {pending.length > 0 ? <p className="text-muted-foreground">{M.list.lead}</p> : null}
         {view.funnel ? (
           <LiveBanner view={{ ...view, cards }} hidden={hiddenCards.length} onReveal={reveal} />
         ) : null}
@@ -1093,6 +1146,29 @@ export function TargetsScreen({
           <Card className="p-6 text-muted-foreground">{M.list.empty}</Card>
         ) : (
           <>
+            <div role="tablist" aria-label={M.list.tabsLabel} className={CHIPS}>
+              {(["contacter", "validees"] as const).map((k) => (
+                <Button
+                  key={k}
+                  type="button"
+                  role="tab"
+                  size="sm"
+                  className="shrink-0"
+                  variant={tab === k ? "default" : "outline"}
+                  aria-selected={tab === k}
+                  onClick={() => {
+                    setTab(k);
+                    setPublisher(undefined);
+                    setFilter("toutes");
+                    setOnlyNew(false);
+                  }}
+                >
+                  {k === "contacter"
+                    ? M.list.tabs.contacter(pending.length)
+                    : M.list.tabs.validees(validatedCards.length)}
+                </Button>
+              ))}
+            </div>
             <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:gap-4">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground xl:w-28 xl:shrink-0 xl:pt-2">
                 {M.filters.rowTitle}
@@ -1149,7 +1225,7 @@ export function TargetsScreen({
                     aria-pressed={publisher === undefined}
                     onClick={() => setPublisher(undefined)}
                   >
-                    {M.publishers.all} ({cards.length})
+                    {M.publishers.all} ({base.length})
                   </Button>
                   {tabs
                     .filter((tab) => tab.count > 0)
@@ -1170,49 +1246,54 @@ export function TargetsScreen({
               </div>
             ) : null}
             {/* Choisir (compteur et deux boutons) est séparé de l'action principale, qui vit dans la barre. */}
+            {/* Boutons à gauche ; le compteur suit les filtres affichés. Ne touche que les sites affichés. */}
             <div
               className="flex flex-wrap items-center gap-x-3 gap-y-2"
               data-testid="selection-tools"
             >
-              <p className="w-full sm:mr-auto sm:w-auto">
-                <strong>{M.list.selected(chosen.length)}</strong>{" "}
-                <span className="text-muted-foreground">{M.list.selectedOf(eligibleCount)}</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-10 flex-1 sm:h-9 sm:flex-none"
+                disabled={shownEligible.length === 0}
+                onClick={selectShown}
+              >
+                {M.list.selectAll(shownEligible.length)}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-10 flex-1 sm:h-9 sm:flex-none"
+                disabled={shownSelected.length === 0}
+                onClick={clearShown}
+              >
+                {M.list.selectNone(shownSelected.length)}
+              </Button>
+              <p className="w-full sm:ml-auto sm:w-auto">
+                <strong>{M.list.selected(shownSelected.length)}</strong>{" "}
+                <span className="text-muted-foreground">
+                  {M.list.selectedOf(shownEligible.length)}
+                </span>
               </p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-10 flex-1 sm:h-9 sm:flex-none"
-                // Ne touche que les sites affichés (filtre et onglet), jamais toute la liste.
-                onClick={() => setSelected((prev) => new Set([...prev, ...eligibleIds(shown)]))}
-              >
-                {M.list.selectAll(eligibleIds(shown).length)}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-10 flex-1 sm:h-9 sm:flex-none"
-                onClick={() =>
-                  setSelected((prev) => {
-                    const next = new Set(prev);
-                    for (const c of shown) next.delete(c.id);
-                    return next;
-                  })
-                }
-              >
-                {M.list.selectNone(shown.length)}
-              </Button>
             </div>
             {shown.length === 0 ? (
               <p className="text-muted-foreground">
-                {publisher !== undefined && publisher !== null
-                  ? M.publishers.emptyTab
-                  : filter === "mentions"
-                    ? view.collection.skipped.mentions
-                      ? M.list.mentionsSkipped.replace("{reason}", view.collection.skipped.mentions)
-                      : M.list.tacticNone
-                    : M.list.emptyFiltered}
+                {tab === "validees"
+                  ? M.list.validatedEmpty
+                  : pending.length === 0
+                    ? M.list.allValidated
+                    : publisher !== undefined && publisher !== null
+                      ? M.publishers.emptyTab
+                      : filter === "mentions"
+                        ? view.collection.skipped.mentions
+                          ? M.list.mentionsSkipped.replace(
+                              "{reason}",
+                              view.collection.skipped.mentions,
+                            )
+                          : M.list.tacticNone
+                        : M.list.emptyFiltered}
               </p>
             ) : (
               <TargetsTable
@@ -1220,6 +1301,12 @@ export function TargetsScreen({
                 open={open}
                 selected={selected}
                 fresh={fresh}
+                master={{
+                  checked: allShownSelected,
+                  indeterminate: shownSelected.length > 0 && !allShownSelected,
+                  disabled: shownEligible.length === 0,
+                  onToggle: allShownSelected ? clearShown : selectShown,
+                }}
                 onOpen={toggleOpen}
                 onToggle={toggle}
               />

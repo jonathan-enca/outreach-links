@@ -1691,8 +1691,17 @@ export const fr = {
       mentionsSkipped: "Cette recherche n'a pas été lancée : {reason}.",
       deadPagesSkipped:
         "Les pages disparues de {n} concurrent(s) n'ont pas été cherchées (site trop gros ou d'une autre langue) : {names}.",
-      selectAll: (n: number) => `Tout cocher (${n})`,
-      selectNone: (n: number) => `Tout décocher (${n})`,
+      selectAll: (n: number) => `Tout sélectionner (${n})`,
+      selectNone: (n: number) => `Tout désélectionner (${n})`,
+      masterLabel: "Sélectionner tous les sites affichés",
+      tabsLabel: "Cibles à contacter ou déjà validées",
+      tabs: {
+        contacter: (n: number) => `À contacter (${n})`,
+        validees: (n: number) => `Déjà validées (${n})`,
+      },
+      validatedEmpty: "Aucune cible déjà validée pour l'instant.",
+      allValidated:
+        "Toutes les cibles ont déjà été validées : retrouvez-les dans « Déjà validées ».",
       selected: (n: number) => `${n} ${n > 1 ? "sites retenus" : "site retenu"}`,
       selectedOf: (total: number) => `sur ${total}`,
     },
