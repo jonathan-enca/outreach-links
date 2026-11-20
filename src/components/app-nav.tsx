@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
   Bell,
@@ -19,6 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { inSettings, SETTINGS_HOME } from "@/features/shell/settings-links";
+import { pathForSite, siteInPath } from "@/features/shell/site-path";
 import { t } from "@/lib/messages";
 import { cn } from "@/lib/utils";
 
@@ -97,9 +98,33 @@ export function AppNav({
       document.removeEventListener("keydown", close);
     };
   }, [siteMenu]);
+  // Un seul site actif : ouvrir la page d'une campagne (lien de Campagnes, de l'accueil, adresse tapée)
+  // choisit son site dans le menu, pour que compteurs, « À approuver » et « Emails » le suivent.
+  // On n'agit que quand le site de l'adresse change, pas à chaque changement du menu.
+  const router = useRouter();
+  const handled = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    const id = siteInPath(pathname);
+    if (id === handled.current) return;
+    handled.current = id;
+    if (id && id !== currentSite && selectSite && sites.some((s) => s.id === id)) {
+      startSwitch(() => selectSite(id));
+    }
+  }, [pathname, currentSite, selectSite, sites]);
   function pick(choice: string) {
     setSiteMenu(false);
-    if (choice !== currentSite && selectSite) startSwitch(() => selectSite(choice));
+    if (choice === currentSite || !selectSite) return;
+    // Sur la page d'une campagne, l'adresse porte le site : on va à la même page de l'autre site
+    // (l'effet ci-dessus retient alors le choix), ou à la liste des campagnes pour « tous les sites ».
+    const target = pathForSite(pathname, choice);
+    if (target && choice !== "all") {
+      router.push(target);
+      return;
+    }
+    startSwitch(async () => {
+      await selectSite(choice);
+      if (target) router.push(target);
+    });
   }
   const starts = (p: string) => pathname === p || pathname.startsWith(`${p}/`);
 
