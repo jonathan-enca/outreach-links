@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/messages";
+import { sortedByLabel } from "./market";
 import type { SiteFormState } from "./service";
 
 export interface SiteFormDefaults {
@@ -113,7 +114,7 @@ export function SiteForm({
             defaultValue={defaults.country}
             className={inputClass}
           >
-            {Object.entries(t.sites.countries).map(([code, label]) => (
+            {sortedByLabel(t.sites.countries).map(({ code, label }) => (
               <option key={code} value={code}>
                 {label}
               </option>
@@ -127,7 +128,7 @@ export function SiteForm({
             defaultValue={defaults.language}
             className={inputClass}
           >
-            {Object.entries(t.sites.languages).map(([code, label]) => (
+            {sortedByLabel(t.sites.languages).map(({ code, label }) => (
               <option key={code} value={code}>
                 {label}
               </option>
