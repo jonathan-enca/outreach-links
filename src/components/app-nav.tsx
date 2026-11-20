@@ -124,24 +124,30 @@ export function AppNav({
             starts("/app/campagnes") ||
             starts("/app/demarrer") ||
             starts("/app/audit") ||
-            /\/(cibles|analyse|etat-des-lieux)$/.test(pathname),
+            /\/(analyse|etat-des-lieux)$/.test(pathname),
           mobile: true,
         },
         {
+          // Même page que l'étape « Vos cibles » de la campagne choisie (sans choix : /app/cibles y renvoie).
           key: "cibles",
-          href: "/app/cibles",
-          label: n.toValidate,
+          href: currentSite === "all" ? "/app/cibles" : `/app/site/${currentSite}/cibles`,
+          label: "Cibles",
           icon: CheckSquare,
-          active: starts("/app/cibles") || starts("/app/a-valider") || starts("/app/taches"),
+          active:
+            starts("/app/cibles") ||
+            starts("/app/a-valider") ||
+            starts("/app/taches") ||
+            /\/cibles$/.test(pathname),
           count: counts.toValidate,
           mobile: true,
         },
       ],
     },
     {
-      title: "Envoi",
+      title: "Messagerie",
       items: [
         {
+          // Les messages à approuver ne sont pas encore sur la page « Vos cibles » : on garde l'accès.
           key: "a-valider",
           href: "/app/a-valider",
           label: "À valider",
@@ -153,7 +159,7 @@ export function AppNav({
         {
           key: "envois",
           href: "/app/envois",
-          label: "Envois",
+          label: "Mails envoyés",
           icon: Send,
           active: starts("/app/envois"),
           mobile: true,
