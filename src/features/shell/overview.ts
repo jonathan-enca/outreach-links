@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { loadQueue } from "@/features/approvals/service";
+import { loadQueueOnce } from "@/features/approvals/service";
 import type { Database } from "@/lib/supabase/database.types";
 import { nextStep, type NextStep, type SiteSnapshot } from "./next-step";
 
@@ -143,7 +143,7 @@ export async function loadOverview(
       .limit(5000),
     // Les compteurs « à valider » sont ceux de la file elle-même : le menu, l'accueil et l'écran
     // affichent toujours le même nombre (retour de Jonathan, 18/11 : 50 au menu, 31 à l'écran).
-    loadQueue(supabase, new Date(), siteId),
+    loadQueueOnce(supabase, siteId),
   ]);
   // Filtre « un seul site » : sites, analyses, plans, envois, réponses et liens se rattachent à ce site.
   const onlySite = <T extends { site_id: string }>(rows: T[]) =>

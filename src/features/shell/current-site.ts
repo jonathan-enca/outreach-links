@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import type { Database } from "@/lib/supabase/database.types";
 
 /** Site choisi dans le menu (cookie) : filtre les écrans ; « all » = tous les sites. */
@@ -20,8 +21,10 @@ export async function currentSiteChoice(visibleIds: readonly string[]): Promise<
  * Le site choisi dans le menu, ou null pour « tous les sites » : ce que les écrans passent aux
  * services pour ne montrer que ce site (accueil, « À valider », conversations, tâches).
  */
-export async function selectedSiteId(supabase: SupabaseClient<Database>): Promise<string | null> {
-  const { data } = await supabase.from("sites").select("id");
-  const choice = await currentSiteChoice((data ?? []).map((s) => s.id));
-  return choice === ALL_SITES ? null : choice;
-}
+export const selectedSiteId = cache(
+  async (supabase: SupabaseClient<Database>): Promise<string | null> => {
+    const { data } = await supabase.from("sites").select("id");
+    const choice = await currentSiteChoice((data ?? []).map((s) => s.id));
+    return choice === ALL_SITES ? null : choice;
+  },
+);
