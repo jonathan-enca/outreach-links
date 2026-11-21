@@ -51,12 +51,12 @@ describe("home FR", () => {
     expect(faq).toMatch(/honnête/i);
   });
 
-  it("les pages légales sont liées au pied de page et marquées provisoires", () => {
+  it("les pages légales sont liées au pied de page et ne sont plus marquées provisoires", () => {
     const slugs = [fr.legalPages.notice, fr.legalPages.privacy, fr.legalPages.terms].map(
       (d) => `/${d.slug}`,
     );
     expect(fr.home.footer.legalLinks.map((l) => l.href)).toEqual(slugs);
-    expect(fr.legalPages.provisional).toMatch(/provisoire/i);
+    expect("provisional" in fr.legalPages).toBe(false);
   });
 
   it("l'honnêteté est dite : aucun lien acheté", () => {
