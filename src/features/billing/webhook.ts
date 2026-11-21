@@ -42,10 +42,9 @@ function meta(o: Record<string, unknown>): Record<string, unknown> {
 /**
  * Traite un événement Stripe déjà authentifié (signature vérifiée par la route). Idempotent :
  * un événement déjà traité est ignoré (`stripe_events`), et chaque effet est lui-même un upsert
- * ou une écriture à clé d'idempotence. Un événement `livemode` est REFUSÉ (mode test seulement).
+ * ou une écriture à clé d'idempotence. Événements réels et de test acceptés (21/11/2026).
  */
 export async function handleStripeEvent(db: Client, event: StripeEvent): Promise<WebhookResult> {
-  if (event.livemode) return { status: "ignore", reason: "livemode_refuse" };
   const seen = await db.from("stripe_events").select("id").eq("id", event.id).maybeSingle();
   if (seen.data) return { status: "doublon" };
 
