@@ -275,7 +275,7 @@ async function domainsOfDrafts(supabase: Client, draftIds: string[]): Promise<Ma
   const out = new Map<string, string>();
   if (draftIds.length === 0) return out;
   const { data: drafts } = await supabase
-    .from("target_drafts")
+    .from("target_drafts_v")
     .select("id, plan_item_id")
     .in("id", draftIds);
   const itemIds = [...new Set((drafts ?? []).map((d) => d.plan_item_id))];

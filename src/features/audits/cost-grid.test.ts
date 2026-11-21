@@ -17,7 +17,7 @@ describe("grille de coûts recalée (MA.3)", () => {
 
   it("parcours gratuit complet (concurrents + backlinks + profil) : marge d'au moins 10 % sous le plafond", () => {
     const cap = PLAN_LIMITS.gratuit.costCapUsd;
-    expect(cap).toBe(0.25);
+    expect(cap).toBe(2);
     const discovery = estimateDiscovery(["a", "b", "c"], PLAN_LIMITS.gratuit).totalUsd;
     const backlinks = estimateBacklinks(3, "gratuit", cap - discovery)!;
     expect(backlinks).not.toBeNull();

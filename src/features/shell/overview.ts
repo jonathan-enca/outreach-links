@@ -164,7 +164,7 @@ export async function loadOverview(
   await Promise.all(
     latestIds.map(async (auditId) => {
       const { count } = await supabase
-        .from("qualified_targets")
+        .from("qualified_targets_v")
         .select("id", head)
         .eq("audit_id", auditId)
         .eq("status", "liste_courte");

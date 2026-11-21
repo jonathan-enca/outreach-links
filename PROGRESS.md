@@ -62,6 +62,7 @@
 | MB.2         | à faire **après MU.11** (le parcours et le moteur changent avant le test de bout en bout)                                                                                                                                                                                                                                                                                                                                                                          |                                                                                                                                     |            |
 | M6.2 à M7.3  | à faire                                                                                                                                                                                                                                                                                                                                                                                                                                                            |                                                                                                                                     |            |
 | MO.1         | fait (décisions d'offres écrites, table `plans` et droits étendus, plafond en cibles contactées ; migration appliquée sur la vraie base ; 0 USD d'API ; aucun écran)                                                                                                                                                                                                                                                                                               |                                                                                                                                     |            |
+| MO.2         | fait (masquage en base et dans les services, vues `*_v`, export et tâches refusés, analyse gratuite complète ; la migration de retrait de lecture `…0200` s'applique après le déploiement)                                                                                                                                                                                                                                                                         |                                                                                                                                     |            |
 
 ## Décisions prises
 
@@ -3174,6 +3175,32 @@ Sous-jalon `PLAN.md > MO.1`. Branche `mo1-offres-et-droits`. **0 USD d'API**, au
 Lis CLAUDE.md et PROGRESS.md. Puis lis uniquement le sous-jalon MO.2 dans PLAN.md, et docs/offres-et-acces.md.
 Vérifie que MO.1 est fait dans PROGRESS.md. Annonce ce que tu vas faire et ce que tu ne feras pas.
 Reste dans le périmètre (masquage côté serveur et en base, aucun écran nouveau). À la fin : tests/lint/typecheck verts, PROGRESS.md à jour, commit sur la branche mo2-masquage, PR fusionnée, puis donne-moi le prompt de MO.3.
+```
+
+## MO.2 : masquage côté serveur et dans la base (21/11/2026, fait, deux migrations)
+
+Sous-jalon `PLAN.md > MO.2`. Branche `mo2-masquage`. **0 USD d'API**, aucun envoi, aucun écran touché.
+
+- **Migration `2026122100000100_contacts_masking.sql` (additive, appliquée sur la vraie base, avec un correctif `contacts_masking_server_access`)** : table `app_flags` (`beta_mode`, vrai aujourd'hui) ; fonctions `workspace_plan_key`, `workspace_contacts_visible`, `workspace_readable_drafts`, `first_sentence` ; quatre vues masquées `target_contacts_v`, `manual_tasks_v`, `qualified_targets_v`, `target_drafts_v`. Un jeton d'utilisateur ne lit que son espace ; adresse, `contact_url`, `form_url`, message à copier sont `NULL` quand le forfait n'a pas `contacts_visible` (colonne `masked` / `contact_masked`). Messages : les `readable_drafts` mieux classés (position dans le plan, puis id : ordre stable) restent entiers, les autres gardent l'objet et la première phrase (`locked`). Sans jeton utilisateur (service_role), les vues rendent tout en clair, sans filtre d'espace.
+- **Migration `2026122100000200_contacts_revoke.sql` (retrait de lecture sur les 4 tables pour `authenticated`) : À APPLIQUER APRÈS le déploiement de ce code.** Tant qu'elle n'est pas appliquée, les tables restent lisibles avec un jeton utilisateur.
+- **Code** : toutes les lectures « jeton utilisateur » passent par les vues (`*_v`) ; les écritures et le moteur d'envoi (service_role) lisent toujours les tables. `contactOf` rend l'état sans valeur (`hidden: true`). `validateRequests` (valider des demandes) relit les vrais contacts avec le client serveur pour ne jamais enregistrer un plan avec des contacts masqués. Tâches manuelles masquées : absentes de la liste et refusées (`contactsLockedMessage`, nomme Starter). Export CSV : 403 sans `exportCsv` (`exportLockedMessage`). `PLAN_LIMITS.gratuit` = mêmes limites que payant (20 concurrents, plafond d'analyse 2 USD) ; l'unique analyse à vie reste portée par `campaignBlocked`.
+- **Tests** : `supabase/tests/contacts-masking.test.ts` (SQL réel : gratuit sans aucune adresse ni lien ni par les vues ni par les tables ; abonné en clair ; bêta sans masquage ; service en clair) ; `src/features/tasks/masking.test.ts` ; anciens tests de gratuit mis à jour ; faux client Supabase : les vues lisent les tables.
+
+### Dettes et pièges
+
+- **`app_flags.beta_mode` est le miroir de la variable `BETA_MODE`** : à couper TOUS LES DEUX en MO.5 (`update public.app_flags set enabled = false where key = 'beta_mode'`). Sinon le code croit le gratuit sans droits alors que la base montre tout (ou l'inverse).
+- Le compte admin (offre business active) et les abonnés Stripe actifs sont lus en clair par `workspace_plan_key` (miroir de `effectivePlan` : abonnement actif, non expiré).
+- Hors périmètre, encore lisibles par tout membre : `sent_messages`, `inbound_messages`, `reply_sends` (adresses de conversations déjà ouvertes ; vides pour un gratuit qui n'envoie rien).
+- Le plafond de dépense du jour (25 USD) limite toujours les analyses gratuites (~15 par jour) : à relever en MO.5.
+- Les types des vues dans `database.types.ts` ont été ajoutés à la main (colonnes non nulles reprises des tables) ; une régénération complète les rend nullables, à reprendre.
+- L'écran Cibles affiche déjà l'état sans adresse (libellés « email vérifié », « formulaire ») ; pastilles, verrous et fenêtre d'offre : MO.3.
+
+### Prochain sous-jalon : MO.3
+
+```
+Lis CLAUDE.md et PROGRESS.md. Puis lis uniquement le sous-jalon MO.3 dans PLAN.md, docs/offres-et-acces.md et la maquette docs/mockups/offres-verrous.html.
+Vérifie que MO.2 est fait dans PROGRESS.md. Annonce ce que tu vas faire et ce que tu ne feras pas.
+L'écran en ligne doit être identique à la maquette (captures comparées en grand écran et en étroit). À la fin : tests/lint/typecheck verts, PROGRESS.md à jour, branche mo3-offre-et-verrous, PR fusionnée, puis donne-moi le prompt de MO.4.
 ```
 
 ## Stripe en réel (21/11/2026, demande de Jonathan)

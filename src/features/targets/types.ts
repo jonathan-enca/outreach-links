@@ -40,6 +40,11 @@ export interface TargetContact {
   verified: boolean;
   email: string | null;
   url: string | null;
+  /**
+   * Vrai quand l'offre ne montre pas les contacts : l'état est connu (email vérifié, formulaire
+   * trouvé) mais l'adresse et le lien ne quittent pas le serveur (`email` et `url` restent nuls).
+   */
+  hidden?: boolean;
 }
 
 /** Une carte = un site de la liste courte (ou une cible « mentions » sans contact). */

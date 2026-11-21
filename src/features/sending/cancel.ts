@@ -21,7 +21,7 @@ export async function cancelSend(
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { status: "error", message: M.notWaiting };
   const { data: draft } = await supabase
-    .from("target_drafts")
+    .from("target_drafts_v")
     .select("id, status, channel")
     .eq("id", draftId)
     .maybeSingle();

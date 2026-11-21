@@ -164,7 +164,7 @@ describe.skipIf(!adminUrl)("qualification : RLS, contraintes, domaines déjà co
         JSON.stringify({ sub: alice.userId, role: "authenticated" }),
       ]);
       await c.query("set local role authenticated");
-      expect((await c.query("select * from public.qualified_targets")).rowCount).toBe(1);
+      expect((await c.query("select * from public.qualified_targets_v")).rowCount).toBe(1);
       expect((await c.query("select * from public.qualification_runs")).rowCount).toBe(1);
       await c.query("savepoint a");
       await expect(c.query("update public.qualified_targets set rank = 2")).rejects.toThrow(
@@ -174,7 +174,7 @@ describe.skipIf(!adminUrl)("qualification : RLS, contraintes, domaines déjà co
       await c.query("select set_config('request.jwt.claims', $1, true)", [
         JSON.stringify({ sub: bob.userId, role: "authenticated" }),
       ]);
-      expect((await c.query("select * from public.qualified_targets")).rowCount).toBe(0);
+      expect((await c.query("select * from public.qualified_targets_v")).rowCount).toBe(0);
     });
   });
 

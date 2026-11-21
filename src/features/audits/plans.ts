@@ -20,9 +20,22 @@ export interface PlanLimits {
   costCapUsd: number;
 }
 
+/**
+ * MO.2 (décision de Jonathan, 21/11/2026) : l'analyse du gratuit est COMPLÈTE, avec les mêmes
+ * limites qu'un abonné. Ce qui la limite est l'offre (une seule analyse à vie, `campaignBlocked`),
+ * pas sa taille : « tout voir, rien envoyer ».
+ */
+const FULL_ANALYSIS: PlanLimits = {
+  maxCompetitors: 20,
+  minCompetitors: 10,
+  maxQueries: 3,
+  serpDepth: 30,
+  costCapUsd: 2,
+};
+
 export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
-  gratuit: { maxCompetitors: 3, minCompetitors: 3, maxQueries: 3, serpDepth: 30, costCapUsd: 0.25 },
-  payant: { maxCompetitors: 20, minCompetitors: 10, maxQueries: 3, serpDepth: 30, costCapUsd: 2 },
+  gratuit: { ...FULL_ANALYSIS },
+  payant: { ...FULL_ANALYSIS },
 };
 
 /**

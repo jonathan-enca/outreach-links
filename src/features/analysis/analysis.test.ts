@@ -462,11 +462,11 @@ describe("le parcours existant lance désormais l'analyse unique", () => {
     });
   });
 
-  it("un plafond qui ne couvre pas toute l'analyse ne lance rien (au lieu de payer une découverte sans suite)", async () => {
+  it("l'analyse du gratuit est complète : mêmes limites qu'un abonné (MO.2)", async () => {
     const { user, service, getService } = setup("gratuit");
     const res = await createAudit(user.client, "site-1", getService);
-    expect(res).toMatchObject({ status: "error", message: t.audits.messages.overCap });
-    expect(service.tables.audits).toHaveLength(0);
+    expect(res.status).toBe("ok");
+    expect(service.tables.audits![0]).toMatchObject({ max_competitors: 20, cost_cap_usd: 2 });
   });
 
   it("l'ancienne chaîne ne s'enchaîne plus après la découverte", async () => {

@@ -58,9 +58,8 @@ describe("createAudit", () => {
     expect(audit).toMatchObject({
       status: "estime",
       plan: "gratuit",
-      max_competitors: 3,
-      cost_cap_usd: 0.25,
-      estimated_cost_usd: 0.018,
+      max_competitors: 20,
+      cost_cap_usd: 2,
       queries: SITE.priority_queries,
     });
     // L'historique des écritures prouve le passage par en_attente.

@@ -28,7 +28,8 @@ function fakeSupabase(targets: unknown[]) {
         },
         error: null,
       };
-    if (table === "qualified_targets") return { data: targets, count: targets.length, error: null };
+    if (table === "qualified_targets_v")
+      return { data: targets, count: targets.length, error: null };
     if (table === "analysis_steps") return { data: [], error: null };
     return { data: null, error: null };
   };
@@ -56,10 +57,10 @@ describe("loadAnalysisSnapshot : cibles de l'écran d'analyse", () => {
 
     const snap = await loadAnalysisSnapshot(client, "a1");
 
-    const targetCalls = calls.filter((c) => c.table === "qualified_targets");
+    const targetCalls = calls.filter((c) => c.table === "qualified_targets_v");
     expect(targetCalls.some((c) => c.method === "limit")).toBe(false);
     expect(targetCalls).toContainEqual({
-      table: "qualified_targets",
+      table: "qualified_targets_v",
       method: "order",
       args: ["created_at", { ascending: false }],
     });

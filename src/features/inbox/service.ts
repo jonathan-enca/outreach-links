@@ -177,7 +177,7 @@ async function loadContext(supabase: Client, sentMessageId: string): Promise<Con
     .single();
   if (!sent) return null;
   const { data: d } = await supabase
-    .from("target_drafts")
+    .from("target_drafts_v")
     .select("hook, proposed_url, plan_id, plan_item_id")
     .eq("id", sent.draft_id)
     .single();

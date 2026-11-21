@@ -142,7 +142,7 @@ export async function loadContacts(
       .select("status, error_message")
       .eq("plan_id", plan.id)
       .maybeSingle(),
-    supabase.from("target_contacts").select("*").eq("plan_id", plan.id).limit(500),
+    supabase.from("target_contacts_v").select("*").eq("plan_id", plan.id).limit(500),
     supabase
       .from("link_target_triage")
       .select("plan_item_id, link_plan_items(source_domain, position)")
@@ -150,7 +150,7 @@ export async function loadContacts(
       .eq("verdict", "ok")
       .limit(500),
     supabase
-      .from("manual_tasks")
+      .from("manual_tasks_v")
       .select("id", { count: "exact", head: true })
       .eq("plan_id", plan.id)
       .eq("status", "a_faire"),

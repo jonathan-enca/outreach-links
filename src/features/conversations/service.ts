@@ -119,7 +119,7 @@ export async function loadConversations(
         .select("sent_message_id, read_at, archived_at")
         .in("sent_message_id", threadIds),
       supabase.from("thread_tags").select("sent_message_id, tag").in("sent_message_id", threadIds),
-      supabase.from("target_drafts").select("id, plan_item_id, hook").in("id", draftIds),
+      supabase.from("target_drafts_v").select("id, plan_item_id, hook").in("id", draftIds),
       supabase.from("link_plans").select("id, site_id, sites(domain, country)").in("id", planIds),
     ]);
   const itemIds = [...new Set((drafts.data ?? []).map((d) => d.plan_item_id))];
@@ -273,7 +273,7 @@ export async function loadQueued(
   opts: ConversationsOptions,
 ): Promise<{ threads: ConversationView[]; note: QueueNote | null; eta: SendQueue["eta"] }> {
   const { data: drafts } = await supabase
-    .from("target_drafts")
+    .from("target_drafts_v")
     .select("id, plan_id, plan_item_id, subject, body, hook, generated_at, edited_at")
     .eq("status", "valide")
     .eq("channel", "email")
@@ -283,7 +283,7 @@ export async function loadQueued(
   const itemIds = waiting.map((d) => d.plan_item_id);
   const [items, contacts, plans] = await Promise.all([
     supabase.from("link_plan_items").select("id, source_domain").in("id", itemIds),
-    supabase.from("target_contacts").select("plan_item_id, email").in("plan_item_id", itemIds),
+    supabase.from("target_contacts_v").select("plan_item_id, email").in("plan_item_id", itemIds),
     supabase
       .from("link_plans")
       .select("id, site_id, sites(domain, country)")

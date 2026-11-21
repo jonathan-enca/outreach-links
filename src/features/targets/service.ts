@@ -39,12 +39,23 @@ const RESOURCE = z.object({ resource: z.number().int().min(0).max(9) }).catch({ 
 const siteType = (v: string | null) =>
   (SITE_TYPES as readonly string[]).includes(v ?? "") ? (v as TargetCard["siteType"]) : null;
 
-type QRow = Database["public"]["Tables"]["qualified_targets"]["Row"];
+/** Ligne de la vue masquée `qualified_targets_v` (ou de la table, côté serveur : `contact_masked` absent). */
+type QRow = Database["public"]["Tables"]["qualified_targets"]["Row"] & { contact_masked?: boolean };
 type FRow = Database["public"]["Tables"]["target_findings"]["Row"];
 
 export function contactOf(
-  r: Pick<QRow, "contact_status" | "contact_email" | "contact_url" | "form_url">,
+  r: Pick<QRow, "contact_status" | "contact_email" | "contact_url" | "form_url" | "contact_masked">,
 ): TargetContact {
+  // Offre sans contacts visibles : on garde l'état, jamais l'adresse ni le lien.
+  if (r.contact_masked) {
+    const hidden = { email: null, url: null, hidden: true } as const;
+    if (r.contact_status === "email_verifie") return { kind: "email", verified: true, ...hidden };
+    if (r.contact_status === "email_a_verifier")
+      return { kind: "email", verified: false, ...hidden };
+    if (r.contact_status === "formulaire")
+      return { kind: "formulaire", verified: false, ...hidden };
+    return { kind: "aucun", verified: false, email: null, url: null };
+  }
   if (r.contact_status === "email_verifie" && r.contact_email)
     return { kind: "email", verified: true, email: r.contact_email, url: r.contact_url };
   if (r.contact_status === "email_a_verifier" && r.contact_email)
@@ -249,7 +260,7 @@ async function loadMessageStates(
   const itemIds = kept.map((b) => b.plan_item_id);
   const planIds = [...new Set(kept.map((b) => b.plan_id))];
   const [drafts, refusals, runs] = await Promise.all([
-    supabase.from("target_drafts").select("plan_item_id, status").in("plan_item_id", itemIds),
+    supabase.from("target_drafts_v").select("plan_item_id, status").in("plan_item_id", itemIds),
     supabase
       .from("draft_declines")
       .select("plan_item_id, retry_requested")
@@ -367,21 +378,21 @@ export async function loadTargets(
   if (qrun && qrun.status === "termine") {
     const [short, extra, lost, fnd, profile, stockRes] = await Promise.all([
       supabase
-        .from("qualified_targets")
+        .from("qualified_targets_v")
         .select("*")
         .eq("run_id", qrun.id)
         .eq("status", "liste_courte")
         .order("rank", { ascending: true })
         .limit(200),
       supabase
-        .from("qualified_targets")
+        .from("qualified_targets_v")
         .select("*")
         .eq("run_id", qrun.id)
         .eq("status", "exclu")
         .contains("tactics", ["mentions"])
         .limit(200),
       supabase
-        .from("qualified_targets")
+        .from("qualified_targets_v")
         .select("*")
         .eq("run_id", qrun.id)
         .eq("exclusion_reason", "sans_contact")
@@ -390,7 +401,7 @@ export async function loadTargets(
       supabase.from("target_findings").select("*").eq("audit_id", auditId).limit(500),
       getLatestBrandProfile(supabase, audit.site_id),
       supabase
-        .from("qualified_targets")
+        .from("qualified_targets_v")
         .select("id", { count: "exact", head: true })
         .eq("run_id", qrun.id)
         .in("exclusion_reason", [...STOCK_REASONS]),
@@ -629,7 +640,22 @@ export async function validateRequests(
 
   const view = await loadTargets(supabase, getServiceClient, auditId, { previews: false });
   if (!view) return { status: "error", message: M.notFound };
-  const chosen = view.cards.filter((c) => ids.includes(c.id));
+  let service: Client;
+  try {
+    service = getServiceClient();
+  } catch {
+    return { status: "error", message: M.unavailable };
+  }
+  // Les cartes de l'écran sont masquées pour un gratuit : le plan garde les vrais contacts, lus par le serveur.
+  const { data: realContacts } = await service
+    .from("qualified_targets")
+    .select("id, contact_status, contact_email, contact_url, form_url")
+    .eq("audit_id", auditId)
+    .in("id", ids);
+  const realById = new Map((realContacts ?? []).map((r) => [r.id, contactOf(r)]));
+  const chosen = view.cards
+    .filter((c) => ids.includes(c.id))
+    .map((c) => ({ ...c, contact: realById.get(c.id) ?? c.contact }));
   const profile = await getLatestBrandProfile(supabase, audit.site_id);
   const ctx: BridgeContext = {
     siteDomain: site.domain,
@@ -641,12 +667,6 @@ export async function validateRequests(
   const { items, skipped } = buildBridge(chosen, ctx);
   if (items.length === 0) return { status: "error", message: M.noneEligible };
 
-  let service: Client;
-  try {
-    service = getServiceClient();
-  } catch {
-    return { status: "error", message: M.unavailable };
-  }
   const created = await service.rpc("create_link_plan", {
     p_audit_id: auditId,
     p_user_id: userId,
@@ -781,7 +801,7 @@ export async function dismissTargets(
   const ids = [...new Set(rawIds)].slice(0, 300);
   if (ids.length === 0) return { status: "error", message: M.nothingSelected };
   const { data: rows } = await supabase
-    .from("qualified_targets")
+    .from("qualified_targets_v")
     .select("id")
     .eq("audit_id", auditId)
     .in("id", ids);
