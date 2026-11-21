@@ -3,8 +3,9 @@ import type { PaidPlanKey } from "./plans";
 import { t } from "@/lib/messages";
 
 /**
- * Adaptateur Stripe en MODE TEST uniquement (fetch direct, sans SDK). Une clé `sk_live_...` est
- * refusée à la construction ; les événements `livemode: true` sont refusés par le webhook.
+ * Adaptateur Stripe (fetch direct, sans SDK). Depuis le 21/11/2026 (décision de Jonathan : paiement
+ * réel), les clés `sk_live_` et `sk_test_` sont acceptées ; toute autre clé est refusée. Le webhook
+ * est authentifié par sa signature.
  */
 export interface BillingProvider {
   readonly name: "stripe" | "fake";
@@ -30,9 +31,11 @@ export interface CheckoutInput {
 
 export class BillingConfigError extends Error {}
 
-export function assertTestKey(key: string): void {
-  if (!key.startsWith("sk_test_")) {
-    throw new BillingConfigError("Clé Stripe refusée : seul le mode test (sk_test_) est autorisé.");
+export function assertSecretKey(key: string): void {
+  if (!/^sk_(test|live)_/.test(key)) {
+    throw new BillingConfigError(
+      "Clé Stripe refusée : une clé secrète sk_test_ ou sk_live_ est attendue.",
+    );
   }
 }
 
@@ -42,7 +45,7 @@ export function createStripeProvider(
   secretKey: string,
   fetchImpl: FetchLike = fetch,
 ): BillingProvider {
-  assertTestKey(secretKey);
+  assertSecretKey(secretKey);
   async function post(path: string, form: URLSearchParams): Promise<{ url?: string }> {
     const res = await fetchImpl(`https://api.stripe.com/v1/${path}`, {
       method: "POST",

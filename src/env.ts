@@ -83,10 +83,10 @@ const schema = z.object({
   PUBLIC_AUDIT_DAILY_CAP_USD: z.coerce.number().positive().max(1000).default(3),
   /** Sel du hachage des IP (anti-abus). À défaut, dérivé de SUPABASE_SERVICE_ROLE_KEY. */
   ABUSE_HASH_SALT: z.string().min(16).optional(),
-  /** Stripe (M6.1) : clés de TEST seulement (`sk_test_`). Sans clé : adaptateur factice. */
+  /** Stripe : clé secrète de test (`sk_test_`) ou réelle (`sk_live_`). Sans clé : adaptateur factice. */
   STRIPE_SECRET_KEY: z
     .string()
-    .regex(/^sk_test_/, "seules les clés de test (sk_test_) sont autorisées")
+    .regex(/^sk_(test|live)_/, "clé secrète Stripe attendue (sk_test_ ou sk_live_)")
     .optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),

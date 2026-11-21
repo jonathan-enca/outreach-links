@@ -3175,3 +3175,11 @@ Lis CLAUDE.md et PROGRESS.md. Puis lis uniquement le sous-jalon MO.2 dans PLAN.m
 Vérifie que MO.1 est fait dans PROGRESS.md. Annonce ce que tu vas faire et ce que tu ne feras pas.
 Reste dans le périmètre (masquage côté serveur et en base, aucun écran nouveau). À la fin : tests/lint/typecheck verts, PROGRESS.md à jour, commit sur la branche mo2-masquage, PR fusionnée, puis donne-moi le prompt de MO.3.
 ```
+
+## Stripe en réel (21/11/2026, demande de Jonathan)
+
+- **Code** : `assertSecretKey` accepte `sk_live_` et `sk_test_` (`src/features/billing/stripe.ts`, `src/env.ts`) ; le webhook ne refuse plus les événements `livemode` (`webhook.ts`). L'ancien verrou « test seulement » (M6.1) est levé par décision de Jonathan.
+- **Stripe (compte « JE CONSEIL », mode réel)** : destination de webhook `backleenks` créée, active, vers `https://www.backleenks.com/api/stripe/webhook`, version d'API `2026-08-26.dahlia`, cinq événements : `checkout.session.completed`, `customer.subscription.created`, `.updated`, `.deleted`, `invoice.paid`. Aucun produit ni prix à créer : le Checkout utilise `price_data` (prix lus dans la table `plans`).
+- **Le compte est partagé** avec un autre produit (destination `creative-oasis` vers `ouiouioui.app`, non touchée). Notre webhook reçoit aussi les événements d'abonnement de cet autre produit : le traitement les ignore s'ils n'ont pas de `workspace_id` dans leurs métadonnées (à surveiller dans les journaux au premier abonnement).
+- **Reste à poser sur Vercel (production)** : `STRIPE_SECRET_KEY` (`sk_live_…`) et `STRIPE_WEBHOOK_SECRET` (`whsec_…` de la destination `backleenks`), puis redéployer.
+- **`BETA_MODE` reste actif** : tant qu'il l'est, tout inscrit envoie sans abonnement. Le couper (MO.5) est ce qui rend l'abonnement réellement nécessaire.

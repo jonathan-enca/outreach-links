@@ -3,7 +3,7 @@ import { fakeSupabase } from "@/features/audits/fake-supabase";
 import { checkSendAllowance, effectivePlan, monthStart } from "./plans";
 import { startCheckout } from "./service";
 import {
-  assertTestKey,
+  assertSecretKey,
   createFakeProvider,
   createStripeProvider,
   signStripePayload,
@@ -45,11 +45,13 @@ describe("signature Stripe", () => {
   });
 });
 
-describe("mode test uniquement", () => {
-  it("refuse une clé live", () => {
-    expect(() => assertTestKey("sk_live_abc")).toThrow(/test/);
-    expect(() => createStripeProvider("sk_live_abc")).toThrow();
-    expect(() => assertTestKey("sk_test_abc")).not.toThrow();
+describe("clés Stripe", () => {
+  it("accepte une clé secrète réelle ou de test, refuse le reste", () => {
+    expect(() => assertSecretKey("sk_live_abc")).not.toThrow();
+    expect(() => assertSecretKey("sk_test_abc")).not.toThrow();
+    expect(() => createStripeProvider("sk_live_abc")).not.toThrow();
+    expect(() => assertSecretKey("pk_live_abc")).toThrow(/sk_/);
+    expect(() => createStripeProvider("whsec_abc")).toThrow();
   });
   it("le fournisseur Stripe envoie une session de paiement en euros, mensuelle, avec le workspace", async () => {
     const f = vi.fn(
@@ -276,17 +278,18 @@ describe("webhooks Stripe", () => {
     expect(tables.credits_ledger).toHaveLength(1);
     expect(tables.credits_ledger![0]).toMatchObject({ delta: 100, reason: "abonnement" });
   });
-  it("événement live ou type inconnu : aucun effet", async () => {
+  it("type inconnu : aucun effet ; un événement réel est traité comme un événement de test", async () => {
     const { client, tables } = fakeSupabase(base());
-    expect(
-      (await handleStripeEvent(client, ev("e1", "customer.subscription.created", subObj(), true)))
-        .status,
-    ).toBe("ignore");
     expect((await handleStripeEvent(client, ev("e2", "charge.refunded", {}))).status).toBe(
       "ignore",
     );
     expect(tables.subscriptions ?? []).toHaveLength(0);
     expect(tables.workspaces![0]!.plan).toBe("gratuit");
+    const live = await handleStripeEvent(
+      client,
+      ev("e1", "customer.subscription.created", subObj(), true),
+    );
+    expect(live.status).not.toBe("ignore");
   });
 });
 
