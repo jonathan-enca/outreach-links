@@ -50,6 +50,7 @@ describe("clés Stripe", () => {
     expect(() => assertSecretKey("sk_live_abc")).not.toThrow();
     expect(() => assertSecretKey("sk_test_abc")).not.toThrow();
     expect(() => createStripeProvider("sk_live_abc")).not.toThrow();
+    expect(() => assertSecretKey("rk_live_abc")).not.toThrow();
     expect(() => assertSecretKey("pk_live_abc")).toThrow(/sk_/);
     expect(() => createStripeProvider("whsec_abc")).toThrow();
   });
