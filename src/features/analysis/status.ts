@@ -49,14 +49,14 @@ export async function loadAnalysisSnapshot(
       .select("key, status, counters, last_example, error_message, started_at, finished_at")
       .eq("audit_id", auditId),
     supabase
-      .from("qualified_targets")
+      .from("qualified_targets_v")
       .select("domain, site_type, why")
       .eq("audit_id", auditId)
       .eq("status", "liste_courte")
       // Toutes les cibles validées, dans l'ordre d'arrivée : la plus récente en haut.
       .order("created_at", { ascending: false }),
     supabase
-      .from("qualified_targets")
+      .from("qualified_targets_v")
       .select("id", { count: "exact", head: true })
       .eq("audit_id", auditId)
       .eq("status", "liste_courte"),

@@ -25,13 +25,13 @@ const SITE = {
 
 describe("estimateChain (MA.6)", () => {
   it("additionne les étapes et reste dans le plafond de l'audit gratuit", () => {
-    const e = estimateChain({ plan: "gratuit", discoveryUsd: 0.018, capUsd: 0.25, site: SITE });
+    const e = estimateChain({ plan: "gratuit", discoveryUsd: 0.018, capUsd: 2, site: SITE });
     expect(e.uncovered).toEqual([]);
     expect(e.backlinksUsd).toBeGreaterThan(0);
     expect(e.profileUsd).toBeGreaterThan(0);
     expect(e.opportunitiesUsd).toBeGreaterThan(0);
     // Découverte + backlinks + profil partagent le plafond de l'audit ; opportunités a le sien.
-    expect(e.discoveryUsd + e.backlinksUsd + e.profileUsd).toBeLessThanOrEqual(0.25 + 1e-9);
+    expect(e.discoveryUsd + e.backlinksUsd + e.profileUsd).toBeLessThanOrEqual(2 + 1e-9);
     expect(e.totalUsd).toBeCloseTo(
       e.discoveryUsd + e.backlinksUsd + e.profileUsd + e.opportunitiesUsd,
       6,

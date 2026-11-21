@@ -3975,7 +3975,115 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      manual_tasks_v: {
+        Row: {
+          created_at: string;
+          done_at: string | null;
+          follow_up_cancel_reason: string | null;
+          follow_up_done_at: string | null;
+          follow_up_due_at: string | null;
+          follow_up_message: string | null;
+          follow_up_status: string | null;
+          form_url: string | null;
+          id: string;
+          masked: boolean;
+          message: string | null;
+          plan_id: string;
+          plan_item_id: string;
+          status: string;
+          type: string;
+          workspace_id: string;
+        };
+        Relationships: [];
+      };
+      qualified_targets_v: {
+        Row: {
+          audit_id: string;
+          competitors_count: number;
+          contact_email: string | null;
+          contact_masked: boolean;
+          contact_status: string | null;
+          contact_url: string | null;
+          created_at: string;
+          dismissed_at: string | null;
+          domain: string;
+          domain_rank: number | null;
+          exclusion_detail: string | null;
+          exclusion_reason: string | null;
+          fit: number | null;
+          form_url: string | null;
+          hook: string | null;
+          id: string;
+          judgement: Json | null;
+          niveau: number;
+          page: Json | null;
+          piste: string;
+          platform_hosted: boolean;
+          provisional_score: number;
+          rank: number | null;
+          request_lines: string[] | null;
+          run_id: string;
+          score: number | null;
+          score_parts: Json | null;
+          sendable: boolean;
+          site_type: string | null;
+          stage_reached: number;
+          status: string;
+          tactics: string[];
+          url: string | null;
+          why: string | null;
+          workspace_id: string;
+        };
+        Relationships: [];
+      };
+      target_contacts_v: {
+        Row: {
+          assessed_at: string;
+          contact_url: string | null;
+          cost_usd: number;
+          email: string | null;
+          email_source: string | null;
+          form_url: string | null;
+          id: string;
+          masked: boolean;
+          plan_id: string;
+          plan_item_id: string;
+          reason: string;
+          sendable: boolean;
+          status: string;
+          verification: string;
+          verifier: string | null;
+          workspace_id: string;
+        };
+        Relationships: [];
+      };
+      target_drafts_v: {
+        Row: {
+          body: string;
+          channel: string;
+          cost_usd: number;
+          edited_at: string | null;
+          edited_by_user: boolean;
+          generated_at: string;
+          hook: string;
+          id: string;
+          lint_issues: Json;
+          locked: boolean;
+          plan_id: string;
+          plan_item_id: string;
+          proposed_url: string;
+          ready: boolean;
+          review_note: string | null;
+          snoozed_until: string | null;
+          status: string;
+          subject: string | null;
+          targeting_reason: string;
+          url_checked_at: string | null;
+          url_status: number | null;
+          workspace_id: string;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       analysis_step_update: {

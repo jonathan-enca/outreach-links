@@ -156,7 +156,8 @@ export async function loadEntitlements(
   return entitlementsFor(subscribed, row ?? null, sendUsed, beta);
 }
 
-export type BlockReason = "envoi" | "site" | "boite" | "campagne" | "domaine";
+export type BlockReason =
+  "envoi" | "site" | "boite" | "campagne" | "domaine" | "contacts" | "export";
 
 /** Message affiché quand une action est refusée par le forfait. */
 export function planBlockMessage(e: Entitlements, reason: BlockReason): string {
@@ -179,7 +180,21 @@ export function planBlockMessage(e: Entitlements, reason: BlockReason): string {
       return `Votre forfait permet ${e.monthlyCampaigns} campagne(s) par mois. Le compteur se renouvelle le 1er du mois.`;
     case "domaine":
       return "Le domaine d'envoi dédié est réservé à l'offre Scale.";
+    case "contacts":
+      return contactsLockedMessage();
+    case "export":
+      return exportLockedMessage();
   }
+}
+
+/** Les adresses, les liens de formulaire et les messages à copier se débloquent avec Starter. */
+export function contactsLockedMessage(): string {
+  return "Les adresses, les liens de formulaire et les messages à copier se débloquent avec l'offre Starter. Vous voyez déjà les cibles et leur état.";
+}
+
+/** L'export CSV se débloque avec Starter. */
+export function exportLockedMessage(): string {
+  return "L'export se débloque avec l'offre Starter.";
 }
 
 /** Refus d'une réponse ou d'une relance : seule l'offre compte, jamais le plafond mensuel. */

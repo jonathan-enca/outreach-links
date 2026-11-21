@@ -6,6 +6,7 @@ import {
   type SignatureSiteRow,
 } from "@/features/signature/signature";
 import type { AuditActionState } from "@/features/audits/service";
+import { contactsLockedMessage } from "@/features/billing/entitlements";
 import { SEND_LIMITS } from "@/features/sending/limits";
 import { addDays } from "@/features/sending/schedule";
 import { t } from "@/lib/messages";
@@ -17,7 +18,7 @@ import { taskState, type TaskView } from "./view";
 type Client = SupabaseClient<Database>;
 const M = t.tasks.messages;
 
-type TaskRow = Database["public"]["Tables"]["manual_tasks"]["Row"];
+type TaskRow = Database["public"]["Views"]["manual_tasks_v"]["Row"];
 
 /**
  * Tâches manuelles de l'utilisateur (la RLS limite à ses espaces). Seules les tâches dont le
@@ -28,7 +29,7 @@ export async function listTasks(
   siteId: string | null = null,
 ): Promise<TaskView[]> {
   const { data: tasks } = await supabase
-    .from("manual_tasks")
+    .from("manual_tasks_v")
     .select("*")
     .order("created_at", { ascending: true })
     .limit(500);
@@ -37,7 +38,7 @@ export async function listTasks(
   const [{ data: items }, { data: drafts }] = await Promise.all([
     supabase.from("link_plan_items").select("id, source_domain, target_page_url").in("id", itemIds),
     supabase
-      .from("target_drafts")
+      .from("target_drafts_v")
       .select("id, plan_id, plan_item_id, body, status")
       .in("plan_item_id", itemIds),
   ]);
@@ -87,13 +88,15 @@ export async function listTasks(
   const sitePlans = siteId ? await planIdsOfSite(supabase, siteId) : null;
   for (const x of tasks) {
     if (sitePlans && !sitePlans.has(x.plan_id)) continue;
+    // Offre sans contacts visibles : le lien du formulaire et le message à copier restent en base.
+    if (x.masked) continue;
     const d = draftByItem.get(x.plan_item_id);
     const it = itemById.get(x.plan_item_id);
     if (!d || !it) continue;
     out.push({
       id: x.id,
       domain: it.source_domain,
-      formUrl: x.form_url,
+      formUrl: x.form_url ?? "",
       targetUrl: it.target_page_url,
       message: applySignature(d.body, signatureByPlan.get(d.plan_id) ?? null),
       status: x.status,
@@ -136,11 +139,13 @@ async function load(supabase: Client, taskId: unknown): Promise<Loaded | AuditAc
   if (typeof taskId !== "string") return { status: "error", message: M.notFound };
   // Lecture par la RLS : l'utilisateur doit être membre de l'espace.
   const { data: task } = await supabase
-    .from("manual_tasks")
+    .from("manual_tasks_v")
     .select("*")
     .eq("id", taskId)
     .maybeSingle();
   if (!task) return { status: "error", message: M.notFound };
+  // Le lien du formulaire et le message à copier se débloquent avec une offre payante.
+  if (task.masked) return { status: "error", message: contactsLockedMessage() };
   return { task, userId: auth.user.id };
 }
 
@@ -196,7 +201,7 @@ export async function completeTask(
         .maybeSingle()
     : { data: null };
   const { data: draft } = await supabase
-    .from("target_drafts")
+    .from("target_drafts_v")
     .select("proposed_url")
     .eq("plan_item_id", task.plan_item_id)
     .maybeSingle();

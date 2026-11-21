@@ -158,7 +158,7 @@ describe.skipIf(!adminUrl)("brouillons : RLS et contraintes", () => {
         asRole(
           "authenticated",
           u.userId,
-          async (c) => (await c.query("select id from public.target_drafts")).rowCount,
+          async (c) => (await c.query("select id from public.target_drafts_v")).rowCount,
         );
       expect(await seen(alice)).toBe(1);
       expect(await seen(bob)).toBe(0);

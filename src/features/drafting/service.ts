@@ -152,7 +152,7 @@ export async function loadDrafts(supabase: Client, auditId: string): Promise<Dra
       .eq("plan_id", plan.id)
       .maybeSingle(),
     supabase
-      .from("target_drafts")
+      .from("target_drafts_v")
       .select("*, link_plan_items(source_domain, position)")
       .eq("plan_id", plan.id)
       .limit(500),
@@ -225,7 +225,7 @@ export function countMissing(
 export async function missingDrafts(supabase: Client): Promise<MissingDrafts> {
   const [contacts, triage, drafts, runs, declines] = await Promise.all([
     supabase
-      .from("target_contacts")
+      .from("target_contacts_v")
       .select("plan_id, plan_item_id, workspace_id")
       .in("status", ["email_verifie", "email_a_verifier", "formulaire"])
       .limit(3000),
@@ -235,7 +235,7 @@ export async function missingDrafts(supabase: Client): Promise<MissingDrafts> {
       .eq("verdict", "ok")
       .not("resolved_url", "is", null)
       .limit(3000),
-    supabase.from("target_drafts").select("plan_item_id").limit(3000),
+    supabase.from("target_drafts_v").select("plan_item_id").limit(3000),
     supabase.from("draft_runs").select("plan_id, status").limit(500),
     supabase
       .from("draft_declines")

@@ -192,7 +192,7 @@ export async function loadQueue(
     [
       siteId ? planIdsOfSite(supabase, siteId) : null,
       supabase
-        .from("target_drafts")
+        .from("target_drafts_v")
         .select(
           "id, plan_id, plan_item_id, channel, subject, body, hook, targeting_reason, ready, status, lint_issues, review_note, snoozed_until",
         )
@@ -205,7 +205,7 @@ export async function loadQueue(
         .order("created_at", { ascending: false })
         .limit(100),
       supabase
-        .from("manual_tasks")
+        .from("manual_tasks_v")
         .select("id, plan_id, plan_item_id, form_url")
         .eq("status", "a_faire")
         .limit(500),
@@ -223,7 +223,7 @@ export async function loadQueue(
         .order("created_at", { ascending: false })
         .limit(200),
       supabase
-        .from("target_drafts")
+        .from("target_drafts_v")
         .select("id", { count: "exact", head: true })
         .neq("status", "brouillon"),
     ],
@@ -249,7 +249,7 @@ export async function loadQueue(
       : { data: [] },
     itemIds.length
       ? supabase
-          .from("target_contacts")
+          .from("target_contacts_v")
           .select("plan_item_id, email, sendable, form_url")
           .in("plan_item_id", itemIds)
       : { data: [] },
@@ -288,7 +288,7 @@ export async function loadQueue(
       : { data: [] },
     formItemIds.length
       ? supabase
-          .from("target_drafts")
+          .from("target_drafts_v")
           .select("id, plan_item_id, body, ready, lint_issues, snoozed_until")
           .in("plan_item_id", formItemIds)
       : { data: [] },
@@ -395,7 +395,7 @@ export async function loadQueue(
         taskId: task.id,
         domain: it.source_domain,
         campaign: campaignMap.get(task.plan_id) ?? "",
-        formUrl: task.form_url,
+        formUrl: task.form_url ?? "",
         body: f.body,
         ready: f.ready,
         issues: (Array.isArray(f.lint_issues) ? f.lint_issues : []) as unknown as LintIssue[],
@@ -493,12 +493,12 @@ export async function approveMessages(
   if (ids.length === 0) return { status: "error", message: M.nothing };
   // Lecture avec les droits de la personne : elle ne peut approuver que ses propres messages.
   const { data: drafts } = await supabase
-    .from("target_drafts")
+    .from("target_drafts_v")
     .select("id, plan_id, plan_item_id, workspace_id, channel, ready, status")
     .in("id", ids);
   if (!drafts?.length) return { status: "error", message: M.notFound };
   const { data: contacts } = await supabase
-    .from("target_contacts")
+    .from("target_contacts_v")
     .select("plan_item_id, sendable")
     .in(
       "plan_item_id",
@@ -626,7 +626,7 @@ export async function editPendingMessage(
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { status: "error", message: M.unauthenticated };
   const { data: draft } = await supabase
-    .from("target_drafts")
+    .from("target_drafts_v")
     .select("id, plan_id, channel, hook, proposed_url, url_status, status")
     .eq("id", draftId)
     .maybeSingle();
@@ -684,7 +684,7 @@ export async function completeForm(
   taskId: string,
 ): Promise<AuditActionState> {
   const { data: draft } = await supabase
-    .from("target_drafts")
+    .from("target_drafts_v")
     .select("id, status, ready")
     .eq("id", draftId)
     .maybeSingle();
@@ -713,7 +713,7 @@ export async function snoozeItems(
   const ids = [...new Set(rawIds)].slice(0, 500);
   if (ids.length === 0) return { status: "error", message: M.nothing };
   const [d, r] = await Promise.all([
-    supabase.from("target_drafts").select("id").in("id", ids).eq("status", "brouillon"),
+    supabase.from("target_drafts_v").select("id").in("id", ids).eq("status", "brouillon"),
     supabase.from("reply_drafts").select("id").in("id", ids).eq("status", "brouillon"),
   ]);
   const draftIds = (d.data ?? []).map((x) => x.id);
@@ -759,7 +759,7 @@ export async function wakeSnoozed(
   // Lecture avec les droits de la personne : elle ne réveille que ce qu'elle voit.
   const [d, r] = await Promise.all([
     supabase
-      .from("target_drafts")
+      .from("target_drafts_v")
       .select("id")
       .eq("status", "brouillon")
       .not("snoozed_until", "is", null),
@@ -811,7 +811,7 @@ export async function refuseMessages(
   const ids = [...new Set(rawIds)].slice(0, 300);
   if (ids.length === 0) return { status: "error", message: M.nothing };
   const { data: rows } = await supabase
-    .from("target_drafts")
+    .from("target_drafts_v")
     .select("id, plan_id, plan_item_id, workspace_id, status, channel")
     .in("id", ids);
   const drafts = (rows ?? []).filter((x) => x.status === "brouillon" || x.channel === "formulaire");

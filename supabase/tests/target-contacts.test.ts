@@ -159,13 +159,13 @@ describe.skipIf(!adminUrl)("contacts des cibles : RLS et contraintes", () => {
       await db.query("select set_config('request.jwt.claims', $1, true)", [
         JSON.stringify({ sub: alice.userId, role: "authenticated" }),
       ]);
-      expect((await db.query("select * from public.target_contacts")).rowCount).toBe(1);
-      expect((await db.query("select * from public.manual_tasks")).rowCount).toBe(1);
+      expect((await db.query("select * from public.target_contacts_v")).rowCount).toBe(1);
+      expect((await db.query("select * from public.manual_tasks_v")).rowCount).toBe(1);
       await db.query("select set_config('request.jwt.claims', $1, true)", [
         JSON.stringify({ sub: bob.userId, role: "authenticated" }),
       ]);
-      expect((await db.query("select * from public.target_contacts")).rowCount).toBe(0);
-      expect((await db.query("select * from public.manual_tasks")).rowCount).toBe(0);
+      expect((await db.query("select * from public.target_contacts_v")).rowCount).toBe(0);
+      expect((await db.query("select * from public.manual_tasks_v")).rowCount).toBe(0);
     } finally {
       await db.query("rollback");
     }

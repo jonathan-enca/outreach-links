@@ -34,7 +34,7 @@ export const STOCK_REASONS = [
 /** Nombre de sites encore en stock pour cette analyse (lecture avec les droits de l'appelant). */
 export async function countStock(supabase: Client, runId: string): Promise<number> {
   const { count } = await supabase
-    .from("qualified_targets")
+    .from("qualified_targets_v")
     .select("id", { count: "exact", head: true })
     .eq("run_id", runId)
     .in("exclusion_reason", [...STOCK_REASONS]);

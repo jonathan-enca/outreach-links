@@ -49,11 +49,11 @@ export async function createBatch(
         .order("number", { ascending: false })
         .limit(1),
       supabase
-        .from("target_drafts")
+        .from("target_drafts_v")
         .select("id, plan_item_id, channel, ready, status, link_plan_items(position)")
         .eq("plan_id", plan.id)
         .limit(500),
-      supabase.from("target_contacts").select("plan_item_id, sendable").eq("plan_id", plan.id),
+      supabase.from("target_contacts_v").select("plan_item_id, sendable").eq("plan_id", plan.id),
       supabase.from("batch_items").select("draft_id").eq("plan_id", plan.id),
     ]);
   if (open && open.length > 0) return { status: "error", message: M.openExists };
@@ -144,7 +144,7 @@ export async function editDraft(
   const found = await editableDraft(supabase, batchId, draftId);
   if ("error" in found) return { status: "error", message: found.error };
   const { data: draft } = await supabase
-    .from("target_drafts")
+    .from("target_drafts_v")
     .select("id, channel, hook, proposed_url, url_status")
     .eq("id", draftId)
     .maybeSingle();
@@ -320,9 +320,9 @@ export async function loadBatches(supabase: Client, auditId: string): Promise<Ba
       .eq("plan_id", plan.id)
       .order("number"),
     supabase.from("batch_items").select("batch_id, draft_id, position").eq("plan_id", plan.id),
-    supabase.from("target_drafts").select("*").eq("plan_id", plan.id).limit(500),
+    supabase.from("target_drafts_v").select("*").eq("plan_id", plan.id).limit(500),
     supabase
-      .from("target_contacts")
+      .from("target_contacts_v")
       .select("plan_item_id, email, sendable, form_url")
       .eq("plan_id", plan.id),
     supabase.from("link_target_triage").select("plan_item_id, reason").eq("plan_id", plan.id),

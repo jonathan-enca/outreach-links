@@ -26,7 +26,12 @@ export function fakeSupabase(
   const log: { table: string; op: string; payload?: unknown }[] = [];
   const ACTIVE = ["en_attente", "estime", "confirme", "en_cours"];
 
-  function from(table: string) {
+  function from(rawTable: string) {
+    // Vues masquées (MO.2) : le faux client n'a pas de masquage, la vue lit la table.
+    const table = rawTable.replace(
+      /^(target_contacts|target_drafts|manual_tasks|qualified_targets)_v$/,
+      "$1",
+    );
     tables[table] ??= [];
     let op: "select" | "insert" | "update" | "delete" | "upsert" = "select";
     let conflictCol = "";

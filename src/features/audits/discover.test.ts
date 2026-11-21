@@ -176,8 +176,10 @@ describe("selectCompetitors", () => {
     ],
     { ownDomain: "moi.fr" },
   );
-  it("gratuit : 3 concurrents", () => {
-    expect(selectCompetitors(many, PLAN_LIMITS.gratuit)).toHaveLength(3);
+  it("gratuit : mêmes limites que payant (analyse complète, MO.2)", () => {
+    expect(selectCompetitors(many, PLAN_LIMITS.gratuit)).toEqual(
+      selectCompetitors(many, PLAN_LIMITS.payant),
+    );
   });
   it("payant : au plus 20, les multi-requêtes d'abord", () => {
     const sel = selectCompetitors(many, PLAN_LIMITS.payant);
