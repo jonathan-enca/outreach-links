@@ -4,7 +4,7 @@ import { t } from "@/lib/messages";
 
 /**
  * Adaptateur Stripe (fetch direct, sans SDK). Depuis le 21/11/2026 (décision de Jonathan : paiement
- * réel), les clés `sk_live_` et `sk_test_` sont acceptées ; toute autre clé est refusée. Le webhook
+ * réel), les clés secrètes et restreintes (`sk_`/`rk_`, live et test) sont acceptées ; toute autre clé est refusée. Le webhook
  * est authentifié par sa signature.
  */
 export interface BillingProvider {
@@ -32,9 +32,9 @@ export interface CheckoutInput {
 export class BillingConfigError extends Error {}
 
 export function assertSecretKey(key: string): void {
-  if (!/^sk_(test|live)_/.test(key)) {
+  if (!/^(sk|rk)_(test|live)_/.test(key)) {
     throw new BillingConfigError(
-      "Clé Stripe refusée : une clé secrète sk_test_ ou sk_live_ est attendue.",
+      "Clé Stripe refusée : une clé secrète ou restreinte (sk_/rk_, test ou live) est attendue.",
     );
   }
 }
