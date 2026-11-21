@@ -605,11 +605,9 @@ export const fr = {
     },
   },
   legalPages: {
-    provisional:
-      "Version provisoire : ce texte décrit le fonctionnement actuel du service et sera revu par un juriste avant l'ouverture au public.",
     toBeFilled: "À renseigner avant l'ouverture au public",
     back: "Retour à l'accueil",
-    updated: "Dernière mise à jour : 15 novembre 2026",
+    updated: "Dernière mise à jour : 21 novembre 2026",
     notice: {
       slug: "mentions-legales",
       title: "Mentions légales",
@@ -651,14 +649,18 @@ export const fr = {
         {
           title: "Votre boîte mail",
           body: [
-            "Les identifiants sont chiffrés. La lecture se limite aux fils de campagne ; le contenu d'un email entrant est traité comme une donnée, jamais comme une instruction.",
+            "Les identifiants sont chiffrés. Pour une boîte connectée par IMAP, la lecture se limite aux fils de campagne ; le contenu d'un email entrant est traité comme une donnée, jamais comme une instruction. Avec Gmail, nous ne lisons pas votre boîte.",
           ],
         },
         {
           title: "Données Google (Gmail)",
           body: [
-            "Si vous connectez votre compte Gmail, nous demandons une seule autorisation : envoyer des emails en votre nom. Nous l'utilisons pour envoyer les messages que vous avez validés, et rien d'autre. Nous ne lisons ni votre boîte ni vos contacts. Les réponses arrivent dans votre boîte habituelle. Nous n'utilisons pas ces données pour de la publicité ni pour entraîner des modèles, et nous ne les vendons pas. Vous pouvez retirer l'accès à tout moment depuis votre compte Google ou depuis Réglages > Boîte d'envoi.",
-            "L'utilisation des informations reçues des API Google respecte la Politique relative aux données utilisateur des services API Google, y compris les exigences d'Utilisation limitée. Vous pouvez révoquer l'accès à tout moment depuis les paramètres de votre compte Google ou depuis Réglages > Boîte d'envoi.",
+            "Données consultées : si vous connectez votre compte Gmail, nous demandons une seule autorisation, envoyer des emails en votre nom (gmail.send), et nous récupérons l'adresse email du compte connecté pour l'afficher. Nous ne lisons ni votre boîte, ni vos messages, ni vos réponses, ni vos contacts.",
+            "Utilisation : cette autorisation sert uniquement à envoyer, depuis votre adresse, les messages que vous avez relus et validés. Nous n'envoyons rien sans votre validation. Les réponses arrivent dans votre boîte habituelle, et le service n'envoie aucune relance automatique.",
+            "Partage : nous ne vendons pas ces données et nous ne les transmettons à aucun tiers, hors le service d'envoi de Google lui-même. Elles ne servent ni à la publicité ni à entraîner des modèles d'intelligence artificielle.",
+            "Protection : le jeton d'accès est chiffré dans notre base de données et utilisé uniquement côté serveur.",
+            "Conservation et suppression : le jeton est conservé tant que la boîte est connectée. Il est supprimé dès que vous retirez la boîte dans Réglages > Boîte d'envoi. Vous pouvez aussi révoquer l'accès à tout moment depuis les paramètres de votre compte Google.",
+            "L'utilisation des informations reçues des API Google respecte la Politique relative aux données utilisateur des services API Google, y compris les exigences d'Utilisation limitée.",
           ],
         },
         {
