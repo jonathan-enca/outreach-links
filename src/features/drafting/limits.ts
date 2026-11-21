@@ -27,6 +27,8 @@ export const DRAFT_LIMITS = {
   /**
    * Catalogue COMPLET du site (MC.6e, décision du 18/11/2026) : nombre de pages gardées (sitemap plus
    * pages visitées) selon le palier. La bêta compte comme Starter.
+   * Source de vérité : `plans.catalogue_cap` (lu par les droits, MO.1) ; ces valeurs en sont le miroir
+   * pour les mesures hors base.
    */
   catalogueCapByPlan: { gratuit: 100, starter: 200, pro: 500, business: 1_000 },
   /** Pages du catalogue montrées au modèle (présélection gratuite par mots communs). */

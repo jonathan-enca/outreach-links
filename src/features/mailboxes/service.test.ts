@@ -12,6 +12,13 @@ vi.mock("@/features/billing/entitlements", async (orig) => ({
     monthlyCampaigns: 3,
     dedicatedDomain: false,
     linkChecks: true,
+    lifetimeCampaigns: null,
+    linkMonitoring: true,
+    contactsVisible: true,
+    readableDrafts: null,
+    exportCsv: true,
+    readyReplies: true,
+    catalogueCap: 500,
   }),
 }));
 

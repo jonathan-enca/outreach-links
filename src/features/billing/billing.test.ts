@@ -100,6 +100,7 @@ describe("plafonds d'envoi appliqués côté serveur", () => {
       workspace_id: "ws1",
       dry_run: false,
       status: "envoye",
+      step: "initial",
       claimed_at: NOW.toISOString(),
     };
     const one = fakeSupabase({ plans: PLANS, sent_messages: [row], reply_sends: [] });
@@ -132,58 +133,53 @@ describe("plafonds d'envoi appliqués côté serveur", () => {
     const { client } = fakeSupabase({ plans: PLANS, subscriptions: [sub({ status: "past_due" })] });
     expect(await effectivePlan(client, "ws1", NOW)).toBe("starter");
   });
-  it("un abonné est plafonné par mois (emails + réponses réels), le dry run ne compte pas", async () => {
+  it("un abonné est plafonné par mois en cibles contactées ; relances, réponses et dry run ne comptent pas", async () => {
+    const sent = (over: Record<string, unknown>) => ({
+      workspace_id: "ws1",
+      dry_run: false,
+      status: "envoye",
+      step: "initial",
+      claimed_at: "2026-11-05T10:00:00Z",
+      ...over,
+    });
+    const reply = {
+      workspace_id: "ws1",
+      dry_run: false,
+      status: "envoye",
+      claimed_at: "2026-11-07T10:00:00Z",
+    };
     const { client } = fakeSupabase({
       plans: PLANS,
       subscriptions: [sub()],
       sent_messages: [
-        {
-          workspace_id: "ws1",
-          dry_run: false,
-          status: "envoye",
-          claimed_at: "2026-11-05T10:00:00Z",
-        },
-        {
-          workspace_id: "ws1",
-          dry_run: true,
-          status: "simule",
-          claimed_at: "2026-11-06T10:00:00Z",
-        },
-        {
-          workspace_id: "ws1",
-          dry_run: false,
-          status: "envoye",
-          claimed_at: "2026-10-30T10:00:00Z",
-        },
+        sent({}),
+        sent({ step: "relance", claimed_at: "2026-11-15T10:00:00Z" }),
+        sent({ dry_run: true, status: "simule" }),
+        sent({ claimed_at: "2026-10-30T10:00:00Z" }),
       ],
-      reply_sends: [],
+      reply_sends: [reply, reply],
     });
-    const d1 = await checkSendAllowance(client, "ws1", NOW);
-    expect(d1).toMatchObject({ allowed: true, used: 1, cap: 2 });
+    expect(await checkSendAllowance(client, "ws1", NOW)).toMatchObject({
+      allowed: true,
+      used: 1,
+      cap: 2,
+    });
     const { client: c2 } = fakeSupabase({
       plans: PLANS,
       subscriptions: [sub()],
-      sent_messages: [
-        {
-          workspace_id: "ws1",
-          dry_run: false,
-          status: "envoye",
-          claimed_at: "2026-11-05T10:00:00Z",
-        },
-      ],
-      reply_sends: [
-        {
-          workspace_id: "ws1",
-          dry_run: false,
-          status: "envoye",
-          claimed_at: "2026-11-07T10:00:00Z",
-        },
-      ],
+      sent_messages: [sent({}), sent({ claimed_at: "2026-11-06T10:00:00Z" })],
+      reply_sends: [],
     });
     expect(await checkSendAllowance(c2, "ws1", NOW)).toEqual({
       allowed: false,
       reason: "quota_mensuel",
       plan: "starter",
+    });
+    // Plafond atteint : une relance ou une réponse reste permise.
+    expect(await checkSendAllowance(c2, "ws1", NOW, false, false)).toMatchObject({
+      allowed: true,
+      used: 2,
+      cap: 2,
     });
   });
   it("début de mois civil UTC", () => {

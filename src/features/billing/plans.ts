@@ -46,10 +46,36 @@ export async function effectivePlan(
 /** Pendant la bêta, un espace sans abonnement envoie comme ce plan (décision de Jonathan, 17/11/2026). */
 export const BETA_SEND_PLAN: PaidPlanKey = "starter";
 
+/** Statuts d'un envoi réel parti ou en cours (le dry run et les annulés ne comptent pas). */
+const REAL_STATUSES = ["en_cours", "envoye", "a_reessayer", "echec"];
+
 /**
- * Autorise (ou non) UN envoi réel. Appliqué côté serveur, au moteur d'envoi : un workspace gratuit
- * n'envoie rien ; un abonné est plafonné par `plans.monthly_send_cap` (emails + réponses du mois).
- * Une lecture impossible du plan refuse (jamais d'envoi par défaut).
+ * Cibles contactées ce mois civil (UTC) : les PREMIERS messages réels. La relance et les réponses
+ * sont incluses dans l'offre et ne comptent pas (décision de Jonathan, 21/11/2026).
+ */
+export async function contactedThisMonth(
+  db: Client,
+  workspaceId: string,
+  now: Date,
+): Promise<number> {
+  const { data } = await db
+    .from("sent_messages")
+    .select("id")
+    .eq("workspace_id", workspaceId)
+    .eq("dry_run", false)
+    .eq("step", "initial")
+    .in("status", REAL_STATUSES)
+    .gte("claimed_at", monthStart(now).toISOString());
+  return data?.length ?? 0;
+}
+
+/**
+ * Autorise (ou non) UN premier message réel. Appliqué côté serveur, au moteur d'envoi : un workspace
+ * gratuit n'envoie rien ; un abonné est plafonné par `plans.monthly_send_cap` (cibles contactées du
+ * mois). Une lecture impossible du plan refuse (jamais d'envoi par défaut).
+ *
+ * `countsAgainstCap: false` pour une relance ou une réponse : l'offre doit permettre l'envoi, mais le
+ * plafond mensuel ne s'applique pas (une cible déjà contactée se relance et se répond toujours).
  *
  * `beta` (réglage `BETA_MODE`, lu par l'appelant) : tant que le paiement n'est pas ouvert, un espace
  * sans abonnement peut envoyer, plafonné comme `BETA_SEND_PLAN`. Les protections d'envoi (fenêtre,
@@ -60,6 +86,7 @@ export async function checkSendAllowance(
   workspaceId: string,
   now: Date,
   beta = false,
+  countsAgainstCap = true,
 ): Promise<SendDecision> {
   const subscribed = await effectivePlan(db, workspaceId, now);
   const plan = subscribed === "gratuit" && beta ? BETA_SEND_PLAN : subscribed;
@@ -69,26 +96,12 @@ export async function checkSendAllowance(
     .select("monthly_send_cap")
     .eq("key", plan)
     .maybeSingle();
-  if (!p) return { allowed: false, reason: "abonnement_requis", plan: "gratuit" };
-  const since = monthStart(now).toISOString();
-  const real = ["en_cours", "envoye", "a_reessayer", "echec"];
-  const [mails, replies] = await Promise.all([
-    db
-      .from("sent_messages")
-      .select("id")
-      .eq("workspace_id", workspaceId)
-      .eq("dry_run", false)
-      .in("status", real)
-      .gte("claimed_at", since),
-    db
-      .from("reply_sends")
-      .select("id")
-      .eq("workspace_id", workspaceId)
-      .eq("dry_run", false)
-      .in("status", real)
-      .gte("claimed_at", since),
-  ]);
-  const used = (mails.data?.length ?? 0) + (replies.data?.length ?? 0);
-  if (used >= p.monthly_send_cap) return { allowed: false, reason: "quota_mensuel", plan };
+  if (!p || p.monthly_send_cap <= 0) {
+    return { allowed: false, reason: "abonnement_requis", plan: "gratuit" };
+  }
+  const used = await contactedThisMonth(db, workspaceId, now);
+  if (countsAgainstCap && used >= p.monthly_send_cap) {
+    return { allowed: false, reason: "quota_mensuel", plan };
+  }
   return { allowed: true, plan, used, cap: p.monthly_send_cap };
 }
