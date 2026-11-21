@@ -61,6 +61,7 @@
 | Maître n° 2  | fait le 17/11 (nuit) : lecture adaptative et filtre avant lecture (46 cibles au lieu de 15 sur les mêmes candidats), stock et « Lire d'autres sites », types d'éditeurs déduits du profil et 40 requêtes garanties, onglets par type, test « rien de propre à un thème » ; **runs réels : 40 cibles en 11 min 12 pour 1,08 USD, puis 54 cibles, 72 après un lot « Lire d'autres sites »** ; **non fait** : email de fin (clé Resend refusée), pages ressources (J) | [#110](https://github.com/jonathan-enca/outreach-links/pull/110) à [#117](https://github.com/jonathan-enca/outreach-links/pull/117) | 2026-11-17 |
 | MB.2         | à faire **après MU.11** (le parcours et le moteur changent avant le test de bout en bout)                                                                                                                                                                                                                                                                                                                                                                          |                                                                                                                                     |            |
 | M6.2 à M7.3  | à faire                                                                                                                                                                                                                                                                                                                                                                                                                                                            |                                                                                                                                     |            |
+| MO.1         | fait (décisions d'offres écrites, table `plans` et droits étendus, plafond en cibles contactées ; migration appliquée sur la vraie base ; 0 USD d'API ; aucun écran)                                                                                                                                                                                                                                                                                               |                                                                                                                                     |            |
 
 ## Décisions prises
 
@@ -3144,3 +3145,33 @@ Retour de Jonathan : Cibles, À approuver et Emails très lents à s'ouvrir, Acc
 - **À approuver** : plus de mention de relance (« Une seule relance, dix jours après » et « la relance sera prévue dans dix jours ») : la relance automatique est coupée depuis le 19/11 (`AUTOMATIC_FOLLOW_UP = false`).
 - **Emails** : sélecteur « Campagne » (dès deux campagnes) sur « Programmés » et « Envoyés » ; ouvert sur le site choisi dans le menu. Les jauges (jour, semaine, mois) restent celles de la boîte, toutes campagnes.
 - **Dettes** : les pages publiques (accueil, tarifs, FAQ) parlent encore d'« une seule relance » ; à aligner si la relance ne revient pas.
+
+## MO.1 : offres et accès, socle serveur (21/11/2026, fait, une migration)
+
+Sous-jalon `PLAN.md > MO.1`. Branche `mo1-offres-et-droits`. **0 USD d'API**, aucun envoi. Aucun écran touché.
+
+- **Décisions de Jonathan (21/11/2026)**, toutes validées, écrites dans `CLAUDE.md` 4.6 et détaillées dans `docs/offres-et-acces.md` : gratuit « tout voir, rien envoyer » (une analyse complète, une fois par compte ; contacts masqués ; 3 messages lisibles) ; plafond mensuel en **cibles contactées** ; prix 29,90 / 49,90 / 199,90 € ; plus d'essai de 7 jours ; Scale à 2 000 ; vérification du lien obtenu dans toutes les offres payantes. **Maquette validée** : `docs/mockups/offres-verrous.html` (cinq écrans).
+- **Migration `2026122100000000_plans_access.sql`, appliquée sur la vraie base** : colonnes `contacts_visible`, `readable_drafts` (null = tous), `export_csv`, `link_monitoring`, `ready_replies`, `catalogue_cap`, `lifetime_campaigns` (null = pas de plafond à vie) ; `business.monthly_send_cap` = 2 000 ; `starter.link_checks` = vrai.
+- **Droits** (`src/features/billing/entitlements.ts`, source unique) : `contactsVisible`, `readableDrafts`, `exportCsv`, `linkMonitoring`, `readyReplies`, `catalogueCap`, `lifetimeCampaigns` ; `campaignBlocked` et `campaignsEver` (le gratuit ne lance qu'une analyse, à vie : `src/features/audits/service.ts`) ; `replyBlock` (une réponse n'est refusée que par l'offre, jamais par le plafond).
+- **Compteur** (`src/features/billing/plans.ts`) : `contactedThisMonth` ne compte que `sent_messages.step = 'initial'` réels ; `reply_sends` et relances ne comptent plus. `checkSendAllowance(…, countsAgainstCap)` : le moteur d'envoi (`sending/service.ts`) laisse partir une relance plafond atteint et rend `quota_mensuel` pour les premiers messages ; les réponses (`inbox/send.ts`, `inbox/service.ts`) ne sont plus bloquées par le plafond.
+- **Catalogue** : `plan-drafts.ts` lit `catalogueCap` dans les droits (table `plans`) ; `DRAFT_LIMITS.catalogueCapByPlan` n'en est plus que le miroir pour les mesures hors base.
+
+### Ce qui ne change pas encore
+
+- `BETA_MODE` reste actif : tout inscrit a les droits Starter. Les nouveaux droits existent mais **aucun écran ni aucune lecture ne les applique** (contacts, messages, export : MO.2 et MO.3).
+- La grille de la home lit la table : elle affiche déjà 2 000 pour Scale et la vérification des liens pour Starter, mais le libellé dit encore « envois » et le bandeau parle encore de l'essai de 7 jours (MO.4).
+
+### Dettes et pièges
+
+- `target_contacts` et `target_drafts` sont lisibles par tout membre de l'espace à travers l'API de la base : le masquage de MO.2 doit se faire en base (vue ou fonction), pas seulement dans les écrans.
+- `PLAN_LIMITS.gratuit` (3 concurrents, 0,25 USD) bride encore l'analyse d'un gratuit hors bêta : à lever en MO.2.
+- Le plafond de dépense quotidien (25 USD) arrêterait les analyses gratuites après une quinzaine d'inscrits par jour : à relever en MO.5.
+- Un envoi en `echec` compte comme une cible contactée (comportement d'avant, gardé).
+
+### Prochain sous-jalon : MO.2
+
+```
+Lis CLAUDE.md et PROGRESS.md. Puis lis uniquement le sous-jalon MO.2 dans PLAN.md, et docs/offres-et-acces.md.
+Vérifie que MO.1 est fait dans PROGRESS.md. Annonce ce que tu vas faire et ce que tu ne feras pas.
+Reste dans le périmètre (masquage côté serveur et en base, aucun écran nouveau). À la fin : tests/lint/typecheck verts, PROGRESS.md à jour, commit sur la branche mo2-masquage, PR fusionnée, puis donne-moi le prompt de MO.3.
+```

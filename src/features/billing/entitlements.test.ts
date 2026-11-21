@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { entitlementsFor, sendBlock, type PlanRow } from "./entitlements";
+import {
+  campaignBlocked,
+  entitlementsFor,
+  planBlockMessage,
+  replyBlock,
+  sendBlock,
+  type PlanRow,
+} from "./entitlements";
 
 const STARTER: PlanRow = {
   key: "starter",
@@ -8,7 +15,14 @@ const STARTER: PlanRow = {
   max_mailboxes: 1,
   monthly_campaigns: 1,
   dedicated_domain: false,
-  link_checks: false,
+  link_checks: true,
+  link_monitoring: false,
+  contacts_visible: true,
+  readable_drafts: null,
+  export_csv: true,
+  ready_replies: false,
+  catalogue_cap: 200,
+  lifetime_campaigns: null,
 };
 const PRO: PlanRow = {
   key: "pro",
@@ -18,6 +32,13 @@ const PRO: PlanRow = {
   monthly_campaigns: 3,
   dedicated_domain: false,
   link_checks: true,
+  link_monitoring: true,
+  contacts_visible: true,
+  readable_drafts: null,
+  export_csv: true,
+  ready_replies: true,
+  catalogue_cap: 500,
+  lifetime_campaigns: null,
 };
 
 describe("forfait gratuit", () => {
@@ -28,6 +49,27 @@ describe("forfait gratuit", () => {
     expect(e.maxSites).toBe(1);
     expect(e.monthlyCampaigns).toBe(1);
     expect(sendBlock(e)).toMatch(/forfait payant/);
+  });
+
+  it("tout voir, rien envoyer : contacts masqués, 3 messages lisibles, pas d'export", () => {
+    const e = entitlementsFor("gratuit", null, 0, false);
+    expect(e).toMatchObject({
+      contactsVisible: false,
+      readableDrafts: 3,
+      exportCsv: false,
+      linkChecks: false,
+      readyReplies: false,
+      catalogueCap: 100,
+      lifetimeCampaigns: 1,
+    });
+    expect(replyBlock(e)).toMatch(/forfait payant/);
+  });
+
+  it("une seule analyse, à vie : refusée dès la deuxième, même un autre mois", () => {
+    const e = entitlementsFor("gratuit", null, 0, false);
+    expect(campaignBlocked(e, 0, 0)).toBe(false);
+    expect(campaignBlocked(e, 0, 1)).toBe(true);
+    expect(planBlockMessage(e, "campagne")).toMatch(/une fois/);
   });
 
   it("bêta : envoie avec les droits du forfait Starter, plafonnés", () => {
@@ -58,9 +100,31 @@ describe("forfait payant", () => {
     expect(sendBlock(e)).toBeNull();
   });
 
-  it("bloque l'envoi une fois le plafond mensuel atteint", () => {
+  it("bloque les nouveaux contacts une fois le plafond mensuel atteint, pas les réponses", () => {
     const e = entitlementsFor("starter", STARTER, 100, false);
-    expect(sendBlock(e)).toMatch(/Plafond mensuel atteint/);
+    expect(sendBlock(e)).toMatch(/Plafond mensuel atteint \(100 cibles contactées/);
+    expect(replyBlock(e)).toBeNull();
+  });
+
+  it("droits par offre : contacts, export et liens vérifiés partout ; surveillance et réponses prêtes dès Pro", () => {
+    const starter = entitlementsFor("starter", STARTER, 0, false);
+    const pro = entitlementsFor("pro", PRO, 0, false);
+    expect(starter).toMatchObject({
+      contactsVisible: true,
+      readableDrafts: null,
+      exportCsv: true,
+      linkChecks: true,
+      linkMonitoring: false,
+      readyReplies: false,
+      catalogueCap: 200,
+    });
+    expect(pro).toMatchObject({ linkMonitoring: true, readyReplies: true, catalogueCap: 500 });
+  });
+
+  it("campagnes : plafond mensuel seul pour un abonné", () => {
+    const e = entitlementsFor("starter", STARTER, 0, false);
+    expect(campaignBlocked(e, 0, 40)).toBe(false);
+    expect(campaignBlocked(e, 1, 40)).toBe(true);
   });
 
   it("sans ligne de plan lisible, refuse l'envoi", () => {

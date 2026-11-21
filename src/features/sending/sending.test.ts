@@ -870,13 +870,14 @@ describe("moteur d'envoi : plan d'abonnement (M6.1)", () => {
     expect(deps.send).not.toHaveBeenCalled();
     expect(db.tables.sent_messages).toHaveLength(0);
   });
-  it("plafond mensuel atteint : plus d'envoi réel", async () => {
+  it("plafond mensuel de cibles contactées atteint : plus de premier message", async () => {
     const db = world({ drafts: 2 });
     db.tables.plans![0]!.monthly_send_cap = 1;
     db.tables.sent_messages!.push({
       workspace_id: WS,
       dry_run: false,
       status: "envoye",
+      step: "initial",
       claimed_at: "2026-11-02T10:00:00Z",
       mailbox_id: "mb1",
     });

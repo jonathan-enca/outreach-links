@@ -2832,6 +2832,13 @@ export type Database = {
           price_annual_eur_cents: number;
           name: string;
           price_eur_cents: number;
+          contacts_visible: boolean;
+          readable_drafts: number | null;
+          export_csv: boolean;
+          link_monitoring: boolean;
+          ready_replies: boolean;
+          catalogue_cap: number;
+          lifetime_campaigns: number | null;
           sort_order: number;
         };
         Insert: {
@@ -2847,6 +2854,13 @@ export type Database = {
           price_annual_eur_cents: number;
           name: string;
           price_eur_cents: number;
+          contacts_visible?: boolean;
+          readable_drafts?: number | null;
+          export_csv?: boolean;
+          link_monitoring?: boolean;
+          ready_replies?: boolean;
+          catalogue_cap?: number;
+          lifetime_campaigns?: number | null;
           sort_order: number;
         };
         Update: {
@@ -2862,6 +2876,13 @@ export type Database = {
           price_annual_eur_cents?: number;
           name?: string;
           price_eur_cents?: number;
+          contacts_visible?: boolean;
+          readable_drafts?: number | null;
+          export_csv?: boolean;
+          link_monitoring?: boolean;
+          ready_replies?: boolean;
+          catalogue_cap?: number;
+          lifetime_campaigns?: number | null;
           sort_order?: number;
         };
         Relationships: [];

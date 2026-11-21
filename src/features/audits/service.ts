@@ -7,6 +7,8 @@ import { env } from "@/env";
 import { dailyCapReached } from "@/lib/costs";
 import { betaEnabled, effectivePlan } from "./beta";
 import {
+  campaignBlocked,
+  campaignsEver,
   campaignsThisMonth,
   loadEntitlements,
   planBlockMessage,
@@ -137,11 +139,13 @@ export async function createAudit(
   if (active) return { status: "ok", auditId: active.id, message: AUDIT_MESSAGES.alreadyActive };
 
   // Campagnes lancées par mois selon le forfait (une campagne = une analyse de site + son plan de
-  // liens ; gratuit : 1 en aperçu). Une analyse échouée ne compte pas. Les domaines de test restent exemptés.
+  // liens ; gratuit : 1 seule, à vie). Une analyse échouée ne compte pas. Les domaines de test restent exemptés.
   if (!isTestDomain(site.domain)) {
     const ent = await loadEntitlements(supabase, site.workspace_id, new Date(), betaEnabled());
     const used = await campaignsThisMonth(supabase, site.workspace_id, new Date());
-    if (used >= ent.monthlyCampaigns) {
+    const ever =
+      ent.lifetimeCampaigns === null ? 0 : await campaignsEver(supabase, site.workspace_id);
+    if (campaignBlocked(ent, used, ever)) {
       return { status: "error", message: planBlockMessage(ent, "campagne") };
     }
   }

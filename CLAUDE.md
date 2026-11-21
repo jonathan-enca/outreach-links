@@ -135,22 +135,42 @@ Réponse de la cible demandant de l'argent : trois options présentées à l'uti
 ### 4.5 Coûts et audit gratuit
 
 - **Plafonner chaque audit** : nombre de concurrents (ex. 3 en gratuit, 10 à 20 en payant), nombre de mots-clés, profondeur des backlinks.
-- Audit gratuit : version réduite (score, 3 pages prioritaires, 10 cibles en aperçu, pas d'envoi), cache DataForSEO par domaine, une exécution par domaine et par période, email requis.
+- Analyse gratuite (décision du 21/11/2026) : complète, une seule fois par compte, email confirmé, cache DataForSEO par domaine, aucun envoi. Elle coûte environ 1 à 1,50 USD d'API : c'est le coût d'acquisition d'un inscrit, à surveiller.
 - Mesurer le coût API réel par audit avant de fixer les prix ; un tableau de bord interne du coût par audit et par utilisateur est obligatoire.
 
-### 4.6 Pricing
+### 4.6 Offres et accès
 
-**Décision de Jonathan (16/11/2026, prix confirmés le 20/11/2026)** : trois offres payantes, **29,90 € / 49,90 € / 199,90 € TTC par mois** (Starter, Pro, Scale ; l'offre `business` s'affiche « Scale »), plus un accès gratuit sans carte (audit réduit, aperçu de cibles, aucun envoi). Source de vérité : table `plans` (`starter`, `pro`, `business`). **Les trois tactiques sont incluses dans toutes les offres** (c'est la base : la grille de tarifs ne les mentionne pas).
+**Décision de Jonathan (21/11/2026)**, détail et raisons dans `docs/offres-et-acces.md`, maquette validée dans `docs/mockups/offres-verrous.html`. Source de vérité : table `plans` (`gratuit`, `starter`, `pro`, `business` affiché « Scale »), lue uniquement par `src/features/billing/entitlements.ts`. **Les trois tactiques sont incluses dans toutes les offres.**
 
-Répartition des accès (celle affichée sur le site, lue dans `plans`) :
+**Gratuit : « tout voir, rien envoyer ».** C'est le produit entier, arrêté une marche avant l'envoi ; il sert à amener des clients.
 
-- **Starter 29,90 €** : 1 site, 1 campagne par mois, 100 emails par mois, 1 boîte.
-- **Pro 49,90 €** (recommandé) : 3 sites, 3 campagnes, 300 emails, 2 boîtes, vérification des liens.
-- **Scale 199,90 €** : 20 sites, 20 campagnes, 1 000 emails, 10 boîtes, domaine d'envoi dédié, tout Pro.
+- 1 site, **une analyse complète, une seule fois par compte**, Search Console possible.
+- Toute la liste des cibles (site, page, type, raison). **Emails et liens de formulaire masqués** : ils ne quittent jamais le serveur.
+- **3 messages lisibles en entier**, les autres réduits à l'objet et à la première phrase.
+- Verrouillés : export, boîte d'envoi (connexion comprise), validation, envoi, relance, tâches manuelles.
+- On ne montre que du vrai (« email vérifié » seulement s'il l'est) ; chaque verrou dit ce qu'il cache et ce qui le débloque ; jamais « backlinks garantis », y compris sur l'écran d'offre.
 
-**Bêta (décision de Jonathan, 17/11/2026)** : tant que `BETA_MODE` est actif, l'envoi réel est ouvert à tout inscrit sans abonnement, plafonné comme Starter (100 envois par mois). À refermer à l'ouverture du paiement.
+**Offres payantes** (prix TTC par mois, annuel à -20 %) :
 
-Carte demandée au premier envoi réel (comme Outlink). Paliers différenciés par valeur (sites, audits, réponses prêtes à insérer), pas seulement par volume d'emails. Marque blanche et offre agence : plus tard. Remboursement à définir.
+|                                    | Starter 29,90 € | Pro 49,90 € (mis en avant) | Scale 199,90 € |
+| ---------------------------------- | --------------- | -------------------------- | -------------- |
+| Sites                              | 1               | 3                          | 20             |
+| Campagnes par mois                 | 1               | 3                          | 20             |
+| Cibles contactées par mois         | 100             | 300                        | 2 000          |
+| Boîtes d'envoi                     | 1               | 2                          | 10             |
+| Contacts, messages, export         | oui             | oui                        | oui            |
+| Vérification du lien obtenu        | oui             | oui                        | oui            |
+| Surveillance continue et alertes   | non             | oui                        | oui            |
+| Réponses prêtes à insérer          | non             | oui                        | oui            |
+| Pages du site connues du rédacteur | 200             | 500                        | 1 000          |
+| Domaine d'envoi dédié              | non             | non                        | oui            |
+
+- **Le plafond mensuel compte les cibles contactées** (premier message). La relance et les réponses sont incluses, non comptées, et partent même plafond atteint.
+- **Pas d'essai de 7 jours** : le gratuit est l'essai. « Satisfait ou remboursé 14 jours » n'est pas promis (à voir avec le juriste).
+- **Tunnel** : home « analyse gratuite, sans carte » → inscription → analyse → cibles (contacts verrouillés) → 3 messages lisibles → « Envoyer » → **un seul écran d'offre**, appelé depuis tous les verrous, avec les chiffres de l'utilisateur → paiement → connexion de la boîte → envoi.
+- **Fin d'abonnement** : retour au gratuit, tout reste lisible, l'envoi s'arrête, les relances prévues sont suspendues et le disent ; rien n'est supprimé.
+
+**Bêta (décision de Jonathan, 17/11/2026)** : tant que `BETA_MODE` est actif, tout inscrit a les droits Starter sans abonnement. À refermer à l'ouverture du paiement (MO.5).
 
 ## 5. Pitch et qualité des messages
 

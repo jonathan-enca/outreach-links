@@ -66,9 +66,10 @@ async function sendNextReply(db: Client, box: MailboxRow, deps: SendDeps): Promi
   const dry = !deps.realSendingAllowed();
   const base = { mailboxId: box.id };
 
-  // M6.1 : même contrôle de plan que l'envoi initial (envoi réel seulement).
+  // M6.1 : une réponse réelle exige une offre qui envoie. MO.1 : elle ne compte pas dans le plafond
+  // mensuel (cibles contactées) et part même quand il est atteint.
   if (!dry) {
-    const allowance = await checkSendAllowance(db, box.workspace_id, now, betaEnabled());
+    const allowance = await checkSendAllowance(db, box.workspace_id, now, betaEnabled(), false);
     if (!allowance.allowed) return { ...base, result: allowance.reason };
   }
 

@@ -140,11 +140,14 @@ async function sendNext(db: Client, box: MailboxRow, deps: SendDeps): Promise<Ma
   // Suspension par la personne (écran « Envois ») : rien ne part, rien n'est annulé.
   if (box.sending_paused) return { ...base, result: "suspendue" };
 
-  // M6.1 : un envoi RÉEL exige un abonnement actif et respecte le plafond mensuel du plan.
-  // Le dry run (simulation) n'est pas soumis au plan.
+  // M6.1 : un envoi RÉEL exige un abonnement actif. Le dry run (simulation) n'est pas soumis au plan.
+  // MO.1 : le plafond mensuel compte les cibles contactées (premiers messages) ; une relance part
+  // même quand il est atteint.
+  let monthFull = false;
   if (!dry) {
-    const allowance = await checkSendAllowance(db, box.workspace_id, now, betaEnabled());
+    const allowance = await checkSendAllowance(db, box.workspace_id, now, betaEnabled(), false);
     if (!allowance.allowed) return { ...base, result: allowance.reason };
+    monthFull = allowance.used >= allowance.cap;
   }
 
   if (
@@ -191,7 +194,7 @@ async function sendNext(db: Client, box: MailboxRow, deps: SendDeps): Promise<Ma
 
   // Envoi ponctuel : un brouillon désigné passe avant la file et peut dépasser l'échauffement, mais
   // jamais le plafond horaire ni le plafond journalier de la boîte (aussi appliqués en base).
-  if (deps.priorityDraftId && inHour < hourly && rows.length < box.daily_cap) {
+  if (deps.priorityDraftId && !monthFull && inHour < hourly && rows.length < box.daily_cap) {
     const priority = await sendPriorityDraft(db, box, deps.priorityDraftId, dry, now, deps);
     if (priority) return { ...base, ...priority };
   }
@@ -202,6 +205,7 @@ async function sendNext(db: Client, box: MailboxRow, deps: SendDeps): Promise<Ma
     const followUp = await sendNextFollowUp(db, box, dry, now, deps);
     if (followUp) return { ...base, ...followUp };
   }
+  if (monthFull) return { ...base, result: "quota_mensuel" };
 
   // Candidats : brouillons email des lots VALIDÉS des plans des sites qui utilisent cette boîte, dans l'ordre.
   const { data: links } = await db.from("mailbox_sites").select("site_id").eq("mailbox_id", box.id);

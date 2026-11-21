@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AuditActionState } from "@/features/audits/service";
 import { betaEnabled } from "@/features/audits/beta";
-import { loadEntitlements, sendBlock } from "@/features/billing/entitlements";
+import { loadEntitlements, replyBlock } from "@/features/billing/entitlements";
 import { applyEffects } from "@/features/classification/actions";
 import { CATEGORIES, RISK_CATEGORIES, type Category } from "@/features/classification/types";
 import type { LlmClient } from "@/lib/llm/client";
@@ -581,9 +581,10 @@ export async function validateReplyDraft(
   const d = await ownDraft(supabase, draftId);
   if (!d) return { status: "error", message: M.notFound };
   if (d.status !== "brouillon") return { status: "error", message: M.draftFrozen };
-  // Valider une réponse, c'est l'envoyer : même règle de forfait que pour les campagnes.
+  // Valider une réponse, c'est l'envoyer : l'offre doit permettre l'envoi. Le plafond mensuel
+  // (cibles contactées) ne s'applique pas aux réponses (MO.1).
   const ent = await loadEntitlements(supabase, d.workspace_id, new Date(), betaEnabled());
-  const blocked = sendBlock(ent);
+  const blocked = replyBlock(ent);
   if (blocked) return { status: "error", message: blocked };
   const ctx = await loadContext(supabase, d.sent_message_id);
   if (!ctx) return { status: "error", message: M.noContext };

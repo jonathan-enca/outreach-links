@@ -533,6 +533,45 @@ Ordre : **MQ.1 d'abord** (sans elle, rien n'est mesurable). MQ.2, MQ.4 et MQ.5 p
 - Suivi des réponses et des liens pendant 30 jours.
 - **Acceptation** : décision écrite (quelles pistes, quels types de sites, quelle profondeur de boule de neige) dans `PROGRESS.md`.
 
+## MO. Offres et accès (décisions de Jonathan, 21/11/2026)
+
+Pourquoi : le gratuit doit amener des clients (« tout voir, rien envoyer ») et chaque offre doit être réellement appliquée avant l'ouverture du paiement. Réflexion et décisions : `docs/offres-et-acces.md`. Maquette validée : `docs/mockups/offres-verrous.html`. Résumé : `CLAUDE.md` 4.6.
+
+Ordre : MO.1 → MO.2 → MO.3 → MO.4 → MO.5. `BETA_MODE` reste actif jusqu'à MO.5.
+
+### MO.1 Décisions écrites, table `plans`, droits et compteur
+
+- `CLAUDE.md` et `PLAN.md` à jour ; table `plans` : nouveaux droits (contacts visibles, messages lisibles, export, surveillance, réponses prêtes à insérer, plafond du catalogue, campagnes à vie) ; Scale à 2 000 ; vérification des liens dans toutes les offres payantes.
+- `entitlements.ts` reste la source unique ; le plafond mensuel compte les cibles contactées.
+- Critères : un gratuit ne lance qu'une analyse, à vie ; une relance ou une réponse part plafond atteint ; aucun changement pour un inscrit de la bêta, hors compteur.
+
+### MO.2 Masquage côté serveur et dans la base
+
+- Prérequis : MO.1.
+- Emails et liens de formulaire des cibles : jamais envoyés au navigateur ni lisibles par l'API de la base quand `contactsVisible` est faux (aujourd'hui `target_contacts` est lisible par tout membre de l'espace : passer par une vue ou une fonction qui masque). Compteurs (« 64 emails vérifiés ») toujours disponibles.
+- Messages : au-delà de `readableDrafts`, seuls l'objet et la première phrase sortent du serveur. Les messages lisibles sont les mieux classés et restent les mêmes d'une visite à l'autre.
+- Export CSV, tâches manuelles (lien du formulaire, message à copier) : refusés sans le droit.
+- Analyse du gratuit : complète (mêmes limites qu'un abonné), une fois ; `PLAN_LIMITS.gratuit` ne bride plus.
+- Critères : test qui lit la base avec le jeton d'un gratuit et ne trouve aucune adresse ; même test vert pour un abonné ; rien ne change sous `BETA_MODE`.
+
+### MO.3 Écran d'offre et verrous (à l'identique de la maquette)
+
+- Prérequis : MO.2. Maquette déjà validée : l'écran en ligne doit lui être identique.
+- Un seul écran d'offre (fenêtre) appelé depuis tous les verrous, avec les chiffres de l'utilisateur et l'offre qui suffit mise en avant ; pastilles « Email vérifié » et « Formulaire trouvé » ; messages entrouverts ; boîte d'envoi verrouillée ; petits verrous (ajouter un site, relancer une analyse, export) ; bandeau permanent et encart du menu.
+- Critères : captures comparées à la maquette en grand écran et en étroit ; chaque verrou ouvre l'écran d'offre ; rien de visible pour un abonné.
+
+### MO.4 Tunnel
+
+- Prérequis : MO.3.
+- Home et grille de tarifs : le gratuit redevient une colonne, « Gratuit pour tout voir. Payant pour envoyer. », plus aucune mention des 7 jours d'essai, libellé « cibles contactées ».
+- Emails de relance par Resend, avec désinscription : analyse terminée, J+2, J+7.
+- Mesure des six étapes : inscrit, analyse terminée, écran d'offre vu, paiement, boîte connectée, premier envoi.
+
+### MO.5 Ouverture du paiement
+
+- Prérequis : MO.4.
+- Stripe en réel, coupure de `BETA_MODE`, fin d'abonnement (retour au gratuit, relances suspendues et expliquées), retour à une offre plus petite (sites en trop en lecture seule), sort des testeurs de la bêta, plafond de dépense quotidien relevé pour les analyses gratuites.
+
 ## Plus tard (hors plan v1)
 
 OAuth Gmail/Outlook, extension navigateur pour formulaires et badges SERP, module annuaires, serveur MCP, marque blanche, autres langues.

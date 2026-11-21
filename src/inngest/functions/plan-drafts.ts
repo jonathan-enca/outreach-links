@@ -1,14 +1,9 @@
 import { z } from "zod";
 import { inngest } from "@/inngest/client";
 import { BOT_USER_AGENT } from "@/features/deadlinks/hunt";
-import {
-  catalogueCap,
-  listSiteUrls,
-  pickCatalogueUrls,
-  readCataloguePages,
-} from "@/features/drafting/catalogue";
+import { listSiteUrls, pickCatalogueUrls, readCataloguePages } from "@/features/drafting/catalogue";
 import type { CatalogueEntry } from "@/features/drafting/shortlist";
-import { BETA_SEND_PLAN, effectivePlan } from "@/features/billing/plans";
+import { loadEntitlements } from "@/features/billing/entitlements";
 import { trafficScorer } from "@/features/brand/rank-pages";
 import { getLatestBrandProfile } from "@/features/brand/service";
 import { betaEnabled } from "@/features/audits/beta";
@@ -135,9 +130,9 @@ export const planDrafts = inngest.createFunction(
       const toRead = await step.run("catalogue-urls", async () => {
         const service = createServiceClient();
         if (await loadCatalogueEntries(service, siteId)) return [];
-        const subscribed = await effectivePlan(service, run.workspaceId, new Date());
-        const plan = subscribed === "gratuit" && betaEnabled() ? BETA_SEND_PLAN : subscribed;
-        const cap = catalogueCap(plan);
+        // Plafond du catalogue : droit de l'offre (table `plans`, MO.1).
+        const ent = await loadEntitlements(service, run.workspaceId, new Date(), betaEnabled());
+        const cap = ent.catalogueCap;
         const known = await listSiteUrls(ctx.siteDomain, readerDeps());
         const home = `https://${ctx.siteDomain}/`;
         // Les pages déjà prévues par le plan restent proposables même si le sitemap les ignore.
