@@ -616,9 +616,10 @@ export const fr = {
         {
           title: "Éditeur du service",
           body: [
-            "Éditeur : à renseigner (nom ou raison sociale, forme juridique, adresse, numéro d'immatriculation).",
-            "Directeur de la publication : à renseigner.",
-            "Contact : à renseigner.",
+            "Éditeur : JE CONSEIL, société par actions simplifiée unipersonnelle (SASU) au capital de 50 €, immatriculée au RCS de Nanterre sous le numéro 942 110 727. Numéro de TVA intracommunautaire : FR28942110727.",
+            "Siège social : à renseigner.",
+            "Directeur de la publication : Jonathan Encaoua.",
+            "Contact : jonathan.encaoua@gmail.com.",
           ],
         },
         {
