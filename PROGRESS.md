@@ -3251,7 +3251,7 @@ Maquette validée : `docs/mockups/notifications.html` (écran de réglages + 12 
 - **Webhook Stripe** (`billing/webhook.ts`) : `invoice.payment_failed` pose la date et le montant ; `customer.subscription.updated` en `past_due` pose la date aussi (donc l'email part même si l'événement de facture n'est pas reçu) ; `invoice.paid` ou un abonnement redevenu actif efface tout.
 - **Pause des envois après 7 jours** (`PAYMENT_GRACE_DAYS`, `sendingPlan` dans `billing/plans.ts`, utilisé par `checkSendAllowance`) : seuls les envois s'arrêtent, les autres droits de l'offre restent tant que Stripe n'a pas annulé l'abonnement ; rien n'est supprimé. Pendant la bêta, un espace en retard de paiement retombe sur le plafond de la bêta (comme un inscrit sans abonnement).
 - **Email « Un paiement n'est pas passé »** (toujours envoyé, étape `paiement` de `notify-tick`) : montant, offre, date du refus, date de la pause, bouton vers `/app/facturation`. Une fois par refus (trace `notify.payment` avec la date du refus).
-- **À faire chez Stripe (facultatif)** : ajouter l'événement `invoice.payment_failed` à la destination de webhook `backleenks`. Sans lui, l'email part quand même, avec le prix de l'offre à la place du montant exact de la facture.
+- **Stripe (fait le 22/11, dans le tableau de bord, compte « JE CONSEIL », mode réel)** : l'événement `invoice.payment_failed` est ajouté à la destination de webhook `backleenks`, qui écoute maintenant six événements. L'email cite donc le montant exact de la facture.
 - **Pas fait** : pas de message propre à ce cas dans l'écran « Emails » quand les envois sont en pause (il affiche le motif existant « abonnement requis ») ; pas d'email « vos envois ont repris ».
 
 ## Socle SEO technique (22/11/2026, demande de Jonathan)
