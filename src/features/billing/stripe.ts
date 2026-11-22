@@ -78,6 +78,8 @@ export function createStripeProvider(
       f.set("subscription_data[metadata][workspace_id]", i.workspaceId);
       f.set("subscription_data[metadata][plan]", i.plan);
       f.set("subscription_data[metadata][period]", i.period);
+      // Codes promotionnels saisis sur la page de paiement Stripe (tests réels, offres de lancement).
+      f.set("allow_promotion_codes", "true");
       f.set("line_items[0][quantity]", "1");
       f.set("line_items[0][price_data][currency]", "eur");
       f.set("line_items[0][price_data][unit_amount]", String(i.priceEurCents));
