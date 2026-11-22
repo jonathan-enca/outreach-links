@@ -3253,3 +3253,9 @@ Maquette validée : `docs/mockups/notifications.html` (écran de réglages + 12 
 - **Email « Un paiement n'est pas passé »** (toujours envoyé, étape `paiement` de `notify-tick`) : montant, offre, date du refus, date de la pause, bouton vers `/app/facturation`. Une fois par refus (trace `notify.payment` avec la date du refus).
 - **À faire chez Stripe (facultatif)** : ajouter l'événement `invoice.payment_failed` à la destination de webhook `backleenks`. Sans lui, l'email part quand même, avec le prix de l'offre à la place du montant exact de la facture.
 - **Pas fait** : pas de message propre à ce cas dans l'écran « Emails » quand les envois sont en pause (il affiche le motif existant « abonnement requis ») ; pas d'email « vos envois ont repris ».
+
+## Socle SEO technique (22/11/2026, demande de Jonathan)
+
+- **Fait** : `src/app/robots.ts` (tout ouvert sauf `/app`, `/api`, `/auth`, `/demo`, ligne Sitemap) et `src/app/sitemap.ts` (accueil, guides de boîte d'envoi, pages légales ; ajouter un contenu = une ligne dans `publicPaths()`). `noindex` sur `/connexion`, `/inscription`, `/mot-de-passe-oublie`, `/reinitialiser`. URL de base : `NEXT_PUBLIC_APP_URL`.
+- **Stratégie éditoriale** : `docs/strategie-seo.md` (7 thèmes, 118 pages, un contenu par jour) et maquette d'article `docs/mockups/article-blog.html`, encore dans le répertoire de travail local, à commiter avec le chantier du blog.
+- **Reste** : déclarer le sitemap dans la Search Console ; gabarits `/blog`, `/guides`, `/glossaire`, `/comparatifs` après validation de la maquette ; page d'entrée `/audit-gratuit` (404 aujourd'hui) ; `og:image` ; `llms.txt` ; `noindex` sur `/demo/*` ; redirection de `outreach-links.vercel.app`.

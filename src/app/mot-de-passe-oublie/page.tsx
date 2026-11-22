@@ -4,7 +4,7 @@ import { AuthShell } from "@/components/auth-shell";
 import { ForgotForm } from "@/features/auth/forms";
 import { t } from "@/lib/messages";
 
-export const metadata: Metadata = { title: t.auth.forgot.title };
+export const metadata: Metadata = { title: t.auth.forgot.title, robots: { index: false } };
 
 export default function MotDePasseOubliePage() {
   const f = t.auth.forgot;
