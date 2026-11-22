@@ -45,7 +45,9 @@ export function buildJsonLd(plans: PublicPlan[] | null) {
               name: t.home.tour.videoLabel,
               description: t.home.tour.videoDescription,
               inLanguage: "fr",
-              thumbnailUrl: PRODUCT_TOUR_VIDEO.poster ? `${url}${PRODUCT_TOUR_VIDEO.poster}` : undefined,
+              thumbnailUrl: PRODUCT_TOUR_VIDEO.poster
+                ? `${url}${PRODUCT_TOUR_VIDEO.poster}`
+                : undefined,
               contentUrl: `${url}${PRODUCT_TOUR_VIDEO.src}`,
               uploadDate: PRODUCT_TOUR_VIDEO.uploadDate,
               duration: PRODUCT_TOUR_VIDEO.duration,
