@@ -18,7 +18,7 @@ import {
   weekHasNews,
   weeklyEmail,
 } from "./emails";
-import { isIdle, isQuietTime, pendingDecision } from "./run";
+import { countForms, isIdle, isQuietTime, pendingDecision } from "./run";
 import { renderNotification } from "./template";
 import { readUnsubscribeToken, unsubscribeToken } from "./unsubscribe";
 
@@ -411,5 +411,16 @@ describe("paiement refusé", () => {
     expect(renderNotification(m, links).text).toContain(
       "Le prélèvement pour l'offre Starter a été refusé le 22 novembre.",
     );
+  });
+});
+
+describe("formulaires à remplir", () => {
+  const item = (id: string) => ({ plan_item_id: id });
+  it("un brouillon qui a déjà sa tâche n'est compté qu'une fois", () => {
+    expect(countForms([item("a"), item("b")], [item("a"), item("b"), item("c")])).toBe(3);
+  });
+  it("un brouillon sans tâche compte en plus ; rien à faire : zéro", () => {
+    expect(countForms([item("a"), item("z")], [item("a")])).toBe(2);
+    expect(countForms([], [])).toBe(0);
   });
 });

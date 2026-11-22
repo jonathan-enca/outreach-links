@@ -3259,3 +3259,10 @@ Maquette validée : `docs/mockups/notifications.html` (écran de réglages + 12 
 - **Fait** : `src/app/robots.ts` (tout ouvert sauf `/app`, `/api`, `/auth`, `/demo`, ligne Sitemap) et `src/app/sitemap.ts` (accueil, guides de boîte d'envoi, pages légales ; ajouter un contenu = une ligne dans `publicPaths()`). `noindex` sur `/connexion`, `/inscription`, `/mot-de-passe-oublie`, `/reinitialiser`. URL de base : `NEXT_PUBLIC_APP_URL`.
 - **Stratégie éditoriale** : `docs/strategie-seo.md` (7 thèmes, 118 pages, un contenu par jour) et maquette d'article `docs/mockups/article-blog.html`, encore dans le répertoire de travail local, à commiter avec le chantier du blog.
 - **Reste** : déclarer le sitemap dans la Search Console ; gabarits `/blog`, `/guides`, `/glossaire`, `/comparatifs` après validation de la maquette ; page d'entrée `/audit-gratuit` (404 aujourd'hui) ; `og:image` ; `llms.txt` ; `noindex` sur `/demo/*` ; redirection de `outreach-links.vercel.app`.
+
+## Notifications : contrôle en production (22/11/2026)
+
+- **Constat** : aucune trace `notify.%` dans `events`, et c'est attendu. `notify-tick` tourne toutes les dix minutes sans erreur ; le contrôle a eu lieu un dimanche, donc les emails qui peuvent attendre (à valider, quota, campagne à l'arrêt, lien changé) sont retenus jusqu'au lundi 8 h, et rien ne déclenchait les autres (aucune réponse en attente, aucune boîte en erreur, aucun lien en ligne, aucun paiement en retard). Resend fonctionne (emails d'analyse délivrés le 20/11).
+- **Défaut corrigé avant le premier envoi** : les formulaires étaient comptés deux fois, car un brouillon « formulaire » a déjà sa tâche dès sa rédaction (84 annoncés au lieu de 45 sur l'espace de test). `countForms` dans `notifications/run.ts`, testé ; corrige l'email « à valider » et le résumé de la semaine.
+- **À constater lundi 23/11 à partir de 8 h (Paris)** : « des messages sont à valider » pour deux espaces, et le résumé de la semaine. Requête : `select type, count(*), max(created_at) from events where type like 'notify.%' group by 1`.
+- Le compte Resend est partagé avec d'autres projets de Jonathan : ses envois ne viennent pas tous de ce produit.
