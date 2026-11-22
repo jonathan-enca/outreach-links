@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
+import { contentNavLinks } from "@/features/content/listing";
 import { t } from "@/lib/messages";
 import { HOME_SECTIONS } from "./sections";
 
@@ -9,6 +10,8 @@ const link =
 export function SiteFooter() {
   const f = t.home.footer;
   const n = t.home.nav;
+  // Guides, Blog, Glossaire, Comparatifs : seulement les rubriques qui ont un contenu en ligne.
+  const resources = contentNavLinks();
   return (
     <footer
       aria-label={f.label}
@@ -49,16 +52,32 @@ export function SiteFooter() {
             </li>
           </ul>
         </nav>
-        <nav aria-label={f.accountTitle}>
-          <h2 className="mb-3 text-sm font-semibold">{f.accountTitle}</h2>
-          <ul className="grid gap-2 text-sm text-muted-foreground">
-            <li>
-              <Link className={link} href="/connexion">
-                {f.signIn}
-              </Link>
-            </li>
-          </ul>
-        </nav>
+        <div className="grid content-start gap-6">
+          <nav aria-label={f.accountTitle}>
+            <h2 className="mb-3 text-sm font-semibold">{f.accountTitle}</h2>
+            <ul className="grid gap-2 text-sm text-muted-foreground">
+              <li>
+                <Link className={link} href="/connexion">
+                  {f.signIn}
+                </Link>
+              </li>
+            </ul>
+          </nav>
+          {resources.length ? (
+            <nav aria-label={t.content.footerTitle}>
+              <h2 className="mb-3 text-sm font-semibold">{t.content.footerTitle}</h2>
+              <ul className="grid gap-2 text-sm text-muted-foreground">
+                {resources.map((r) => (
+                  <li key={r.href}>
+                    <Link className={link} href={r.href}>
+                      {r.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ) : null}
+        </div>
         <nav aria-label={f.legalTitle}>
           <h2 className="mb-3 text-sm font-semibold">{f.legalTitle}</h2>
           <ul className="grid gap-2 text-sm text-muted-foreground">

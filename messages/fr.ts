@@ -606,6 +606,115 @@ export const fr = {
       rights: "Tous droits réservés.",
     },
   },
+  /** Contenus éditoriaux (guides, blog, glossaire, comparatifs) : gabarit d'article, index, appels à l'action. */
+  content: {
+    home: "Accueil",
+    navBlog: "Blog",
+    footerTitle: "Ressources",
+    sections: {
+      guides: {
+        label: "Guides",
+        title: "Guides",
+        intro:
+          "Les méthodes complètes pour obtenir des liens sans les acheter, pas à pas, avec ce que nos propres campagnes nous ont appris.",
+      },
+      blog: {
+        label: "Blog",
+        title: "Blog",
+        intro:
+          "Des articles courts et concrets sur les backlinks : ce qui marche, ce qui ne sert à rien, et comment le vérifier vous-même.",
+      },
+      glossaire: {
+        label: "Glossaire",
+        title: "Glossaire du netlinking",
+        intro: "Les mots du netlinking expliqués simplement, un terme par page.",
+      },
+      comparatifs: {
+        label: "Comparatifs",
+        title: "Comparatifs et avis",
+        intro:
+          "Les outils et les plateformes de netlinking regardés de près, avec des prix datés et sourcés.",
+      },
+    },
+    themes: {
+      "backlinks-gratuits": "Backlinks gratuits",
+      methode: "Méthode",
+      "acheter-des-liens": "Acheter des liens",
+      "avis-et-alternatives": "Avis et alternatives",
+      "demandes-par-email": "Demandes par email",
+      "liens-et-ia": "Liens et IA",
+      "par-type-de-site": "Par type de site",
+      etude: "Étude",
+      glossaire: "Glossaire",
+    },
+    authors: {
+      jonathan: {
+        name: "Jonathan",
+        initials: "JE",
+        byline: (app: string) => `Par Jonathan, fondateur de ${app}`,
+      },
+    },
+    article: {
+      breadcrumb: "Fil d'Ariane",
+      updated: (date: string) => `Mis à jour le ${date}`,
+      published: (date: string) => `Publié le ${date}`,
+      readingTime: (min: number) => `${min} min de lecture`,
+      summaryTitle: "En bref",
+      tocTitle: "Dans cet article",
+      faqTitle: "Questions fréquentes",
+      sourcesTitle: "Sources",
+      relatedTitle: "À lire ensuite",
+      mailSubject: (subject: string) => `Objet : ${subject}`,
+      mailDemoLabel: "Exemple de démonstration",
+    },
+    index: {
+      empty: "Les premiers contenus arrivent bientôt.",
+      metaTitle: (title: string, app: string) => `${title} | ${app}`,
+    },
+    cta: {
+      fieldLabel: "Adresse de votre site",
+      fieldPlaceholder: "votresite.fr",
+      inline: {
+        pill: "Gratuit, sans carte bancaire",
+        title: "Qui cite vos concurrents, mais pas vous ?",
+        text: "Entrez l'adresse de votre site. Vous obtenez la liste des pages qui renvoient déjà vers vos concurrents, et la raison pour laquelle chacune pourrait vous citer aussi.",
+        button: "Voir qui pourrait me citer",
+        hint: "Vous regardez d'abord. Aucun message ne part sans votre accord.",
+      },
+      side: {
+        title: "Vos concurrents ont des liens que vous n'avez pas",
+        text: "Voyez lesquels, et à qui les demander. C'est gratuit.",
+        button: "Trouver mes liens manquants",
+      },
+      final: {
+        title: "Les pages qui devraient vous citer existent déjà",
+        text: (app: string) =>
+          `${app} les trouve, écrit chaque demande et l'envoie depuis votre boîte mail une fois que vous avez dit oui. Vous ne payez aucun lien.`,
+        button: "Trouver mes premières cibles",
+        hints: ["Aucun lien acheté", "Envoi depuis votre boîte", "Rien ne part sans votre accord"],
+      },
+    },
+    preview: {
+      title: "Aperçu des contenus (développement uniquement)",
+      intro:
+        "Tous les fichiers de content/, brouillons et contenus programmés compris. Cette page n'existe pas en production.",
+      draft: "Brouillon",
+      scheduled: (date: string) => `Programmé le ${date}`,
+      published: "En ligne",
+      banner: "Aperçu : ce contenu n'est pas forcément en ligne.",
+    },
+    llms: {
+      summary:
+        "Outil français d'outreach pour obtenir des backlinks éditoriaux gratuits : il trouve les pages qui ont une raison de citer un site, rédige chaque demande et l'envoie depuis la boîte mail de l'utilisateur après son accord. Aucun lien acheté.",
+      pagesTitle: "Pages principales",
+      homeLabel: "Accueil",
+      helpLabel: "Connecter une boîte d'envoi",
+    },
+    og: {
+      alt: (title: string, app: string) => `${title} | ${app}`,
+      tagline: "Des backlinks gratuits, demandés aux bons sites",
+    },
+  },
   legalPages: {
     toBeFilled: "À renseigner avant l'ouverture au public",
     back: "Retour à l'accueil",

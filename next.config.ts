@@ -8,6 +8,8 @@ import "./src/env";
 const MEDIA_CACHE = "public, max-age=86400, stale-while-revalidate=604800";
 
 const nextConfig: NextConfig = {
+  // Les contenus (`content/**/*.md`) sont relus à chaque revalidation : ils doivent accompagner les fonctions.
+  outputFileTracingIncludes: { "/**": ["./content/**/*.md"] },
   async headers() {
     return ["/visite-produit.mp4", "/visite-produit-poster.webp"].map((source) => ({
       source,
