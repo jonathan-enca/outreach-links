@@ -3,7 +3,12 @@ import { env } from "@/env";
 import { resendSender, type SendTransactional } from "@/features/analysis/notify";
 import { betaEnabled } from "@/features/audits/beta";
 import { campaignBlocked, campaignsEver, loadEntitlements } from "@/features/billing/entitlements";
-import { checkSendAllowance, effectivePlan, monthStart } from "@/features/billing/plans";
+import {
+  checkSendAllowance,
+  effectivePlan,
+  monthStart,
+  paymentPauseAt,
+} from "@/features/billing/plans";
 import { formatSendTime } from "@/features/sending/queue-note";
 import { isInSendWindow, nextSendStart } from "@/features/sending/schedule";
 import {
@@ -23,6 +28,7 @@ import {
   mailboxEmail,
   monthHasNews,
   monthlyEmail,
+  paymentEmail,
   quotaEmail,
   quotaLevel,
   reminderEmail,
@@ -876,6 +882,43 @@ export async function notifyMonthly(ctx: NotifyCtx): Promise<number> {
         type: "notify.monthly",
         payload: { period, sent: summary.sent, replies: summary.replies, links: summary.links },
       },
+    );
+    if (ok) count++;
+  }
+  return count;
+}
+
+/* ---------- 11. Un paiement n'est pas passé (toujours envoyé) ---------- */
+
+/** Une fois par refus : la trace porte la date du refus, un nouveau refus plus tard repart. */
+export async function notifyPayment(ctx: NotifyCtx): Promise<number> {
+  const [{ data: subs }, sentTraces] = await Promise.all([
+    ctx.db
+      .from("subscriptions")
+      .select("workspace_id, plan, payment_failed_at, payment_failed_amount_cents")
+      .eq("status", "past_due")
+      .not("payment_failed_at", "is", null)
+      .limit(500),
+    traces(ctx.db, "notify.payment", iso(ctx, 60 * DAY)),
+  ]);
+  const told = new Set(sentTraces.map((e) => `${e.workspace_id}:${String(e.payload.failed_at)}`));
+  let count = 0;
+  for (const sub of subs ?? []) {
+    const failedAt = sub.payment_failed_at;
+    if (!failedAt || told.has(`${sub.workspace_id}:${failedAt}`)) continue;
+    const ok = await deliver(
+      ctx,
+      sub.workspace_id,
+      paymentEmail(
+        {
+          amountCents: sub.payment_failed_amount_cents,
+          plan: planName(sub.plan),
+          failedAt: new Date(failedAt),
+          pauseAt: paymentPauseAt(failedAt),
+        },
+        url(ctx, "/app/facturation"),
+      ),
+      { type: "notify.payment", payload: { failed_at: failedAt } },
     );
     if (ok) count++;
   }

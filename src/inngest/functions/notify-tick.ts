@@ -6,6 +6,7 @@ import {
   notifyLinkLost,
   notifyMailbox,
   notifyMonthly,
+  notifyPayment,
   notifyQuota,
   notifyReplies,
   notifyToValidate,
@@ -22,6 +23,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 const STEPS = {
   reponses: notifyReplies,
   boite: notifyMailbox,
+  paiement: notifyPayment,
   "lien-en-ligne": notifyLinkLive,
   "lien-change": notifyLinkLost,
   "a-valider": notifyToValidate,

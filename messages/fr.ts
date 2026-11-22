@@ -3259,6 +3259,17 @@ export const fr = {
         cta: (next: string) => `Lancer la campagne ${next}`,
         ctaNone: "Ouvrir mon espace",
       },
+      payment: {
+        subject: "Votre paiement n'est pas passé",
+        pre: "Mettez votre carte à jour pour garder vos envois.",
+        body: (amount: string | null, plan: string, day: string) =>
+          amount
+            ? `Le prélèvement de **${amount}** pour l'offre ${plan} a été refusé ${day}.`
+            : `Le prélèvement pour l'offre ${plan} a été refusé ${day}.`,
+        grace: (until: string) =>
+          `Vos campagnes continuent ${until}. Sans mise à jour d'ici là, vos envois seront mis en pause ; rien ne sera supprimé.`,
+        cta: "Mettre à jour ma carte",
+      },
       tiles: {
         sent: (n: number) => (n > 1 ? "messages envoyés" : "message envoyé"),
         replies: (n: number) => (n > 1 ? "réponses" : "réponse"),
