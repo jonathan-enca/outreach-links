@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildReadyEmail, notifyAnalysisReady, type ReadyEmail } from "./notify";
+import { buildReadyEmail, notifyAnalysisReady, senderWithName, type ReadyEmail } from "./notify";
 
 const run = {
   auditId: "a1",
@@ -116,5 +116,14 @@ describe("diagnostic d'un refus de Resend", () => {
     ).toBe(" restricted_api_key");
     expect(await resendErrorName(res("pas du json"))).toBe("");
     expect(await resendErrorName(res('{"name":"<script>"}'))).toBe("");
+  });
+});
+
+describe("expéditeur", () => {
+  it("ajoute le nom du produit quand le réglage ne donne que l'adresse", () => {
+    expect(senderWithName("noreply@backleenks.com", "backleenks")).toBe(
+      "backleenks <noreply@backleenks.com>",
+    );
+    expect(senderWithName("Équipe <a@b.fr>", "backleenks")).toBe("Équipe <a@b.fr>");
   });
 });

@@ -29,6 +29,7 @@ import {
   monthHasNews,
   monthlyEmail,
   paymentEmail,
+  paymentRecoveredEmail,
   quotaEmail,
   quotaLevel,
   reminderEmail,
@@ -39,7 +40,7 @@ import {
   type ChangedLink,
   type WeekSite,
 } from "./emails";
-import { notificationSecret, unsubscribePath } from "./secret";
+import { notificationSecret, oneClickPath, unsubscribePath } from "./secret";
 import { renderNotification, type NotificationEmail } from "./template";
 import { unsubscribeToken } from "./unsubscribe";
 
@@ -139,11 +140,14 @@ async function deliver(
     const to = await ownerEmail(ctx.db, workspaceId);
     if (!to) return false;
     const key: NotificationRow = email.key;
-    const unsubscribeUrl =
-      isLocked(key) || !ctx.secret
-        ? null
-        : url(ctx, unsubscribePath(unsubscribeToken(workspaceId, key, ctx.secret)));
-    await ctx.send({ to, ...renderNotification(email, { appUrl: ctx.appUrl, unsubscribeUrl }) });
+    const token =
+      isLocked(key) || !ctx.secret ? null : unsubscribeToken(workspaceId, key, ctx.secret);
+    const unsubscribeUrl = token ? url(ctx, unsubscribePath(token)) : null;
+    const oneClickUrl = token ? url(ctx, oneClickPath(token)) : null;
+    await ctx.send({
+      to,
+      ...renderNotification(email, { appUrl: ctx.appUrl, unsubscribeUrl, oneClickUrl }),
+    });
     await ctx.db.from("events").insert({
       workspace_id: workspaceId,
       actor_id: null,
@@ -939,6 +943,46 @@ export async function notifyPayment(ctx: NotifyCtx): Promise<number> {
         url(ctx, "/app/facturation"),
       ),
       { type: "notify.payment", payload: { failed_at: failedAt } },
+    );
+    if (ok) count++;
+  }
+  return count;
+}
+
+/* ---------- 11 bis. Paiement régularisé (toujours envoyé) ---------- */
+
+/**
+ * « Vos envois ont repris » (s'ils étaient en pause) ou « Votre paiement est passé ». Seulement si la
+ * personne avait reçu l'email de paiement refusé pour ce refus, et une seule fois.
+ */
+export async function notifyPaymentRecovered(ctx: NotifyCtx): Promise<number> {
+  const since = iso(ctx, 14 * DAY);
+  const [recovered, failedTold, recoveredTold] = await Promise.all([
+    traces(ctx.db, "billing.payment_recovered", since),
+    traces(ctx.db, "notify.payment", iso(ctx, 60 * DAY)),
+    traces(ctx.db, "notify.payment_recovered", since),
+  ]);
+  const key = (w: string, f: unknown) => `${w}:${String(f)}`;
+  const toldFailure = new Set(failedTold.map((e) => key(e.workspace_id, e.payload.failed_at)));
+  const done = new Set(recoveredTold.map((e) => key(e.workspace_id, e.payload.failed_at)));
+  let count = 0;
+  for (const e of recovered) {
+    const k = key(e.workspace_id, e.payload.failed_at);
+    if (!toldFailure.has(k) || done.has(k)) continue;
+    done.add(k);
+    const amount = e.payload.amount_cents;
+    const ok = await deliver(
+      ctx,
+      e.workspace_id,
+      paymentRecoveredEmail(
+        {
+          amountCents: typeof amount === "number" ? amount : null,
+          plan: planName(String(e.payload.plan ?? "")),
+          paused: e.payload.paused === true,
+        },
+        { sending: url(ctx, "/app/envois"), billing: url(ctx, "/app/facturation") },
+      ),
+      { type: "notify.payment_recovered", payload: { failed_at: e.payload.failed_at } },
     );
     if (ok) count++;
   }

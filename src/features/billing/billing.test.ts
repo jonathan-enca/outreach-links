@@ -321,6 +321,36 @@ describe("webhooks Stripe", () => {
     expect(tables.subscriptions![0]!.payment_failed_at).toBeNull();
     expect(tables.subscriptions![0]!.payment_failed_amount_cents).toBeNull();
   });
+  it("paiement régularisé : une trace avec la date du refus, en pause ou non", async () => {
+    const { client, tables } = fakeSupabase(base());
+    await handleStripeEvent(client, ev("r1", "customer.subscription.created", subObj()));
+    await handleStripeEvent(
+      client,
+      ev("r2", "invoice.payment_failed", { id: "in_1", subscription: "sub_1", amount_due: 1990 }),
+    );
+    const failedAt = tables.subscriptions![0]!.payment_failed_at;
+    await handleStripeEvent(
+      client,
+      ev("r3", "invoice.paid", { id: "in_1", subscription: "sub_1", customer: "cus_1" }),
+    );
+    const recovered = (tables.events ?? []).filter(
+      (e) => (e as { type: string }).type === "billing.payment_recovered",
+    );
+    expect(recovered).toHaveLength(1);
+    expect((recovered[0] as { payload: unknown }).payload).toMatchObject({
+      failed_at: failedAt,
+      paused: false,
+      amount_cents: 1990,
+      plan: "starter",
+    });
+    // Abonnement de nouveau actif ensuite : plus de refus en cours, donc pas de deuxième trace.
+    await handleStripeEvent(client, ev("r4", "customer.subscription.updated", subObj()));
+    expect(
+      (tables.events ?? []).filter(
+        (e) => (e as { type: string }).type === "billing.payment_recovered",
+      ),
+    ).toHaveLength(1);
+  });
   it("abonnement en retard sans événement de facture : la date du refus est posée quand même", async () => {
     const { client, tables } = fakeSupabase(base());
     await handleStripeEvent(
