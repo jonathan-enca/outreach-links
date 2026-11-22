@@ -3,3 +3,6 @@ node_modules
 pnpm-lock.yaml
 coverage
 docs/da-pistes/
+content/
+docs/mockups/article-blog.html
+docs/strategie-seo.md
