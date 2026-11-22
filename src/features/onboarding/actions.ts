@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { inngest } from "@/inngest/client";
+import { PENDING_SITE_COOKIE } from "@/features/auth/pending-site";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { trackServer } from "@/features/analytics/track-server";
@@ -42,6 +44,8 @@ export async function startSiteAction(formData: FormData): Promise<StartState> {
     profile: false,
   });
   if (result.status === "ok") {
+    // La saisie reprise d'un article a servi : on ne la repropose plus.
+    (await cookies()).delete(PENDING_SITE_COOKIE);
     revalidatePath("/app", "layout");
     await trackServer("campaign_site_added");
   }

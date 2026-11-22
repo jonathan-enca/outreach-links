@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { PENDING_SITE_COOKIE, pendingSite } from "@/features/auth/pending-site";
 import {
   searchConsoleSiteAction,
   startSiteAction,
@@ -32,6 +34,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   // Adresse déjà saisie ailleurs (ex. sur la page d'accueil) : on la reprend, sans rien lancer.
   const { site, campagne, sc, langue } = await searchParams;
   let defaultUrl = typeof site === "string" ? site.slice(0, 253) : "";
+  // Site tapé dans un article avant l'inscription (cookie posé à la création du compte).
+  if (!defaultUrl) {
+    defaultUrl = pendingSite((await cookies()).get(PENDING_SITE_COOKIE)?.value) ?? "";
+  }
   let defaultCountry: string | undefined;
   let defaultGoal: string | undefined;
   let searchConsole: StartSearchConsole | null = null;

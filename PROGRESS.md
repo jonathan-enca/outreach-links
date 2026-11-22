@@ -3280,6 +3280,12 @@ Maquette validée : `docs/mockups/notifications.html` (écran de réglages + 12 
   - **Pièges** : les champs « votresite.fr » mènent à `/inscription` sans transmettre la saisie (la home n'a pas de champ d'audit en service, l'inscription ne lit pas de domaine) ; à brancher sur `/audit-gratuit` quand la page existera. L'image de partage utilise la police par défaut de `next/og`, pas Outfit. Les pages légales et d'aide ne sont pas revalidées : leurs liens de navigation vers les rubriques suivent le déploiement suivant. `content/`, la maquette et `docs/strategie-seo.md` sont exclus de Prettier.
 - **Reste** : déclarer le sitemap dans la Search Console ; chiffres réels du premier guide puis `draft: false` ; écrire les contenus (2 par jour) ; page d'entrée `/audit-gratuit` (404 aujourd'hui) et y brancher les appels à l'action ; redirection de `outreach-links.vercel.app`.
 
+### Champ « votresite.fr » des articles (22/11/2026, accord de Jonathan)
+
+- Le champ des appels à l'action A et C mène à `/inscription?site=…`. À la création du compte, le domaine nettoyé est gardé dans le cookie `site_saisi` (7 jours, `httpOnly`), puis préremplit l'adresse de `/app/demarrer` ; il est effacé quand la campagne démarre. Rien n'est lancé automatiquement.
+- Fichiers : `src/features/auth/pending-site.ts`, `signup-href.ts`, `src/features/content/audit-field.tsx`, `src/app/inscription/page.tsx`, `src/features/auth/actions.ts`, `src/app/app/demarrer/page.tsx`, `src/features/onboarding/actions.ts`.
+- Limite : si l'email est confirmé dans un autre navigateur, la saisie est perdue (l'adresse se retape à l'étape 1).
+
 ### Mesure du tunnel (Vercel Analytics + source d'inscription, 22/11/2026)
 
 - **Fait** : `@vercel/analytics` dans `src/app/layout.tsx` ; événements personnalisés du tunnel (liste fermée dans `src/features/analytics/events.ts`, envoi serveur `trackServer`, clic client `TrackedCtaLink`) : `cta_click` (hero), `signup_completed`, `email_confirmed`, `campaign_site_added`, `search_console_connected`, `campaign_launched`, `plan_validated`, `batch_validated`, `messages_approved`, `checkout_started`, `subscription_started` (webhook Stripe, mode test).

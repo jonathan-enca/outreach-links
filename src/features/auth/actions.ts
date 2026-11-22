@@ -8,6 +8,7 @@ import { env } from "@/env";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 import { cleanAppUrl } from "./destination";
+import { PENDING_SITE_COOKIE, PENDING_SITE_MAX_AGE, pendingSite } from "./pending-site";
 import {
   requestPasswordReset,
   resendSignupLink,
@@ -27,6 +28,17 @@ function done(state: AuthState): AuthState {
 
 export async function signUpAction(_prev: AuthState, fd: FormData): Promise<AuthState> {
   const attribution = parseAttribution((await cookies()).get(ATTRIBUTION_COOKIE)?.value);
+  // Site tapé dans un article avant l'inscription : retenu pour préremplir l'écran de démarrage.
+  const site = pendingSite(field(fd, "site"));
+  if (site) {
+    (await cookies()).set(PENDING_SITE_COOKIE, site, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: PENDING_SITE_MAX_AGE,
+      path: "/",
+    });
+  }
   const state = await signUp(
     await createClient(),
     { name: field(fd, "name"), email: field(fd, "email"), password: field(fd, "password") },
