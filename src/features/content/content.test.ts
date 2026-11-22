@@ -290,9 +290,9 @@ describe("contenus du dépôt", () => {
     for (const e of entries) expect(e.meta.title.length).toBeGreaterThan(0);
   });
 
-  it("le premier guide suit la maquette : brouillon, sept entrées de sommaire, appel placé par le marqueur, aucun chiffre inventé", () => {
+  it("le premier guide suit la maquette : publié, six entrées de sommaire, appel placé par le marqueur, aucun chiffre inventé", () => {
     const guide = allContent().find((e) => e.href === "/guides/backlinks-gratuits");
-    expect(guide?.meta.draft).toBe(true);
+    expect(guide?.meta.draft).toBe(false);
     expect(guide?.body.toc.map((x) => x.label)).toEqual([
       "Ce qu'on vous propose",
       "Pourquoi ça ne fait rien bouger",
@@ -304,7 +304,7 @@ describe("contenus du dépôt", () => {
     expect(guide?.body.before).toContain("Vos profils de marque");
     expect(guide?.body.after.trimStart().startsWith("<h2")).toBe(true);
     expect(guide?.body.after).not.toContain("FOURNIR");
-    expect(sectionStaticParams("guides")).not.toContainEqual({ slug: "backlinks-gratuits" });
+    expect(sectionStaticParams("guides")).toContainEqual({ slug: "backlinks-gratuits" });
   });
 
   it("sitemap : les pages fixes, et aucun brouillon ni index vide", () => {
@@ -312,12 +312,16 @@ describe("contenus du dépôt", () => {
     expect(urls).toContain("http://localhost:3000");
     expect(urls).toContain("http://localhost:3000/mentions-legales");
     const now = new Date();
-    const live = allContent().filter((e) => isPublished(e, now));
+    const live = allContent()
+      .filter((e) => isPublished(e, now))
+      .map((e) => e.href);
     for (const e of allContent()) {
-      expect(urls.includes(`http://localhost:3000${e.href}`)).toBe(live.includes(e));
+      expect(urls.includes(`http://localhost:3000${e.href}`)).toBe(live.includes(e.href));
     }
     for (const s of ["guides", "blog", "glossaire", "comparatifs"]) {
-      expect(urls.includes(`http://localhost:3000/${s}`)).toBe(live.some((e) => e.section === s));
+      expect(urls.includes(`http://localhost:3000/${s}`)).toBe(
+        allContent().some((e) => e.section === s && isPublished(e, now)),
+      );
     }
   });
 

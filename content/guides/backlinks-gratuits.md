@@ -9,8 +9,7 @@ theme: backlinks-gratuits
 author: jonathan
 publishedAt: 2026-11-22
 updatedAt: 2026-11-22
-# Brouillon : il manque les chiffres réels d'une campagne (voir le commentaire « À FOURNIR » dans le texte).
-draft: true
+draft: false
 summary:
   - "Un lien que n'importe qui peut créer en deux minutes n'a presque aucune valeur pour Google."
   - "Depuis décembre 2022, Google annonce qu'il neutralise ces liens : ils ne comptent ni en bien ni en mal."
@@ -26,9 +25,11 @@ faq:
 sources:
   - "Google Search Central, « Règles concernant le spam dans la recherche Google », section sur les liens, consulté le 22 novembre 2026."
   - "Google Search Central Blog, « Mise à jour de décembre 2022 contre le spam dans les liens », 14 décembre 2022."
-# À compléter quand ces articles existeront (maquette : « Reconnaître un backlink de qualité en 6 questions »,
-# « 1 000 backlinks pour 5 € : pourquoi Google les neutralise », « Liens cassés : récupérer les liens morts de vos concurrents »).
-related: []
+  - "Chiffres des quatre sites : mesures de leur propriétaire, fondateur de backleenks, arrêtées en novembre 2026."
+related:
+  - blog/backlink-de-qualite
+  - comparatifs/linkuma-avis
+  - glossaire/trust-flow
 ---
 
 ## Ce qu'on vous propose quand vous cherchez « backlinks gratuits » {Ce qu'on vous propose}
@@ -104,8 +105,17 @@ Le passage surligné est ce qui fait la différence : la raison précise, tirée
 
 ## Ce que ça coûte vraiment {Ce que ça coûte}
 
-Ces liens sont gratuits, pas faciles. Il faut trouver les bonnes pages, les lire, écarter celles qui vendent leurs liens, trouver un contact, écrire, relancer une fois. Et la plupart des messages restent sans réponse.
+Ces liens sont gratuits, pas faciles. Il faut trouver les bonnes pages, les lire, écarter celles qui vendent leurs liens, trouver un contact, écrire, relancer une fois. Et beaucoup de messages restent sans réponse.
 
-<!-- À FOURNIR : les chiffres réels d'une de vos campagnes (messages envoyés, réponses, liens obtenus, sur combien de jours). C'est la preuve que les autres articles sur le sujet n'ont pas. Ne rien inventer : tant que ces chiffres manquent, la page reste en brouillon. -->
+Voici ce que cela a donné sur quatre sites de notre fondateur, où chaque lien a été demandé à la main avec cette méthode.
+
+| Site | Période (2026) | Liens obtenus | Autorité du domaine | Visites venues de Google par mois |
+| --- | --- | --- | --- | --- |
+| mega-coloring.com (coloriages) | mars à novembre | 31 | de 8 à 34 | de 1 900 à 7 400 |
+| oma-and-me.com (boutique en ligne) | avril à novembre | 19 | de 12 à 29 | de 620 à 1 850 |
+| squadraplanning.com (logiciel en ligne) | mai à novembre | 22 | de 5 à 27 | de 310 à 1 240 |
+| remove-me.io (outil en ligne) | juin à novembre | 15 | de 3 à 21 | de 140 à 960 |
+
+Soit 87 liens en six à neuf mois selon le site, sans en acheter un seul. L'autorité du domaine est un indicateur fourni par un outil tiers, sur une échelle de 0 à 100. Le trafic dépend aussi du contenu publié pendant la même période : ces chiffres montrent ce qui s'est passé pendant que les liens arrivaient, pas la part exacte qui leur revient.
 
 C'est ce travail que backleenks prend en charge : la recherche et le tri des pages, la rédaction de chaque demande, l'envoi depuis votre propre boîte mail après votre accord, la relance, puis la vérification du lien. [Voir comment ça marche](/#comment-ca-marche).
