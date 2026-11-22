@@ -75,6 +75,7 @@ describe("clés Stripe", () => {
     const body = new URLSearchParams(String(init.body));
     expect(body.get("mode")).toBe("subscription");
     expect(body.get("metadata[workspace_id]")).toBe("ws1");
+    expect(body.get("allow_promotion_codes")).toBe("true");
     expect(body.get("line_items[0][price_data][unit_amount]")).toBe("4900");
     expect(body.get("line_items[0][price_data][recurring][interval]")).toBe("month");
   });
