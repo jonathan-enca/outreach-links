@@ -870,6 +870,8 @@ export async function notifyMonthly(ctx: NotifyCtx): Promise<number> {
   );
   const within = (d: string | null) => d !== null && d >= from && d < to;
   let count = 0;
+  // Seulement les comptes qui ont au moins un site : un inscrit qui n'a jamais commencé ne reçoit
+  // pas de bilan (décision de Jonathan, 22/11/2026).
   for (const workspaceId of uniq((sites ?? []).map((s) => s.workspace_id))) {
     if (off.has(workspaceId) || told.has(workspaceId)) continue;
     const mine = <T extends { workspace_id: string }>(rows: readonly T[] | null) =>
