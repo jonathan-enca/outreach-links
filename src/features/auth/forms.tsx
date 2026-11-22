@@ -24,7 +24,7 @@ function Message({ state, fallback }: { state: AuthState; fallback?: string }) {
 
 const submitClass = "h-12 w-full text-base";
 
-export function SignupForm() {
+export function SignupForm({ site }: { site?: string }) {
   const [state, action, pending] = useActionState(signUpAction, idle);
   const [dismissed, setDismissed] = useState<AuthState | null>(null);
   const f = t.signup.fields;
@@ -35,6 +35,7 @@ export function SignupForm() {
   }
   return (
     <form action={action} className="flex flex-col gap-5">
+      {site ? <input type="hidden" name="site" value={site} /> : null}
       <Field id="name" label={f.name}>
         <input
           id="name"
