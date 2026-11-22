@@ -25,7 +25,13 @@ export async function sendReadyEmail(service: Client, auditId: string): Promise<
     .eq("audit_id", auditId)
     .maybeSingle();
   let shortlist = 0;
+  let studied = 0;
   if (run) {
+    const { count: all } = await service
+      .from("qualified_targets")
+      .select("id", { count: "exact", head: true })
+      .eq("run_id", run.id);
+    studied = all ?? 0;
     const { count } = await service
       .from("qualified_targets")
       .select("id", { count: "exact", head: true })
@@ -43,6 +49,8 @@ export async function sendReadyEmail(service: Client, auditId: string): Promise<
       actorId: audit.created_by,
     },
     shortlist,
+    undefined,
+    studied,
   );
   await service.from("events").insert({
     workspace_id: audit.workspace_id,
