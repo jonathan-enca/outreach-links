@@ -3292,3 +3292,10 @@ Maquette validée : `docs/mockups/notifications.html` (écran de réglages + 12 
 - **Désinscription en un clic (RFC 8058)** : chaque email qu'on peut couper porte `List-Unsubscribe` et `List-Unsubscribe-Post`, vers `POST /api/notifications/unsubscribe?t=…` (même jeton signé que la page, coupe ce seul type d'email). Un GET renvoie vers la page avec confirmation. Les emails toujours envoyés (boîte, paiement) n'ont pas ces en-têtes.
 - **Paiement régularisé** : le webhook Stripe écrit `billing.payment_recovered` (date du refus, envois en pause ou non, montant, offre) quand une facture est payée ou que l'abonnement redevient actif après un refus. L'étape `paiement-regularise` de `notify-tick` envoie alors « Vos envois ont repris » (s'ils étaient en pause) ou « Votre paiement est passé », toujours envoyé, une seule fois, et seulement si l'email de paiement refusé était parti. **Textes nouveaux, hors maquette** : à valider par Jonathan.
 - Pas encore constaté en vrai : aucun paiement refusé ni aucun envoi de notification à ce jour.
+
+## Contenu : premier lot (22/11/2026)
+
+- 14 pages ajoutées dans `content/` (12 articles de blog, 2 fiches de glossaire), publiées par date : 4 le 22/11, puis 2 par jour jusqu'au 27/11 (sortie automatique, relecture du site toutes les heures).
+- Méthode : brief commun dans le scratchpad, un agent Sonnet par article (Haiku pour le glossaire), relecture et revérification des faits sur les pages de Google, Sitechecker, Journal du Net et Linkuma avant `draft: false`.
+- Corrigé au passage : « chaque lien demandé à la main » remplacé par « un par un » (la méthode est automatisée sur les sites de Jonathan).
+- À faire : semaine 2 du plan (`docs/strategie-seo.md`, section calendrier).

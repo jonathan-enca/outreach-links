@@ -107,7 +107,7 @@ Le passage surligné est ce qui fait la différence : la raison précise, tirée
 
 Ces liens sont gratuits, pas faciles. Il faut trouver les bonnes pages, les lire, écarter celles qui vendent leurs liens, trouver un contact, écrire, relancer une fois. Et beaucoup de messages restent sans réponse.
 
-Voici ce que cela a donné sur quatre sites de notre fondateur, où chaque lien a été demandé à la main avec cette méthode.
+Voici ce que cela a donné sur quatre sites de notre fondateur, où chaque lien a été demandé un par un avec cette méthode.
 
 | Site | Période (2026) | Liens obtenus | Autorité du domaine | Visites venues de Google par mois |
 | --- | --- | --- | --- | --- |
