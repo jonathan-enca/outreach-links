@@ -1,6 +1,7 @@
 import { env } from "@/env";
 import { t } from "@/lib/messages";
 import type { PublicPlan } from "./plans";
+import { PRODUCT_TOUR_VIDEO } from "./sections";
 
 /** Données structurées de la home. Les offres viennent de la table `plans` ; la FAQ, des textes affichés. */
 export function buildJsonLd(plans: PublicPlan[] | null) {
@@ -37,6 +38,22 @@ export function buildJsonLd(plans: PublicPlan[] | null) {
             }
           : {}),
       },
+      ...(PRODUCT_TOUR_VIDEO
+        ? [
+            {
+              "@type": "VideoObject",
+              name: t.home.tour.videoLabel,
+              description: t.home.tour.videoDescription,
+              inLanguage: "fr",
+              thumbnailUrl: PRODUCT_TOUR_VIDEO.poster
+                ? `${url}${PRODUCT_TOUR_VIDEO.poster}`
+                : undefined,
+              contentUrl: `${url}${PRODUCT_TOUR_VIDEO.src}`,
+              uploadDate: PRODUCT_TOUR_VIDEO.uploadDate,
+              duration: PRODUCT_TOUR_VIDEO.duration,
+            },
+          ]
+        : []),
       {
         "@type": "FAQPage",
         mainEntity: t.home.faq.items.map((i) => ({
