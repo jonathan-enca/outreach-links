@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { env, requireEnv } from "@/env";
+import { trackServer } from "@/features/analytics/track-server";
 import { verifyStripeSignature } from "@/features/billing/stripe";
 import { handleStripeEvent, type StripeEvent } from "@/features/billing/webhook";
 import { logger } from "@/lib/logger";
@@ -24,6 +25,10 @@ export async function POST(request: Request) {
   try {
     requireEnv("SUPABASE_SERVICE_ROLE_KEY");
     const result = await handleStripeEvent(createServiceClient(), event);
+    if (event.type === "checkout.session.completed" && result.status === "traite") {
+      const plan = (event.data.object.metadata as { plan?: unknown } | undefined)?.plan;
+      if (typeof plan === "string") await trackServer("subscription_started", { plan });
+    }
     return NextResponse.json({ received: true, ...result });
   } catch (e) {
     logger.error("webhook Stripe : échec", { type: event.type, error: String(e).slice(0, 200) });

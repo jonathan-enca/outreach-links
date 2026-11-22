@@ -1,5 +1,6 @@
 "use server";
 
+import { trackServer } from "@/features/analytics/track-server";
 import { revalidatePath } from "next/cache";
 import type { AuditActionState } from "@/features/audits/service";
 import { createClient } from "@/lib/supabase/server";
@@ -63,6 +64,7 @@ export async function validateBatchAction(
   batchId: string,
 ): Promise<AuditActionState> {
   const r = await validateBatch(await createClient(), auditId, batchId, createServiceClient);
+  if (r.status === "ok") await trackServer("batch_validated");
   refresh(auditId);
   return r;
 }

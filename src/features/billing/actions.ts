@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { env } from "@/env";
+import { trackServer } from "@/features/analytics/track-server";
 import { createClient } from "@/lib/supabase/server";
 import { openPortal, startCheckout } from "./service";
 import { getBillingProvider } from "./stripe";
@@ -18,6 +19,12 @@ export async function checkoutAction(formData: FormData): Promise<void> {
     auth.user.email ?? null,
     formData.get("period") ?? "month",
   );
+  if (r.ok) {
+    await trackServer("checkout_started", {
+      plan: String(formData.get("plan") ?? "").slice(0, 30),
+      periode: formData.get("period") === "year" ? "annuel" : "mensuel",
+    });
+  }
   redirect(r.ok ? r.url : `/app/facturation?erreur=${encodeURIComponent(r.error)}`);
 }
 

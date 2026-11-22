@@ -7,6 +7,7 @@ import { inngest } from "@/inngest/client";
 import { PENDING_SITE_COOKIE } from "@/features/auth/pending-site";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { trackServer } from "@/features/analytics/track-server";
 import { siteHref } from "@/features/shell/next-step";
 import { queryDeps, startDeps } from "./deps";
 import {
@@ -46,6 +47,7 @@ export async function startSiteAction(formData: FormData): Promise<StartState> {
     // La saisie reprise d'un article a servi : on ne la repropose plus.
     (await cookies()).delete(PENDING_SITE_COOKIE);
     revalidatePath("/app", "layout");
+    await trackServer("campaign_site_added");
   }
   return result;
 }
@@ -79,7 +81,10 @@ export async function launchJourneyAction(
     queryDeps,
   );
   revalidatePath("/app", "layout");
-  if (result.status === "ok" && result.auditId) redirect(siteHref.analyse(siteId));
+  if (result.status === "ok" && result.auditId) {
+    await trackServer("campaign_launched");
+    redirect(siteHref.analyse(siteId));
+  }
   return result;
 }
 

@@ -1,6 +1,6 @@
 import { ArrowRight } from "lucide-react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { TrackedCtaLink } from "@/features/analytics/track-link";
 import { t } from "@/lib/messages";
 import { HeroCards } from "./hero-cards";
 import { ProductTour } from "./product-tour";
@@ -33,10 +33,10 @@ export function Hero() {
           <p className="mt-7 max-w-[54ch] text-[17px] text-muted-foreground sm:text-lg">{h.lead}</p>
           <div className="mt-9 grid w-full gap-3 sm:flex sm:w-auto sm:flex-wrap sm:justify-center">
             <Button asChild className="h-12 px-6 text-base">
-              <Link href="/inscription">
+              <TrackedCtaLink href="/inscription" emplacement="hero">
                 {h.cta.primary}
                 <ArrowRight aria-hidden />
-              </Link>
+              </TrackedCtaLink>
             </Button>
             <Button asChild variant="outline" className="h-12 px-6 text-base">
               <a href={`#${HOME_SECTIONS.howItWorks}`}>{h.cta.secondary}</a>
