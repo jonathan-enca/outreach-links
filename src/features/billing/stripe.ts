@@ -80,6 +80,8 @@ export function createStripeProvider(
       f.set("subscription_data[metadata][period]", i.period);
       // Codes promotionnels saisis sur la page de paiement Stripe (tests réels, offres de lancement).
       f.set("allow_promotion_codes", "true");
+      // Sans rien à payer (code à 100 %), Stripe ne demande pas de carte ; sinon elle reste obligatoire.
+      f.set("payment_method_collection", "if_required");
       f.set("line_items[0][quantity]", "1");
       f.set("line_items[0][price_data][currency]", "eur");
       f.set("line_items[0][price_data][unit_amount]", String(i.priceEurCents));
