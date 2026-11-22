@@ -83,6 +83,8 @@ export const fr = {
       pending: "Démonstration vidéo bientôt disponible",
       pendingHint: "En attendant, essayez gratuitement : votre espace se crée en un champ.",
       videoLabel: "Visite guidée du produit",
+      videoDescription:
+        "Visite en 27 secondes : l'analyse de votre site, le plan de liens, les messages validés avant envoi et les liens obtenus.",
     },
     whatItIs: {
       label: "En clair",
