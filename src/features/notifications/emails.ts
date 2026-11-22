@@ -325,9 +325,7 @@ export function idleEmail(
       { p: c.left > 0 ? I.left(c.left) : I.none },
     ],
     cta:
-      c.left > 0
-        ? { label: I.cta, url: urls.targets }
-        : { label: I.ctaNone, url: urls.campaigns },
+      c.left > 0 ? { label: I.cta, url: urls.targets } : { label: I.ctaNone, url: urls.campaigns },
   };
 }
 

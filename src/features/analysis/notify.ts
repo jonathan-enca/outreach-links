@@ -79,8 +79,7 @@ export function resendSender(): SendTransactional | null {
   };
 }
 
-export type NotifyResult =
-  "envoye" | "sans_service" | "sans_adresse" | "echec" | "deja" | "coupe";
+export type NotifyResult = "envoye" | "sans_service" | "sans_adresse" | "echec" | "deja" | "coupe";
 
 /**
  * D7 : prévient la personne que ses cibles sont prêtes. Jamais bloquant : sans service d'email,

@@ -1,8 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import {
-  NOTIFICATION_KEYS,
-  type NotificationKey,
-} from "@/features/settings/notification-keys";
+import { NOTIFICATION_KEYS, type NotificationKey } from "@/features/settings/notification-keys";
 
 /**
  * Lien « Ne plus recevoir cet email » : un jeton signé qui ne désigne qu'un espace et un type d'email.
@@ -11,7 +8,11 @@ import {
 const sign = (payload: string, secret: string) =>
   createHmac("sha256", secret).update(`notif-unsub:${payload}`).digest("base64url");
 
-export function unsubscribeToken(workspaceId: string, key: NotificationKey, secret: string): string {
+export function unsubscribeToken(
+  workspaceId: string,
+  key: NotificationKey,
+  secret: string,
+): string {
   const payload = `${workspaceId}.${key}`;
   return `${payload}.${sign(payload, secret)}`;
 }

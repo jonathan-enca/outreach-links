@@ -3077,7 +3077,9 @@ export const fr = {
         subject: (n: number, domain: string | null) =>
           `${n > 1 ? `${n} messages sont prêts` : "1 message est prêt"} à partir${domain ? ` pour ${domain}` : ""}`,
         subjectForms: (n: number) =>
-          n > 1 ? `${n} formulaires sont à remplir à la main` : "1 formulaire est à remplir à la main",
+          n > 1
+            ? `${n} formulaires sont à remplir à la main`
+            : "1 formulaire est à remplir à la main",
         title: (n: number) =>
           n > 1 ? `${n} messages sont prêts à partir` : "1 message est prêt à partir",
         pre: (start: string | null) =>
@@ -3158,7 +3160,8 @@ export const fr = {
         lineSince: "En ligne depuis",
         lineGone: "Disparu",
         lineChanged: "Constaté",
-        advice: "Ouvrez la fiche du lien pour voir la page et décider s'il faut recontacter le site.",
+        advice:
+          "Ouvrez la fiche du lien pour voir la page et décider s'il faut recontacter le site.",
         ctaOne: "Voir ce lien",
         ctaMany: "Voir mes liens",
       },
@@ -3171,7 +3174,8 @@ export const fr = {
               ? "1 message validé attend."
               : "Reconnectez-la pour que vos envois reprennent.",
         title: "Vos envois sont en pause",
-        body: (email: string) => `Nous n'arrivons plus à nous connecter à votre boîte **${email}**.`,
+        body: (email: string) =>
+          `Nous n'arrivons plus à nous connecter à votre boîte **${email}**.`,
         linePending: "Messages validés en attente",
         after: "Tout repartira dès que la boîte sera reconnectée. Aucun message n'est perdu.",
         cta: "Reconnecter ma boîte",
@@ -3213,7 +3217,9 @@ export const fr = {
       },
       weekly: {
         subject: (parts: string[]) =>
-          parts.length ? `Votre semaine : ${parts.join(", ")}` : "Votre semaine : des actions vous attendent",
+          parts.length
+            ? `Votre semaine : ${parts.join(", ")}`
+            : "Votre semaine : des actions vous attendent",
         partLinks: (n: number) => `${n} ${n > 1 ? "liens obtenus" : "lien obtenu"}`,
         partReplies: (n: number) => `${n} ${n > 1 ? "réponses" : "réponse"}`,
         partSent: (n: number) => `${n} ${n > 1 ? "messages envoyés" : "message envoyé"}`,
@@ -3244,7 +3250,8 @@ export const fr = {
       hint: "Les autres notifications ne changent pas. Vous pourrez le réactiver dans vos réglages.",
       confirm: "Oui, ne plus le recevoir",
       done: (name: string) => `C'est noté : vous ne recevrez plus l'email « ${name} ».`,
-      invalid: "Ce lien n'est plus valable. Vous pouvez régler vos notifications depuis votre espace.",
+      invalid:
+        "Ce lien n'est plus valable. Vous pouvez régler vos notifications depuis votre espace.",
       manage: "Gérer mes notifications",
     },
     messages: {

@@ -291,7 +291,9 @@ export async function notifyToValidate(ctx: NotifyCtx): Promise<number> {
     sitesAndPlans(ctx.db, workspaceIds),
     ctx.db
       .from("mailboxes")
-      .select("workspace_id, timezone, send_window_start, send_window_end, send_days, sending_paused")
+      .select(
+        "workspace_id, timezone, send_window_start, send_window_end, send_days, sending_paused",
+      )
       .in("workspace_id", workspaceIds)
       .eq("status", "verifiee"),
   ]);
@@ -299,8 +301,7 @@ export async function notifyToValidate(ctx: NotifyCtx): Promise<number> {
   for (const [workspaceId, rows] of byWorkspace) {
     const last = sentTraces.find((e) => e.workspace_id === workspaceId)?.created_at ?? null;
     const reminded =
-      last !== null &&
-      reminders.some((e) => e.workspace_id === workspaceId && e.created_at > last);
+      last !== null && reminders.some((e) => e.workspace_id === workspaceId && e.created_at > last);
     const decision = pendingDecision({
       generatedAt: rows.map((r) => r.generated_at),
       last,
@@ -324,9 +325,7 @@ export async function notifyToValidate(ctx: NotifyCtx): Promise<number> {
       continue;
     }
     const forms =
-      rows.length -
-      messages +
-      (tasks ?? []).filter((x) => x.workspace_id === workspaceId).length;
+      rows.length - messages + (tasks ?? []).filter((x) => x.workspace_id === workspaceId).length;
     const windows = (boxes ?? [])
       .filter((b) => b.workspace_id === workspaceId && !b.sending_paused)
       .map((b) => ({
@@ -433,7 +432,9 @@ export async function notifyLinkLost(ctx: NotifyCtx): Promise<number> {
     disabled(ctx.db, "link_lost"),
   ]);
   const told = new Set(
-    sentTraces.flatMap((e) => (Array.isArray(e.payload.alerts) ? e.payload.alerts.map(String) : [])),
+    sentTraces.flatMap((e) =>
+      Array.isArray(e.payload.alerts) ? e.payload.alerts.map(String) : [],
+    ),
   );
   const mark = (l: { id: string; alert: string | null }) => `${l.id}:${l.alert}`;
   const todo = (alerts ?? []).filter(
@@ -550,7 +551,8 @@ export async function notifyQuota(ctx: NotifyCtx): Promise<number> {
       .map((e) => Number(e.payload.level));
     if (reached.some((l) => l >= level)) continue;
     const subscribed = (await effectivePlan(ctx.db, workspaceId, ctx.now)) !== "gratuit";
-    const nextKey = PLAN_ORDER[PLAN_ORDER.indexOf(allowance.plan as (typeof PLAN_ORDER)[number]) + 1];
+    const nextKey =
+      PLAN_ORDER[PLAN_ORDER.indexOf(allowance.plan as (typeof PLAN_ORDER)[number]) + 1];
     const nextCap = nextKey ? capOf.get(nextKey) : undefined;
     const ok = await deliver(
       ctx,
@@ -561,7 +563,10 @@ export async function notifyQuota(ctx: NotifyCtx): Promise<number> {
           cap: allowance.cap,
           level,
           plan: subscribed ? planName(allowance.plan) : null,
-          next: nextKey && nextCap && nextCap > allowance.cap ? { plan: planName(nextKey), cap: nextCap } : null,
+          next:
+            nextKey && nextCap && nextCap > allowance.cap
+              ? { plan: planName(nextKey), cap: nextCap }
+              : null,
           now: ctx.now,
         },
         url(ctx, "/app/facturation"),
@@ -590,7 +595,10 @@ export function isIdle(input: {
   if (input.sent.some((s) => s.status === "en_cours" || s.status === "a_reessayer")) return null;
   const handled = new Set(input.sent.map((s) => s.draft_id));
   if (input.validatedDraftIds.some((d) => !handled.has(d))) return null;
-  const lastAt = real.map((s) => s.claimed_at).sort().at(-1)!;
+  const lastAt = real
+    .map((s) => s.claimed_at)
+    .sort()
+    .at(-1)!;
   const age = input.now.getTime() - Date.parse(lastAt);
   return age >= DAY && age <= 14 * DAY ? { lastAt } : null;
 }
@@ -647,9 +655,7 @@ export async function notifyIdle(ctx: NotifyCtx): Promise<number> {
       now: ctx.now,
     });
     if (!idle) continue;
-    const told = sentTraces.some(
-      (e) => e.payload.plan_id === planId && e.created_at > idle.lastAt,
-    );
+    const told = sentTraces.some((e) => e.payload.plan_id === planId && e.created_at > idle.lastAt);
     if (told) continue;
     const siteId = planSite.get(planId);
     const domain = siteId ? siteDomain.get(siteId) : undefined;
@@ -725,11 +731,7 @@ export async function notifyWeekly(ctx: NotifyCtx): Promise<number> {
       .eq("kind", "reponse")
       .gte("received_at", since)
       .limit(5000),
-    ctx.db
-      .from("links")
-      .select("site_id, source_domain")
-      .gte("first_live_at", since)
-      .limit(5000),
+    ctx.db.from("links").select("site_id, source_domain").gte("first_live_at", since).limit(5000),
     ctx.db
       .from("reply_drafts")
       .select("workspace_id")

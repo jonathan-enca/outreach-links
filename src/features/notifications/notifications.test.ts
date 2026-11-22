@@ -82,7 +82,13 @@ describe("une réponse vous attend", () => {
 describe("des messages sont à valider", () => {
   it("annonce les messages, les formulaires et le premier départ", () => {
     const m = toValidateEmail(
-      { messages: 12, forms: 3, domain: "site.fr", firstStart: "lundi 24 novembre à 9 h", sendingNow: false },
+      {
+        messages: 12,
+        forms: 3,
+        domain: "site.fr",
+        firstStart: "lundi 24 novembre à 9 h",
+        sendingNow: false,
+      },
       "u",
     );
     expect(m.subject).toBe("12 messages sont prêts à partir pour site.fr");
@@ -124,9 +130,9 @@ describe("quand prévenir pour les messages à valider", () => {
     expect(
       pendingDecision({ generatedAt: [ago(1)], last: ago(5), reminded: false, now }),
     ).toBeNull();
-    expect(
-      pendingDecision({ generatedAt: [ago(1)], last: ago(25), reminded: false, now }),
-    ).toEqual({ kind: "new" });
+    expect(pendingDecision({ generatedAt: [ago(1)], last: ago(25), reminded: false, now })).toEqual(
+      { kind: "new" },
+    );
   });
   it("rien de nouveau : un seul rappel, après 3 jours", () => {
     const base = { generatedAt: [ago(100)], now };
@@ -229,13 +235,23 @@ describe("campagne à l'arrêt", () => {
   });
   it("tout est parti depuis un jour : à l'arrêt", () => {
     expect(
-      isIdle({ validatedDraftIds: ["a", "b"], sent: [sent("a", "envoye", 30), sent("b", "ignore", 40)], now }),
+      isIdle({
+        validatedDraftIds: ["a", "b"],
+        sent: [sent("a", "envoye", 30), sent("b", "ignore", 40)],
+        now,
+      }),
     ).toEqual({ lastAt: at(30) });
   });
   it("un message validé pas encore parti, ou un envoi en cours : pas à l'arrêt", () => {
-    expect(isIdle({ validatedDraftIds: ["a", "b"], sent: [sent("a", "envoye", 30)], now })).toBeNull();
     expect(
-      isIdle({ validatedDraftIds: ["a", "b"], sent: [sent("a", "envoye", 30), sent("b", "a_reessayer", 30)], now }),
+      isIdle({ validatedDraftIds: ["a", "b"], sent: [sent("a", "envoye", 30)], now }),
+    ).toBeNull();
+    expect(
+      isIdle({
+        validatedDraftIds: ["a", "b"],
+        sent: [sent("a", "envoye", 30), sent("b", "a_reessayer", 30)],
+        now,
+      }),
     ).toBeNull();
   });
   it("dernier départ il y a moins d'un jour, ou aucun envoi réel : rien", () => {
@@ -256,7 +272,11 @@ describe("résumé de la semaine", () => {
   const todo = { replies: 0, messages: 0, forms: 0 };
   it("rien de nouveau : pas d'email", () => {
     expect(
-      weekHasNews({ sites: [{ domain: "a.fr", sent: 0, replies: 0, links: 0 }], newLinks: [], todo }),
+      weekHasNews({
+        sites: [{ domain: "a.fr", sent: 0, replies: 0, links: 0 }],
+        newLinks: [],
+        todo,
+      }),
     ).toBe(false);
     expect(weekHasNews({ sites: [], newLinks: [], todo: { ...todo, replies: 1 } })).toBe(true);
   });
@@ -322,7 +342,9 @@ describe("lien de désinscription", () => {
   });
   it("jeton modifié, autre secret ou type inconnu : refusé", () => {
     const token = unsubscribeToken(WS, "weekly", "secret-de-test-1234");
-    expect(readUnsubscribeToken(token.replace("weekly", "quota"), "secret-de-test-1234")).toBeNull();
+    expect(
+      readUnsubscribeToken(token.replace("weekly", "quota"), "secret-de-test-1234"),
+    ).toBeNull();
     expect(readUnsubscribeToken(token, "autre-secret-0000000")).toBeNull();
     expect(readUnsubscribeToken(`${WS}.mailbox.x`, "secret-de-test-1234")).toBeNull();
     expect(readUnsubscribeToken(undefined, "secret-de-test-1234")).toBeNull();
