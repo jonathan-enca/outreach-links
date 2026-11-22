@@ -476,3 +476,27 @@ export function monthlyEmail(
         : { label: M.ctaNone, url: urls.home },
   };
 }
+
+/* ---------- 11. Un paiement n'est pas passé (toujours envoyé) ---------- */
+
+const EUR = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
+
+export function paymentEmail(
+  p: { amountCents: number | null; plan: string; failedAt: Date; pauseAt: Date },
+  url: string,
+): NotificationEmail {
+  const P = E.payment;
+  const amount =
+    p.amountCents !== null && p.amountCents > 0 ? EUR.format(p.amountCents / 100) : null;
+  return {
+    key: "payment",
+    subject: P.subject,
+    preheader: P.pre,
+    title: P.subject,
+    blocks: [
+      { p: P.body(amount, p.plan, frDay(p.failedAt)) },
+      { p: P.grace(frDay(p.pauseAt).replace(/^le /, "jusqu'au ")) },
+    ],
+    cta: { label: P.cta, url },
+  };
+}

@@ -7,6 +7,7 @@ import {
   mailboxEmail,
   monthHasNews,
   monthlyEmail,
+  paymentEmail,
   ofMonth,
   quotaEmail,
   quotaLevel,
@@ -389,5 +390,26 @@ describe("bilan du mois", () => {
     expect(m.cta).toEqual({ label: "Ouvrir mon espace", url: "h" });
     expect(renderNotification(m, links).text).not.toContain("est disponible");
     expect(monthHasNews({ ...base, sent: 0, replies: 0, links: 0, campaigns: null })).toBe(false);
+  });
+});
+
+describe("paiement refusé", () => {
+  const failedAt = new Date("2026-11-22T09:00:00Z");
+  const pauseAt = new Date("2026-11-29T09:00:00Z");
+  it("montant, offre, date du refus et date de la pause ; toujours envoyé", () => {
+    const m = paymentEmail({ amountCents: 3990, plan: "Pro", failedAt, pauseAt }, "u");
+    const out = renderNotification(m, { appUrl: "https://app.test", unsubscribeUrl: null });
+    expect(out.text).toMatch(
+      /Le prélèvement de 39,90\s€ pour l'offre Pro a été refusé le 22 novembre\./,
+    );
+    expect(out.text).toContain("Vos campagnes continuent jusqu'au 29 novembre.");
+    expect(out.text).toContain("rien ne sera supprimé");
+    expect(out.html).not.toContain("Ne plus recevoir");
+  });
+  it("montant inconnu : la phrase reste juste", () => {
+    const m = paymentEmail({ amountCents: null, plan: "Starter", failedAt, pauseAt }, "u");
+    expect(renderNotification(m, links).text).toContain(
+      "Le prélèvement pour l'offre Starter a été refusé le 22 novembre.",
+    );
   });
 });

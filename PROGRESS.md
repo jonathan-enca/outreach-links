@@ -3232,7 +3232,7 @@ Maquette validée : `docs/mockups/notifications.html` (écran de réglages + 12 
 
 ### Pas fait
 
-- **Paiement refusé** : la ligne est à l'écran (maquette), mais aucun email ne part encore. À faire avec Stripe (événement `invoice.payment_failed`, délai avant pause à confirmer avec Jonathan).
+- **Paiement refusé (fait le 22/11, troisième lot)** : voir « Paiement refusé » plus bas.
 - Variante « boîte mise en pause par sécurité » (rebonds, plainte) : pas de suspension automatique dans le code aujourd'hui, donc pas d'email.
 - En-tête `List-Unsubscribe` : `resendSender` ne passe pas d'en-têtes.
 
@@ -3244,6 +3244,15 @@ Maquette validée : `docs/mockups/notifications.html` (écran de réglages + 12 
 - Le quota compte les premiers messages (cibles contactées), que l'email appelle « envois », comme la grille de tarifs.
 - Contrôle : emails et écran vus en local sur des données d'exemple ; **aucun email réel envoyé**, et l'écran connecté n'a pas été capturé (pas de compte de test sur ce poste). À constater en production au premier envoi (`events` de type `notify.%`).
 - La page de désinscription avec un jeton valide n'a pas été vue en local (pas de clé de service sur ce poste) ; le jeton est couvert par les tests.
+
+## Paiement refusé (22/11/2026, décision de Jonathan : 7 jours avant la pause)
+
+- **Migration `2026122200000100_subscriptions_payment_failed.sql` (additive, appliquée sur la vraie base)** : `subscriptions.payment_failed_at` (date du PREMIER refus) et `payment_failed_amount_cents`.
+- **Webhook Stripe** (`billing/webhook.ts`) : `invoice.payment_failed` pose la date et le montant ; `customer.subscription.updated` en `past_due` pose la date aussi (donc l'email part même si l'événement de facture n'est pas reçu) ; `invoice.paid` ou un abonnement redevenu actif efface tout.
+- **Pause des envois après 7 jours** (`PAYMENT_GRACE_DAYS`, `sendingPlan` dans `billing/plans.ts`, utilisé par `checkSendAllowance`) : seuls les envois s'arrêtent, les autres droits de l'offre restent tant que Stripe n'a pas annulé l'abonnement ; rien n'est supprimé. Pendant la bêta, un espace en retard de paiement retombe sur le plafond de la bêta (comme un inscrit sans abonnement).
+- **Email « Un paiement n'est pas passé »** (toujours envoyé, étape `paiement` de `notify-tick`) : montant, offre, date du refus, date de la pause, bouton vers `/app/facturation`. Une fois par refus (trace `notify.payment` avec la date du refus).
+- **Stripe (fait le 22/11, dans le tableau de bord, compte « JE CONSEIL », mode réel)** : l'événement `invoice.payment_failed` est ajouté à la destination de webhook `backleenks`, qui écoute maintenant six événements. L'email cite donc le montant exact de la facture.
+- **Pas fait** : pas de message propre à ce cas dans l'écran « Emails » quand les envois sont en pause (il affiche le motif existant « abonnement requis ») ; pas d'email « vos envois ont repris ».
 
 ## Socle SEO technique (22/11/2026, demande de Jonathan)
 

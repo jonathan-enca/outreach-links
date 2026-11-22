@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { fakeSupabase } from "@/features/audits/fake-supabase";
-import { checkSendAllowance, effectivePlan, monthStart } from "./plans";
+import {
+  checkSendAllowance,
+  effectivePlan,
+  monthStart,
+  paymentOverdue,
+  paymentPauseAt,
+} from "./plans";
 import { startCheckout } from "./service";
 import {
   assertSecretKey,
@@ -187,6 +193,27 @@ describe("plafonds d'envoi appliqués côté serveur", () => {
       cap: 2,
     });
   });
+  it("paiement refusé : les envois continuent 7 jours, puis se mettent en pause", async () => {
+    const failed = "2026-11-10T10:00:00Z";
+    expect(paymentPauseAt(failed).toISOString()).toBe("2026-11-17T10:00:00.000Z");
+    const late = { status: "past_due", payment_failed_at: failed };
+    expect(paymentOverdue(late, new Date("2026-11-16T10:00:00Z"))).toBe(false);
+    expect(paymentOverdue(late, new Date("2026-11-17T10:00:00Z"))).toBe(true);
+    // Régularisé (abonnement de nouveau actif) ou jamais refusé : pas de pause.
+    expect(paymentOverdue({ ...late, status: "active" }, NOW)).toBe(false);
+    expect(paymentOverdue({ status: "past_due", payment_failed_at: null }, NOW)).toBe(false);
+
+    const { client } = fakeSupabase({
+      plans: PLANS,
+      subscriptions: [sub({ status: "past_due", payment_failed_at: failed })],
+    });
+    const before = await checkSendAllowance(client, "ws1", new Date("2026-11-15T10:00:00Z"));
+    expect(before.allowed).toBe(true);
+    const after = await checkSendAllowance(client, "ws1", NOW);
+    expect(after).toMatchObject({ allowed: false, reason: "abonnement_requis" });
+    // Les autres droits ne bougent pas : seul l'envoi est en pause.
+    expect(await effectivePlan(client, "ws1", NOW)).toBe("starter");
+  });
   it("début de mois civil UTC", () => {
     expect(monthStart(NOW).toISOString()).toBe("2026-11-01T00:00:00.000Z");
   });
@@ -257,6 +284,52 @@ describe("webhooks Stripe", () => {
     expect(tables.subscriptions![0]!.status).toBe("canceled");
     expect(tables.workspaces![0]!.plan).toBe("gratuit");
     expect(await effectivePlan(client, "ws1", NOW)).toBe("gratuit");
+  });
+  it("paiement refusé : date du premier refus gardée, effacée quand la facture est payée", async () => {
+    const { client, tables } = fakeSupabase(base());
+    await handleStripeEvent(client, ev("p1", "customer.subscription.created", subObj()));
+    expect(tables.subscriptions![0]!.payment_failed_at).toBeNull();
+    await handleStripeEvent(
+      client,
+      ev("p2", "invoice.payment_failed", {
+        id: "in_1",
+        subscription: "sub_1",
+        customer: "cus_1",
+        amount_due: 1990,
+      }),
+    );
+    const first = tables.subscriptions![0]!.payment_failed_at;
+    expect(first).toEqual(expect.any(String));
+    expect(tables.subscriptions![0]!.payment_failed_amount_cents).toBe(1990);
+    // L'abonnement passe en retard, puis une nouvelle tentative échoue : la date ne bouge pas.
+    await handleStripeEvent(
+      client,
+      ev("p3", "customer.subscription.updated", subObj({ status: "past_due" })),
+    );
+    await handleStripeEvent(
+      client,
+      ev("p4", "invoice.payment_failed", { id: "in_1", subscription: "sub_1", amount_due: 1990 }),
+    );
+    expect(tables.subscriptions![0]).toMatchObject({
+      status: "past_due",
+      payment_failed_at: first,
+    });
+    await handleStripeEvent(
+      client,
+      ev("p5", "invoice.paid", { id: "in_1", subscription: "sub_1", customer: "cus_1" }),
+    );
+    expect(tables.subscriptions![0]!.payment_failed_at).toBeNull();
+    expect(tables.subscriptions![0]!.payment_failed_amount_cents).toBeNull();
+  });
+  it("abonnement en retard sans événement de facture : la date du refus est posée quand même", async () => {
+    const { client, tables } = fakeSupabase(base());
+    await handleStripeEvent(
+      client,
+      ev("q1", "customer.subscription.updated", subObj({ status: "past_due" })),
+    );
+    expect(tables.subscriptions![0]!.payment_failed_at).toEqual(expect.any(String));
+    await handleStripeEvent(client, ev("q2", "customer.subscription.updated", subObj()));
+    expect(tables.subscriptions![0]!.payment_failed_at).toBeNull();
   });
   it("l'espace de travail est retrouvé par l'identifiant d'abonnement sans métadonnées", async () => {
     const { client, tables } = fakeSupabase(base());

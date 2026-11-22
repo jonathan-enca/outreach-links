@@ -43,6 +43,45 @@ export async function effectivePlan(
   return data.plan;
 }
 
+/** Délai laissé pour régulariser un paiement refusé avant la pause des envois (décision de Jonathan, 22/11/2026). */
+export const PAYMENT_GRACE_DAYS = 7;
+
+/** Date de la pause des envois après un paiement refusé. */
+export function paymentPauseAt(failedAt: string | Date): Date {
+  return new Date(new Date(failedAt).getTime() + PAYMENT_GRACE_DAYS * 86_400_000);
+}
+
+/** Paiement refusé depuis plus de 7 jours et toujours pas régularisé (pur, testé). */
+export function paymentOverdue(
+  sub: { status: string; payment_failed_at: string | null },
+  now: Date,
+): boolean {
+  return (
+    sub.status === "past_due" &&
+    sub.payment_failed_at !== null &&
+    paymentPauseAt(sub.payment_failed_at) <= now
+  );
+}
+
+/**
+ * Plan qui s'applique aux ENVOIS : celui de l'abonnement, sauf si un paiement refusé n'a pas été
+ * régularisé dans les 7 jours (les envois sont alors en pause ; rien d'autre n'est retiré ni supprimé).
+ */
+export async function sendingPlan(
+  db: Client,
+  workspaceId: string,
+  now: Date,
+): Promise<BillingPlanKey> {
+  const plan = await effectivePlan(db, workspaceId, now);
+  if (plan === "gratuit") return plan;
+  const { data } = await db
+    .from("subscriptions")
+    .select("status, payment_failed_at")
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+  return data && paymentOverdue(data, now) ? "gratuit" : plan;
+}
+
 /** Pendant la bêta, un espace sans abonnement envoie comme ce plan (décision de Jonathan, 17/11/2026). */
 export const BETA_SEND_PLAN: PaidPlanKey = "starter";
 
@@ -88,7 +127,7 @@ export async function checkSendAllowance(
   beta = false,
   countsAgainstCap = true,
 ): Promise<SendDecision> {
-  const subscribed = await effectivePlan(db, workspaceId, now);
+  const subscribed = await sendingPlan(db, workspaceId, now);
   const plan = subscribed === "gratuit" && beta ? BETA_SEND_PLAN : subscribed;
   if (plan === "gratuit") return { allowed: false, reason: "abonnement_requis", plan };
   const { data: p } = await db

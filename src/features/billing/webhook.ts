@@ -62,6 +62,9 @@ export async function handleStripeEvent(db: Client, event: StripeEvent): Promise
     case "invoice.paid":
       result = await onInvoicePaid(db, obj);
       break;
+    case "invoice.payment_failed":
+      result = await onInvoiceFailed(db, obj);
+      break;
     default:
       result = { status: "ignore", reason: "type_non_gere" };
   }
@@ -149,7 +152,7 @@ async function onSubscription(
   const planMeta = str(meta(obj).plan);
   const current = await db
     .from("subscriptions")
-    .select("plan")
+    .select("plan, payment_failed_at, payment_failed_amount_cents")
     .eq("workspace_id", ws)
     .maybeSingle();
   const plan: PaidPlanKey | null = isPaidPlan(planMeta)
@@ -158,10 +161,22 @@ async function onSubscription(
       ? current.data.plan
       : null;
   if (!plan) return { status: "ignore", reason: "plan_inconnu" };
+  // Paiement refusé : on garde la date du PREMIER refus (c'est elle qui lance les 7 jours), et on
+  // l'efface dès que l'abonnement n'est plus en retard.
+  const price = (item?.price as { unit_amount?: unknown } | undefined)?.unit_amount;
+  const failed: { payment_failed_at: string | null; payment_failed_amount_cents: number | null } =
+    status === "past_due"
+      ? {
+          payment_failed_at: current.data?.payment_failed_at ?? new Date().toISOString(),
+          payment_failed_amount_cents:
+            current.data?.payment_failed_amount_cents ?? (typeof price === "number" ? price : null),
+        }
+      : { payment_failed_at: null, payment_failed_amount_cents: null };
   const row = {
     workspace_id: ws,
     plan,
     status,
+    ...failed,
     stripe_customer_id: customer,
     stripe_subscription_id: subId,
     current_period_start: start,
@@ -186,6 +201,11 @@ async function onInvoicePaid(db: Client, obj: Record<string, unknown>): Promise<
   if (!ws) return { status: "ignore", reason: "workspace_inconnu" };
   const sub = await db.from("subscriptions").select("plan").eq("workspace_id", ws).maybeSingle();
   if (!sub.data) return { status: "ignore", reason: "abonnement_inconnu" };
+  // Facture payée : un éventuel paiement refusé est régularisé.
+  await db
+    .from("subscriptions")
+    .update({ payment_failed_at: null, payment_failed_amount_cents: null })
+    .eq("workspace_id", ws);
   const plan = await db
     .from("plans")
     .select("monthly_credits")
@@ -201,4 +221,32 @@ async function onInvoicePaid(db: Client, obj: Record<string, unknown>): Promise<
   });
   if (error && error.code !== "23505") throw new Error(error.message);
   return { status: "traite", detail: `credits:${credits}` };
+}
+
+/**
+ * Prélèvement refusé : note la date du premier refus et le montant. L'email « Un paiement n'est pas
+ * passé » part ensuite (`notifyPayment`), et les envois se mettent en pause après 7 jours.
+ */
+async function onInvoiceFailed(db: Client, obj: Record<string, unknown>): Promise<WebhookResult> {
+  const parent = (obj.parent as { subscription_details?: { subscription?: unknown } } | undefined)
+    ?.subscription_details?.subscription;
+  const subId = str(obj.subscription) ?? str(parent);
+  const ws = await workspaceFor(db, {}, { subscription: subId, customer: str(obj.customer) });
+  if (!ws) return { status: "ignore", reason: "workspace_inconnu" };
+  const sub = await db
+    .from("subscriptions")
+    .select("payment_failed_at")
+    .eq("workspace_id", ws)
+    .maybeSingle();
+  if (!sub.data) return { status: "ignore", reason: "abonnement_inconnu" };
+  const amount = typeof obj.amount_due === "number" ? obj.amount_due : null;
+  const { error } = await db
+    .from("subscriptions")
+    .update({
+      payment_failed_at: sub.data.payment_failed_at ?? new Date().toISOString(),
+      ...(amount !== null ? { payment_failed_amount_cents: amount } : {}),
+    })
+    .eq("workspace_id", ws);
+  if (error) throw new Error(error.message);
+  return { status: "traite", detail: "paiement_refuse" };
 }

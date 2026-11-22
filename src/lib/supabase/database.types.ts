@@ -3709,6 +3709,8 @@ export type Database = {
           current_period_start: string | null;
           id: string;
           livemode: boolean;
+          payment_failed_amount_cents: number | null;
+          payment_failed_at: string | null;
           plan: string;
           status: string;
           stripe_customer_id: string | null;
@@ -3722,6 +3724,8 @@ export type Database = {
           current_period_start?: string | null;
           id?: string;
           livemode?: boolean;
+          payment_failed_amount_cents?: number | null;
+          payment_failed_at?: string | null;
           plan: string;
           status: string;
           stripe_customer_id?: string | null;
@@ -3735,6 +3739,8 @@ export type Database = {
           current_period_start?: string | null;
           id?: string;
           livemode?: boolean;
+          payment_failed_amount_cents?: number | null;
+          payment_failed_at?: string | null;
           plan?: string;
           status?: string;
           stripe_customer_id?: string | null;
