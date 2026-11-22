@@ -10,11 +10,12 @@ const run = {
 };
 
 /** Faux client Supabase : un journal d'événements et un annuaire d'utilisateurs en mémoire. */
-function fakeService(opts: { email?: string | null; already?: boolean } = {}) {
+function fakeService(opts: { email?: string | null; already?: boolean; off?: boolean } = {}) {
   const inserted: unknown[] = [];
   const builder: Record<string, unknown> = {};
   for (const m of ["select", "eq", "contains"]) builder[m] = () => builder;
   builder.limit = async () => ({ data: opts.already ? [{ id: 1 }] : [] });
+  builder.maybeSingle = async () => ({ data: opts.off ? { analysis_ready: false } : null });
   builder.insert = async (row: unknown) => {
     inserted.push(row);
     return { error: null };
@@ -40,14 +41,15 @@ describe("buildReadyEmail", () => {
       shortlist: 22,
       url: "https://app.test/app/site/s1/cibles",
     });
-    expect(m.subject).toBe("22 cibles sont prêtes pour exemple.test");
+    expect(m.subject).toBe("L'analyse de exemple.test est terminée");
+    expect(m.text).toContain("22 sites retenus");
     expect(m.text).toContain("https://app.test/app/site/s1/cibles");
     expect(m.html).toContain('href="https://app.test/app/site/s1/cibles"');
     expect(`${m.subject}${m.text}${m.html}`).not.toMatch(
       /\$|USD|dollar|\bIA\b|intelligence artificielle/i,
     );
   });
-  it("échappe le domaine dans le HTML ; 0 et 1 cible bien accordés", () => {
+  it("échappe le domaine dans le HTML ; 1 site bien accordé", () => {
     const m = buildReadyEmail({
       to: "a@b.test",
       domain: "<b>x</b>",
@@ -56,10 +58,7 @@ describe("buildReadyEmail", () => {
     });
     expect(m.html).not.toContain("<b>x</b>");
     expect(m.html).toContain("&amp;b=2");
-    expect(
-      buildReadyEmail({ to: "a@b.test", domain: "d.test", shortlist: 0, url: "https://a.test" })
-        .subject,
-    ).toBe("Votre analyse de d.test est terminée");
+    expect(m.text).toContain("1 site retenu");
   });
 });
 
@@ -80,6 +79,13 @@ describe("notifyAnalysisReady", () => {
     const send = vi.fn(async () => {});
     expect(await notifyAnalysisReady(fakeService({ already: true }).service, run, 5, send)).toBe(
       "deja",
+    );
+    expect(send).not.toHaveBeenCalled();
+  });
+  it("notification coupée dans les réglages : rien ne part", async () => {
+    const send = vi.fn(async () => {});
+    expect(await notifyAnalysisReady(fakeService({ off: true }).service, run, 5, send)).toBe(
+      "coupe",
     );
     expect(send).not.toHaveBeenCalled();
   });

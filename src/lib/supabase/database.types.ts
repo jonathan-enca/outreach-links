@@ -1812,8 +1812,14 @@ export type Database = {
         Row: {
           reply_waiting: boolean;
           to_validate: boolean;
+          analysis_ready: boolean;
+          campaign_idle: boolean;
+          link_live: boolean;
+          link_lost: boolean;
           links: boolean;
           mailbox: boolean;
+          monthly: boolean;
+          quota: boolean;
           new_sites: boolean;
           weekly: boolean;
           updated_at: string;
@@ -1823,8 +1829,14 @@ export type Database = {
         Insert: {
           reply_waiting?: boolean;
           to_validate?: boolean;
+          analysis_ready?: boolean;
+          campaign_idle?: boolean;
+          link_live?: boolean;
+          link_lost?: boolean;
           links?: boolean;
           mailbox?: boolean;
+          monthly?: boolean;
+          quota?: boolean;
           new_sites?: boolean;
           weekly?: boolean;
           updated_at?: string;
@@ -1834,8 +1846,14 @@ export type Database = {
         Update: {
           reply_waiting?: boolean;
           to_validate?: boolean;
+          analysis_ready?: boolean;
+          campaign_idle?: boolean;
+          link_live?: boolean;
+          link_lost?: boolean;
           links?: boolean;
           mailbox?: boolean;
+          monthly?: boolean;
+          quota?: boolean;
           new_sites?: boolean;
           weekly?: boolean;
           updated_at?: string;
