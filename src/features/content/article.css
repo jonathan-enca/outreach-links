@@ -1,0 +1,547 @@
+/*
+ * Gabarit des contenus (guides, blog, glossaire, comparatifs). Reprise fidèle de la maquette validée
+ * `docs/mockups/article-blog.html` : mêmes tailles, mêmes espacements, même point de bascule (900 px).
+ * Le corps de l'article est du HTML produit depuis le Markdown : il est stylé ici, pas par des classes.
+ */
+.art {
+  background: #fff;
+  color: var(--foreground);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  flex: 1;
+}
+.art-wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Bouton et champ des appels à l'action */
+.art-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 0.5rem;
+  background: var(--primary);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.65;
+  border: 0;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.art-btn:hover {
+  background: var(--primary-hover);
+}
+.art-btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.art-field {
+  display: flex;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px;
+  background: #fff;
+}
+.art-field:focus-within {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.art-field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  font-size: 16px;
+  padding: 0 10px;
+  background: transparent;
+  color: var(--foreground);
+}
+.art-field input::placeholder {
+  color: #757575;
+}
+.art-small {
+  font-size: 13px;
+  color: var(--muted-foreground);
+  margin-top: 10px;
+}
+.art-pill {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e0efff;
+  color: var(--primary);
+}
+
+/* Tête d'article */
+.art-hero {
+  background: linear-gradient(#eef6ff, #fff);
+  padding: 36px 0 28px;
+}
+.art-crumbs {
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+.art-crumbs ol {
+  display: inline;
+}
+.art-crumbs li {
+  display: inline;
+}
+.art-crumbs a:hover {
+  text-decoration: underline;
+}
+.art-title {
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  margin: 14px 0;
+  max-width: 20ch;
+  text-wrap: balance;
+}
+.art-chapo {
+  font-size: 20px;
+  line-height: 1.5;
+  color: #334155;
+  max-width: 62ch;
+  margin: 0;
+}
+.art-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  align-items: center;
+  margin-top: 20px;
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+.art-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* Grille : article et colonne */
+.art-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 56px;
+  padding-top: 36px;
+  padding-bottom: 64px;
+}
+.art-grid-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+.art-body {
+  max-width: 68ch;
+}
+.art-body h2 {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 44px 0 12px;
+  scroll-margin-top: 90px;
+  text-wrap: wrap;
+}
+.art-body h3,
+.art-body h4 {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: normal;
+  margin: 26px 0 6px;
+  text-wrap: wrap;
+}
+.art-body p {
+  margin: 0 0 16px;
+}
+.art-body ul,
+.art-body ol {
+  margin: 0 0 16px;
+  padding-left: 22px;
+}
+.art-body ul {
+  list-style: disc;
+}
+.art-body ol {
+  list-style: decimal;
+}
+.art-body li {
+  margin-bottom: 6px;
+}
+.art-body a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.art-body strong,
+.art-body b {
+  font-weight: 700;
+}
+.art-body code {
+  font-family: monospace;
+  font-size: 1em;
+}
+.art-body pre {
+  overflow-x: auto;
+  background: var(--muted);
+  border-radius: 0.875rem;
+  padding: 14px 16px;
+  margin: 8px 0 20px;
+  font-size: 15px;
+}
+.art-body blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 16px;
+  margin: 0 0 16px;
+  color: #334155;
+}
+.art-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.875rem;
+}
+.art-body hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 32px 0;
+}
+
+.art-bref {
+  background: var(--muted);
+  border-radius: 0.875rem;
+  padding: 20px 22px;
+  margin: 0 0 8px;
+}
+.art-body .art-bref h2 {
+  font-size: 15px;
+  letter-spacing: 0;
+  margin: 0 0 8px;
+  color: var(--primary);
+  font-weight: 600;
+}
+.art-body .art-bref ul {
+  margin: 0;
+}
+
+.art-table {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  margin: 8px 0 20px;
+}
+.art-table table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 15px;
+  min-width: 560px;
+}
+.art-table th,
+.art-table td {
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.art-table th {
+  background: var(--muted);
+  font-weight: 600;
+  font-size: 14px;
+}
+.art-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Appel à l'action A, dans le texte */
+.art-cta {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--card);
+  box-shadow: 0 18px 40px -18px rgb(14 26 43 / 0.28);
+  padding: 24px;
+  margin: 32px 0;
+  scroll-margin-top: 90px;
+}
+.art-body .art-cta h3 {
+  margin: 10px 0 4px;
+  font-size: 21px;
+  letter-spacing: -0.01em;
+}
+.art-body .art-cta p {
+  margin: 0 0 14px;
+  color: var(--muted-foreground);
+  font-size: 16px;
+}
+
+/* Exemple de message */
+.art-mail {
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  box-shadow: var(--shadow-card);
+  margin: 8px 0 20px;
+  font-size: 16px;
+}
+.art-mail-top {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  color: var(--muted-foreground);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.art-mail-body {
+  padding: 16px;
+}
+.art-body .art-mail-body p {
+  margin: 0 0 10px;
+}
+
+/* Questions fréquentes et sources */
+.art-faq details {
+  border-bottom: 1px solid var(--border);
+  padding: 14px 0;
+}
+.art-faq summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+.art-body .art-faq details p {
+  margin: 10px 0 0;
+}
+.art-body ul.art-sources {
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+.art-body ul.art-sources li {
+  margin-bottom: 4px;
+}
+
+/* Colonne : sommaire et appel à l'action B */
+.art-stick {
+  position: sticky;
+  top: 92px;
+  display: grid;
+  gap: 18px;
+}
+.art-toc {
+  font-size: 14.5px;
+}
+.art-toc-title {
+  display: block;
+  font-size: 13px;
+  color: var(--muted-foreground);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.art-toc a {
+  display: block;
+  padding: 5px 0 5px 12px;
+  border-left: 2px solid var(--border);
+  color: var(--muted-foreground);
+  text-decoration: none;
+}
+.art-toc a:hover {
+  color: var(--foreground);
+}
+.art-toc a[aria-current] {
+  border-color: var(--primary);
+  color: var(--foreground);
+  font-weight: 500;
+}
+.art-side {
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  padding: 18px;
+  box-shadow: var(--shadow-card);
+}
+.art-side h3 {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-wrap: wrap;
+}
+.art-side p {
+  margin: 0 0 12px;
+  font-size: 14.5px;
+  color: var(--muted-foreground);
+  line-height: 1.5;
+}
+.art-side .art-btn {
+  width: 100%;
+}
+
+/* Appel à l'action C : bandeau final sur la surface nuit */
+.art-night {
+  background: #003070;
+  color: #fff;
+  padding: 56px 0;
+}
+.art-night-in {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 20px;
+  text-align: center;
+}
+.art-night h2 {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+  text-wrap: balance;
+}
+.art-night p {
+  color: #a9d4f9;
+  margin: 0 auto 22px;
+  max-width: 56ch;
+}
+.art-night .art-field {
+  max-width: 520px;
+  margin: 0 auto;
+  border-color: transparent;
+  text-align: left;
+}
+.art-night .art-field:focus-within {
+  outline-color: #5cc8f5;
+}
+.art-night ul {
+  list-style: none;
+  padding: 0;
+  margin: 22px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  justify-content: center;
+  font-size: 14px;
+}
+.art-night li {
+  border: 1px solid #2a4d80;
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+/* À lire ensuite, et cartes des pages d'index */
+.art-more {
+  padding: 48px 0;
+}
+.art-more h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 18px;
+  letter-spacing: -0.02em;
+  line-height: 1.65;
+}
+.art-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+.art-card {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  padding: 18px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: var(--shadow-card);
+}
+.art-card:hover {
+  border-color: #cbd5e1;
+}
+.art-card:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.art-card-theme {
+  font-size: 13px;
+  color: var(--primary);
+  font-weight: 600;
+}
+.art-card-title {
+  display: block;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-top: 6px;
+}
+.art-card-text {
+  display: block;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  margin: 8px 0 0;
+}
+.art-card-date {
+  display: block;
+  font-size: 13px;
+  color: var(--muted-foreground);
+  margin-top: 10px;
+}
+.art-index {
+  padding: 36px 0 64px;
+}
+.art-banner {
+  background: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+  font-size: 14px;
+  padding: 10px 0;
+  color: #713f12;
+}
+
+@media (max-width: 900px) {
+  .art {
+    font-size: 16px;
+  }
+  .art-title {
+    font-size: 32px;
+  }
+  .art-chapo {
+    font-size: 18px;
+  }
+  .art-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding-top: 24px;
+  }
+  .art-body {
+    min-width: 0;
+    max-width: none;
+  }
+  .art-aside {
+    display: none;
+  }
+  .art-body h2 {
+    font-size: 24px;
+  }
+  .art-field {
+    flex-direction: column;
+  }
+  /* Écart voulu avec la maquette : le champ garde 40 px de haut pour rester facile à toucher. */
+  .art-field input {
+    min-height: 40px;
+  }
+  .art-cards {
+    grid-template-columns: 1fr;
+  }
+  .art-night h2 {
+    font-size: 27px;
+  }
+}

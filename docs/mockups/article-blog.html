@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Maquette : article de blog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --background:#f8fafc;--foreground:#0f172a;--card:#fff;--muted:#f1f5f9;--muted-foreground:#526074;
+  --border:#e2e8f0;--primary:#003070;--primary-hover:#00245a;--sky:#5cc8f5;--highlight:#fde68a;
+  --r-control:.5rem;--r-card:.875rem;--r-panel:1rem;
+  --shadow-card:0 1px 2px rgb(14 26 43/.06),0 1px 1px rgb(14 26 43/.04);
+  --shadow-float:0 18px 40px -18px rgb(14 26 43/.28);
+}
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:var(--foreground);font-family:Outfit,system-ui,sans-serif;font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased}
+a{color:var(--primary)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+/* bandeau de maquette */
+.note{background:#fffbeb;border-bottom:1px solid #fde68a;font-size:14px;padding:10px 0;color:#713f12}
+.note b{font-weight:600}
+.tag{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:999px;background:#b45309;color:#fff;font-size:12px;font-weight:700;margin-right:6px;vertical-align:middle}
+/* en-tête */
+header.site{position:sticky;top:0;z-index:10;background:rgb(255 255 255/.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+header.site .wrap{display:flex;align-items:center;gap:28px;height:68px}
+.logo{display:inline-flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:-.01em;color:var(--foreground);text-decoration:none}
+nav.main{display:flex;gap:22px;margin-left:auto;font-size:15px}
+nav.main a{color:var(--muted-foreground);text-decoration:none}
+nav.main a[aria-current]{color:var(--foreground);font-weight:600}
+.btn{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 16px;border-radius:var(--r-control);background:var(--primary);color:#fff;font:inherit;font-size:15px;font-weight:500;border:0;text-decoration:none;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--primary-hover)}
+.btn.ghost{background:transparent;color:var(--foreground)}
+/* tête d'article */
+.hero{background:linear-gradient(#eef6ff,#fff);padding:36px 0 28px}
+.crumbs{font-size:14px;color:var(--muted-foreground)}
+.crumbs a{color:inherit;text-decoration:none}
+h1{font-size:44px;line-height:1.08;letter-spacing:-.03em;margin:14px 0 14px;max-width:20ch;text-wrap:balance}
+.chapo{font-size:20px;line-height:1.5;color:#334155;max-width:62ch;margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin-top:20px;font-size:14px;color:var(--muted-foreground)}
+.avatar{width:32px;height:32px;border-radius:999px;background:var(--primary);color:#fff;display:grid;place-items:center;font-weight:600;font-size:13px}
+/* grille */
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:56px;padding-top:36px;padding-bottom:64px}
+article{max-width:68ch}
+article h2{font-size:28px;line-height:1.2;letter-spacing:-.02em;margin:44px 0 12px;scroll-margin-top:90px}
+article h3{font-size:19px;margin:26px 0 6px}
+article p{margin:0 0 16px}
+article ul{margin:0 0 16px;padding-left:22px}
+article li{margin-bottom:6px}
+.bref{background:var(--muted);border-radius:var(--r-card);padding:20px 22px;margin:0 0 8px}
+.bref h2{font-size:15px;letter-spacing:0;margin:0 0 8px;color:var(--primary);font-weight:600}
+.bref ul{margin:0}
+.table{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r-card);margin:8px 0 20px}
+table{border-collapse:collapse;width:100%;font-size:15px;min-width:560px}
+th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+th{background:var(--muted);font-weight:600;font-size:14px}
+tr:last-child td{border-bottom:0}
+mark{background:var(--highlight);padding:1px 3px;border-radius:3px;color:inherit}
+/* appels à l'action */
+.cta{border:1px solid var(--border);border-radius:var(--r-panel);background:var(--card);box-shadow:var(--shadow-float);padding:24px;margin:32px 0}
+.cta h3{margin:0 0 4px;font-size:21px;letter-spacing:-.01em}
+.cta p{margin:0 0 14px;color:var(--muted-foreground);font-size:16px}
+.field{display:flex;gap:8px;border:1px solid var(--border);border-radius:10px;padding:6px;background:#fff}
+.field input{flex:1;min-width:0;border:0;outline:0;font:inherit;font-size:16px;padding:0 10px;background:transparent}
+.small{font-size:13px;color:var(--muted-foreground);margin-top:10px}
+.mail{border:1px solid var(--border);border-radius:var(--r-card);box-shadow:var(--shadow-card);margin:8px 0 20px;font-size:16px}
+.mail .top{padding:12px 16px;border-bottom:1px solid var(--border);font-size:14px;color:var(--muted-foreground);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.mail .body{padding:16px}
+.mail .body p{margin:0 0 10px}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:#e0efff;color:var(--primary)}
+.todo{border:1.5px dashed #b45309;background:#fffbeb;border-radius:var(--r-card);padding:14px 16px;font-size:15px;color:#713f12;margin:8px 0 20px}
+details{border-bottom:1px solid var(--border);padding:14px 0}
+summary{font-weight:600;cursor:pointer}
+details p{margin:10px 0 0}
+.sources{font-size:14px;color:var(--muted-foreground)}
+.sources li{margin-bottom:4px}
+/* colonne */
+aside .stick{position:sticky;top:92px;display:grid;gap:18px}
+.toc{font-size:14.5px}
+.toc b{display:block;font-size:13px;color:var(--muted-foreground);font-weight:600;margin-bottom:8px}
+.toc a{display:block;padding:5px 0 5px 12px;border-left:2px solid var(--border);color:var(--muted-foreground);text-decoration:none}
+.toc a.on{border-color:var(--primary);color:var(--foreground);font-weight:500}
+.side{border:1px solid var(--border);border-radius:var(--r-card);padding:18px;box-shadow:var(--shadow-card)}
+.side h3{margin:0 0 6px;font-size:17px}
+.side p{margin:0 0 12px;font-size:14.5px;color:var(--muted-foreground);line-height:1.5}
+.side .btn{width:100%}
+/* bloc final */
+.night{background:var(--primary);color:#fff;padding:56px 0}
+.night .in{max-width:760px;margin:0 auto;padding:0 20px;text-align:center}
+.night h2{font-size:34px;line-height:1.15;letter-spacing:-.02em;margin:0 0 10px;text-wrap:balance}
+.night p{color:#a9d4f9;margin:0 auto 22px;max-width:56ch}
+.night .field{max-width:520px;margin:0 auto;border-color:transparent}
+.night .small{color:#a9d4f9}
+.night ul{list-style:none;padding:0;margin:22px 0 0;display:flex;flex-wrap:wrap;gap:8px 10px;justify-content:center;font-size:14px}
+.night li{border:1px solid #2a4d80;border-radius:999px;padding:4px 12px}
+.more{padding:48px 0}
+.more h2{font-size:24px;margin:0 0 18px;letter-spacing:-.02em}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{border:1px solid var(--border);border-radius:var(--r-card);padding:18px;text-decoration:none;color:inherit;box-shadow:var(--shadow-card)}
+.card span{font-size:13px;color:var(--primary);font-weight:600}
+.card b{display:block;font-size:17px;line-height:1.3;margin-top:6px}
+footer{border-top:1px solid var(--border);padding:24px 0;font-size:14px;color:var(--muted-foreground)}
+@media (max-width:900px){
+  body{font-size:16px}
+  nav.main a:not(.btn){display:none}
+  h1{font-size:32px}
+  .chapo{font-size:18px}
+  .grid{grid-template-columns:minmax(0,1fr);gap:0;padding-top:24px}
+  article{min-width:0;max-width:none}
+  aside{display:none}
+  article h2{font-size:24px}
+  .field{flex-direction:column}
+  .cards{grid-template-columns:1fr}
+  .night h2{font-size:27px}
+}
+</style>
+</head>
+<body>
+
+<div class="note"><div class="wrap"><b>Maquette d'article.</b> Trois appels à l'action vers l'audit gratuit, repérés par <span class="tag">A</span><span class="tag">B</span><span class="tag">C</span>. Les cadres en pointillés sont des éléments à fournir avant publication. Sur mobile, la colonne de droite disparaît et <span class="tag">A</span> et <span class="tag">C</span> restent.</div></div>
+
+<header class="site"><div class="wrap">
+  <a class="logo" href="#">
+    <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#003070"/><g fill="none" stroke-width="2.4" stroke-linecap="round" transform="translate(4 4)"><path d="M9 17H7A5 5 0 0 1 7 7h2M8 12h8" stroke="#fff"/><path d="M15 7h2a5 5 0 1 1 0 10h-2" stroke="#5cc8f5"/></g></svg>
+    backleenks
+  </a>
+  <nav class="main">
+    <a href="#">Fonctionnalités</a><a href="#">Tarifs</a><a href="#" aria-current="page">Blog</a><a href="#">Se connecter</a>
+    <a class="btn" href="#">Essai gratuit</a>
+  </nav>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <div class="crumbs"><a href="#">Accueil</a> › <a href="#">Guides</a> › Backlinks gratuits</div>
+  <h1>Backlinks gratuits : ce qui ne sert à rien, ce qui marche vraiment</h1>
+  <p class="chapo">Listes de sites, générateurs, annuaires : les liens gratuits faciles à obtenir sont justement ceux que Google ne compte plus. Ceux qui comptent sont gratuits aussi, mais ils se demandent, un par un, à la bonne page.</p>
+  <div class="meta"><span class="avatar">JE</span><span>Par Jonathan, fondateur de backleenks</span><span>Mis à jour le 22 novembre 2026</span><span>7 min de lecture</span></div>
+</div></section>
+
+<div class="wrap grid">
+<article>
+
+  <div class="bref">
+    <h2>En bref</h2>
+    <ul>
+      <li>Un lien que n'importe qui peut créer en deux minutes n'a presque aucune valeur pour Google.</li>
+      <li>Depuis décembre 2022, Google annonce qu'il neutralise ces liens : ils ne comptent ni en bien ni en mal.</li>
+      <li>Un lien gratuit utile vient d'une page qui avait une raison de vous citer.</li>
+      <li>Ce lien-là ne se génère pas : il se demande, avec un message précis.</li>
+    </ul>
+  </div>
+
+  <h2 id="propose">Ce qu'on vous propose quand vous cherchez « backlinks gratuits »</h2>
+  <p>Tapez cette recherche dans Google et vous tomberez sur trois familles de résultats.</p>
+  <ul>
+    <li><b>Des listes de sites</b> : « 50 sites où poser un lien gratuitement ». Des forums, des plateformes de profils, des sites de favoris.</li>
+    <li><b>Des générateurs</b> : vous entrez votre adresse, l'outil crée des dizaines de pages qui la mentionnent.</li>
+    <li><b>Des annuaires</b> : vous remplissez une fiche, elle contient un lien vers votre site.</li>
+  </ul>
+  <p>Le point commun saute aux yeux : dans les trois cas, c'est vous qui créez le lien. Personne n'a décidé que votre site méritait d'être cité.</p>
+
+  <h2 id="pourquoi">Pourquoi ces liens ne font rien bouger</h2>
+  <p>Pour Google, un lien est un vote : quelqu'un d'autre recommande votre page. Un lien que vous posez vous-même n'est pas un vote, c'est une auto-recommandation. Google le sait, et ses règles le disent noir sur blanc.</p>
+  <div class="table"><table>
+    <thead><tr><th>Type de lien</th><th>Ce qu'en disent les règles de Google</th><th>Ce que vous y gagnez</th></tr></thead>
+    <tbody>
+      <tr><td>Créé par un générateur ou un logiciel</td><td>Cité comme lien artificiel (programmes ou services automatisés)</td><td>Rien</td></tr>
+      <tr><td>Annuaire généraliste ou site de favoris</td><td>Cité quand l'annuaire est de qualité médiocre</td><td>Rien, parfois un peu de visibilité locale</td></tr>
+      <tr><td>Commentaire ou signature de forum</td><td>Cité quand le lien est optimisé sur un mot-clé</td><td>Rien</td></tr>
+      <tr><td>Lien de profil</td><td>Pas cité nommément ; ces liens sont le plus souvent en <code>nofollow</code></td><td>Votre marque existe à cet endroit, sans plus</td></tr>
+    </tbody>
+  </table></div>
+  <p>Depuis sa mise à jour de décembre 2022, Google explique que son système de détection repère ces liens et les met de côté. Sa formule : « les liens contenant du spam sont neutralisés ». Neutralisé veut dire ignoré, pas puni. Dans l'immense majorité des cas vous ne risquez pas de sanction ; vous perdez simplement votre temps.</p>
+  <p>C'est aussi pour cela qu'un site peut afficher des centaines de liens dans un outil d'analyse et rester introuvable : presque aucun ne compte.</p>
+
+  <h2 id="utile">Ce qui reste utile dans le gratuit facile</h2>
+  <p>Tout n'est pas à jeter. Quelques inscriptions valent leurs cinq minutes, mais pour être trouvé par des clients, pas pour monter dans Google.</p>
+  <ul>
+    <li><b>Votre fiche d'établissement Google</b>, si vous avez une adresse ou une zone de service.</li>
+    <li><b>Les annuaires de votre métier</b> : ordre professionnel, fédération, chambre de commerce, annuaire de votre commune.</li>
+    <li><b>Vos profils de marque</b> sur les plateformes où vos clients vous cherchent vraiment.</li>
+  </ul>
+
+  <div class="cta" id="cta-a">
+    <span class="tag">A</span><span class="pill">Gratuit, sans carte bancaire</span>
+    <h3 style="margin-top:10px">Qui cite vos concurrents, mais pas vous ?</h3>
+    <p>Entrez l'adresse de votre site. Vous obtenez la liste des pages qui renvoient déjà vers vos concurrents, et la raison pour laquelle chacune pourrait vous citer aussi.</p>
+    <div class="field"><input type="text" placeholder="votresite.fr" aria-label="Adresse de votre site" /><button class="btn">Voir qui pourrait me citer</button></div>
+    <div class="small">Vous regardez d'abord. Aucun message ne part sans votre accord.</div>
+  </div>
+
+  <h2 id="demander">Les backlinks gratuits qui comptent : ceux qu'on demande</h2>
+  <p>Un lien utile vient d'une page de contenu, tenue par quelqu'un, qui cite déjà des ressources comme la vôtre. Trois situations reviennent sans cesse.</p>
+  <h3>1. Le lien mort</h3>
+  <p>Une page renvoie vers une ressource qui n'existe plus. Vous avez une page qui la remplace. Vous rendez service à l'auteur en le lui signalant : c'est la demande la mieux reçue.</p>
+  <h3>2. La page qui liste des ressources</h3>
+  <p>Un article compare cinq outils ou recommande dix sites sur votre sujet. Le vôtre a sa place dans la liste, et vous pouvez dire pourquoi en une phrase.</p>
+  <h3>3. Le site d'une personne de votre public</h3>
+  <p>Un enseignant, un artisan, une association tient un blog et y partage ce qui lui sert. Si votre page lui sert, il la citera volontiers.</p>
+
+  <h2 id="message">À quoi ressemble une bonne demande</h2>
+  <p>Courte, précise, sans contrepartie. Elle montre que vous avez lu la page et donne l'adresse exacte de la vôtre.</p>
+  <div class="mail">
+    <div class="top"><span>Objet : un lien mort dans votre article sur les jeux de vacances</span><span class="pill">Exemple de démonstration</span></div>
+    <div class="body">
+      <p>Bonjour Claire,</p>
+      <p>Dans votre article sur les activités d'été, <mark>le lien vers les « coloriages à imprimer » mène à une page qui n'existe plus</mark>.</p>
+      <p>Nous avons une page équivalente, gratuite et sans inscription : exemple.fr/coloriages-ete. Si elle vous convient, elle peut remplacer l'ancien lien.</p>
+      <p>Bonne journée,<br />Julien</p>
+    </div>
+  </div>
+  <p>Le passage surligné est ce qui fait la différence : la raison précise, tirée de la page, pour laquelle vous écrivez à cette personne et pas à mille autres. À l'inverse, n'offrez rien en échange du lien. Google range l'échange de biens ou de services contre un lien parmi les pratiques artificielles, et votre page doit se suffire.</p>
+
+  <h2 id="cout">Ce que ça coûte vraiment</h2>
+  <p>Ces liens sont gratuits, pas faciles. Il faut trouver les bonnes pages, les lire, écarter celles qui vendent leurs liens, trouver un contact, écrire, relancer une fois. Et la plupart des messages restent sans réponse.</p>
+  <div class="todo"><b>À fournir avant publication :</b> les chiffres réels d'une de vos campagnes (messages envoyés, réponses, liens obtenus, sur combien de jours). C'est la preuve que les autres articles sur le sujet n'ont pas.</div>
+  <p>C'est ce travail que backleenks prend en charge : la recherche et le tri des pages, la rédaction de chaque demande, l'envoi depuis votre propre boîte mail après votre accord, la relance, puis la vérification du lien. <a href="#">Voir comment ça marche</a>.</p>
+
+  <h2 id="faq">Questions fréquentes</h2>
+  <details open><summary>Les backlinks gratuits peuvent-ils pénaliser mon site ?</summary><p>C'est rare. Google dit ignorer la plupart des liens artificiels plutôt que de sanctionner le site visé. Le vrai coût est le temps perdu.</p></details>
+  <details><summary>Faut-il désavouer les mauvais liens ?</summary><p>En général non. L'outil de désaveu sert surtout après une action manuelle signalée dans la Search Console.</p></details>
+  <details><summary>Combien de liens faut-il ?</summary><p>Il n'y a pas de nombre. Regardez les sites qui occupent la première page sur vos requêtes : c'est l'écart avec eux qui compte.</p></details>
+
+  <h2 id="sources">Sources</h2>
+  <ul class="sources">
+    <li>Google Search Central, « Règles concernant le spam dans la recherche Google », section sur les liens, consulté le 22 novembre 2026.</li>
+    <li>Google Search Central Blog, « Mise à jour de décembre 2022 contre le spam dans les liens », 14 décembre 2022.</li>
+  </ul>
+</article>
+
+<aside><div class="stick">
+  <nav class="toc"><b>Dans cet article</b>
+    <a href="#propose">Ce qu'on vous propose</a>
+    <a href="#pourquoi" class="on">Pourquoi ça ne fait rien bouger</a>
+    <a href="#utile">Ce qui reste utile</a>
+    <a href="#demander">Les liens qu'on demande</a>
+    <a href="#message">Une bonne demande</a>
+    <a href="#cout">Ce que ça coûte</a>
+    <a href="#faq">Questions fréquentes</a>
+  </nav>
+  <div class="side">
+    <span class="tag">B</span>
+    <h3 style="margin-top:8px">Vos concurrents ont des liens que vous n'avez pas</h3>
+    <p>Voyez lesquels, et à qui les demander. C'est gratuit.</p>
+    <a class="btn" href="#cta-a">Trouver mes liens manquants</a>
+  </div>
+</div></aside>
+</div>
+
+<section class="night"><div class="in">
+  <span class="tag">C</span>
+  <h2>Les pages qui devraient vous citer existent déjà</h2>
+  <p>backleenks les trouve, écrit chaque demande et l'envoie depuis votre boîte mail une fois que vous avez dit oui. Vous ne payez aucun lien.</p>
+  <div class="field"><input type="text" placeholder="votresite.fr" aria-label="Adresse de votre site" /><button class="btn">Trouver mes premières cibles</button></div>
+  <ul><li>Aucun lien acheté</li><li>Envoi depuis votre boîte</li><li>Rien ne part sans votre accord</li></ul>
+</div></section>
+
+<section class="more"><div class="wrap">
+  <h2>À lire ensuite</h2>
+  <div class="cards">
+    <a class="card" href="#"><span>Backlinks gratuits</span><b>Reconnaître un backlink de qualité en 6 questions</b></a>
+    <a class="card" href="#"><span>Backlinks gratuits</span><b>« 1 000 backlinks pour 5 € » : pourquoi Google les neutralise</b></a>
+    <a class="card" href="#"><span>Méthode</span><b>Liens cassés : récupérer les liens morts de vos concurrents</b></a>
+  </div>
+</div></section>
+
+<footer><div class="wrap">backleenks · Blog · Guides · Glossaire · Mentions légales</div></footer>
+</body>
+</html>
