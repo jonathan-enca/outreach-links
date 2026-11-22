@@ -6,7 +6,7 @@ import { ResetForm } from "@/features/auth/forms";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: t.auth.reset.title };
+export const metadata: Metadata = { title: t.auth.reset.title, robots: { index: false } };
 
 async function Guard() {
   // La session de récupération est ouverte par /auth/recuperation ; sans elle, retour à la connexion.
