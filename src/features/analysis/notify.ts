@@ -1,11 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { env } from "@/env";
 import { logger } from "@/lib/logger";
+import { t } from "@/lib/messages";
 import type { Database } from "@/lib/supabase/database.types";
 import { siteHref } from "@/features/shell/next-step";
 import { analysisEmail } from "@/features/notifications/emails";
 import { renderNotification } from "@/features/notifications/template";
-import { notificationSecret, unsubscribePath } from "@/features/notifications/secret";
+import { notificationSecret, oneClickPath, unsubscribePath } from "@/features/notifications/secret";
 import { unsubscribeToken } from "@/features/notifications/unsubscribe";
 import { isEnabled } from "@/features/settings/notifications";
 
@@ -16,6 +17,12 @@ export interface ReadyEmail {
   subject: string;
   text: string;
   html: string;
+  headers?: Record<string, string>;
+}
+
+/** Expéditeur affiché « <nom du produit> <noreply@…> » quand le réglage ne donne que l'adresse (pur, testé). */
+export function senderWithName(from: string, name: string): string {
+  return from.includes("<") ? from : `${name} <${from.trim()}>`;
 }
 
 /**
@@ -31,13 +38,18 @@ export function buildReadyEmail(input: {
   url: string;
   appUrl?: string;
   unsubscribeUrl?: string | null;
+  oneClickUrl?: string | null;
 }): ReadyEmail {
   const rendered = renderNotification(
     analysisEmail(
       { domain: input.domain, kept: input.shortlist, studied: input.studied ?? 0 },
       input.url,
     ),
-    { appUrl: input.appUrl ?? input.url, unsubscribeUrl: input.unsubscribeUrl ?? null },
+    {
+      appUrl: input.appUrl ?? input.url,
+      unsubscribeUrl: input.unsubscribeUrl ?? null,
+      oneClickUrl: input.oneClickUrl ?? null,
+    },
   );
   return { to: input.to, ...rendered };
 }
@@ -67,11 +79,12 @@ export function resendSender(): SendTransactional | null {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: env.TRANSACTIONAL_FROM,
+        from: senderWithName(env.TRANSACTIONAL_FROM, t.app.name),
         to: [email.to],
         subject: email.subject,
         text: email.text,
         html: email.html,
+        ...(email.headers ? { headers: email.headers } : {}),
       }),
       signal: AbortSignal.timeout(15_000),
     });
@@ -108,6 +121,7 @@ export async function notifyAnalysisReady(
     const to = user.user?.email;
     if (!to) return "sans_adresse";
     const secret = notificationSecret();
+    const token = secret ? unsubscribeToken(run.workspaceId, "analysis_ready", secret) : null;
     await send(
       buildReadyEmail({
         to,
@@ -116,11 +130,11 @@ export async function notifyAnalysisReady(
         studied,
         url: new URL(siteHref.cibles(run.siteId), env.NEXT_PUBLIC_APP_URL).toString(),
         appUrl: env.NEXT_PUBLIC_APP_URL,
-        unsubscribeUrl: secret
-          ? new URL(
-              unsubscribePath(unsubscribeToken(run.workspaceId, "analysis_ready", secret)),
-              env.NEXT_PUBLIC_APP_URL,
-            ).toString()
+        unsubscribeUrl: token
+          ? new URL(unsubscribePath(token), env.NEXT_PUBLIC_APP_URL).toString()
+          : null,
+        oneClickUrl: token
+          ? new URL(oneClickPath(token), env.NEXT_PUBLIC_APP_URL).toString()
           : null,
       }),
     );

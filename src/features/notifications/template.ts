@@ -33,6 +33,8 @@ export interface Rendered {
   subject: string;
   text: string;
   html: string;
+  /** En-têtes d'email : désinscription en un clic pour les emails qu'on peut couper. */
+  headers?: Record<string, string>;
 }
 
 const esc = (s: string) =>
@@ -124,7 +126,7 @@ export const notificationName = (key: NotificationRow): string => t.notification
  */
 export function renderNotification(
   email: NotificationEmail,
-  links: { appUrl: string; unsubscribeUrl: string | null },
+  links: { appUrl: string; unsubscribeUrl: string | null; oneClickUrl?: string | null },
 ): Rendered {
   const F = t.notifications.email;
   const manageUrl = new URL("/app/reglages/notifications", links.appUrl).toString();
@@ -153,5 +155,12 @@ export function renderNotification(
     why,
     ...footLinks.map(([label, url]) => `${label} : ${url}`),
   ].join("\n\n");
-  return { subject: email.subject, text, html };
+  const headers =
+    links.unsubscribeUrl && links.oneClickUrl
+      ? {
+          "List-Unsubscribe": `<${links.oneClickUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        }
+      : undefined;
+  return { subject: email.subject, text, html, ...(headers ? { headers } : {}) };
 }

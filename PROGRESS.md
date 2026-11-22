@@ -3285,3 +3285,10 @@ Maquette validée : `docs/mockups/notifications.html` (écran de réglages + 12 
 - Le champ des appels à l'action A et C mène à `/inscription?site=…`. À la création du compte, le domaine nettoyé est gardé dans le cookie `site_saisi` (7 jours, `httpOnly`), puis préremplit l'adresse de `/app/demarrer` ; il est effacé quand la campagne démarre. Rien n'est lancé automatiquement.
 - Fichiers : `src/features/auth/pending-site.ts`, `signup-href.ts`, `src/features/content/audit-field.tsx`, `src/app/inscription/page.tsx`, `src/features/auth/actions.ts`, `src/app/app/demarrer/page.tsx`, `src/features/onboarding/actions.ts`.
 - Limite : si l'email est confirmé dans un autre navigateur, la saisie est perdue (l'adresse se retape à l'étape 1).
+
+## Notifications : délivrabilité et paiement régularisé (22/11/2026, demande de Jonathan)
+
+- **Expéditeur vérifié en production** : `TRANSACTIONAL_FROM` = `noreply@backleenks.com` (domaine vérifié chez Resend, constaté sur l'email d'analyse du 20/11). Le code ajoute désormais le nom affiché : « backleenks <noreply@backleenks.com> » (`senderWithName`), sauf si le réglage contient déjà un nom.
+- **Désinscription en un clic (RFC 8058)** : chaque email qu'on peut couper porte `List-Unsubscribe` et `List-Unsubscribe-Post`, vers `POST /api/notifications/unsubscribe?t=…` (même jeton signé que la page, coupe ce seul type d'email). Un GET renvoie vers la page avec confirmation. Les emails toujours envoyés (boîte, paiement) n'ont pas ces en-têtes.
+- **Paiement régularisé** : le webhook Stripe écrit `billing.payment_recovered` (date du refus, envois en pause ou non, montant, offre) quand une facture est payée ou que l'abonnement redevient actif après un refus. L'étape `paiement-regularise` de `notify-tick` envoie alors « Vos envois ont repris » (s'ils étaient en pause) ou « Votre paiement est passé », toujours envoyé, une seule fois, et seulement si l'email de paiement refusé était parti. **Textes nouveaux, hors maquette** : à valider par Jonathan.
+- Pas encore constaté en vrai : aucun paiement refusé ni aucun envoi de notification à ce jour.

@@ -3379,6 +3379,20 @@ export const fr = {
           `Vos campagnes continuent ${until}. Sans mise à jour d'ici là, vos envois seront mis en pause ; rien ne sera supprimé.`,
         cta: "Mettre à jour ma carte",
       },
+      recovered: {
+        subjectResumed: "Vos envois ont repris",
+        subjectPaid: "Votre paiement est passé",
+        pre: "Merci, tout est en ordre.",
+        bodyPaid: (amount: string | null, plan: string) =>
+          amount
+            ? `Votre paiement de **${amount}** pour l'offre ${plan} est passé.`
+            : `Votre paiement pour l'offre ${plan} est passé.`,
+        resumed:
+          "Vos envois, mis en pause, sont repartis : les messages validés partiront aux heures prévues.",
+        notPaused: "Vos envois n'ont pas été interrompus.",
+        ctaResumed: "Voir mes emails",
+        ctaPaid: "Voir mon abonnement",
+      },
       tiles: {
         sent: (n: number) => (n > 1 ? "messages envoyés" : "message envoyé"),
         replies: (n: number) => (n > 1 ? "réponses" : "réponse"),

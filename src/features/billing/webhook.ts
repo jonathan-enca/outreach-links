@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
-import { ACTIVE_STATUSES, isPaidPlan, type PaidPlanKey } from "./plans";
+import { ACTIVE_STATUSES, isPaidPlan, paymentPauseAt, type PaidPlanKey } from "./plans";
 
 type Client = SupabaseClient<Database>;
 
@@ -99,6 +99,33 @@ async function workspaceFor(
   return null;
 }
 
+/**
+ * Paiement régularisé après un refus : trace `billing.payment_recovered` (date du refus, envois en
+ * pause ou non, montant, offre). L'email « paiement passé » ou « envois repris » part ensuite.
+ */
+async function recordRecovery(
+  db: Client,
+  workspaceId: string,
+  prev: {
+    plan: string;
+    payment_failed_at: string | null;
+    payment_failed_amount_cents: number | null;
+  },
+) {
+  if (!prev.payment_failed_at) return;
+  await db.from("events").insert({
+    workspace_id: workspaceId,
+    actor_id: null,
+    type: "billing.payment_recovered",
+    payload: {
+      failed_at: prev.payment_failed_at,
+      paused: paymentPauseAt(prev.payment_failed_at) <= new Date(),
+      amount_cents: prev.payment_failed_amount_cents,
+      plan: prev.plan,
+    },
+  });
+}
+
 async function syncWorkspacePlan(db: Client, workspaceId: string, active: boolean) {
   await db
     .from("workspaces")
@@ -186,6 +213,10 @@ async function onSubscription(
   };
   const { error } = await db.from("subscriptions").upsert(row, { onConflict: "workspace_id" });
   if (error) throw new Error(error.message);
+  // Retour à la normale (pas une annulation) après un refus : les envois reprennent.
+  if (current.data && (status === "active" || status === "trialing")) {
+    await recordRecovery(db, ws, current.data);
+  }
   await syncWorkspacePlan(db, ws, (ACTIVE_STATUSES as readonly string[]).includes(status));
   return { status: "traite", detail: status };
 }
@@ -199,9 +230,14 @@ async function onInvoicePaid(db: Client, obj: Record<string, unknown>): Promise<
   if (!invoiceId) return { status: "ignore", reason: "facture_sans_id" };
   const ws = await workspaceFor(db, {}, { subscription: subId, customer });
   if (!ws) return { status: "ignore", reason: "workspace_inconnu" };
-  const sub = await db.from("subscriptions").select("plan").eq("workspace_id", ws).maybeSingle();
+  const sub = await db
+    .from("subscriptions")
+    .select("plan, payment_failed_at, payment_failed_amount_cents")
+    .eq("workspace_id", ws)
+    .maybeSingle();
   if (!sub.data) return { status: "ignore", reason: "abonnement_inconnu" };
   // Facture payée : un éventuel paiement refusé est régularisé.
+  await recordRecovery(db, ws, sub.data);
   await db
     .from("subscriptions")
     .update({ payment_failed_at: null, payment_failed_amount_cents: null })

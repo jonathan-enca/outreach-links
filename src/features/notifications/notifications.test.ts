@@ -8,6 +8,7 @@ import {
   monthHasNews,
   monthlyEmail,
   paymentEmail,
+  paymentRecoveredEmail,
   ofMonth,
   quotaEmail,
   quotaLevel,
@@ -422,5 +423,50 @@ describe("formulaires à remplir", () => {
   it("un brouillon sans tâche compte en plus ; rien à faire : zéro", () => {
     expect(countForms([item("a"), item("z")], [item("a")])).toBe(2);
     expect(countForms([], [])).toBe(0);
+  });
+});
+
+describe("désinscription en un clic (Gmail, Yahoo)", () => {
+  const email = weeklyEmail(
+    {
+      sites: [{ domain: "a.fr", sent: 1, replies: 0, links: 0 }],
+      newLinks: [],
+      todo: { replies: 0, messages: 0, forms: 0 },
+    },
+    "u",
+  );
+  it("un email qu'on peut couper porte les deux en-têtes", () => {
+    const out = renderNotification(email, { ...links, oneClickUrl: "https://app.test/api/x?t=1" });
+    expect(out.headers).toEqual({
+      "List-Unsubscribe": "<https://app.test/api/x?t=1>",
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    });
+  });
+  it("un email toujours envoyé n'en porte pas", () => {
+    const m = mailboxEmail({ email: "a@b.fr", pending: 0 }, "u");
+    const out = renderNotification(m, {
+      appUrl: "https://app.test",
+      unsubscribeUrl: null,
+      oneClickUrl: "https://app.test/api/x",
+    });
+    expect(out.headers).toBeUndefined();
+  });
+});
+
+describe("paiement régularisé", () => {
+  const urls = { sending: "s", billing: "b" };
+  it("envois en pause : « Vos envois ont repris », vers l'écran des emails", () => {
+    const m = paymentRecoveredEmail({ amountCents: 3990, plan: "Pro", paused: true }, urls);
+    expect(m.subject).toBe("Vos envois ont repris");
+    expect(m.cta.url).toBe("s");
+    const text = renderNotification(m, { appUrl: "https://app.test", unsubscribeUrl: null }).text;
+    expect(text).toMatch(/Votre paiement de 39,90\s€ pour l'offre Pro est passé\./);
+    expect(text).toContain("sont repartis");
+  });
+  it("régularisé avant la pause : « Votre paiement est passé »", () => {
+    const m = paymentRecoveredEmail({ amountCents: null, plan: "Starter", paused: false }, urls);
+    expect(m.subject).toBe("Votre paiement est passé");
+    expect(m.cta.url).toBe("b");
+    expect(renderNotification(m, links).text).toContain("n'ont pas été interrompus");
   });
 });

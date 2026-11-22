@@ -500,3 +500,25 @@ export function paymentEmail(
     cta: { label: P.cta, url },
   };
 }
+
+/* ---------- 11 bis. Paiement régularisé (toujours envoyé) ---------- */
+
+export function paymentRecoveredEmail(
+  p: { amountCents: number | null; plan: string; paused: boolean },
+  urls: { sending: string; billing: string },
+): NotificationEmail {
+  const R = E.recovered;
+  const amount =
+    p.amountCents !== null && p.amountCents > 0 ? EUR.format(p.amountCents / 100) : null;
+  const subject = p.paused ? R.subjectResumed : R.subjectPaid;
+  return {
+    key: "payment",
+    subject,
+    preheader: R.pre,
+    title: subject,
+    blocks: [{ p: R.bodyPaid(amount, p.plan) }, { p: p.paused ? R.resumed : R.notPaused }],
+    cta: p.paused
+      ? { label: R.ctaResumed, url: urls.sending }
+      : { label: R.ctaPaid, url: urls.billing },
+  };
+}
