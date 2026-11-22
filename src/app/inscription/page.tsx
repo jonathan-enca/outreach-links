@@ -4,7 +4,7 @@ import { AuthShell } from "@/components/auth-shell";
 import { SignupForm } from "@/features/auth/forms";
 import { t } from "@/lib/messages";
 
-export const metadata: Metadata = { title: t.signup.title };
+export const metadata: Metadata = { title: t.signup.title, robots: { index: false } };
 
 /** Inscription : nom, email, mot de passe (avec l'œil). */
 export default function InscriptionPage() {

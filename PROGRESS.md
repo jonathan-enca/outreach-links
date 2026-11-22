@@ -3244,3 +3244,9 @@ Maquette validée : `docs/mockups/notifications.html` (écran de réglages + 12 
 - Le quota compte les premiers messages (cibles contactées), que l'email appelle « envois », comme la grille de tarifs.
 - Contrôle : emails et écran vus en local sur des données d'exemple ; **aucun email réel envoyé**, et l'écran connecté n'a pas été capturé (pas de compte de test sur ce poste). À constater en production au premier envoi (`events` de type `notify.%`).
 - La page de désinscription avec un jeton valide n'a pas été vue en local (pas de clé de service sur ce poste) ; le jeton est couvert par les tests.
+
+## Socle SEO technique (22/11/2026, demande de Jonathan)
+
+- **Fait** : `src/app/robots.ts` (tout ouvert sauf `/app`, `/api`, `/auth`, `/demo`, ligne Sitemap) et `src/app/sitemap.ts` (accueil, guides de boîte d'envoi, pages légales ; ajouter un contenu = une ligne dans `publicPaths()`). `noindex` sur `/connexion`, `/inscription`, `/mot-de-passe-oublie`, `/reinitialiser`. URL de base : `NEXT_PUBLIC_APP_URL`.
+- **Stratégie éditoriale** : `docs/strategie-seo.md` (7 thèmes, 118 pages, un contenu par jour) et maquette d'article `docs/mockups/article-blog.html`, encore dans le répertoire de travail local, à commiter avec le chantier du blog.
+- **Reste** : déclarer le sitemap dans la Search Console ; gabarits `/blog`, `/guides`, `/glossaire`, `/comparatifs` après validation de la maquette ; page d'entrée `/audit-gratuit` (404 aujourd'hui) ; `og:image` ; `llms.txt` ; `noindex` sur `/demo/*` ; redirection de `outreach-links.vercel.app`.

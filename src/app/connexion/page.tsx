@@ -5,7 +5,7 @@ import { AuthShell } from "@/components/auth-shell";
 import { LoginForm } from "@/features/auth/forms";
 import { t } from "@/lib/messages";
 
-export const metadata: Metadata = { title: t.auth.title };
+export const metadata: Metadata = { title: t.auth.title, robots: { index: false } };
 
 async function Form({ searchParams }: { searchParams: Promise<{ erreur?: string }> }) {
   const { erreur } = await searchParams;
