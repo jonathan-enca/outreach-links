@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { env } from "@/env";
 import { resendSender, type SendTransactional } from "@/features/analysis/notify";
 import { betaEnabled } from "@/features/audits/beta";
+import { campaignBlocked, campaignsEver, loadEntitlements } from "@/features/billing/entitlements";
 import { checkSendAllowance, effectivePlan, monthStart } from "@/features/billing/plans";
 import { formatSendTime } from "@/features/sending/queue-note";
 import { isInSendWindow, nextSendStart } from "@/features/sending/schedule";
@@ -20,6 +21,8 @@ import {
   linkLiveEmail,
   linkLostEmail,
   mailboxEmail,
+  monthHasNews,
+  monthlyEmail,
   quotaEmail,
   quotaLevel,
   reminderEmail,
@@ -800,4 +803,81 @@ export async function notifyWeekly(ctx: NotifyCtx): Promise<number> {
     if (ok) sentCount++;
   }
   return sentCount;
+}
+
+/* ---------- 14. Bilan du mois ---------- */
+
+/** Le 1er du mois : bilan du mois civil écoulé (UTC), et la campagne du mois qui commence. */
+export async function notifyMonthly(ctx: NotifyCtx): Promise<number> {
+  const thisMonth = monthStart(ctx.now);
+  const lastMonth = monthStart(new Date(thisMonth.getTime() - DAY));
+  const from = lastMonth.toISOString();
+  const to = thisMonth.toISOString();
+  const period = from.slice(0, 7);
+  const [{ data: sites }, { data: sent }, { data: inbound }, { data: links }, sentTraces, off] =
+    await Promise.all([
+      ctx.db.from("sites").select("id, workspace_id").limit(5000),
+      ctx.db
+        .from("sent_messages")
+        .select("workspace_id")
+        .eq("dry_run", false)
+        .eq("step", "initial")
+        .eq("status", "envoye")
+        .gte("sent_at", from)
+        .lt("sent_at", to)
+        .limit(50000),
+      ctx.db
+        .from("inbound_messages")
+        .select("workspace_id, sent_message_id")
+        .eq("kind", "reponse")
+        .gte("received_at", from)
+        .lt("received_at", to)
+        .limit(20000),
+      ctx.db
+        .from("links")
+        .select("workspace_id, first_live_at, lost_at")
+        .not("first_live_at", "is", null)
+        .limit(20000),
+      traces(ctx.db, "notify.monthly", iso(ctx, 45 * DAY)),
+      disabled(ctx.db, "monthly"),
+    ]);
+  const told = new Set(
+    sentTraces.filter((e) => e.payload.period === period).map((e) => e.workspace_id),
+  );
+  const within = (d: string | null) => d !== null && d >= from && d < to;
+  let count = 0;
+  for (const workspaceId of uniq((sites ?? []).map((s) => s.workspace_id))) {
+    if (off.has(workspaceId) || told.has(workspaceId)) continue;
+    const mine = <T extends { workspace_id: string }>(rows: readonly T[] | null) =>
+      (rows ?? []).filter((r) => r.workspace_id === workspaceId);
+    const wsLinks = mine(links);
+    const [entitlements, ever] = await Promise.all([
+      loadEntitlements(ctx.db, workspaceId, ctx.now, betaEnabled()),
+      campaignsEver(ctx.db, workspaceId),
+    ]);
+    // Début de mois : aucune campagne encore lancée ce mois-ci ; seul le plafond à vie peut bloquer.
+    const canStart = entitlements.monthlyCampaigns > 0 && !campaignBlocked(entitlements, 0, ever);
+    const summary = {
+      month: lastMonth,
+      next: thisMonth,
+      sent: mine(sent).length,
+      replies: uniq(mine(inbound).map((m) => m.sent_message_id)).length,
+      links: wsLinks.filter((l) => within(l.first_live_at)).length,
+      liveEver: wsLinks.filter((l) => !l.lost_at).length,
+      lost: wsLinks.filter((l) => within(l.lost_at)).length,
+      campaigns: canStart ? entitlements.monthlyCampaigns : null,
+    };
+    if (!monthHasNews(summary)) continue;
+    const ok = await deliver(
+      ctx,
+      workspaceId,
+      monthlyEmail(summary, { campaigns: url(ctx, "/app/campagnes"), home: url(ctx, "/app") }),
+      {
+        type: "notify.monthly",
+        payload: { period, sent: summary.sent, replies: summary.replies, links: summary.links },
+      },
+    );
+    if (ok) count++;
+  }
+  return count;
 }

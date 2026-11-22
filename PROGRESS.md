@@ -3232,13 +3232,13 @@ Maquette validée : `docs/mockups/notifications.html` (écran de réglages + 12 
 
 ### Pas fait
 
-- **Bilan du mois** et **paiement refusé** : les deux lignes sont à l'écran (maquette), mais aucun email ne part encore. Prochain lot.
+- **Paiement refusé** : la ligne est à l'écran (maquette), mais aucun email ne part encore. À faire avec Stripe (événement `invoice.payment_failed`, délai avant pause à confirmer avec Jonathan).
 - Variante « boîte mise en pause par sécurité » (rebonds, plainte) : pas de suspension automatique dans le code aujourd'hui, donc pas d'email.
 - En-tête `List-Unsubscribe` : `resendSender` ne passe pas d'en-têtes.
 
 ### Dettes et pièges
 
-- **Question ouverte pour le bilan du mois** : la maquette dit « votre audit de décembre est disponible », alors que les offres comptent aujourd'hui des **campagnes par mois** (`monthly_campaigns`), pas des audits. À trancher avec Jonathan avant de coder cet email (ne pas changer le libellé validé sans lui).
+- **Bilan du mois (fait le 22/11, deuxième lot)** : fonction Inngest `notify-monthly`, le 1er à 8 h (Paris), sur le mois civil écoulé. **Décision de Jonathan (22/11) : « campagne du mois », pas « audit du mois »** (les offres comptent des campagnes par mois) ; maquette et écran corrigés. Un mois sans activité, l'email se réduit au rappel de la campagne ; sans activité et sans campagne possible (gratuit qui a utilisé la sienne), rien ne part. **Inngest : deux fonctions de plus au total (`notify-weekly`, `notify-monthly`).**
 - « Messages à valider » compte les brouillons prêts (`ready`), sans vérifier qu'un contact vérifié existe : le chiffre de l'email peut dépasser de peu celui de l'écran « À approuver ».
 - « Sites retenus pas encore contactés » (campagne à l'arrêt) = lignes du plan sans premier message réel.
 - Le quota compte les premiers messages (cibles contactées), que l'email appelle « envois », comme la grille de tarifs.

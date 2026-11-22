@@ -5,6 +5,7 @@ import {
   notifyLinkLive,
   notifyLinkLost,
   notifyMailbox,
+  notifyMonthly,
   notifyQuota,
   notifyReplies,
   notifyToValidate,
@@ -70,6 +71,24 @@ export const notifyWeeklyTick = inngest.createFunction(
       return ctx ? notifyWeekly(ctx) : 0;
     });
     if (sent) logger.info("résumés de la semaine envoyés", { sent });
+    return { sent };
+  },
+);
+
+/** Bilan du mois : le 1er à 8 h (heure de Paris). */
+export const notifyMonthlyTick = inngest.createFunction(
+  {
+    id: "notify-monthly",
+    triggers: [{ cron: "TZ=Europe/Paris 0 8 1 * *" }],
+    retries: 0,
+    concurrency: { limit: 1 },
+  },
+  async ({ step }) => {
+    const sent = await step.run("bilan", async () => {
+      const ctx = notifyCtx(createServiceClient());
+      return ctx ? notifyMonthly(ctx) : 0;
+    });
+    if (sent) logger.info("bilans du mois envoyés", { sent });
     return { sent };
   },
 );

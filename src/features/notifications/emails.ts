@@ -402,3 +402,77 @@ export function weeklyEmail(w: WeekSummary, url: string): NotificationEmail {
     cta: { label: W.cta, url },
   };
 }
+
+/* ---------- 14. Bilan du mois ---------- */
+
+/** « de novembre », « d'avril », « d'octobre ». */
+export function ofMonth(d: Date): string {
+  const m = frMonth(d);
+  return /^[aeiouyéèê]/i.test(m) ? `d'${m}` : `de ${m}`;
+}
+
+export interface MonthSummary {
+  /** Un jour du mois écoulé, et un jour du mois qui commence. */
+  month: Date;
+  next: Date;
+  sent: number;
+  replies: number;
+  links: number;
+  liveEver: number;
+  lost: number;
+  /** Campagnes par mois comprises dans l'offre ; `null` si aucune nouvelle campagne n'est possible. */
+  campaigns: number | null;
+}
+
+/** Sans activité dans le mois et sans campagne à proposer, il n'y a rien à dire. */
+export function monthHasNews(m: MonthSummary): boolean {
+  return m.sent + m.replies + m.links + m.lost > 0 || m.campaigns !== null;
+}
+
+export function monthlyEmail(
+  m: MonthSummary,
+  urls: { campaigns: string; home: string },
+): NotificationEmail {
+  const M = E.monthly;
+  const T = E.tiles;
+  const month = ofMonth(m.month);
+  const next = ofMonth(m.next);
+  const active = m.sent + m.replies + m.links + m.lost > 0;
+  const blocks: Block[] = [];
+  if (active) {
+    blocks.push(
+      {
+        tiles: [
+          { value: m.sent, label: T.sent(m.sent) },
+          { value: m.replies, label: T.replies(m.replies) },
+          { value: m.links, label: T.links(m.links), good: true },
+        ],
+      },
+      {
+        lines: [
+          [M.lineLive, String(m.liveEver)],
+          ...(m.sent > 0 ? [[M.lineReplied, M.replied(m.replies, m.sent)] as const] : []),
+          [M.lineLost, String(m.lost)],
+        ],
+      },
+    );
+  }
+  if (m.campaigns !== null) {
+    blocks.push({
+      highlight: { title: M.campaignTitle(next), body: M.campaignBody(m.campaigns) },
+    });
+  }
+  return {
+    key: "monthly",
+    subject: active ? M.subject(month, m.links) : M.subjectQuiet(next),
+    preheader: active
+      ? M.pre(m.sent, m.replies, m.campaigns !== null ? next : null)
+      : M.campaignBody(m.campaigns ?? 1),
+    title: active ? M.title(month) : M.campaignTitle(next),
+    blocks,
+    cta:
+      m.campaigns !== null
+        ? { label: M.cta(next), url: urls.campaigns }
+        : { label: M.ctaNone, url: urls.home },
+  };
+}

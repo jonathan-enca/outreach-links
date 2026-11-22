@@ -3038,7 +3038,7 @@ export const fr = {
       },
       monthly: {
         title: "Bilan du mois",
-        body: "Les liens gagnés dans le mois et votre audit du mois suivant.",
+        body: "Les liens gagnés dans le mois et votre campagne du mois suivant.",
         when: "Le 1er de chaque mois",
       },
     },
@@ -3237,6 +3237,27 @@ export const fr = {
         todoMessages: "Messages à valider",
         todoForms: "Formulaires à remplir",
         cta: "Ouvrir mon espace",
+      },
+      monthly: {
+        subject: (month: string, links: number) =>
+          links > 0
+            ? `Votre mois ${month} : ${links} ${links > 1 ? "liens obtenus" : "lien obtenu"}`
+            : `Votre bilan ${month}`,
+        subjectQuiet: (next: string) => `Votre campagne ${next} est disponible`,
+        pre: (sent: number, replies: number, next: string | null) =>
+          `${sent} ${sent > 1 ? "messages envoyés" : "message envoyé"}, ${replies} ${replies > 1 ? "réponses" : "réponse"}.${next ? ` Votre campagne ${next} est disponible.` : ""}`,
+        title: (month: string) => `Votre mois ${month}`,
+        lineLive: "Liens en ligne depuis le début",
+        lineReplied: "Sites qui ont répondu",
+        replied: (replies: number, sent: number) => `${replies} sur ${sent}`,
+        lineLost: "Liens perdus ce mois-ci",
+        campaignTitle: (next: string) => `Votre campagne ${next} est disponible`,
+        campaignBody: (n: number) =>
+          n > 1
+            ? `Votre offre comprend ${n} campagnes par mois. Lancez-en une pour trouver de nouveaux sites à contacter.`
+            : "Votre offre comprend une campagne par mois. Lancez-la pour trouver de nouveaux sites à contacter.",
+        cta: (next: string) => `Lancer la campagne ${next}`,
+        ctaNone: "Ouvrir mon espace",
       },
       tiles: {
         sent: (n: number) => (n > 1 ? "messages envoyés" : "message envoyé"),

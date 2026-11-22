@@ -715,7 +715,9 @@
                 <div class="row">
                   <div>
                     <p class="t">Bilan du mois</p>
-                    <p class="d">Les liens gagnés dans le mois et votre audit du mois suivant.</p>
+                    <p class="d">
+                      Les liens gagnés dans le mois et votre campagne du mois suivant.
+                    </p>
                     <p class="w">Le 1er de chaque mois</p>
                   </div>
                   <button
@@ -964,7 +966,7 @@
           name: "Bilan du mois",
           when: "Le 1er de chaque mois",
           subject: "Votre mois de novembre : 5 liens obtenus",
-          pre: "118 messages envoyés, 17 réponses. Votre audit de décembre est disponible.",
+          pre: "118 messages envoyés, 17 réponses. Votre campagne de décembre est disponible.",
           body: `<h3>Votre mois de novembre</h3>
             ${tiles([
               ["118", "messages envoyés"],
@@ -977,11 +979,11 @@
               ${line("Liens perdus ce mois-ci", "0")}
             </div>
             <div class="hl">
-              <p><b>Votre audit de décembre est disponible</b></p>
-              <p>Votre offre comprend un audit complet par mois. Relancez-le pour trouver de nouveaux sites à contacter.</p>
+              <p><b>Votre campagne de décembre est disponible</b></p>
+              <p>Votre offre comprend une campagne par mois. Lancez-la pour trouver de nouveaux sites à contacter.</p>
             </div>
-            ${btn("Lancer l'audit de décembre")}`,
-          rule: "C'est l'email qui fait revenir chaque mois, sans recherche automatique : il rappelle l'audit compris dans l'offre. Un mois sans aucune activité, il se réduit au rappel de l'audit.",
+            ${btn("Lancer la campagne de décembre")}`,
+          rule: "C'est l'email qui fait revenir chaque mois, sans recherche automatique : il rappelle la campagne comprise dans l'offre. Un mois sans aucune activité, il se réduit au rappel de la campagne.",
         },
       ];
 

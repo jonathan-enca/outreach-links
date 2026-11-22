@@ -5,6 +5,9 @@ import {
   linkLiveEmail,
   linkLostEmail,
   mailboxEmail,
+  monthHasNews,
+  monthlyEmail,
+  ofMonth,
   quotaEmail,
   quotaLevel,
   reminderEmail,
@@ -348,5 +351,43 @@ describe("lien de désinscription", () => {
     expect(readUnsubscribeToken(token, "autre-secret-0000000")).toBeNull();
     expect(readUnsubscribeToken(`${WS}.mailbox.x`, "secret-de-test-1234")).toBeNull();
     expect(readUnsubscribeToken(undefined, "secret-de-test-1234")).toBeNull();
+  });
+});
+
+describe("bilan du mois", () => {
+  const base = {
+    month: new Date("2026-11-01T00:00:00Z"),
+    next: new Date("2026-12-01T00:00:00Z"),
+    sent: 118,
+    replies: 17,
+    links: 5,
+    liveEver: 9,
+    lost: 0,
+    campaigns: 1 as number | null,
+  };
+  const urls = { campaigns: "c", home: "h" };
+  it("« de novembre », « d'avril »", () => {
+    expect(ofMonth(new Date("2026-11-01T00:00:00Z"))).toBe("de novembre");
+    expect(ofMonth(new Date("2026-04-01T00:00:00Z"))).toBe("d'avril");
+  });
+  it("mois actif : chiffres, et la campagne du mois qui commence", () => {
+    const m = monthlyEmail(base, urls);
+    expect(m.subject).toBe("Votre mois de novembre : 5 liens obtenus");
+    expect(m.cta).toEqual({ label: "Lancer la campagne de décembre", url: "c" });
+    const text = renderNotification(m, links).text;
+    expect(text).toContain("Sites qui ont répondu : 17 sur 118");
+    expect(text).toContain("Votre campagne de décembre est disponible");
+    expect(text).not.toMatch(/audit/i);
+  });
+  it("mois sans activité : seulement le rappel de la campagne", () => {
+    const m = monthlyEmail({ ...base, sent: 0, replies: 0, links: 0 }, urls);
+    expect(m.subject).toBe("Votre campagne de décembre est disponible");
+    expect(renderNotification(m, links).text).not.toContain("messages envoyés");
+  });
+  it("aucune campagne possible : pas de promesse, et rien du tout sans activité", () => {
+    const m = monthlyEmail({ ...base, campaigns: null }, urls);
+    expect(m.cta).toEqual({ label: "Ouvrir mon espace", url: "h" });
+    expect(renderNotification(m, links).text).not.toContain("est disponible");
+    expect(monthHasNews({ ...base, sent: 0, replies: 0, links: 0, campaigns: null })).toBe(false);
   });
 });

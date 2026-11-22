@@ -10,7 +10,7 @@ import { auditProfile } from "./audit-profile";
 import { auditQualify } from "./audit-qualify";
 import { auditQualifyAutoStart } from "./audit-qualify-auto-start";
 import { auditQualifyMore } from "./audit-qualify-more";
-import { notifyTick, notifyWeeklyTick } from "./notify-tick";
+import { notifyMonthlyTick, notifyTick, notifyWeeklyTick } from "./notify-tick";
 import { planContacts } from "./plan-contacts";
 import { planDrafts } from "./plan-drafts";
 import { draftModelsCheck } from "./draft-models-check";
@@ -54,4 +54,5 @@ export const functions = [
   stepWatchdog,
   notifyTick,
   notifyWeeklyTick,
+  notifyMonthlyTick,
 ];
