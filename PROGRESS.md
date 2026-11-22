@@ -3210,3 +3210,37 @@ L'écran en ligne doit être identique à la maquette (captures comparées en gr
 - **Le compte est partagé** avec un autre produit (destination `creative-oasis` vers `ouiouioui.app`, non touchée). Notre webhook reçoit aussi les événements d'abonnement de cet autre produit : le traitement les ignore s'ils n'ont pas de `workspace_id` dans leurs métadonnées (à surveiller dans les journaux au premier abonnement).
 - **Reste à poser sur Vercel (production)** : `STRIPE_SECRET_KEY` (`sk_live_…`) et `STRIPE_WEBHOOK_SECRET` (`whsec_…` de la destination `backleenks`), puis redéployer.
 - **`BETA_MODE` reste actif** : tant qu'il l'est, tout inscrit envoie sans abonnement. Le couper (MO.5) est ce qui rend l'abonnement réellement nécessaire.
+
+## Notifications par email, premier lot (22/11/2026, demande de Jonathan)
+
+Maquette validée : `docs/mockups/notifications.html` (écran de réglages + 12 emails). Liste et ordre validés par Jonathan : d'abord tout ce qui s'appuie sur des données déjà là, puis le bilan du mois, puis le paiement avec Stripe. **Pas de recherche mensuelle de nouveaux sites pour l'instant** (décision de Jonathan) : la ligne « De nouveaux sites à contacter » a disparu de l'écran.
+
+- **Écran** (`/app/reglages/notifications`) : quatre familles (décision attendue, liens, envois, résumés), neuf interrupteurs, deux lignes « Toujours envoyé » (boîte d'envoi, paiement). Identique à la maquette (comparé par capture). Liste unique : `settings/notification-keys.ts`.
+- **Migration `2026122200000000_notification_prefs_v2.sql` (additive, appliquée sur la vraie base)** : colonnes `analysis_ready`, `link_live`, `link_lost`, `quota`, `campaign_idle`, `monthly`. Les anciennes (`links`, `mailbox`, `new_sites`) restent et ne sont plus lues.
+- **Gabarit commun** `features/notifications/template.ts` : même coque que les emails de connexion, un seul bouton, pied avec « Ne plus recevoir cet email » et « Gérer mes notifications ». Textes dans `messages/fr.ts > notifications.emails`.
+- **Emails en service** (constructeurs purs dans `notifications/emails.ts`, lecture de la base dans `notifications/run.ts`, une étape Inngest chacun dans `notify-tick`, toutes les dix minutes) :
+  - une réponse vous attend (nom du site et type de réponse, jamais le texte reçu) ;
+  - des messages sont à valider (un par jour au plus, formulaires annoncés dans le même email, heure du premier départ) et son rappel unique après 3 jours ;
+  - votre analyse est prête (l'email existant, passé sur le gabarit, avec son interrupteur) ;
+  - un lien est en ligne (le premier de chaque site seulement) ; un lien a disparu ou changé (regroupés par jour) ;
+  - boîte d'envoi en erreur (toujours envoyé, une fois par semaine au plus par boîte) ;
+  - envois du mois à 80 % puis à 100 % ; campagne qui n'a plus rien à envoyer ;
+  - résumé de la semaine : nouvelle fonction Inngest `notify-weekly`, le lundi à 8 h (Paris), seulement s'il y a du nouveau.
+- **Anti-doublon** : chaque envoi écrit un événement `notify.*` (sans adresse) qui sert de mémoire. Les emails non urgents ne partent qu'en semaine de 8 h à 19 h (`isQuietTime`).
+- **Désinscription** : page publique `/notifications/desabonnement`, jeton signé (espace + type d'email), confirmation par un bouton. Secret : `ABUSE_HASH_SALT`, à défaut la clé de service.
+- **Inngest : une fonction de plus (`notify-weekly`)** : resynchroniser l'application après le déploiement.
+
+### Pas fait
+
+- **Bilan du mois** et **paiement refusé** : les deux lignes sont à l'écran (maquette), mais aucun email ne part encore. Prochain lot.
+- Variante « boîte mise en pause par sécurité » (rebonds, plainte) : pas de suspension automatique dans le code aujourd'hui, donc pas d'email.
+- En-tête `List-Unsubscribe` : `resendSender` ne passe pas d'en-têtes.
+
+### Dettes et pièges
+
+- **Question ouverte pour le bilan du mois** : la maquette dit « votre audit de décembre est disponible », alors que les offres comptent aujourd'hui des **campagnes par mois** (`monthly_campaigns`), pas des audits. À trancher avec Jonathan avant de coder cet email (ne pas changer le libellé validé sans lui).
+- « Messages à valider » compte les brouillons prêts (`ready`), sans vérifier qu'un contact vérifié existe : le chiffre de l'email peut dépasser de peu celui de l'écran « À approuver ».
+- « Sites retenus pas encore contactés » (campagne à l'arrêt) = lignes du plan sans premier message réel.
+- Le quota compte les premiers messages (cibles contactées), que l'email appelle « envois », comme la grille de tarifs.
+- Contrôle : emails et écran vus en local sur des données d'exemple ; **aucun email réel envoyé**, et l'écran connecté n'a pas été capturé (pas de compte de test sur ce poste). À constater en production au premier envoi (`events` de type `notify.%`).
+- La page de désinscription avec un jeton valide n'a pas été vue en local (pas de clé de service sur ce poste) ; le jeton est couvert par les tests.

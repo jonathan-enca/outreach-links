@@ -1,0 +1,950 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maquette « Notifications » : écran de réglages et emails</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Jetons repris de src/app/globals.css (bleu marine, police Outfit). */
+      :root {
+        --background: #f8fafc;
+        --foreground: #0f172a;
+        --card: #ffffff;
+        --muted: #f1f5f9;
+        --muted-foreground: #526074;
+        --border: #e2e8f0;
+        --primary: #003070;
+        --sidebar: #00245a;
+        --sidebar-foreground: #cfe2f6;
+        --sidebar-label: #9cc3ea;
+        --info: #0369a1;
+        --warning: #92400e;
+        --success: #047857;
+        --danger: #b91c1c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: Outfit, system-ui, sans-serif;
+        font-size: 15px;
+        line-height: 1.5;
+        font-variant-numeric: tabular-nums;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+      }
+
+      /* Bandeau de la maquette (ne fait pas partie du produit). */
+      .mock {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 16px;
+        padding: 10px 16px;
+        background: #fff7ed;
+        border-bottom: 1px solid #fed7aa;
+        font-size: 13.5px;
+      }
+      .mock strong {
+        color: #9a3412;
+      }
+      .mock .tabs {
+        display: flex;
+        gap: 4px;
+        background: #ffedd5;
+        padding: 3px;
+        border-radius: 10px;
+      }
+      .mock .tabs button {
+        border: 0;
+        background: transparent;
+        padding: 5px 12px;
+        border-radius: 8px;
+        font-weight: 500;
+        color: #9a3412;
+      }
+      .mock .tabs button[aria-selected="true"] {
+        background: #fff;
+        box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+      }
+      .view[hidden] {
+        display: none;
+      }
+
+      /* ---------- Vue 1 : l'écran de réglages ---------- */
+      .app {
+        display: grid;
+        grid-template-columns: 232px minmax(0, 1fr);
+        min-height: calc(100vh - 45px);
+      }
+      .side {
+        background: var(--sidebar);
+        color: var(--sidebar-foreground);
+        padding: 20px 12px;
+      }
+      .side .logo {
+        color: #fff;
+        font-weight: 600;
+        font-size: 18px;
+        padding: 0 8px 16px;
+      }
+      .side .label {
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--sidebar-label);
+        padding: 14px 8px 4px;
+      }
+      .side div.item {
+        padding: 8px;
+        border-radius: 8px;
+        font-size: 14.5px;
+      }
+      .side div.item.on {
+        background: rgb(255 255 255 / 0.14);
+        color: #fff;
+        font-weight: 500;
+      }
+      main {
+        padding: 28px 32px 56px;
+        min-width: 0;
+      }
+      .wrap {
+        max-width: 46rem;
+        margin: 0 auto;
+      }
+      .eyebrow {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--primary);
+      }
+      h1 {
+        margin: 2px 0 4px;
+        font-size: 24px;
+        line-height: 1.2;
+      }
+      .lead {
+        margin: 0 0 20px;
+        color: var(--muted-foreground);
+        max-width: 40rem;
+      }
+      .group {
+        margin-top: 22px;
+      }
+      .group h2 {
+        margin: 0;
+        font-size: 16px;
+      }
+      .group .gdesc {
+        margin: 0 0 8px;
+        font-size: 13.5px;
+        color: var(--muted-foreground);
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 2px 20px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .row:last-child {
+        border-bottom: 0;
+      }
+      .row .t {
+        margin: 0;
+        font-weight: 600;
+      }
+      .row .d {
+        margin: 0;
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+      .row .w {
+        margin: 0;
+        font-size: 14px;
+      }
+      .switch {
+        position: relative;
+        flex: none;
+        width: 44px;
+        height: 24px;
+        border: 0;
+        border-radius: 99px;
+        background: var(--border);
+        transition: background 0.15s;
+      }
+      .switch::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #fff;
+        transition: left 0.15s;
+      }
+      .switch[aria-checked="true"] {
+        background: var(--primary);
+      }
+      .switch[aria-checked="true"]::after {
+        left: 22px;
+      }
+      .switch:focus-visible,
+      .mock button:focus-visible,
+      .list button:focus-visible {
+        outline: 2px solid var(--info);
+        outline-offset: 2px;
+      }
+      .always {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--muted-foreground);
+        background: var(--muted);
+        border-radius: 99px;
+        padding: 4px 10px;
+        white-space: nowrap;
+      }
+      .note {
+        margin-top: 16px;
+        font-size: 13.5px;
+        color: var(--muted-foreground);
+      }
+
+      /* ---------- Vue 2 : les emails ---------- */
+      .mails {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr);
+        min-height: calc(100vh - 45px);
+      }
+      .list {
+        border-right: 1px solid var(--border);
+        background: #fff;
+        padding: 14px 10px 32px;
+      }
+      .list .fam {
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+        padding: 14px 8px 4px;
+      }
+      .list button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: 0;
+        background: transparent;
+        padding: 7px 8px;
+        border-radius: 8px;
+        font-size: 14.5px;
+      }
+      .list button small {
+        display: block;
+        color: var(--muted-foreground);
+        font-size: 12.5px;
+      }
+      .list button[aria-current="true"] {
+        background: var(--muted);
+        font-weight: 600;
+      }
+      .stage {
+        padding: 22px 24px 56px;
+        background: #eef2f6;
+        min-width: 0;
+      }
+      .meta {
+        max-width: 560px;
+        margin: 0 auto 14px;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-size: 14px;
+      }
+      .meta dl {
+        margin: 0;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 2px 12px;
+      }
+      .meta dt {
+        color: var(--muted-foreground);
+      }
+      .meta dd {
+        margin: 0;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      .meta dd.subj {
+        font-weight: 600;
+      }
+      .rules {
+        max-width: 560px;
+        margin: 14px auto 0;
+        font-size: 13px;
+        color: var(--muted-foreground);
+      }
+      .rules b {
+        color: var(--foreground);
+        font-weight: 600;
+      }
+
+      /* Le gabarit d'email (même coque que les emails de connexion : fond gris, carte blanche 520 px). */
+      .email {
+        max-width: 520px;
+        margin: 0 auto;
+        background: #fff;
+        border: 1px solid #e3e8ef;
+        border-radius: 16px;
+        font-family: Inter, Helvetica, Arial, sans-serif;
+        color: #0f172a;
+        font-size: 15px;
+        line-height: 1.55;
+      }
+      .email .pad {
+        padding: 28px 32px;
+      }
+      .email .brand {
+        font-family: Outfit, sans-serif;
+        font-weight: 600;
+        font-size: 20px;
+        color: #003070;
+      }
+      .email h3 {
+        margin: 22px 0 10px;
+        font-size: 22px;
+        line-height: 1.3;
+      }
+      .email p {
+        margin: 0 0 12px;
+      }
+      .email .btn {
+        display: inline-block;
+        margin: 10px 0 4px;
+        background: #003070;
+        color: #fff;
+        font-weight: 600;
+        text-decoration: none;
+        padding: 12px 22px;
+        border-radius: 10px;
+      }
+      .email .box {
+        margin: 14px 0;
+        border: 1px solid #e3e8ef;
+        border-radius: 12px;
+        padding: 4px 16px;
+      }
+      .email .line {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid #eef2f6;
+        font-size: 14.5px;
+      }
+      .email .line:last-child {
+        border-bottom: 0;
+      }
+      .email .line span:first-child {
+        color: #526074;
+        flex: none;
+      }
+      .email .line span:last-child {
+        text-align: right;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        font-weight: 500;
+      }
+      .email .line.plain span:first-child {
+        color: #0f172a;
+        font-weight: 500;
+      }
+      .chip {
+        display: inline-block;
+        font-size: 12.5px;
+        font-weight: 600;
+        border-radius: 99px;
+        padding: 2px 9px;
+        white-space: nowrap;
+      }
+      .chip.ok {
+        background: #d1fae5;
+        color: #065f46;
+      }
+      .chip.q {
+        background: #e0f2fe;
+        color: #075985;
+      }
+      .chip.pay {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .tiles {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin: 14px 0;
+      }
+      .tile {
+        background: #f1f5f9;
+        border-radius: 12px;
+        padding: 12px;
+        text-align: center;
+      }
+      .tile b {
+        display: block;
+        font-size: 24px;
+        line-height: 1.2;
+      }
+      .tile.good b {
+        color: #047857;
+      }
+      .tile span {
+        font-size: 13px;
+        color: #526074;
+      }
+      .bar {
+        height: 10px;
+        border-radius: 99px;
+        background: #e2e8f0;
+        margin: 14px 0 6px;
+        overflow: hidden;
+      }
+      .bar i {
+        display: block;
+        height: 100%;
+        background: #003070;
+        border-radius: 99px;
+      }
+      .email .sub {
+        font-size: 13.5px;
+        color: #526074;
+      }
+      .email .hl {
+        margin: 16px 0 6px;
+        background: #f0f6fd;
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+      .email .hl p:last-child {
+        margin: 0;
+      }
+      .email .foot {
+        border-top: 1px solid #eef2f6;
+        padding: 16px 32px 22px;
+        font-size: 12.5px;
+        color: #6b7280;
+      }
+      .email .foot a {
+        color: #526074;
+      }
+      .email .foot p {
+        margin: 0 0 4px;
+      }
+
+      @media (max-width: 760px) {
+        .app,
+        .mails {
+          grid-template-columns: 1fr;
+        }
+        .side {
+          display: none;
+        }
+        main {
+          padding: 20px 16px 40px;
+        }
+        .list {
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+          display: flex;
+          gap: 6px;
+          overflow-x: auto;
+          padding: 10px 12px;
+        }
+        .list .fam {
+          display: none;
+        }
+        .list button {
+          width: auto;
+          white-space: nowrap;
+          border: 1px solid var(--border);
+        }
+        .list button small {
+          display: none;
+        }
+        .stage {
+          padding: 16px 12px 40px;
+        }
+        .email .pad {
+          padding: 22px 20px;
+        }
+        .email .foot {
+          padding: 14px 20px 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mock">
+      <strong>Maquette</strong>
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-view="ecran">1. L'écran de réglages</button>
+        <button role="tab" aria-selected="false" data-view="emails">2. Les 12 emails</button>
+      </div>
+      <span>Les sites, noms et chiffres sont des exemples.</span>
+    </div>
+
+    <!-- ================= Vue 1 : écran ================= -->
+    <div class="view" id="ecran">
+      <div class="app">
+        <aside class="side" aria-hidden="true">
+          <div class="logo">backleenks</div>
+          <div class="item">Accueil</div>
+          <div class="item">Campagnes</div>
+          <div class="label">Prospection</div>
+          <div class="item">Cibles</div>
+          <div class="item">À approuver</div>
+          <div class="item">Emails</div>
+          <div class="label">Réglages</div>
+          <div class="item">Boîte d'envoi</div>
+          <div class="item">Search Console</div>
+          <div class="item on">Notifications</div>
+          <div class="item">Abonnement</div>
+        </aside>
+        <main>
+          <div class="wrap">
+            <div class="eyebrow">Réglages</div>
+            <h1>Notifications</h1>
+            <p class="lead">
+              Les emails que nous vous envoyons. Jamais plus d'un par jour, sauf quand quelque chose
+              ne peut pas attendre, et jamais d'email quand il n'y a rien de nouveau.
+            </p>
+
+            <section class="group">
+              <h2>Votre décision est attendue</h2>
+              <p class="gdesc">Rien ne part sans votre accord : ces emails vous disent quand on vous attend.</p>
+              <div class="card">
+                <div class="row">
+                  <div>
+                    <p class="t">Une réponse vous attend</p>
+                    <p class="d">Un site a répondu et sa réponse demande votre décision.</p>
+                    <p class="w">Dans les dix minutes</p>
+                  </div>
+                  <button class="switch" role="switch" aria-checked="true" aria-label="Une réponse vous attend"></button>
+                </div>
+                <div class="row">
+                  <div>
+                    <p class="t">Des messages sont à valider</p>
+                    <p class="d">De nouveaux messages sont prêts à partir, ou des formulaires sont à remplir à la main.</p>
+                    <p class="w">Un email par jour au plus, et un seul rappel après 3 jours</p>
+                  </div>
+                  <button class="switch" role="switch" aria-checked="true" aria-label="Des messages sont à valider"></button>
+                </div>
+                <div class="row">
+                  <div>
+                    <p class="t">Votre analyse est prête</p>
+                    <p class="d">L'analyse d'un site est terminée et vos cibles sont là.</p>
+                    <p class="w">Dès la fin de l'analyse</p>
+                  </div>
+                  <button class="switch" role="switch" aria-checked="true" aria-label="Votre analyse est prête"></button>
+                </div>
+              </div>
+            </section>
+
+            <section class="group">
+              <h2>Vos liens</h2>
+              <p class="gdesc">Nous vérifions régulièrement que chaque lien obtenu est toujours en ligne.</p>
+              <div class="card">
+                <div class="row">
+                  <div>
+                    <p class="t">Un lien est en ligne</p>
+                    <p class="d">Un site a ajouté un lien vers le vôtre.</p>
+                    <p class="w">Le premier tout de suite, les suivants dans le résumé de la semaine</p>
+                  </div>
+                  <button class="switch" role="switch" aria-checked="true" aria-label="Un lien est en ligne"></button>
+                </div>
+                <div class="row">
+                  <div>
+                    <p class="t">Un lien a disparu ou changé</p>
+                    <p class="d">Un lien vers votre site a été retiré ou n'est plus suivi par Google.</p>
+                    <p class="w">Dans la journée</p>
+                  </div>
+                  <button class="switch" role="switch" aria-checked="true" aria-label="Un lien a disparu ou changé"></button>
+                </div>
+              </div>
+            </section>
+
+            <section class="group">
+              <h2>Vos envois</h2>
+              <p class="gdesc">Quand vos envois ralentissent ou s'arrêtent, vous le savez tout de suite.</p>
+              <div class="card">
+                <div class="row">
+                  <div>
+                    <p class="t">Votre boîte d'envoi a un problème</p>
+                    <p class="d">Elle doit être reconnectée ou a été mise en pause.</p>
+                    <p class="w">Tout de suite : les envois sont bloqués</p>
+                  </div>
+                  <span class="always">Toujours envoyé</span>
+                </div>
+                <div class="row">
+                  <div>
+                    <p class="t">Vos envois du mois sont presque épuisés</p>
+                    <p class="d">Vous approchez du nombre d'envois compris dans votre offre.</p>
+                    <p class="w">À 80 %, puis quand tout est utilisé</p>
+                  </div>
+                  <button class="switch" role="switch" aria-checked="true" aria-label="Vos envois du mois sont presque épuisés"></button>
+                </div>
+                <div class="row">
+                  <div>
+                    <p class="t">Une campagne n'a plus rien à envoyer</p>
+                    <p class="d">Tous les messages validés sont partis : il est temps de préparer les suivants.</p>
+                    <p class="w">Une fois, quand la campagne s'arrête</p>
+                  </div>
+                  <button class="switch" role="switch" aria-checked="true" aria-label="Une campagne n'a plus rien à envoyer"></button>
+                </div>
+                <div class="row">
+                  <div>
+                    <p class="t">Un paiement n'est pas passé</p>
+                    <p class="d">Votre abonnement risque d'être interrompu.</p>
+                    <p class="w">Tout de suite</p>
+                  </div>
+                  <span class="always">Toujours envoyé</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="group">
+              <h2>Vos résumés</h2>
+              <p class="gdesc">Ce que vos campagnes ont rapporté, et ce qu'il reste à faire.</p>
+              <div class="card">
+                <div class="row">
+                  <div>
+                    <p class="t">Résumé de la semaine</p>
+                    <p class="d">Messages envoyés, réponses, liens obtenus et prochaines actions.</p>
+                    <p class="w">Le lundi matin, seulement s'il y a du nouveau</p>
+                  </div>
+                  <button class="switch" role="switch" aria-checked="true" aria-label="Résumé de la semaine"></button>
+                </div>
+                <div class="row">
+                  <div>
+                    <p class="t">Bilan du mois</p>
+                    <p class="d">Les liens gagnés dans le mois et votre audit du mois suivant.</p>
+                    <p class="w">Le 1er de chaque mois</p>
+                  </div>
+                  <button class="switch" role="switch" aria-checked="true" aria-label="Bilan du mois"></button>
+                </div>
+              </div>
+            </section>
+
+            <p class="note">
+              Envoyés à l'adresse de votre compte. Les réglages s'enregistrent dès que vous les
+              changez. Chaque email contient aussi un lien pour ne plus recevoir ce type d'email.
+            </p>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- ================= Vue 2 : emails ================= -->
+    <div class="view" id="emails" hidden>
+      <div class="mails">
+        <nav class="list" id="list" aria-label="Emails"></nav>
+        <div class="stage">
+          <div class="meta">
+            <dl>
+              <dt>De</dt>
+              <dd>backleenks</dd>
+              <dt>Objet</dt>
+              <dd class="subj" id="m-subject"></dd>
+              <dt>Aperçu</dt>
+              <dd id="m-pre"></dd>
+            </dl>
+          </div>
+          <div class="email">
+            <div class="pad">
+              <div class="brand">backleenks</div>
+              <div id="m-body"></div>
+            </div>
+            <div class="foot" id="m-foot"></div>
+          </div>
+          <p class="rules" id="m-rule"></p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const line = (a, b) => `<div class="line"><span>${a}</span><span>${b}</span></div>`;
+      const plain = (a, b) => `<div class="line plain"><span>${a}</span><span>${b}</span></div>`;
+      const btn = (label) => `<p><a class="btn" href="#" onclick="return false">${label}</a></p>`;
+      const tiles = (items) =>
+        `<div class="tiles">${items
+          .map(([n, l, good]) => `<div class="tile${good ? " good" : ""}"><b>${n}</b><span>${l}</span></div>`)
+          .join("")}</div>`;
+
+      const EMAILS = [
+        {
+          fam: "Votre décision est attendue",
+          name: "Une réponse vous attend",
+          when: "Dans les dix minutes",
+          subject: "3 réponses attendent votre décision",
+          pre: "Un accord, une question et une demande de paiement.",
+          body: `<h3>3 sites vous ont répondu</h3>
+            <p>Pour chacune, nous avons préparé une réponse. Rien ne part sans votre accord.</p>
+            <div class="box">
+              ${plain("carnet-de-lea.fr", '<span class="chip ok">Accord</span>')}
+              ${plain("asso-des-deux-rives.org", '<span class="chip q">Question</span>')}
+              ${plain("le-guide-local.fr", '<span class="chip pay">Demande de paiement</span>')}
+            </div>
+            ${btn("Voir les réponses")}`,
+          rule: "Avec une seule réponse, l'objet devient « carnet-de-lea.fr a répondu à votre message » et le type de réponse est écrit en clair. Le texte du site n'est pas recopié dans l'email : seulement son nom et le type de réponse.",
+        },
+        {
+          fam: "Votre décision est attendue",
+          name: "Des messages sont à valider",
+          when: "Un email par jour au plus",
+          subject: "12 messages sont prêts à partir pour votresite.fr",
+          pre: "Relisez-les et validez : les premiers partiront lundi à 9 h.",
+          body: `<h3>12 messages sont prêts à partir</h3>
+            <p>Nous avons choisi les sites et rédigé un message pour chacun. Rien ne part sans votre accord.</p>
+            <div class="box">
+              ${line("Messages à valider", "12")}
+              ${line("Formulaires à remplir à la main", "3")}
+              ${line("Premier départ après validation", "lundi à 9 h")}
+            </div>
+            ${btn("Relire et valider")}`,
+          rule: "Les formulaires à remplir à la main sont annoncés dans le même email, pas dans un email à part.",
+        },
+        {
+          fam: "Votre décision est attendue",
+          name: "Rappel : messages non validés",
+          when: "Une seule fois, après 3 jours",
+          subject: "12 messages attendent toujours votre accord",
+          pre: "Ils sont prêts depuis 3 jours. Tant qu'ils ne sont pas validés, rien ne part.",
+          body: `<h3>12 messages attendent toujours votre accord</h3>
+            <p>Ils sont prêts depuis 3 jours pour votresite.fr. Tant qu'ils ne sont pas validés, rien ne part.</p>
+            <p class="sub">C'est le seul rappel que nous vous enverrons pour ces messages.</p>
+            ${btn("Relire et valider")}`,
+          rule: "Suit le même interrupteur que « Des messages sont à valider ». Un seul rappel par lot, jamais de deuxième.",
+        },
+        {
+          fam: "Votre décision est attendue",
+          name: "Votre analyse est prête",
+          when: "Dès la fin de l'analyse",
+          subject: "L'analyse de votresite.fr est terminée",
+          pre: "38 sites retenus sur 214 étudiés.",
+          body: `<h3>L'analyse de votresite.fr est terminée</h3>
+            <p>Nous avons étudié les sites qui citent vos concurrents et ceux qui parlent de votre sujet, puis gardé ceux qui valent un message.</p>
+            ${tiles([["214", "sites étudiés"], ["38", "sites retenus", true], ["6", "liens morts à reprendre"]])}
+            ${btn("Voir mes cibles")}`,
+          rule: "Cet email existe déjà : il prend seulement le nouveau gabarit et son interrupteur.",
+        },
+        {
+          fam: "Vos liens",
+          name: "Un lien est en ligne",
+          when: "Le premier tout de suite",
+          subject: "Votre premier lien est en ligne",
+          pre: "carnet-de-lea.fr a ajouté un lien vers votresite.fr.",
+          body: `<h3>Votre premier lien est en ligne</h3>
+            <p>carnet-de-lea.fr a ajouté un lien vers votre site. Nous l'avons vu ce matin sur sa page.</p>
+            <div class="box">
+              ${line("Page qui vous cite", "carnet-de-lea.fr/mes-ressources")}
+              ${line("Votre page", "votresite.fr/guide")}
+              ${line("Texte du lien", "« ce guide très complet »")}
+              ${line("Suivi par Google", "Oui")}
+            </div>
+            <p class="sub">Nous continuons à vérifier qu'il reste en ligne et vous prévenons s'il change.</p>
+            ${btn("Voir mes liens")}`,
+          rule: "Seul le premier lien de chaque site part tout de suite. Les suivants sont annoncés dans le résumé de la semaine.",
+        },
+        {
+          fam: "Vos liens",
+          name: "Un lien a disparu ou changé",
+          when: "Dans la journée",
+          subject: "Un lien vers votresite.fr a disparu",
+          pre: "Le lien de le-blog-de-marc.fr n'est plus sur sa page.",
+          body: `<h3>Un lien vers votre site a disparu</h3>
+            <p>Lors de notre contrôle de ce matin, le lien posé par le-blog-de-marc.fr n'était plus sur sa page.</p>
+            <div class="box">
+              ${line("Page concernée", "le-blog-de-marc.fr/liens-utiles")}
+              ${line("En ligne depuis", "le 3 octobre")}
+              ${line("Disparu", "le 21 novembre")}
+            </div>
+            <p>Ouvrez la fiche du lien pour voir la page et décider s'il faut recontacter le site.</p>
+            ${btn("Voir ce lien")}`,
+          rule: "Même email quand le lien existe encore mais n'est plus suivi par Google : l'objet devient « Un lien vers votresite.fr a changé ». Plusieurs changements le même jour sont regroupés.",
+        },
+        {
+          fam: "Vos envois",
+          name: "Votre boîte d'envoi a un problème",
+          when: "Tout de suite",
+          locked: true,
+          subject: "Vos envois sont en pause : votre boîte doit être reconnectée",
+          pre: "8 messages validés attendent.",
+          body: `<h3>Vos envois sont en pause</h3>
+            <p>Nous n'arrivons plus à nous connecter à votre boîte <b>prenom@votresite.fr</b> depuis ce matin, 9 h 12.</p>
+            <div class="box">
+              ${line("Messages validés en attente", "8")}
+              ${line("Relances en attente", "3")}
+            </div>
+            <p>Tout repartira dès que la boîte sera reconnectée. Aucun message n'est perdu.</p>
+            ${btn("Reconnecter ma boîte")}`,
+          rule: "Deuxième cas : la boîte a été mise en pause par sécurité (trop d'adresses invalides ou une plainte). L'email dit alors pourquoi et quoi vérifier avant de reprendre.",
+        },
+        {
+          fam: "Vos envois",
+          name: "Envois du mois presque épuisés",
+          when: "À 80 %, puis à 100 %",
+          subject: "Vous avez utilisé 80 de vos 100 envois de novembre",
+          pre: "Il vous reste 20 envois jusqu'au 30 novembre.",
+          body: `<h3>Il vous reste 20 envois ce mois-ci</h3>
+            <div class="bar"><i style="width: 80%"></i></div>
+            <p class="sub">80 envois utilisés sur les 100 compris dans l'offre Starter.</p>
+            <p>Le compteur repart à zéro le 1er décembre. Les messages validés qui dépasseraient partiront à cette date.</p>
+            <p class="sub">L'offre Pro comprend 300 envois par mois.</p>
+            ${btn("Voir mon abonnement")}`,
+          rule: "À 100 %, l'objet devient « Vos 100 envois de novembre sont utilisés » et l'email donne la date de reprise. Deux emails par mois au plus.",
+        },
+        {
+          fam: "Vos envois",
+          name: "Une campagne n'a plus rien à envoyer",
+          when: "Une fois, à l'arrêt",
+          subject: "Votre campagne pour votresite.fr n'a plus rien à envoyer",
+          pre: "41 messages envoyés, 6 réponses, 2 liens. Il reste 23 sites à contacter.",
+          body: `<h3>Tous vos messages validés sont partis</h3>
+            <p>Voici où en est votre campagne pour votresite.fr.</p>
+            ${tiles([["41", "messages envoyés"], ["6", "réponses"], ["2", "liens obtenus", true]])}
+            <p>Il reste <b>23 sites retenus</b> que nous n'avons pas encore contactés. Dites-nous de préparer les messages et vous n'aurez plus qu'à les valider.</p>
+            ${btn("Préparer les messages suivants")}`,
+          rule: "S'il ne reste aucun site retenu, l'email propose de relancer l'audit du mois à la place.",
+        },
+        {
+          fam: "Vos envois",
+          name: "Un paiement n'est pas passé",
+          when: "Tout de suite",
+          locked: true,
+          subject: "Votre paiement n'est pas passé",
+          pre: "Mettez votre carte à jour pour garder vos envois.",
+          body: `<h3>Votre paiement n'est pas passé</h3>
+            <p>Le prélèvement de <b>39,90 €</b> pour l'offre Pro a été refusé le 22 novembre.</p>
+            <p>Vos campagnes continuent jusqu'au 29 novembre. Sans mise à jour d'ici là, vos envois seront mis en pause ; rien ne sera supprimé.</p>
+            ${btn("Mettre à jour ma carte")}`,
+          rule: "À construire avec le paiement Stripe. Le délai de 7 jours avant la pause est une proposition, à confirmer.",
+        },
+        {
+          fam: "Vos résumés",
+          name: "Résumé de la semaine",
+          when: "Le lundi matin",
+          subject: "Votre semaine : 2 liens obtenus, 5 réponses",
+          pre: "34 messages envoyés. 2 réponses et 12 messages vous attendent.",
+          body: `<h3>Votre semaine sur votresite.fr</h3>
+            ${tiles([["34", "messages envoyés"], ["5", "réponses"], ["2", "liens obtenus", true]])}
+            <p><b>Liens obtenus cette semaine</b></p>
+            <div class="box">
+              ${plain("carnet-de-lea.fr", "en ligne")}
+              ${plain("asso-des-deux-rives.org", "en ligne")}
+            </div>
+            <p><b>À faire cette semaine</b></p>
+            <div class="box">
+              ${line("Réponses à traiter", "2")}
+              ${line("Messages à valider", "12")}
+              ${line("Formulaires à remplir", "3")}
+            </div>
+            ${btn("Ouvrir mon espace")}`,
+          rule: "Ne part pas si la semaine n'a rien apporté (aucun envoi, aucune réponse, aucun lien, rien à faire). Avec plusieurs sites, un seul email, une partie par site.",
+        },
+        {
+          fam: "Vos résumés",
+          name: "Bilan du mois",
+          when: "Le 1er de chaque mois",
+          subject: "Votre mois de novembre : 5 liens obtenus",
+          pre: "118 messages envoyés, 17 réponses. Votre audit de décembre est disponible.",
+          body: `<h3>Votre mois de novembre</h3>
+            ${tiles([["118", "messages envoyés"], ["17", "réponses"], ["5", "liens obtenus", true]])}
+            <div class="box">
+              ${line("Liens en ligne depuis le début", "9")}
+              ${line("Sites qui ont répondu", "17 sur 118")}
+              ${line("Liens perdus ce mois-ci", "0")}
+            </div>
+            <div class="hl">
+              <p><b>Votre audit de décembre est disponible</b></p>
+              <p>Votre offre comprend un audit complet par mois. Relancez-le pour trouver de nouveaux sites à contacter.</p>
+            </div>
+            ${btn("Lancer l'audit de décembre")}`,
+          rule: "C'est l'email qui fait revenir chaque mois, sans recherche automatique : il rappelle l'audit compris dans l'offre. Un mois sans aucune activité, il se réduit au rappel de l'audit.",
+        },
+      ];
+
+      const list = document.getElementById("list");
+      let lastFam = "";
+      EMAILS.forEach((e, i) => {
+        if (e.fam !== lastFam) {
+          const h = document.createElement("div");
+          h.className = "fam";
+          h.textContent = e.fam;
+          list.appendChild(h);
+          lastFam = e.fam;
+        }
+        const b = document.createElement("button");
+        b.innerHTML = `${e.name}<small>${e.when}</small>`;
+        b.onclick = () => show(i);
+        list.appendChild(b);
+      });
+
+      function show(i) {
+        const e = EMAILS[i];
+        list.querySelectorAll("button").forEach((b, j) => b.setAttribute("aria-current", j === i));
+        document.getElementById("m-subject").textContent = e.subject;
+        document.getElementById("m-pre").textContent = e.pre;
+        document.getElementById("m-body").innerHTML = e.body;
+        document.getElementById("m-foot").innerHTML = e.locked
+          ? `<p>Cet email concerne le fonctionnement de votre compte : il est toujours envoyé.</p>
+             <p><a href="#" onclick="return false">Gérer mes notifications</a></p>`
+          : `<p>Vous recevez cet email parce que la notification « ${e.name.replace("Rappel : messages non validés", "Des messages sont à valider").replace("Envois du mois presque épuisés", "Vos envois du mois sont presque épuisés")} » est activée.</p>
+             <p><a href="#" onclick="return false">Ne plus recevoir cet email</a> · <a href="#" onclick="return false">Gérer mes notifications</a></p>`;
+        document.getElementById("m-rule").innerHTML = `<b>Règle :</b> ${e.rule}`;
+      }
+      show(0);
+
+      document.querySelectorAll(".mock [role=tab]").forEach((t) => {
+        t.onclick = () => {
+          document.querySelectorAll(".mock [role=tab]").forEach((x) => x.setAttribute("aria-selected", x === t));
+          document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== t.dataset.view));
+          window.scrollTo(0, 0);
+        };
+      });
+      document.querySelectorAll(".switch").forEach((s) => {
+        s.onclick = () => s.setAttribute("aria-checked", s.getAttribute("aria-checked") !== "true");
+      });
+    </script>
+  </body>
+</html>

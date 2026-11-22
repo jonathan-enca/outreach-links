@@ -1,8 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { env } from "@/env";
-import { resendSender, type SendTransactional } from "@/features/analysis/notify";
 import type { AuditActionState } from "@/features/audits/service";
-import { logger } from "@/lib/logger";
 import { t } from "@/lib/messages";
 import type { Database } from "@/lib/supabase/database.types";
 import {
@@ -17,10 +14,13 @@ const N = t.notifications;
 const DEFAULTS: NotificationPrefs = {
   reply_waiting: true,
   to_validate: true,
-  links: true,
-  mailbox: true,
-  new_sites: true,
+  analysis_ready: true,
+  link_live: true,
+  link_lost: true,
+  quota: true,
+  campaign_idle: true,
   weekly: true,
+  monthly: true,
 };
 
 const isKey = (v: unknown): v is NotificationKey =>
@@ -88,84 +88,33 @@ export function repliesToNotify(
   return out;
 }
 
-/**
- * « Une réponse vous attend » : un email par espace quand de nouvelles réponses proposées attendent
- * l'accord de la personne. Jamais deux fois pour la même réponse (trace dans `events`, sans adresse).
- * Emails transactionnels seulement (Resend) ; sans service d'email, rien ne part et rien n'est marqué.
- */
-export async function notifyRepliesTick(
-  db: Client,
-  send: SendTransactional | null = resendSender(),
-  now: Date = new Date(),
-): Promise<{ sent: number; skipped: string | null }> {
-  if (!send) return { sent: 0, skipped: "sans_service" };
-  const since = new Date(now.getTime() - 48 * 3_600_000).toISOString();
-  const [{ data: drafts }, { data: events }, { data: prefs }] = await Promise.all([
-    db
-      .from("reply_drafts")
-      .select("id, workspace_id")
-      .eq("status", "brouillon")
-      .eq("kind", "reponse")
-      .gte("created_at", since)
-      .limit(500),
-    db
-      .from("events")
-      .select("payload")
-      .eq("type", "notify.reply_waiting")
-      .gte("created_at", since)
-      .limit(1000),
-    db.from("notification_prefs").select("workspace_id").eq("reply_waiting", false),
-  ]);
-  const notified = new Set(
-    (events ?? []).flatMap((e) => {
-      const ids = (e.payload as { reply_draft_ids?: unknown } | null)?.reply_draft_ids;
-      return Array.isArray(ids) ? ids.filter((x): x is string => typeof x === "string") : [];
-    }),
+/** Lien « Ne plus recevoir cet email » : coupe un type d'email pour un espace (jeton déjà vérifié). */
+export async function turnOff(
+  service: Client,
+  workspaceId: string,
+  key: NotificationKey,
+): Promise<boolean> {
+  const { error } = await service.from("notification_prefs").upsert(
+    {
+      workspace_id: workspaceId,
+      [key]: false,
+      updated_at: new Date().toISOString(),
+    } as Database["public"]["Tables"]["notification_prefs"]["Insert"],
+    { onConflict: "workspace_id" },
   );
-  const groups = repliesToNotify(
-    drafts ?? [],
-    notified,
-    new Set((prefs ?? []).map((p) => p.workspace_id)),
-  );
-  let sent = 0;
-  for (const [workspaceId, ids] of groups) {
-    try {
-      const { data: members } = await db
-        .from("memberships")
-        .select("user_id, role")
-        .eq("workspace_id", workspaceId);
-      const owner = (members ?? []).find((m) => m.role === "owner") ?? members?.[0];
-      if (!owner) continue;
-      const { data: user } = await db.auth.admin.getUserById(owner.user_id);
-      const to = user.user?.email;
-      if (!to) continue;
-      const url = new URL("/app/a-valider", env.NEXT_PUBLIC_APP_URL).toString();
-      const body = N.email.body(ids.length);
-      const esc = (s: string) =>
-        s
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;");
-      await send({
-        to,
-        subject: N.email.subject(ids.length),
-        text: `${body}\n\n${N.email.cta} : ${url}\n\n${N.email.footer}`,
-        html: `<p>${esc(body)}</p><p><a href="${esc(url)}">${esc(N.email.cta)}</a></p><p style="color:#6b7280;font-size:13px">${esc(N.email.footer)}</p>`,
-      });
-      await db.from("events").insert({
-        workspace_id: workspaceId,
-        actor_id: null,
-        type: "notify.reply_waiting",
-        payload: { reply_draft_ids: ids },
-      });
-      sent++;
-    } catch (e) {
-      logger.warn("notification de réponse non envoyée", {
-        workspaceId,
-        error: (e as Error).message,
-      });
-    }
-  }
-  return { sent, skipped: null };
+  return !error;
+}
+
+/** Vrai si l'espace a gardé cette notification (défaut : activée). */
+export async function isEnabled(
+  service: Client,
+  workspaceId: string,
+  key: NotificationKey,
+): Promise<boolean> {
+  const { data } = await service
+    .from("notification_prefs")
+    .select("*")
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+  return data ? data[key] !== false : true;
 }

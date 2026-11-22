@@ -2964,51 +2964,288 @@ export const fr = {
   notifications: {
     title: "Notifications",
     description:
-      "Les emails que nous vous envoyons quand quelque chose demande votre décision ou qu'un lien change.",
-    soon: "Bientôt",
-    note: "Envoyés à l'adresse de votre compte. Les réglages s'enregistrent dès que vous les changez. Les notifications marquées « Bientôt » sont enregistrées et partiront dès qu'elles seront en service.",
+      "Les emails que nous vous envoyons. Jamais plus d'un par jour, sauf quand quelque chose ne peut pas attendre, et jamais d'email quand il n'y a rien de nouveau.",
+    always: "Toujours envoyé",
+    note: "Envoyés à l'adresse de votre compte. Les réglages s'enregistrent dès que vous les changez. Chaque email contient aussi un lien pour ne plus recevoir ce type d'email.",
+    groups: {
+      decision: {
+        title: "Votre décision est attendue",
+        body: "Rien ne part sans votre accord : ces emails vous disent quand on vous attend.",
+      },
+      links: {
+        title: "Vos liens",
+        body: "Nous vérifions régulièrement que chaque lien obtenu est toujours en ligne.",
+      },
+      sending: {
+        title: "Vos envois",
+        body: "Quand vos envois ralentissent ou s'arrêtent, vous le savez tout de suite.",
+      },
+      summaries: {
+        title: "Vos résumés",
+        body: "Ce que vos campagnes ont rapporté, et ce qu'il reste à faire.",
+      },
+    },
     items: {
       reply_waiting: {
         title: "Une réponse vous attend",
-        body: "Un prospect a répondu et sa réponse demande votre décision.",
+        body: "Un site a répondu et sa réponse demande votre décision.",
         when: "Dans les dix minutes",
       },
       to_validate: {
         title: "Des messages sont à valider",
-        body: "De nouveaux messages sont prêts à partir.",
-        when: "Regroupés, un email par jour au plus",
+        body: "De nouveaux messages sont prêts à partir, ou des formulaires sont à remplir à la main.",
+        when: "Un email par jour au plus, et un seul rappel après 3 jours",
       },
-      links: {
-        title: "Un lien est obtenu ou a disparu",
-        body: "Un lien vers votre site est en ligne, a changé ou a été retiré.",
-        when: "Le premier lien tout de suite, les suivants dans le résumé",
+      analysis_ready: {
+        title: "Votre analyse est prête",
+        body: "L'analyse d'un site est terminée et vos cibles sont là.",
+        when: "Dès la fin de l'analyse",
+      },
+      link_live: {
+        title: "Un lien est en ligne",
+        body: "Un site a ajouté un lien vers le vôtre.",
+        when: "Le premier tout de suite, les suivants dans le résumé de la semaine",
+      },
+      link_lost: {
+        title: "Un lien a disparu ou changé",
+        body: "Un lien vers votre site a été retiré ou n'est plus suivi par Google.",
+        when: "Dans la journée",
       },
       mailbox: {
         title: "Votre boîte d'envoi a un problème",
         body: "Elle doit être reconnectée ou a été mise en pause.",
         when: "Tout de suite : les envois sont bloqués",
       },
-      new_sites: {
-        title: "De nouveaux sites à contacter",
-        body: "Nous avons trouvé de nouvelles opportunités de lien pour une de vos campagnes.",
-        when: "Dans le résumé de la semaine",
+      quota: {
+        title: "Vos envois du mois sont presque épuisés",
+        body: "Vous approchez du nombre d'envois compris dans votre offre.",
+        when: "À 80 %, puis quand tout est utilisé",
+      },
+      campaign_idle: {
+        title: "Une campagne n'a plus rien à envoyer",
+        body: "Tous les messages validés sont partis : il est temps de préparer les suivants.",
+        when: "Une fois, quand la campagne s'arrête",
+      },
+      payment: {
+        title: "Un paiement n'est pas passé",
+        body: "Votre abonnement risque d'être interrompu.",
+        when: "Tout de suite",
       },
       weekly: {
         title: "Résumé de la semaine",
         body: "Messages envoyés, réponses, liens obtenus et prochaines actions.",
-        when: "Chaque lundi matin",
+        when: "Le lundi matin, seulement s'il y a du nouveau",
+      },
+      monthly: {
+        title: "Bilan du mois",
+        body: "Les liens gagnés dans le mois et votre audit du mois suivant.",
+        when: "Le 1er de chaque mois",
       },
     },
+    /** Pied commun à tous les emails de notification. */
     email: {
-      subject: (n: number) =>
-        n > 1 ? `${n} réponses attendent votre décision` : "Une réponse attend votre décision",
-      body: (n: number) =>
-        n > 1
-          ? `${n} sites que vous avez contactés vous ont répondu. Une réponse est proposée pour chacun : relisez-la, modifiez-la si besoin, puis approuvez-la.`
-          : "Un site que vous avez contacté vous a répondu. Une réponse est proposée : relisez-la, modifiez-la si besoin, puis approuvez-la.",
-      cta: "Voir les réponses",
-      footer:
-        "Vous recevez cet email parce que la notification « Une réponse vous attend » est activée dans vos réglages.",
+      footerOn: (name: string) =>
+        `Vous recevez cet email parce que la notification « ${name} » est activée.`,
+      footerLocked:
+        "Cet email concerne le fonctionnement de votre compte : il est toujours envoyé.",
+      unsubscribe: "Ne plus recevoir cet email",
+      manage: "Gérer mes notifications",
+    },
+    /** Textes des emails (maquette validée : docs/mockups/notifications.html). `**…**` = gras. */
+    emails: {
+      reply: {
+        subjectOne: (domain: string) => `${domain} a répondu à votre message`,
+        subjectMany: (n: number) => `${n} réponses attendent votre décision`,
+        titleOne: (domain: string) => `${domain} vous a répondu`,
+        titleMany: (n: number) => `${n} sites vous ont répondu`,
+        bodyOne: "Nous avons préparé une réponse. Rien ne part sans votre accord.",
+        bodyMany: "Pour chacune, nous avons préparé une réponse. Rien ne part sans votre accord.",
+        unknownSite: "Un site",
+        kind: "Type de réponse",
+        ctaOne: "Voir la réponse",
+        ctaMany: "Voir les réponses",
+        chips: {
+          accord: "Accord",
+          conditions: "Intéressé sous conditions",
+          paiement: "Demande de paiement",
+          echange: "Demande d'échange",
+          question: "Question",
+          autre: "À relire",
+        },
+      },
+      toValidate: {
+        subject: (n: number, domain: string | null) =>
+          `${n > 1 ? `${n} messages sont prêts` : "1 message est prêt"} à partir${domain ? ` pour ${domain}` : ""}`,
+        subjectForms: (n: number) =>
+          n > 1 ? `${n} formulaires sont à remplir à la main` : "1 formulaire est à remplir à la main",
+        title: (n: number) =>
+          n > 1 ? `${n} messages sont prêts à partir` : "1 message est prêt à partir",
+        pre: (start: string | null) =>
+          start
+            ? `Relisez-les et validez : les premiers partiront ${start}.`
+            : "Relisez-les et validez : rien ne part sans votre accord.",
+        body: "Nous avons choisi les sites et rédigé un message pour chacun. Rien ne part sans votre accord.",
+        bodyForms:
+          "Ces sites se contactent par leur formulaire. Le message est rédigé : il ne reste qu'à le copier.",
+        lineMessages: "Messages à valider",
+        lineForms: "Formulaires à remplir à la main",
+        lineStart: "Premier départ après validation",
+        startNow: "dès votre validation",
+        cta: "Relire et valider",
+      },
+      reminder: {
+        subject: (n: number) =>
+          n > 1
+            ? `${n} messages attendent toujours votre accord`
+            : "1 message attend toujours votre accord",
+        pre: (days: number) =>
+          `Ils sont prêts depuis ${days} jours. Tant qu'ils ne sont pas validés, rien ne part.`,
+        body: (days: number, domain: string | null) =>
+          `Ils sont prêts depuis ${days} jours${domain ? ` pour ${domain}` : ""}. Tant qu'ils ne sont pas validés, rien ne part.`,
+        only: "C'est le seul rappel que nous vous enverrons pour ces messages.",
+        cta: "Relire et valider",
+      },
+      analysis: {
+        subject: (domain: string) => `L'analyse de ${domain} est terminée`,
+        pre: (kept: number, studied: number) =>
+          studied > kept
+            ? `${kept} sites retenus sur ${studied} étudiés.`
+            : `${kept} sites retenus.`,
+        body: "Nous avons étudié les sites qui citent vos concurrents et ceux qui parlent de votre sujet, puis gardé ceux qui valent un message.",
+        studied: "sites étudiés",
+        kept: (n: number) => (n > 1 ? "sites retenus" : "site retenu"),
+        cta: "Voir mes cibles",
+      },
+      linkLive: {
+        subject: "Votre premier lien est en ligne",
+        pre: (source: string, site: string) => `${source} a ajouté un lien vers ${site}.`,
+        body: (source: string) =>
+          `${source} a ajouté un lien vers votre site. Nous venons de le voir sur sa page.`,
+        lineSource: "Page qui vous cite",
+        lineTarget: "Votre page",
+        lineAnchor: "Texte du lien",
+        lineFollowed: "Suivi par Google",
+        yes: "Oui",
+        no: "Non",
+        after: "Nous continuons à vérifier qu'il reste en ligne et vous prévenons s'il change.",
+        cta: "Voir mes liens",
+      },
+      linkLost: {
+        subjectGone: (site: string) => `Un lien vers ${site} a disparu`,
+        subjectChanged: (site: string) => `Un lien vers ${site} a changé`,
+        subjectMany: (n: number) => `${n} liens vers votre site ont changé`,
+        titleGone: "Un lien vers votre site a disparu",
+        titleChanged: "Un lien vers votre site a changé",
+        pre: (source: string, state: string) => `Le lien de ${source} ${state}.`,
+        bodyGone: (source: string) =>
+          `Lors de notre dernier contrôle, le lien posé par ${source} n'était plus sur sa page.`,
+        bodyNofollow: (source: string) =>
+          `Le lien posé par ${source} est toujours en ligne, mais il n'est plus suivi par Google.`,
+        bodyNoindex: (source: string) =>
+          `Le lien posé par ${source} est toujours en ligne, mais sa page n'est plus lisible par Google.`,
+        bodyMany: "Voici ce que notre dernier contrôle a constaté.",
+        state: {
+          disparu: "n'est plus sur sa page",
+          devenu_nofollow: "n'est plus suivi par Google",
+          non_indexable: "est sur une page que Google ne lit plus",
+        },
+        short: {
+          disparu: "disparu",
+          devenu_nofollow: "plus suivi par Google",
+          non_indexable: "page non lue par Google",
+        },
+        linePage: "Page concernée",
+        lineSince: "En ligne depuis",
+        lineGone: "Disparu",
+        lineChanged: "Constaté",
+        advice: "Ouvrez la fiche du lien pour voir la page et décider s'il faut recontacter le site.",
+        ctaOne: "Voir ce lien",
+        ctaMany: "Voir mes liens",
+      },
+      mailbox: {
+        subject: "Vos envois sont en pause : votre boîte doit être reconnectée",
+        pre: (n: number) =>
+          n > 1
+            ? `${n} messages validés attendent.`
+            : n === 1
+              ? "1 message validé attend."
+              : "Reconnectez-la pour que vos envois reprennent.",
+        title: "Vos envois sont en pause",
+        body: (email: string) => `Nous n'arrivons plus à nous connecter à votre boîte **${email}**.`,
+        linePending: "Messages validés en attente",
+        after: "Tout repartira dès que la boîte sera reconnectée. Aucun message n'est perdu.",
+        cta: "Reconnecter ma boîte",
+      },
+      quota: {
+        subject80: (used: number, cap: number, month: string) =>
+          `Vous avez utilisé ${used} de vos ${cap} envois de ${month}`,
+        subject100: (cap: number, month: string) => `Vos ${cap} envois de ${month} sont utilisés`,
+        pre80: (left: number, lastDay: string) =>
+          `Il vous reste ${left} ${left > 1 ? "envois" : "envoi"} jusqu'au ${lastDay}.`,
+        pre100: (next: string) => `Les messages validés restants partiront le ${next}.`,
+        title80: (left: number) =>
+          `Il vous reste ${left} ${left > 1 ? "envois" : "envoi"} ce mois-ci`,
+        title100: (cap: number, month: string) => `Vos ${cap} envois de ${month} sont utilisés`,
+        usedPlan: (used: number, cap: number, plan: string) =>
+          `${used} envois utilisés sur les ${cap} compris dans l'offre ${plan}.`,
+        usedBeta: (used: number, cap: number) =>
+          `${used} envois utilisés sur les ${cap} compris pendant la bêta.`,
+        body80: (next: string) =>
+          `Le compteur repart à zéro le ${next}. Les messages validés qui dépasseraient partiront à cette date.`,
+        body100: (next: string) =>
+          `Les messages validés restants partiront le ${next}, quand le compteur repart à zéro. D'ici là, vos réponses continuent de partir.`,
+        upsell: (plan: string, cap: number) => `L'offre ${plan} comprend ${cap} envois par mois.`,
+        cta: "Voir mon abonnement",
+      },
+      idle: {
+        subject: (domain: string) => `Votre campagne pour ${domain} n'a plus rien à envoyer`,
+        pre: (sent: number, replies: number, links: number, left: number) =>
+          `${sent} messages envoyés, ${replies} ${replies > 1 ? "réponses" : "réponse"}, ${links} ${links > 1 ? "liens" : "lien"}.${left > 0 ? ` Il reste ${left} ${left > 1 ? "sites" : "site"} à contacter.` : ""}`,
+        title: "Tous vos messages validés sont partis",
+        body: (domain: string) => `Voici où en est votre campagne pour ${domain}.`,
+        left: (n: number) =>
+          n > 1
+            ? `Il reste **${n} sites retenus** que nous n'avons pas encore contactés. Dites-nous de préparer les messages et vous n'aurez plus qu'à les valider.`
+            : "Il reste **1 site retenu** que nous n'avons pas encore contacté. Dites-nous de préparer le message et vous n'aurez plus qu'à le valider.",
+        none: "Tous les sites retenus ont été contactés. Lancez une nouvelle campagne pour en trouver d'autres.",
+        cta: "Préparer les messages suivants",
+        ctaNone: "Voir mes campagnes",
+      },
+      weekly: {
+        subject: (parts: string[]) =>
+          parts.length ? `Votre semaine : ${parts.join(", ")}` : "Votre semaine : des actions vous attendent",
+        partLinks: (n: number) => `${n} ${n > 1 ? "liens obtenus" : "lien obtenu"}`,
+        partReplies: (n: number) => `${n} ${n > 1 ? "réponses" : "réponse"}`,
+        partSent: (n: number) => `${n} ${n > 1 ? "messages envoyés" : "message envoyé"}`,
+        pre: (sent: number, todo: number) =>
+          `${sent} ${sent > 1 ? "messages envoyés" : "message envoyé"}.${todo > 0 ? ` ${todo} ${todo > 1 ? "actions vous attendent" : "action vous attend"}.` : ""}`,
+        titleOne: (domain: string) => `Votre semaine sur ${domain}`,
+        titleMany: "Votre semaine",
+        linksTitle: "Liens obtenus cette semaine",
+        live: "en ligne",
+        sitesTitle: "Par site",
+        siteLine: (sent: number, replies: number, links: number) =>
+          `${sent} ${sent > 1 ? "envoyés" : "envoyé"} · ${replies} ${replies > 1 ? "réponses" : "réponse"} · ${links} ${links > 1 ? "liens" : "lien"}`,
+        todoTitle: "À faire cette semaine",
+        todoReplies: "Réponses à traiter",
+        todoMessages: "Messages à valider",
+        todoForms: "Formulaires à remplir",
+        cta: "Ouvrir mon espace",
+      },
+      tiles: {
+        sent: (n: number) => (n > 1 ? "messages envoyés" : "message envoyé"),
+        replies: (n: number) => (n > 1 ? "réponses" : "réponse"),
+        links: (n: number) => (n > 1 ? "liens obtenus" : "lien obtenu"),
+      },
+    },
+    unsubscribePage: {
+      title: "Ne plus recevoir cet email",
+      ask: (name: string) => `Voulez-vous arrêter l'email « ${name} » ?`,
+      hint: "Les autres notifications ne changent pas. Vous pourrez le réactiver dans vos réglages.",
+      confirm: "Oui, ne plus le recevoir",
+      done: (name: string) => `C'est noté : vous ne recevrez plus l'email « ${name} ».`,
+      invalid: "Ce lien n'est plus valable. Vous pouvez régler vos notifications depuis votre espace.",
+      manage: "Gérer mes notifications",
     },
     messages: {
       unauthenticated: "Connectez-vous pour continuer.",
