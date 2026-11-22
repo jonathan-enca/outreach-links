@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { blogNavLink } from "@/features/content/listing";
 import { t } from "@/lib/messages";
 import { MobileMenu } from "./mobile-menu";
 import { HOME_SECTIONS } from "./sections";
@@ -16,9 +17,13 @@ export function homeNavLinks(base = "") {
   ];
 }
 
-/** En-tête collant de la home (68 px). Sur mobile, les liens passent dans un panneau latéral ; « Essai gratuit » reste visible. */
-export function SiteHeader({ base = "" }: { base?: string }) {
-  const links = homeNavLinks(base);
+/**
+ * En-tête collant de la home (68 px). Sur mobile, les liens passent dans un panneau latéral ; « Essai gratuit » reste visible.
+ * Le lien « Blog » n'apparaît que lorsqu'un article est en ligne ; `current="blog"` le marque sur les pages de contenu.
+ */
+export function SiteHeader({ base = "", current }: { base?: string; current?: "blog" }) {
+  const blog = blogNavLink();
+  const links = [...homeNavLinks(base), ...(blog ? [blog] : [])];
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-[68px] max-w-6xl items-center justify-between gap-4 px-4 sm:px-7">
@@ -37,7 +42,8 @@ export function SiteHeader({ base = "" }: { base?: string }) {
             <a
               key={l.href}
               href={l.href}
-              className="rounded-control px-1 py-2.5 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              aria-current={current === "blog" && l.href === blog?.href ? "page" : undefined}
+              className="rounded-control px-1 py-2.5 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-[current]:font-semibold aria-[current]:text-foreground"
             >
               {l.label}
             </a>
