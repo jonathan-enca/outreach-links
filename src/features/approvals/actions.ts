@@ -1,5 +1,6 @@
 "use server";
 
+import { trackServer } from "@/features/analytics/track-server";
 import { revalidatePath } from "next/cache";
 import type { AuditActionState } from "@/features/audits/service";
 import { editReplyDraft, rejectReplyDraft, validateReplyDraft } from "@/features/inbox/service";
@@ -21,6 +22,7 @@ const refresh = () => revalidatePath("/app", "layout");
 
 export async function approveMessagesAction(ids: string[]): Promise<AuditActionState> {
   const r = await approveMessages(await createClient(), createServiceClient, ids);
+  if (r.status === "ok") await trackServer("messages_approved");
   refresh();
   return r;
 }

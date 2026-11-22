@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { destinationAfterCode } from "@/features/auth/destination";
+import { trackServer } from "@/features/analytics/track-server";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -22,6 +23,7 @@ export async function GET(request: NextRequest) {
   }
   if (!ok) return NextResponse.redirect(new URL("/connexion?erreur=1", origin));
   const recovery = type === "recovery";
+  if (!recovery) await trackServer("email_confirmed");
   const { data } = await supabase.auth.getUser();
   return NextResponse.redirect(
     new URL(recovery ? "/reinitialiser" : destinationAfterCode(data.user), origin),

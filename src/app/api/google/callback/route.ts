@@ -7,6 +7,7 @@ import { defaultMailboxDeps } from "@/features/mailboxes/service";
 import { parseKeyRing } from "@/features/mailboxes/crypto";
 import { completeSearchConsoleConnect } from "@/features/search-console/service";
 import { searchConsoleEnabled } from "@/features/search-console/load";
+import { trackServer } from "@/features/analytics/track-server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -59,6 +60,11 @@ export async function GET(req: NextRequest) {
       getServiceClient: createServiceClient,
     });
     const key = result.ok ? "ok" : result.reason;
+    if (result.ok) {
+      await trackServer("search_console_connected", {
+        depuis: state.back === "demarrer" ? "campagne" : "reglages",
+      });
+    }
     return clear(NextResponse.redirect(backSc(key, state)));
   }
   const supabase = await createClient();

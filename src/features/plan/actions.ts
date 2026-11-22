@@ -1,5 +1,6 @@
 "use server";
 
+import { trackServer } from "@/features/analytics/track-server";
 import { revalidatePath } from "next/cache";
 import type { AuditActionState } from "@/features/audits/service";
 import { createClient } from "@/lib/supabase/server";
@@ -44,6 +45,7 @@ export async function moveOpportunityAction(
 export async function validatePlanAction(auditId: string): Promise<AuditActionState> {
   if (!UUID.test(auditId)) return bad;
   const r = await validatePlan(await createClient(), auditId, createServiceClient);
+  if (r.status === "ok") await trackServer("plan_validated");
   revalidatePath(`/app/audit/${auditId}/plan`);
   return r;
 }

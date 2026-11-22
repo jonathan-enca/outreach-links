@@ -33,6 +33,7 @@ export async function signUp(
   supabase: SupabaseClient,
   input: { name: string; email: string; password: string },
   appUrl: string,
+  attribution: Record<string, string | undefined> | null = null,
 ): Promise<AuthState> {
   const parsed = z.object({ name, email, password }).safeParse({
     name: input.name,
@@ -44,7 +45,7 @@ export async function signUp(
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      data: { full_name: parsed.data.name },
+      data: { full_name: parsed.data.name, ...(attribution ? { attribution } : {}) },
       emailRedirectTo: `${appUrl}/auth/callback`,
     },
   });

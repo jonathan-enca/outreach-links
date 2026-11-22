@@ -1,6 +1,9 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { ATTRIBUTION_COOKIE, parseAttribution } from "@/features/analytics/attribution";
+import { trackServer } from "@/features/analytics/track-server";
 import { env } from "@/env";
 import { t } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/server";
@@ -23,13 +26,19 @@ function done(state: AuthState): AuthState {
 }
 
 export async function signUpAction(_prev: AuthState, fd: FormData): Promise<AuthState> {
-  return done(
-    await signUp(
-      await createClient(),
-      { name: field(fd, "name"), email: field(fd, "email"), password: field(fd, "password") },
-      cleanAppUrl(env.NEXT_PUBLIC_APP_URL),
-    ),
+  const attribution = parseAttribution((await cookies()).get(ATTRIBUTION_COOKIE)?.value);
+  const state = await signUp(
+    await createClient(),
+    { name: field(fd, "name"), email: field(fd, "email"), password: field(fd, "password") },
+    cleanAppUrl(env.NEXT_PUBLIC_APP_URL),
+    attribution,
   );
+  if (state.status === "confirm" || state.status === "ok") {
+    await trackServer("signup_completed", {
+      confirmation: state.status === "ok" ? "immediate" : "email",
+    });
+  }
+  return done(state);
 }
 
 export async function signInAction(_prev: AuthState, fd: FormData): Promise<AuthState> {

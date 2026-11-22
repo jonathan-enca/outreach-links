@@ -1,6 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/env";
+import {
+  ATTRIBUTION_COOKIE,
+  ATTRIBUTION_MAX_AGE,
+  attributionFromRequest,
+} from "@/features/analytics/attribution";
 import type { Database } from "@/lib/supabase/database.types";
 
 /** Rafraîchit la session Supabase et protège /app : sans session, redirection vers /connexion. */
@@ -33,6 +38,23 @@ export async function proxy(request: NextRequest) {
     url.pathname = "/connexion";
     url.search = "";
     return NextResponse.redirect(url);
+  }
+  // Première visite avec une source (UTM ou site d'origine) : on la garde 90 jours, sans jamais l'écraser.
+  if (!request.nextUrl.pathname.startsWith("/app") && !request.cookies.has(ATTRIBUTION_COOKIE)) {
+    const source = attributionFromRequest(
+      request.nextUrl,
+      request.headers.get("referer"),
+      request.nextUrl.hostname,
+    );
+    if (source) {
+      response.cookies.set(ATTRIBUTION_COOKIE, JSON.stringify(source), {
+        maxAge: ATTRIBUTION_MAX_AGE,
+        path: "/",
+        sameSite: "lax",
+        secure: request.nextUrl.protocol === "https:",
+        httpOnly: true,
+      });
+    }
   }
   return response;
 }
