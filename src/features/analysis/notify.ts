@@ -20,7 +20,7 @@ export interface ReadyEmail {
   headers?: Record<string, string>;
 }
 
-/** Expéditeur affiché « backleenks <noreply@…> » quand le réglage ne donne que l'adresse (pur, testé). */
+/** Expéditeur affiché « <nom du produit> <noreply@…> » quand le réglage ne donne que l'adresse (pur, testé). */
 export function senderWithName(from: string, name: string): string {
   return from.includes("<") ? from : `${name} <${from.trim()}>`;
 }

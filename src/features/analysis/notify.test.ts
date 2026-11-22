@@ -121,9 +121,9 @@ describe("diagnostic d'un refus de Resend", () => {
 
 describe("expéditeur", () => {
   it("ajoute le nom du produit quand le réglage ne donne que l'adresse", () => {
-    expect(senderWithName("noreply@backleenks.com", "backleenks")).toBe(
-      "backleenks <noreply@backleenks.com>",
+    expect(senderWithName("noreply@produit.test", "Produit")).toBe(
+      "Produit <noreply@produit.test>",
     );
-    expect(senderWithName("Équipe <a@b.fr>", "backleenks")).toBe("Équipe <a@b.fr>");
+    expect(senderWithName("Équipe <a@b.fr>", "Produit")).toBe("Équipe <a@b.fr>");
   });
 });
