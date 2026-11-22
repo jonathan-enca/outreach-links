@@ -246,6 +246,19 @@ export async function notifyReplies(ctx: NotifyCtx): Promise<number> {
 /* ---------- 2 et 3. Des messages sont à valider, et le rappel unique ---------- */
 
 /**
+ * Formulaires à remplir à la main (pur, testé). Un brouillon « formulaire » a déjà sa tâche dès sa
+ * rédaction : on compte les tâches à faire, plus les seuls brouillons qui n'en ont pas, pour ne
+ * jamais annoncer deux fois le même formulaire (constaté en production le 22/11 : 84 au lieu de 45).
+ */
+export function countForms(
+  formDrafts: readonly { plan_item_id: string }[],
+  openTasks: readonly { plan_item_id: string }[],
+): number {
+  const withTask = new Set(openTasks.map((x) => x.plan_item_id));
+  return openTasks.length + formDrafts.filter((d) => !withTask.has(d.plan_item_id)).length;
+}
+
+/**
  * Décision pour un espace (pur, testé). `last` : dernier email « à valider » (30 jours au plus).
  * Un nouvel email quand des messages sont apparus depuis, un par jour au plus ; sinon un seul rappel
  * quand les messages annoncés attendent toujours après 3 jours.
@@ -275,13 +288,13 @@ export async function notifyToValidate(ctx: NotifyCtx): Promise<number> {
   const [{ data: drafts }, { data: tasks }, sentTraces, reminders, off] = await Promise.all([
     ctx.db
       .from("target_drafts")
-      .select("id, workspace_id, plan_id, channel, generated_at, snoozed_until")
+      .select("id, workspace_id, plan_id, plan_item_id, channel, generated_at, snoozed_until")
       .eq("status", "brouillon")
       .eq("ready", true)
       .limit(5000),
     ctx.db
       .from("manual_tasks")
-      .select("id, workspace_id, status")
+      .select("id, workspace_id, plan_item_id, status")
       .not("status", "in", "(fait,ignoree)")
       .limit(5000),
     traces(ctx.db, "notify.to_validate", since),
@@ -333,8 +346,10 @@ export async function notifyToValidate(ctx: NotifyCtx): Promise<number> {
       if (ok) count++;
       continue;
     }
-    const forms =
-      rows.length - messages + (tasks ?? []).filter((x) => x.workspace_id === workspaceId).length;
+    const forms = countForms(
+      rows.filter((r) => r.channel === "formulaire"),
+      (tasks ?? []).filter((x) => x.workspace_id === workspaceId),
+    );
     const windows = (boxes ?? [])
       .filter((b) => b.workspace_id === workspaceId && !b.sending_paused)
       .map((b) => ({
@@ -749,13 +764,13 @@ export async function notifyWeekly(ctx: NotifyCtx): Promise<number> {
       .limit(5000),
     ctx.db
       .from("target_drafts")
-      .select("workspace_id, channel")
+      .select("workspace_id, plan_item_id, channel")
       .eq("status", "brouillon")
       .eq("ready", true)
       .limit(5000),
     ctx.db
       .from("manual_tasks")
-      .select("workspace_id")
+      .select("workspace_id, plan_item_id")
       .not("status", "in", "(fait,ignoree)")
       .limit(5000),
     traces(ctx.db, "notify.weekly", iso(ctx, 6 * DAY)),
@@ -787,14 +802,17 @@ export async function notifyWeekly(ctx: NotifyCtx): Promise<number> {
       links: linksBySite.get(s.id)?.length ?? 0,
     }));
     const wsDrafts = (drafts ?? []).filter((d) => d.workspace_id === workspaceId);
-    const forms = wsDrafts.filter((d) => d.channel === "formulaire").length;
+    const formDrafts = wsDrafts.filter((d) => d.channel === "formulaire");
     const summary = {
       sites: perSite,
       newLinks: wsSites.flatMap((s) => (linksBySite.get(s.id) ?? []).map((l) => l.source_domain)),
       todo: {
         replies: count(replyDrafts, workspaceId),
-        messages: wsDrafts.length - forms,
-        forms: forms + count(tasks, workspaceId),
+        messages: wsDrafts.length - formDrafts.length,
+        forms: countForms(
+          formDrafts,
+          (tasks ?? []).filter((x) => x.workspace_id === workspaceId),
+        ),
       },
     };
     if (!weekHasNews(summary)) continue;
@@ -852,6 +870,8 @@ export async function notifyMonthly(ctx: NotifyCtx): Promise<number> {
   );
   const within = (d: string | null) => d !== null && d >= from && d < to;
   let count = 0;
+  // Seulement les comptes qui ont au moins un site : un inscrit qui n'a jamais commencé ne reçoit
+  // pas de bilan (décision de Jonathan, 22/11/2026).
   for (const workspaceId of uniq((sites ?? []).map((s) => s.workspace_id))) {
     if (off.has(workspaceId) || told.has(workspaceId)) continue;
     const mine = <T extends { workspace_id: string }>(rows: readonly T[] | null) =>
